@@ -1,0 +1,769 @@
+<!-- =========================================================
+ WEBBOUND V56
+ ADVANCED MOVEMENT + WALL RUN + AIR DASH
+ ========================================================= -->
+
+<style>
+#v56MoveHud{
+position:fixed;
+z-index:55;
+right:10px;
+bottom:10px;
+padding:9px 12px;
+background:#000c;
+color:white;
+border-radius:12px;
+font:11px Arial;
+}
+</style>
+
+<div id="v56MoveHud">
+🏃 <b id="v56MoveState">GROUND</b><br>
+⚡ Dash: <b id="v56Dash">READY</b>
+</div>
+
+<script>
+
+/* =========================================================
+ V56 MOVEMENT STATE
+ ========================================================= */
+
+const V56={
+
+wallRunning:false,
+
+wallSide:0,
+
+wallNormal:new THREE.Vector3(),
+
+airDashReady:true,
+
+dashCooldown:0,
+
+dashPower:24,
+
+wallSpeed:13,
+
+wallJumpPower:14,
+
+gravityNormal:30,
+
+gravityWall:5
+
+};
+
+
+/* =========================================================
+ WALL DETECTION
+ ========================================================= */
+
+function v56FindWall(){
+
+const directions=[
+
+new THREE.Vector3(1,0,0),
+new THREE.Vector3(-1,0,0),
+new THREE.Vector3(0,0,1),
+new THREE.Vector3(0,0,-1)
+
+];
+
+for(const dir of directions){
+
+const origin=
+player.position.clone();
+
+origin.y+=1.2;
+
+const ray=
+new THREE.Raycaster(
+origin,
+dir,
+0,
+1.8
+);
+
+const hits=
+ray.intersectObjects(
+buildings,
+false
+);
+
+if(hits.length){
+
+return{
+normal:hits[0].face?
+hits[0].face.normal.clone():
+dir.clone().negate(),
+distance:hits[0].distance
+};
+
+}
+
+}
+
+return null;
+
+}
+
+
+/* =========================================================
+ START WALL RUN
+ ========================================================= */
+
+function v56CheckWallRun(){
+
+if(grounded){
+
+V56.wallRunning=false;
+return;
+
+}
+
+const wall=
+v56FindWall();
+
+if(!wall){
+
+V56.wallRunning=false;
+return;
+
+}
+
+if(
+input.length()>0
+){
+
+V56.wallRunning=true;
+
+V56.wallNormal.copy(
+wall.normal
+);
+
+}
+
+}
+
+
+/* =========================================================
+ WALL RUN
+ ========================================================= */
+
+function v56UpdateWallRun(dt){
+
+if(!V56.wallRunning)
+return;
+
+
+/* keep player moving upward/slightly forward */
+
+velocity.y=
+Math.max(
+velocity.y,
+2
+);
+
+
+/* reduce gravity */
+
+velocity.y-=
+V56.gravityWall*dt;
+
+
+/* push away from wall */
+
+velocity.addScaledVector(
+V56.wallNormal,
+4*dt
+);
+
+
+/* forward movement */
+
+const forward=
+new THREE.Vector3(
+input.x,
+0,
+input.z
+);
+
+if(forward.length()){
+
+forward.normalize();
+
+velocity.addScaledVector(
+forward,
+V56.wallSpeed*dt*2
+);
+
+}
+
+}
+
+
+/* =========================================================
+ WALL JUMP
+ ========================================================= */
+
+function v56WallJump(){
+
+if(!V56.wallRunning)
+return;
+
+velocity.y=
+V56.wallJumpPower;
+
+velocity.x=
+V56.wallNormal.x*
+V56.wallJumpPower;
+
+velocity.z=
+V56.wallNormal.z*
+V56.wallJumpPower;
+
+V56.wallRunning=false;
+
+grounded=false;
+
+showMessage(
+"🧗 WALL JUMP!"
+);
+
+}
+
+
+/* =========================================================
+ AIR DASH
+ ========================================================= */
+
+function v56AirDash(){
+
+if(
+grounded ||
+!V56.airDashReady ||
+V56.dashCooldown>0
+){
+
+return;
+
+}
+
+let direction=
+new THREE.Vector3(
+input.x,
+0,
+input.z
+);
+
+if(
+direction.length()<.1
+){
+
+direction.set(
+0,
+0,
+-1
+).applyQuaternion(
+camera.quaternion
+);
+
+direction.y=0;
+
+}
+
+direction.normalize();
+
+
+velocity.copy(
+direction.multiplyScalar(
+V56.dashPower
+));
+
+V56.airDashReady=false;
+
+V56.dashCooldown=1.2;
+
+showMessage(
+"⚡ AIR DASH!"
+);
+
+}
+
+
+/* =========================================================
+ RESET AIR DASH
+ ========================================================= */
+
+function v56ResetDash(){
+
+if(grounded){
+
+V56.airDashReady=true;
+
+}
+
+}
+
+
+/* =========================================================
+ DASH COOLDOWN
+ ========================================================= */
+
+function v56UpdateCooldown(dt){
+
+if(
+V56.dashCooldown>0
+){
+
+V56.dashCooldown=
+Math.max(
+0,
+V56.dashCooldown-dt
+);
+
+}
+
+}
+
+
+/* =========================================================
+ MOVEMENT HUD
+ ========================================================= */
+
+function v56UpdateHUD(){
+
+const state=
+document.getElementById(
+"v56MoveState"
+);
+
+const dash=
+document.getElementById(
+"v56Dash"
+);
+
+if(V56.wallRunning){
+
+state.textContent=
+"WALL RUN";
+
+}else if(!grounded){
+
+state.textContent=
+"AIR";
+
+}else{
+
+state.textContent=
+"GROUND";
+
+}
+
+dash.textContent=
+V56.airDashReady?
+"READY":
+V56.dashCooldown.toFixed(1)+"s";
+
+}
+
+
+/* =========================================================
+ REPLACE JUMP FUNCTION
+ ========================================================= */
+
+const v56OldJump=
+typeof jump==="function"
+?
+jump
+:
+null;
+
+window.jump=function(){
+
+if(V56.wallRunning){
+
+v56WallJump();
+
+return;
+
+}
+
+if(grounded){
+
+velocity.y=15;
+
+grounded=false;
+
+doubleJump=true;
+
+return;
+
+}
+
+if(doubleJump){
+
+velocity.y=13;
+
+doubleJump=false;
+
+return;
+
+}
+
+};
+
+
+/* =========================================================
+ REPLACE MOVEMENT UPDATE
+ ========================================================= */
+
+const v56OldMovement=
+typeof updateMovement==="function"
+?
+updateMovement
+:
+null;
+
+
+/*
+Use this V56 movement system instead
+of the old movement function.
+*/
+
+window.v56Movement=function(dt){
+
+input.set(0,0,0);
+
+if(keys.KeyW)
+input.z-=1;
+
+if(keys.KeyS)
+input.z+=1;
+
+if(keys.KeyA)
+input.x-=1;
+
+if(keys.KeyD)
+input.x+=1;
+
+if(input.length())
+input.normalize();
+
+
+/* movement speed */
+
+const baseSpeed=
+typeof v55GetMoveSpeed==="function"
+?
+v55GetMoveSpeed()
+:
+9;
+
+const speed=
+baseSpeed;
+
+
+/* acceleration */
+
+velocity.x+=
+input.x*
+speed*
+dt*
+5;
+
+velocity.z+=
+input.z*
+speed*
+dt*
+5;
+
+
+/* friction */
+
+velocity.x*=.91;
+velocity.z*=.91;
+
+
+/* wall detection */
+
+v56CheckWallRun();
+
+if(V56.wallRunning){
+
+v56UpdateWallRun(dt);
+
+}else{
+
+if(!grounded){
+
+velocity.y-=
+V56.gravityNormal*dt;
+
+}
+
+}
+
+
+/* position */
+
+player.position.addScaledVector(
+velocity,
+dt
+);
+
+
+/* ground */
+
+if(
+player.position.y<=1.1
+){
+
+player.position.y=1.1;
+
+velocity.y=0;
+
+grounded=true;
+
+doubleJump=true;
+
+}else{
+
+grounded=false;
+
+}
+
+
+/* dash */
+
+v56ResetDash();
+
+};
+
+
+/* =========================================================
+ WEB SWING BOOST
+ ========================================================= */
+
+function v56SwingBoost(){
+
+if(!swinging)
+return;
+
+if(energy<10){
+
+showMessage(
+"🕸️ NOT ENOUGH ENERGY"
+);
+
+return;
+
+}
+
+energy-=10;
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+anchor,
+player.position
+)
+.normalize();
+
+velocity.addScaledVector(
+direction,
+18
+);
+
+showMessage(
+"🕸️ SWING BOOST!"
+);
+
+}
+
+
+/* =========================================================
+ MOBILE BUTTONS
+ ========================================================= */
+
+const dashButton=
+document.createElement("button");
+
+dashButton.textContent=
+"⚡ DASH";
+
+dashButton.style.position="fixed";
+dashButton.style.right="10px";
+dashButton.style.bottom="235px";
+dashButton.style.zIndex="85";
+dashButton.style.padding="12px";
+dashButton.style.color="white";
+dashButton.style.background="#000d";
+dashButton.style.border="1px solid #ffffff40";
+dashButton.style.borderRadius="12px";
+
+document.body.appendChild(
+dashButton
+);
+
+dashButton.onclick=
+v56AirDash;
+
+
+const boostButton=
+document.createElement("button");
+
+boostButton.textContent=
+"🕸️ BOOST";
+
+boostButton.style.position="fixed";
+boostButton.style.right="10px";
+boostButton.style.bottom="290px";
+boostButton.style.zIndex="85";
+boostButton.style.padding="12px";
+boostButton.style.color="white";
+boostButton.style.background="#000d";
+boostButton.style.border="1px solid #ffffff40";
+boostButton.style.borderRadius="12px";
+
+document.body.appendChild(
+boostButton
+);
+
+boostButton.onclick=
+v56SwingBoost;
+
+
+/* =========================================================
+ TOUCH SUPPORT
+ ========================================================= */
+
+dashButton.addEventListener(
+"touchstart",
+e=>{
+
+e.preventDefault();
+
+v56AirDash();
+
+},
+{passive:false}
+);
+
+boostButton.addEventListener(
+"touchstart",
+e=>{
+
+e.preventDefault();
+
+v56SwingBoost();
+
+},
+{passive:false}
+);
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+addEventListener(
+"keydown",
+e=>{
+
+if(e.code==="ShiftLeft")
+v56AirDash();
+
+if(e.code==="KeyC")
+v56SwingBoost();
+
+if(
+e.code==="Space" &&
+V56.wallRunning
+){
+
+v56WallJump();
+
+}
+
+});
+
+
+/* =========================================================
+ SAVE
+ ========================================================= */
+
+setInterval(()=>{
+
+try{
+
+localStorage.setItem(
+"WEBBOUND_V56",
+JSON.stringify({
+
+airDashReady:
+V56.airDashReady
+
+})
+);
+
+}catch(e){}
+
+},10000);
+
+
+/* =========================================================
+ LOAD
+ ========================================================= */
+
+try{
+
+const save=
+localStorage.getItem(
+"WEBBOUND_V56"
+);
+
+if(save){
+
+const data=
+JSON.parse(save);
+
+if(
+typeof data.airDashReady===
+"boolean"
+){
+
+V56.airDashReady=
+data.airDashReady;
+
+}
+
+}
+
+}catch(e){}
+
+
+/* =========================================================
+ V56 LOOP HOOK
+ ========================================================= */
+
+/*
+Inside your MAIN LOOP add:
+
+v56Movement(dt);
+v56UpdateCooldown(dt);
+v56UpdateHUD();
+
+IMPORTANT:
+Remove/disable the old:
+
+updateMovement(dt);
+
+so the player isn't moved twice.
+*/
+
+
+console.log(
+"WEBBOUND V56 ADVANCED MOVEMENT READY"
+);
+
+</script>
