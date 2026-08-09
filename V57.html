@@ -1,0 +1,1063 @@
+<!-- =========================================================
+ WEBBOUND V57
+ VEHICLES + GARAGE + VEHICLE MISSIONS
+ ========================================================= -->
+
+<style>
+#v57VehicleHud{
+position:fixed;
+z-index:70;
+left:10px;
+top:300px;
+width:230px;
+padding:11px;
+background:#000c;
+color:white;
+border-radius:13px;
+font:11px Arial;
+display:none;
+}
+
+#v57Garage{
+position:fixed;
+z-index:100;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%);
+width:min(420px,90%);
+display:none;
+padding:18px;
+background:#05070ef5;
+color:white;
+border:1px solid #ffffff35;
+border-radius:18px;
+font-family:Arial;
+text-align:center;
+}
+
+#v57Garage button{
+padding:10px 15px;
+margin:5px;
+color:white;
+background:#111a24;
+border:1px solid #ffffff35;
+border-radius:10px;
+}
+</style>
+
+
+<!-- ================= VEHICLE HUD ================= -->
+
+<div id="v57VehicleHud">
+
+🚗 <b id="v57VehicleName">
+CITY CAR
+</b>
+
+<br>
+
+❤️ Vehicle HP:
+<b id="v57VehicleHP">
+100
+</b>
+
+<br>
+
+⚡ Speed:
+<b id="v57Speed">
+0
+</b>
+
+<br>
+
+⛽ Energy:
+<b id="v57Fuel">
+100
+</b>
+
+<br>
+
+🎮 Press E to exit
+
+</div>
+
+
+<!-- ================= GARAGE ================= -->
+
+<div id="v57Garage">
+
+<h2>🚘 GARAGE</h2>
+
+<p>
+Choose your vehicle
+</p>
+
+<button onclick="v57SpawnVehicle('car')">
+🚗 CITY CAR
+</button>
+
+<button onclick="v57SpawnVehicle('sport')">
+🏎️ SPORT CAR
+</button>
+
+<button onclick="v57SpawnVehicle('bike')">
+🏍️ BIKE
+</button>
+
+<br>
+
+<button onclick="v57CloseGarage()">
+CLOSE
+</button>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+ V57 STATE
+ ========================================================= */
+
+const V57={
+
+vehicle:null,
+
+type:null,
+
+speed:0,
+
+maxSpeed:0,
+
+acceleration:0,
+
+fuel:100,
+
+health:100,
+
+driving:false,
+
+garageOpen:false,
+
+vehicleMission:null,
+
+missionProgress:0
+
+};
+
+
+/* =========================================================
+ VEHICLE CONFIG
+ ========================================================= */
+
+const V57Vehicles={
+
+car:{
+name:"CITY CAR",
+color:0x2266aa,
+maxSpeed:24,
+acceleration:12,
+fuel:100,
+health:100,
+scale:1
+},
+
+sport:{
+name:"SPORT CAR",
+color:0xaa2222,
+maxSpeed:38,
+acceleration:18,
+fuel:120,
+health:130,
+scale:1.05
+},
+
+bike:{
+name:"BIKE",
+color:0x333333,
+maxSpeed:31,
+acceleration:20,
+fuel:80,
+health:70,
+scale:.7
+}
+
+};
+
+
+/* =========================================================
+ CREATE VEHICLE
+ ========================================================= */
+
+function v57CreateVehicle(type){
+
+const data=
+V57Vehicles[type];
+
+const vehicle=
+new THREE.Group();
+
+
+/* body */
+
+const body=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+4,
+1.2,
+7
+),
+
+new THREE.MeshStandardMaterial({
+color:data.color
+})
+
+);
+
+body.position.y=1;
+
+vehicle.add(body);
+
+
+/* roof */
+
+if(type!=="bike"){
+
+const roof=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+3.2,
+1,
+3
+),
+
+new THREE.MeshStandardMaterial({
+color:0x111820
+})
+
+);
+
+roof.position.y=2;
+
+vehicle.add(roof);
+
+}
+
+
+/* wheels */
+
+if(type!=="bike"){
+
+for(
+const x of[-1.8,1.8]
+){
+
+for(
+const z of[-2.2,2.2]
+){
+
+const wheel=
+new THREE.Mesh(
+
+new THREE.CylinderGeometry(
+.65,
+.65,
+.45,
+12
+),
+
+new THREE.MeshStandardMaterial({
+color:0x080808
+})
+
+);
+
+wheel.rotation.z=
+Math.PI/2;
+
+wheel.position.set(
+x,
+.65,
+z
+);
+
+vehicle.add(wheel);
+
+}
+
+}
+
+}else{
+
+const wheel1=
+new THREE.Mesh(
+
+new THREE.CylinderGeometry(
+.45,
+.45,
+.3,
+12
+),
+
+new THREE.MeshStandardMaterial({
+color:0x080808
+})
+
+);
+
+wheel1.rotation.z=
+Math.PI/2;
+
+wheel1.position.set(
+0,
+.6,
+-1.3
+);
+
+vehicle.add(wheel1);
+
+
+const wheel2=
+wheel1.clone();
+
+wheel2.position.z=1.3;
+
+vehicle.add(wheel2);
+
+}
+
+
+/* position */
+
+vehicle.position.copy(
+player.position
+);
+
+vehicle.position.y=.1;
+
+
+/* data */
+
+vehicle.userData={
+
+type:type,
+
+name:data.name,
+
+maxSpeed:data.maxSpeed,
+
+acceleration:data.acceleration,
+
+health:data.health,
+
+maxHealth:data.health,
+
+fuel:data.fuel,
+
+maxFuel:data.fuel
+
+};
+
+scene.add(vehicle);
+
+return vehicle;
+
+}
+
+
+/* =========================================================
+ SPAWN VEHICLE
+ ========================================================= */
+
+function v57SpawnVehicle(type){
+
+if(V57.vehicle){
+
+scene.remove(
+V57.vehicle
+);
+
+V57.vehicle=null;
+
+}
+
+const vehicle=
+v57CreateVehicle(type);
+
+V57.vehicle=vehicle;
+
+V57.type=type;
+
+V57.speed=0;
+
+V57.driving=false;
+
+V57.fuel=
+vehicle.userData.maxFuel;
+
+V57.health=
+vehicle.userData.maxHealth;
+
+v57CloseGarage();
+
+showMessage(
+"🚘 "+vehicle.userData.name+
+" READY"
+);
+
+}
+
+
+/* =========================================================
+ OPEN GARAGE
+ ========================================================= */
+
+function v57OpenGarage(){
+
+document.getElementById(
+"v57Garage"
+).style.display=
+"block";
+
+V57.garageOpen=true;
+
+}
+
+
+/* =========================================================
+ CLOSE GARAGE
+ ========================================================= */
+
+function v57CloseGarage(){
+
+document.getElementById(
+"v57Garage"
+).style.display=
+"none";
+
+V57.garageOpen=false;
+
+}
+
+
+/* =========================================================
+ ENTER VEHICLE
+ ========================================================= */
+
+function v57EnterVehicle(){
+
+if(!V57.vehicle){
+
+showMessage(
+"No vehicle available."
+);
+
+return;
+
+}
+
+if(
+V57.vehicle.position.distanceTo(
+player.position
+)>8
+){
+
+showMessage(
+"Move closer to the vehicle."
+);
+
+return;
+
+}
+
+V57.driving=true;
+
+document.getElementById(
+"v57VehicleHud"
+).style.display=
+"block";
+
+showMessage(
+"🚗 VEHICLE ENTERED"
+);
+
+}
+
+
+/* =========================================================
+ EXIT VEHICLE
+ ========================================================= */
+
+function v57ExitVehicle(){
+
+if(!V57.driving)
+return;
+
+V57.driving=false;
+
+V57.speed=0;
+
+player.position.copy(
+V57.vehicle.position
+);
+
+player.position.x+=6;
+
+showMessage(
+"🚶 VEHICLE EXITED"
+);
+
+}
+
+
+/* =========================================================
+ VEHICLE MOVEMENT
+ ========================================================= */
+
+function v57UpdateVehicle(dt){
+
+if(!V57.vehicle)
+return;
+
+if(!V57.driving)
+return;
+
+const vehicle=
+V57.vehicle;
+
+const data=
+vehicle.userData;
+
+
+/* fuel */
+
+V57.fuel=
+Math.max(
+0,
+V57.fuel-
+Math.abs(V57.speed)*dt*.015
+);
+
+if(V57.fuel<=0){
+
+V57.speed=0;
+
+showMessage(
+"⛽ OUT OF FUEL"
+);
+
+}
+
+
+/* acceleration */
+
+let throttle=0;
+
+if(keys.KeyW)
+throttle+=1;
+
+if(keys.KeyS)
+throttle-=1;
+
+
+/* accelerate */
+
+V57.speed+=
+throttle*
+data.acceleration*
+dt;
+
+
+/* friction */
+
+if(!throttle){
+
+V57.speed*=.94;
+
+}
+
+
+/* reverse limit */
+
+V57.speed=
+Math.max(
+-data.maxSpeed*.35,
+Math.min(
+data.maxSpeed,
+V57.speed
+)
+);
+
+
+/* steering */
+
+let steering=0;
+
+if(keys.KeyA)
+steering+=1;
+
+if(keys.KeyD)
+steering-=1;
+
+vehicle.rotation.y+=
+steering*
+Math.min(
+Math.abs(V57.speed)/15,
+1
+)*
+1.8*
+dt;
+
+
+/* forward direction */
+
+const forward=
+new THREE.Vector3(
+0,
+0,
+-1
+);
+
+forward.applyQuaternion(
+vehicle.quaternion
+);
+
+vehicle.position.addScaledVector(
+forward,
+V57.speed*dt
+);
+
+
+/* keep player with vehicle */
+
+player.position.copy(
+vehicle.position
+);
+
+player.position.y+=1;
+
+
+/* vehicle collision */
+
+v57CheckVehicleCollision();
+
+
+/* update */
+
+V57.health=
+vehicle.userData.health;
+
+document.getElementById(
+"v57VehicleHP"
+).textContent=
+Math.floor(V57.health);
+
+document.getElementById(
+"v57Speed"
+).textContent=
+Math.floor(
+Math.abs(V57.speed)*4
+);
+
+document.getElementById(
+"v57Fuel"
+).textContent=
+Math.floor(V57.fuel);
+
+}
+
+
+/* =========================================================
+ VEHICLE COLLISION
+ ========================================================= */
+
+function v57CheckVehicleCollision(){
+
+const vehicle=
+V57.vehicle;
+
+for(
+const building of buildings
+){
+
+const distance=
+vehicle.position.distanceTo(
+building.position
+);
+
+if(distance<32){
+
+V57.health-=
+Math.abs(V57.speed)*.7;
+
+V57.speed*=-.25;
+
+showMessage(
+"💥 VEHICLE DAMAGE"
+);
+
+if(V57.health<=0){
+
+v57DestroyVehicle();
+
+}
+
+}
+
+}
+
+}
+
+
+/* =========================================================
+ DESTROY VEHICLE
+ ========================================================= */
+
+function v57DestroyVehicle(){
+
+V57.speed=0;
+
+V57.driving=false;
+
+showMessage(
+"🚗 VEHICLE DISABLED"
+);
+
+setTimeout(()=>{
+
+if(V57.vehicle){
+
+V57.vehicle.userData.health=
+V57.vehicle.userData.maxHealth;
+
+V57.health=
+V57.vehicle.userData.maxHealth;
+
+V57.fuel=
+V57.vehicle.userData.maxFuel;
+
+showMessage(
+"🔧 VEHICLE REPAIRED"
+);
+
+}
+
+},3000);
+
+}
+
+
+/* =========================================================
+ VEHICLE MISSION
+ ========================================================= */
+
+function v57StartMission(){
+
+V57.vehicleMission={
+
+name:"CITY DELIVERY",
+
+target:new THREE.Vector3(
+500,
+1,
+-450
+),
+
+reward:1800,
+
+xp:600
+
+};
+
+V57.missionProgress=0;
+
+showMessage(
+"🚚 VEHICLE MISSION STARTED"
+);
+
+}
+
+
+/* =========================================================
+ UPDATE VEHICLE MISSION
+ ========================================================= */
+
+function v57UpdateMission(){
+
+const mission=
+V57.vehicleMission;
+
+if(
+!mission ||
+!V57.driving
+)
+return;
+
+const distance=
+Math.hypot(
+V57.vehicle.position.x-
+mission.target.x,
+V57.vehicle.position.z-
+mission.target.z
+);
+
+V57.missionProgress=
+Math.max(
+0,
+100-
+distance/5
+);
+
+if(distance<30){
+
+score+=mission.reward;
+
+addXP(mission.xp);
+
+V57.vehicleMission=null;
+
+showMessage(
+"🏆 DELIVERY COMPLETE +"+
+mission.reward
+);
+
+}
+
+}
+
+
+/* =========================================================
+ GARAGE NPC
+ ========================================================= */
+
+const garageMarker=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+10,
+.2,
+10
+),
+
+new THREE.MeshStandardMaterial({
+color:0x225522
+})
+
+);
+
+garageMarker.position.set(
+-300,
+.1,
+-300
+);
+
+scene.add(
+garageMarker
+);
+
+
+/* =========================================================
+ GARAGE DETECTION
+ ========================================================= */
+
+setInterval(()=>{
+
+if(
+V57.driving
+)
+return;
+
+const distance=
+player.position.distanceTo(
+garageMarker.position
+);
+
+if(distance<18){
+
+v57OpenGarage();
+
+}
+
+},500);
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+addEventListener(
+"keydown",
+e=>{
+
+if(e.code==="KeyE"){
+
+if(V57.driving){
+
+v57ExitVehicle();
+
+}else{
+
+v57EnterVehicle();
+
+}
+
+}
+
+if(
+e.code==="KeyG" &&
+!V57.driving
+){
+
+v57OpenGarage();
+
+}
+
+if(
+e.code==="KeyV"
+){
+
+v57StartMission();
+
+}
+
+});
+
+
+/* =========================================================
+ MOBILE ENTER
+ ========================================================= */
+
+if(
+typeof enterButton!=="undefined" &&
+enterButton
+){
+
+enterButton.addEventListener(
+"touchstart",
+e=>{
+
+e.preventDefault();
+
+if(V57.driving){
+
+v57ExitVehicle();
+
+}else{
+
+v57EnterVehicle();
+
+}
+
+},
+{passive:false}
+);
+
+}
+
+
+/* =========================================================
+ MOBILE GARAGE BUTTON
+ ========================================================= */
+
+const garageButton=
+document.createElement("button");
+
+garageButton.textContent=
+"🚘 GARAGE";
+
+garageButton.style.position="fixed";
+garageButton.style.right="10px";
+garageButton.style.bottom="345px";
+garageButton.style.zIndex="85";
+garageButton.style.padding="12px";
+garageButton.style.color="white";
+garageButton.style.background="#000d";
+garageButton.style.border="1px solid #ffffff40";
+garageButton.style.borderRadius="12px";
+
+document.body.appendChild(
+garageButton
+);
+
+garageButton.onclick=
+v57OpenGarage;
+
+
+/* =========================================================
+ MOBILE VEHICLE MISSION
+ ========================================================= */
+
+const vehicleMissionButton=
+document.createElement("button");
+
+vehicleMissionButton.textContent=
+"🚚 DELIVERY";
+
+vehicleMissionButton.style.position="fixed";
+vehicleMissionButton.style.right="10px";
+vehicleMissionButton.style.bottom="400px";
+vehicleMissionButton.style.zIndex="85";
+vehicleMissionButton.style.padding="12px";
+vehicleMissionButton.style.color="white";
+vehicleMissionButton.style.background="#000d";
+vehicleMissionButton.style.border="1px solid #ffffff40";
+vehicleMissionButton.style.borderRadius="12px";
+
+document.body.appendChild(
+vehicleMissionButton
+);
+
+vehicleMissionButton.onclick=
+v57StartMission;
+
+
+/* =========================================================
+ SAVE
+ ========================================================= */
+
+setInterval(()=>{
+
+try{
+
+localStorage.setItem(
+"WEBBOUND_V57",
+JSON.stringify({
+
+type:V57.type,
+
+fuel:V57.fuel,
+
+health:V57.health
+
+})
+);
+
+}catch(e){}
+
+},10000);
+
+
+/* =========================================================
+ V57 LOOP HOOK
+ ========================================================= */
+
+/*
+Add these lines inside your main loop():
+
+v57UpdateVehicle(dt);
+v57UpdateMission();
+
+IMPORTANT:
+When V57.driving is true,
+don't run the normal player movement
+at the same time.
+*/
+
+
+console.log(
+"WEBBOUND V57 VEHICLE SYSTEM READY"
+);
+
+</script>
