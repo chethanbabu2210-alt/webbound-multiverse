@@ -1,0 +1,1223 @@
+<!-- =========================================================
+ WEBBOUND V53
+ STORY + CHAPTER + DIALOGUE + CUTSCENE SYSTEM
+
+ IMPORTANT:
+ This is a V53 patch for your V52 project.
+ Keep your V52 code and add this before </body>.
+ ========================================================= -->
+
+
+<!-- ================= V53 STORY HUD ================= -->
+
+<div id="storyHud" style="
+position:fixed;
+z-index:70;
+left:50%;
+bottom:105px;
+transform:translateX(-50%);
+width:min(650px,92%);
+display:none;
+color:white;
+background:#05070ddd;
+border:1px solid #ffffff35;
+border-radius:18px;
+padding:18px;
+font-family:Arial;
+box-shadow:0 10px 35px #000;
+">
+
+<div style="
+font-size:12px;
+color:#63dcff;
+font-weight:bold;
+margin-bottom:5px;
+">
+<span id="storyChapter">CHAPTER 1</span>
+</div>
+
+<div style="
+font-size:19px;
+font-weight:800;
+margin-bottom:8px;
+">
+<span id="storySpeaker">UNKNOWN</span>
+</div>
+
+<div id="storyText"
+style="
+font-size:14px;
+line-height:1.5;
+min-height:42px;
+">
+...
+</div>
+
+<button id="storyNext"
+style="
+margin-top:12px;
+padding:10px 18px;
+">
+NEXT ▶
+</button>
+
+</div>
+
+
+<!-- ================= MISSION TRACKER ================= -->
+
+<div id="missionTracker" style="
+position:fixed;
+z-index:60;
+left:10px;
+bottom:10px;
+width:270px;
+color:white;
+background:#000c;
+padding:12px;
+border-radius:14px;
+font-family:Arial;
+font-size:11px;
+display:none;
+">
+
+<div style="
+font-size:13px;
+font-weight:bold;
+color:#ffd34d;
+">
+📖 STORY MISSION
+</div>
+
+<div id="storyMissionName">
+Loading...
+</div>
+
+<div style="
+height:7px;
+background:#222;
+margin-top:7px;
+border-radius:8px;
+overflow:hidden;
+">
+
+<div id="storyMissionBar"
+style="
+height:100%;
+width:0%;
+background:#63dcff;
+">
+</div>
+
+</div>
+
+<div id="storyMissionProgress"
+style="
+margin-top:5px;
+color:#aaa;
+">
+0 / 1
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+ V53 STORY ENGINE
+ ========================================================= */
+
+const V53 = {
+
+ chapter: 1,
+
+ mission: 0,
+
+ dialogueOpen: false,
+
+ dialogueIndex: 0,
+
+ objectiveComplete: false,
+
+ completed: [],
+
+ scenes: [],
+
+ initialized: false
+
+};
+
+
+/* =========================================================
+ STORY DATA
+ ========================================================= */
+
+const storyChapters = [
+
+{
+
+chapter:1,
+
+title:"THE AWAKENING",
+
+missions:[
+
+{
+
+name:"Explore the City",
+
+type:"reach",
+
+target:[300,-250],
+
+reward:500,
+
+xp:200,
+
+dialogue:[
+
+[
+"UNKNOWN",
+"The city has changed."
+],
+
+[
+"UNKNOWN",
+"Something is happening in the streets."
+],
+
+[
+"SPIDER",
+"Then I'll find out what it is."
+]
+
+]
+
+},
+
+{
+
+name:"Stop the Street Threat",
+
+type:"defeat",
+
+required:3,
+
+reward:900,
+
+xp:350,
+
+dialogue:[
+
+[
+"SPIDER",
+"Three enemies down."
+],
+
+[
+"UNKNOWN",
+"That was only the beginning."
+],
+
+[
+"SPIDER",
+"Who are you?"
+]
+
+]
+
+}
+
+]
+
+},
+
+{
+
+chapter:2,
+
+title:"SHADOWS IN THE CITY",
+
+missions:[
+
+{
+
+name:"Investigate the Rooftops",
+
+type:"reach",
+
+target:[-450,300],
+
+reward:1200,
+
+xp:500,
+
+dialogue:[
+
+[
+"UNKNOWN",
+"You are getting closer."
+],
+
+[
+"SPIDER",
+"Show yourself."
+],
+
+[
+"UNKNOWN",
+"Not yet."
+]
+
+]
+
+},
+
+{
+
+name:"Defeat the Shadow Squad",
+
+type:"defeat",
+
+required:5,
+
+reward:1600,
+
+xp:700,
+
+dialogue:[
+
+[
+"SPIDER",
+"They are stronger than before."
+],
+
+[
+"UNKNOWN",
+"Because you are finally becoming a threat."
+]
+
+]
+
+}
+
+]
+
+},
+
+{
+
+chapter:3,
+
+title:"THE HIDDEN ENEMY",
+
+missions:[
+
+{
+
+name:"Find the Hidden Base",
+
+type:"reach",
+
+target:[600,-400],
+
+reward:2000,
+
+xp:900,
+
+dialogue:[
+
+[
+"SPIDER",
+"This place is abandoned."
+],
+
+[
+"UNKNOWN",
+"Look closer."
+]
+
+]
+
+},
+
+{
+
+name:"Defeat the City Boss",
+
+type:"boss",
+
+reward:3500,
+
+xp:1800,
+
+dialogue:[
+
+[
+"SPIDER",
+"So you're the one behind all this."
+],
+
+[
+"BOSS",
+"You were never supposed to reach me."
+],
+
+[
+"SPIDER",
+"Then you should have hidden better."
+]
+
+]
+
+}
+
+]
+
+}
+
+];
+
+
+/* =========================================================
+ GET CURRENT MISSION
+ ========================================================= */
+
+function v53CurrentChapter(){
+
+return storyChapters[
+Math.min(
+V53.chapter-1,
+storyChapters.length-1
+)
+];
+
+}
+
+
+function v53CurrentMission(){
+
+const chapter=
+v53CurrentChapter();
+
+return chapter.missions[
+Math.min(
+V53.mission,
+chapter.missions.length-1
+)
+];
+
+}
+
+
+/* =========================================================
+ STORY HUD
+ ========================================================= */
+
+function v53UpdateHUD(){
+
+const chapter=
+v53CurrentChapter();
+
+const mission=
+v53CurrentMission();
+
+if(!mission)
+return;
+
+document.getElementById(
+"storyChapter"
+).textContent=
+"CHAPTER "+
+chapter.chapter+
+" — "+
+chapter.title;
+
+document.getElementById(
+"storyMissionName"
+).textContent=
+mission.name;
+
+document.getElementById(
+"missionTracker"
+).style.display=
+"block";
+
+}
+
+
+/* =========================================================
+ DIALOGUE
+ ========================================================= */
+
+function v53StartDialogue(lines){
+
+if(!lines||!lines.length)
+return;
+
+V53.dialogueOpen=true;
+
+V53.dialogueIndex=0;
+
+V53.dialogueLines=lines;
+
+document.getElementById(
+"storyHud"
+).style.display=
+"block";
+
+v53ShowDialogue();
+
+}
+
+
+function v53ShowDialogue(){
+
+if(
+V53.dialogueIndex>=
+V53.dialogueLines.length
+){
+
+v53CloseDialogue();
+
+return;
+
+}
+
+const line=
+V53.dialogueLines[
+V53.dialogueIndex
+];
+
+document.getElementById(
+"storySpeaker"
+).textContent=
+line[0];
+
+document.getElementById(
+"storyText"
+).textContent=
+line[1];
+
+}
+
+
+function v53NextDialogue(){
+
+if(!V53.dialogueOpen)
+return;
+
+V53.dialogueIndex++;
+
+v53ShowDialogue();
+
+}
+
+
+function v53CloseDialogue(){
+
+V53.dialogueOpen=false;
+
+document.getElementById(
+"storyHud"
+).style.display=
+"none";
+
+}
+
+
+/* =========================================================
+ DIALOGUE BUTTON
+ ========================================================= */
+
+document.getElementById(
+"storyNext"
+).onclick=
+v53NextDialogue;
+
+
+/* =========================================================
+ STORY PROGRESS
+ ========================================================= */
+
+let v53Defeats=0;
+
+
+function v53GetDistance(){
+
+const mission=
+v53CurrentMission();
+
+if(
+!mission ||
+mission.type!=="reach"
+)
+return 0;
+
+const target=
+new THREE.Vector3(
+mission.target[0],
+1,
+mission.target[1]
+);
+
+return Math.hypot(
+player.position.x-target.x,
+player.position.z-target.z
+);
+
+}
+
+
+/* =========================================================
+ REACH MISSION
+ ========================================================= */
+
+function v53UpdateReachMission(){
+
+const mission=
+v53CurrentMission();
+
+if(
+!mission ||
+mission.type!=="reach"
+)
+return;
+
+const distance=
+v53GetDistance();
+
+const progress=
+Math.max(
+0,
+Math.min(
+100,
+100-(distance/500)*100
+)
+);
+
+document.getElementById(
+"storyMissionBar"
+).style.width=
+progress+"%";
+
+document.getElementById(
+"storyMissionProgress"
+).textContent=
+Math.floor(distance)+"m remaining";
+
+if(distance<30){
+
+v53CompleteMission();
+
+}
+
+}
+
+
+/* =========================================================
+ DEFEAT MISSION
+ ========================================================= */
+
+function v53UpdateDefeatMission(){
+
+const mission=
+v53CurrentMission();
+
+if(
+!mission ||
+mission.type!=="defeat"
+)
+return;
+
+const required=
+mission.required;
+
+const percent=
+Math.min(
+100,
+(v53Defeats/required)*100
+);
+
+document.getElementById(
+"storyMissionBar"
+).style.width=
+percent+"%";
+
+document.getElementById(
+"storyMissionProgress"
+).textContent=
+v53Defeats+
+" / "+
+required;
+
+if(
+v53Defeats>=required
+){
+
+v53CompleteMission();
+
+}
+
+}
+
+
+/* =========================================================
+ BOSS MISSION
+ ========================================================= */
+
+function v53UpdateBossMission(){
+
+const mission=
+v53CurrentMission();
+
+if(
+!mission ||
+mission.type!=="boss"
+)
+return;
+
+let defeated=false;
+
+
+/*
+V52 uses bossDefeated.
+*/
+
+if(
+typeof bossDefeated!=="undefined" &&
+bossDefeated
+){
+
+defeated=true;
+
+}
+
+document.getElementById(
+"storyMissionBar"
+).style.width=
+defeated?"100%":"15%";
+
+document.getElementById(
+"storyMissionProgress"
+).textContent=
+defeated?
+"COMPLETE":
+"BOSS ACTIVE";
+
+if(defeated){
+
+v53CompleteMission();
+
+}
+
+}
+
+
+/* =========================================================
+ COMPLETE MISSION
+ ========================================================= */
+
+function v53CompleteMission(){
+
+if(V53.objectiveComplete)
+return;
+
+V53.objectiveComplete=true;
+
+const mission=
+v53CurrentMission();
+
+if(!mission)
+return;
+
+
+/* reward */
+
+if(
+typeof score!=="undefined"
+)
+score+=mission.reward;
+
+if(
+typeof addXP==="function"
+)
+addXP(mission.xp);
+
+
+/* dialogue */
+
+v53StartDialogue(
+mission.dialogue
+);
+
+
+/* advance after dialogue */
+
+setTimeout(()=>{
+
+V53.mission++;
+
+V53.objectiveComplete=false;
+
+v53Defeats=0;
+
+
+/* chapter complete */
+
+const chapter=
+v53CurrentChapter();
+
+if(
+V53.mission>=
+chapter.missions.length
+){
+
+V53.mission=0;
+
+V53.chapter++;
+
+if(
+V53.chapter>
+storyChapters.length
+){
+
+V53.chapter=
+storyChapters.length;
+
+v53GameComplete();
+
+return;
+
+}
+
+v53ChapterIntro();
+
+}else{
+
+v53MissionIntro();
+
+}
+
+v53UpdateHUD();
+
+},1500);
+
+}
+
+
+/* =========================================================
+ CHAPTER INTRO
+ ========================================================= */
+
+function v53ChapterIntro(){
+
+const chapter=
+v53CurrentChapter();
+
+v53StartDialogue([
+
+[
+"NARRATOR",
+"CHAPTER "+
+chapter.chapter+
+": "+
+chapter.title
+],
+
+[
+"NARRATOR",
+"A new part of the story begins."
+],
+
+[
+"SPIDER",
+"Whatever comes next, I'll be ready."
+]
+
+]);
+
+showMessage(
+"📖 CHAPTER "+
+chapter.chapter+
+" UNLOCKED!"
+);
+
+}
+
+
+/* =========================================================
+ MISSION INTRO
+ ========================================================= */
+
+function v53MissionIntro(){
+
+const mission=
+v53CurrentMission();
+
+if(!mission)
+return;
+
+v53StartDialogue([
+
+[
+"NARRATOR",
+"NEW MISSION"
+],
+
+[
+"SPIDER",
+mission.name
+]
+
+]);
+
+}
+
+
+/* =========================================================
+ GAME COMPLETE
+========================================================= */
+
+function v53GameComplete(){
+
+v53StartDialogue([
+
+[
+"NARRATOR",
+"THE STORY IS COMPLETE"
+],
+
+[
+"SPIDER",
+"The city is safe... for now."
+],
+
+[
+"NARRATOR",
+"More adventures can come."
+]
+
+]);
+
+showMessage(
+"🏆 STORY COMPLETE!"
+);
+
+}
+
+
+/* =========================================================
+ COUNT ENEMY DEFEATS
+ ========================================================= */
+
+const v53OriginalDefeatEnemy=
+typeof defeatEnemy==="function"
+?
+defeatEnemy
+:
+null;
+
+
+if(v53OriginalDefeatEnemy){
+
+window.defeatEnemy=
+function(enemy){
+
+v53OriginalDefeatEnemy(enemy);
+
+v53Defeats++;
+
+};
+
+}
+
+
+/* =========================================================
+ BOSS MISSION SPAWN
+ ========================================================= */
+
+function v53BossController(){
+
+const mission=
+v53CurrentMission();
+
+if(
+!mission ||
+mission.type!=="boss"
+)
+return;
+
+
+/*
+If there is no boss,
+spawn the V52 boss.
+*/
+
+if(
+typeof bossActive!=="undefined" &&
+!bossActive &&
+typeof createBoss==="function"
+){
+
+createBoss();
+
+}
+
+}
+
+
+/* =========================================================
+ STORY UPDATE
+ ========================================================= */
+
+function v53Update(){
+
+if(V53.dialogueOpen)
+return;
+
+const mission=
+v53CurrentMission();
+
+if(!mission)
+return;
+
+if(mission.type==="reach"){
+
+v53UpdateReachMission();
+
+}
+
+else if(mission.type==="defeat"){
+
+v53UpdateDefeatMission();
+
+}
+
+else if(mission.type==="boss"){
+
+v53UpdateBossMission();
+
+v53BossController();
+
+}
+
+
+/* progress tracker */
+
+v53UpdateHUD();
+
+}
+
+
+/* =========================================================
+ STORY MARKER
+ ========================================================= */
+
+function v53DrawMarker(){
+
+const mission=
+v53CurrentMission();
+
+if(
+!mission ||
+mission.type!=="reach"
+)
+return;
+
+const target=
+worldToMap(
+mission.target[0],
+mission.target[1]
+);
+
+ctx.strokeStyle="#63dcff";
+ctx.lineWidth=3;
+
+ctx.beginPath();
+
+ctx.arc(
+target.x,
+target.y,
+12,
+0,
+Math.PI*2
+);
+
+ctx.stroke();
+
+ctx.beginPath();
+
+ctx.moveTo(
+target.x-6,
+target.y
+);
+
+ctx.lineTo(
+target.x+6,
+target.y
+);
+
+ctx.moveTo(
+target.x,
+target.y-6
+);
+
+ctx.lineTo(
+target.x,
+target.y+6
+);
+
+ctx.stroke();
+
+}
+
+
+/* =========================================================
+ SAVE V53
+ ========================================================= */
+
+setInterval(()=>{
+
+try{
+
+localStorage.setItem(
+"WEBBOUND_V53_STORY",
+JSON.stringify({
+
+chapter:V53.chapter,
+
+mission:V53.mission,
+
+defeats:v53Defeats,
+
+completed:V53.completed
+
+})
+);
+
+}catch(e){}
+
+},10000);
+
+
+/* =========================================================
+ LOAD V53
+ ========================================================= */
+
+try{
+
+const save=
+localStorage.getItem(
+"WEBBOUND_V53_STORY"
+);
+
+if(save){
+
+const data=
+JSON.parse(save);
+
+if(
+typeof data.chapter==="number"
+)
+V53.chapter=
+Math.max(
+1,
+Math.min(
+data.chapter,
+storyChapters.length
+)
+);
+
+if(
+typeof data.mission==="number"
+)
+V53.mission=
+Math.max(
+0,
+data.mission
+);
+
+if(
+typeof data.defeats==="number"
+)
+v53Defeats=
+data.defeats;
+
+}
+
+}catch(e){}
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+setTimeout(()=>{
+
+V53.initialized=true;
+
+v53UpdateHUD();
+
+v53ChapterIntro();
+
+},1000);
+
+
+/* =========================================================
+ V53 LOOP HOOK
+ ========================================================= */
+
+setInterval(()=>{
+
+if(V53.initialized)
+v53Update();
+
+},250);
+
+
+/* =========================================================
+ MOBILE NEXT BUTTON
+ ========================================================= */
+
+document.getElementById(
+"storyNext"
+).addEventListener(
+"touchstart",
+e=>{
+
+e.preventDefault();
+
+v53NextDialogue();
+
+},
+{passive:false}
+);
+
+
+/* =========================================================
+ OPTIONAL KEYBOARD
+ ========================================================= */
+
+addEventListener(
+"keydown",
+e=>{
+
+if(
+e.code==="Enter" &&
+V53.dialogueOpen
+){
+
+v53NextDialogue();
+
+}
+
+});
+
+
+console.log(
+"WEBBOUND V53 STORY SYSTEM READY"
+);
+
+</script>
