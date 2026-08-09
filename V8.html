@@ -1,0 +1,1920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND: MULTIVERSE — V8</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#02040a;
+    font-family:Arial,sans-serif;
+}
+
+canvas{display:block}
+
+#hud{
+    position:fixed;
+    top:15px;
+    left:15px;
+    z-index:10;
+    color:white;
+    background:rgba(0,0,0,.72);
+    border:1px solid #ffffff22;
+    border-radius:14px;
+    padding:15px;
+    min-width:270px;
+    line-height:1.6;
+    backdrop-filter:blur(8px);
+}
+
+.logo{
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:7px;
+}
+
+#character{
+    color:#8fd7ff;
+    font-weight:bold;
+}
+
+#mission{
+    border-top:1px solid #ffffff22;
+    margin-top:8px;
+    padding-top:8px;
+    font-size:13px;
+}
+
+#controls{
+    position:fixed;
+    bottom:15px;
+    left:15px;
+    z-index:10;
+    color:white;
+    background:rgba(0,0,0,.72);
+    border-radius:12px;
+    padding:11px 14px;
+    font-size:12px;
+    line-height:1.6;
+}
+
+#crosshair{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    color:white;
+    z-index:10;
+    pointer-events:none;
+}
+
+#selector{
+    position:fixed;
+    inset:0;
+    z-index:40;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.91);
+}
+
+.panel{
+    width:min(900px,92%);
+    text-align:center;
+    color:white;
+}
+
+.panel h1{
+    font-size:38px;
+    margin:0 0 8px;
+}
+
+.panel p{
+    opacity:.7;
+}
+
+.cards{
+    display:flex;
+    justify-content:center;
+    gap:18px;
+    margin-top:25px;
+    flex-wrap:wrap;
+}
+
+.card{
+    width:220px;
+    min-height:230px;
+    padding:20px;
+    border:1px solid #ffffff22;
+    border-radius:18px;
+    background:linear-gradient(
+        145deg,
+        #101521,
+        #05070c
+    );
+    cursor:pointer;
+    transition:.2s;
+}
+
+.card:hover{
+    transform:translateY(-8px);
+    border-color:#ffffff88;
+}
+
+.avatar{
+    width:90px;
+    height:90px;
+    margin:auto;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:40px;
+    background:#161d2b;
+}
+
+.card h2{
+    margin:13px 0 5px;
+}
+
+.card small{
+    opacity:.65;
+}
+
+#dialogue{
+    position:fixed;
+    left:50%;
+    bottom:30px;
+    transform:translateX(-50%);
+    width:min(850px,90%);
+    z-index:30;
+    color:white;
+    background:rgba(0,0,0,.9);
+    border:1px solid #ffffff33;
+    border-radius:16px;
+    padding:20px;
+    display:none;
+}
+
+#speaker{
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:8px;
+}
+
+#dialogueText{
+    font-size:16px;
+    line-height:1.5;
+}
+
+#continue{
+    margin-top:12px;
+    font-size:12px;
+    opacity:.6;
+}
+
+#message{
+    position:fixed;
+    top:20%;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
+    font-size:22px;
+    font-weight:bold;
+    text-shadow:0 3px 12px #000;
+    z-index:20;
+    opacity:0;
+}
+
+#damage{
+    position:fixed;
+    inset:0;
+    background:rgba(255,0,0,.25);
+    pointer-events:none;
+    opacity:0;
+    z-index:19;
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+
+    <div class="logo">
+        🕷️ WEBBOUND: MULTIVERSE
+    </div>
+
+    🕷️ Spider-Man:
+    <span id="character">Classic</span><br>
+
+    ❤️ Health:
+    <span id="health">100</span><br>
+
+    ⭐ Score:
+    <span id="score">0</span><br>
+
+    🌌 Universe:
+    <span id="universe">Earth-616</span>
+
+    <div id="mission">
+        Mission: Investigate the dimensional disturbance
+    </div>
+
+</div>
+
+
+<div id="controls">
+    W A S D — Move<br>
+    SHIFT — Sprint<br>
+    SPACE — Jump<br>
+    E — Web Swing<br>
+    F — Web Strike<br>
+    C — Story Dialogue<br>
+    V — Change Spider-Man<br>
+    P — Save<br>
+    L — Load<br>
+    R — Reset
+</div>
+
+
+<div id="crosshair">+</div>
+
+<div id="message"></div>
+
+<div id="damage"></div>
+
+
+<!-- CHARACTER SELECT -->
+
+<div id="selector">
+
+    <div class="panel">
+
+        <h1>🕷️ CHOOSE YOUR SPIDER-MAN</h1>
+
+        <p>
+            Select a playable multiverse variant
+        </p>
+
+        <div class="cards">
+
+            <div class="card" data-character="tobey">
+
+                <div class="avatar">
+                    🕷️
+                </div>
+
+                <h2>Classic Spider-Man</h2>
+
+                <small>
+                    Experienced combat<br>
+                    Powerful web swing<br>
+                    Strong melee
+                </small>
+
+            </div>
+
+
+            <div class="card" data-character="andrew">
+
+                <div class="avatar">
+                    🕸️
+                </div>
+
+                <h2>Agile Spider-Man</h2>
+
+                <small>
+                    Faster movement<br>
+                    Higher jumps<br>
+                    Acrobatics
+                </small>
+
+            </div>
+
+
+            <div class="card" data-character="tom">
+
+                <div class="avatar">
+                    ⚙️
+                </div>
+
+                <h2>Tech Spider-Man</h2>
+
+                <small>
+                    Advanced suit<br>
+                    Tech abilities<br>
+                    Faster web reload
+                </small>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- DIALOGUE -->
+
+<div id="dialogue">
+
+    <div id="speaker">
+        Character
+    </div>
+
+    <div id="dialogueText">
+        Dialogue
+    </div>
+
+    <div id="continue">
+        Press ENTER to continue
+    </div>
+
+</div>
+
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+   SCENE
+===================================================== */
+
+const scene =
+    new THREE.Scene();
+
+scene.background =
+    new THREE.Color(0x030812);
+
+scene.fog =
+    new THREE.FogExp2(
+        0x030812,
+        .0008
+    );
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+const camera =
+    new THREE.PerspectiveCamera(
+        68,
+        innerWidth/innerHeight,
+        .1,
+        4000
+    );
+
+camera.position.set(
+    0,7,15
+);
+
+
+/* =====================================================
+   RENDERER
+===================================================== */
+
+const renderer =
+    new THREE.WebGLRenderer({
+        antialias:true
+    });
+
+renderer.setSize(
+    innerWidth,
+    innerHeight
+);
+
+renderer.setPixelRatio(
+    Math.min(devicePixelRatio,2)
+);
+
+renderer.shadowMap.enabled=true;
+
+renderer.shadowMap.type=
+    THREE.PCFSoftShadowMap;
+
+renderer.outputColorSpace=
+    THREE.SRGBColorSpace;
+
+document.body.appendChild(
+    renderer.domElement
+);
+
+
+/* =====================================================
+   LIGHTING
+===================================================== */
+
+const moon =
+    new THREE.DirectionalLight(
+        0x9bbcff,
+        1.8
+    );
+
+moon.position.set(
+    -400,
+    600,
+    300
+);
+
+moon.castShadow=true;
+
+moon.shadow.mapSize.width=2048;
+moon.shadow.mapSize.height=2048;
+
+scene.add(moon);
+
+
+scene.add(
+    new THREE.HemisphereLight(
+        0x5577bb,
+        0x090b10,
+        1.1
+    )
+);
+
+
+/* =====================================================
+   CITY
+===================================================== */
+
+const buildings=[];
+
+const city =
+    new THREE.Group();
+
+scene.add(city);
+
+
+const buildingMaterials=[
+    new THREE.MeshStandardMaterial({
+        color:0x151c29,
+        roughness:.8
+    }),
+
+    new THREE.MeshStandardMaterial({
+        color:0x202a38,
+        roughness:.75
+    }),
+
+    new THREE.MeshStandardMaterial({
+        color:0x101721,
+        roughness:.9
+    })
+];
+
+
+const windowMaterial =
+    new THREE.MeshStandardMaterial({
+        color:0xffc55c,
+        emissive:0x653200,
+        emissiveIntensity:1.8
+    });
+
+
+function createBuilding(
+    x,z,w,h,d
+){
+
+    const b =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                w,h,d
+            ),
+            buildingMaterials[
+                Math.floor(
+                    Math.random()*3
+                )
+            ]
+        );
+
+    b.position.set(
+        x,h/2,z
+    );
+
+    b.castShadow=true;
+    b.receiveShadow=true;
+
+    city.add(b);
+
+    buildings.push(b);
+
+
+    for(
+        let y=12;
+        y<h-10;
+        y+=18
+    ){
+
+        for(
+            let wx=-w/2+9;
+            wx<w/2-6;
+            wx+=17
+        ){
+
+            if(Math.random()<.45){
+
+                const win =
+                    new THREE.Mesh(
+                        new THREE.BoxGeometry(
+                            5,6,.25
+                        ),
+                        windowMaterial
+                    );
+
+                win.position.set(
+                    x+wx,
+                    y,
+                    z-d/2-.2
+                );
+
+                city.add(win);
+
+            }
+
+        }
+
+    }
+
+}
+
+
+for(
+    let x=-1100;
+    x<=1100;
+    x+=90
+){
+
+    for(
+        let z=-900;
+        z<=900;
+        z+=90
+    ){
+
+        if(
+            Math.abs(x)<100 &&
+            Math.abs(z)<100
+        )
+            continue;
+
+        createBuilding(
+            x,
+            z,
+            55+Math.random()*25,
+            45+Math.random()*260,
+            55+Math.random()*25
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   GROUND
+===================================================== */
+
+const ground =
+    new THREE.Mesh(
+        new THREE.PlaneGeometry(
+            3200,3200
+        ),
+        new THREE.MeshStandardMaterial({
+            color:0x080a0e,
+            roughness:1
+        })
+    );
+
+ground.rotation.x=
+    -Math.PI/2;
+
+ground.receiveShadow=true;
+
+scene.add(ground);
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player =
+    new THREE.Group();
+
+scene.add(player);
+
+player.position.set(
+    0,1.2,0
+);
+
+
+/* =====================================================
+   CHARACTER DATA
+===================================================== */
+
+const characters={
+
+    tobey:{
+        name:"Classic",
+        universe:"Earth-96283",
+        color:0x9d1827,
+        speed:10,
+        jump:14,
+        strength:1.35,
+        webForce:18
+    },
+
+    andrew:{
+        name:"Agile",
+        universe:"Earth-120703",
+        color:0x142a4b,
+        speed:14,
+        jump:17,
+        strength:1.0,
+        webForce:20
+    },
+
+    tom:{
+        name:"Tech",
+        universe:"Earth-616",
+        color:0x152b7c,
+        speed:12,
+        jump:15,
+        strength:1.15,
+        webForce:24
+    }
+
+};
+
+
+let currentCharacter="tobey";
+
+
+let suit =
+    new THREE.MeshStandardMaterial({
+        color:characters.tobey.color,
+        roughness:.4,
+        metalness:.15
+    });
+
+
+const eyeMaterial =
+    new THREE.MeshStandardMaterial({
+        color:0xffffff,
+        roughness:.12
+    });
+
+
+const body =
+    new THREE.Mesh(
+        new THREE.CapsuleGeometry(
+            .68,1.6,10,20
+        ),
+        suit
+    );
+
+body.position.y=1.45;
+
+body.castShadow=true;
+
+player.add(body);
+
+
+const head =
+    new THREE.Mesh(
+        new THREE.SphereGeometry(
+            .59,32,24
+        ),
+        suit
+    );
+
+head.position.y=2.75;
+
+head.castShadow=true;
+
+player.add(head);
+
+
+function eye(x){
+
+    const e =
+        new THREE.Mesh(
+            new THREE.SphereGeometry(
+                .19,20,16
+            ),
+            eyeMaterial
+        );
+
+    e.scale.z=.22;
+
+    e.position.set(
+        x,2.78,-.55
+    );
+
+    player.add(e);
+
+}
+
+eye(-.21);
+eye(.21);
+
+
+/* =====================================================
+   CHARACTER SWITCH
+===================================================== */
+
+function selectCharacter(type){
+
+    if(!characters[type])
+        return;
+
+
+    currentCharacter=type;
+
+
+    const data=
+        characters[type];
+
+
+    suit.color.setHex(
+        data.color
+    );
+
+
+    document.getElementById(
+        "character"
+    ).textContent=
+        data.name;
+
+
+    document.getElementById(
+        "universe"
+    ).textContent=
+        data.universe;
+
+
+    document.getElementById(
+        "selector"
+    ).style.display="none";
+
+
+    showMessage(
+        data.name+
+        " Spider-Man selected"
+    );
+
+}
+
+
+document.querySelectorAll(
+    ".card"
+).forEach(card=>{
+
+    card.addEventListener(
+        "click",
+        ()=>{
+            selectCharacter(
+                card.dataset.character
+            );
+        }
+    );
+
+});
+
+
+/* =====================================================
+   MOVEMENT
+===================================================== */
+
+const velocity =
+    new THREE.Vector3();
+
+let grounded=false;
+
+let webActive=false;
+
+let webAnchor =
+    new THREE.Vector3();
+
+let webLine=null;
+
+
+function findWebTarget(){
+
+    let target=null;
+
+    let closest=700;
+
+
+    for(
+        const b of buildings
+    ){
+
+        const d=
+            player.position.distanceTo(
+                b.position
+            );
+
+
+        if(
+            d<closest &&
+            b.position.y>
+            player.position.y+15
+        ){
+
+            closest=d;
+
+            target=
+                new THREE.Vector3(
+                    b.position.x,
+                    b.position.y+
+                    b.geometry.parameters.height/2,
+                    b.position.z
+                );
+
+        }
+
+    }
+
+
+    return target;
+
+}
+
+
+function attachWeb(){
+
+    const target=
+        findWebTarget();
+
+
+    if(!target)
+        return;
+
+
+    webActive=true;
+
+    webAnchor.copy(target);
+
+
+    webLine =
+        new THREE.Line(
+            new THREE.BufferGeometry()
+            .setFromPoints([
+                player.position.clone(),
+                webAnchor.clone()
+            ]),
+            new THREE.LineBasicMaterial({
+                color:0xffffff
+            })
+        );
+
+
+    scene.add(webLine);
+
+}
+
+
+function releaseWeb(){
+
+    webActive=false;
+
+
+    if(webLine){
+
+        scene.remove(
+            webLine
+        );
+
+        webLine=null;
+
+    }
+
+
+    velocity.multiplyScalar(
+        1.25
+    );
+
+}
+
+
+function updateWeb(){
+
+    if(!webLine)
+        return;
+
+
+    const p=
+        webLine.geometry
+        .attributes
+        .position
+        .array;
+
+
+    p[0]=player.position.x;
+    p[1]=player.position.y+1;
+    p[2]=player.position.z;
+
+    p[3]=webAnchor.x;
+    p[4]=webAnchor.y;
+    p[5]=webAnchor.z;
+
+
+    webLine.geometry
+        .attributes
+        .position
+        .needsUpdate=true;
+
+}
+
+
+function movement(dt){
+
+    const data=
+        characters[currentCharacter];
+
+
+    const direction=
+        new THREE.Vector3();
+
+
+    if(keys["KeyW"])
+        direction.z-=1;
+
+    if(keys["KeyS"])
+        direction.z+=1;
+
+    if(keys["KeyA"])
+        direction.x-=1;
+
+    if(keys["KeyD"])
+        direction.x+=1;
+
+
+    if(direction.length()>0){
+
+        direction.normalize();
+
+
+        const speed=
+            keys["ShiftLeft"]
+            ?data.speed*2.1
+            :data.speed;
+
+
+        velocity.x+=
+            direction.x*
+            speed*
+            dt*4;
+
+
+        velocity.z+=
+            direction.z*
+            speed*
+            dt*4;
+
+
+        player.rotation.y=
+            Math.atan2(
+                direction.x,
+                direction.z
+            );
+
+    }
+
+
+    velocity.x*=.91;
+    velocity.z*=.91;
+
+
+    if(webActive){
+
+        const pull=
+            new THREE.Vector3()
+            .subVectors(
+                webAnchor,
+                player.position
+            );
+
+
+        const distance=
+            pull.length();
+
+
+        pull.normalize();
+
+
+        if(distance>9){
+
+            velocity.addScaledVector(
+                pull,
+                (distance-9)*
+                dt*
+                data.webForce
+            );
+
+        }
+
+
+        const swing=
+            new THREE.Vector3(
+                -pull.z,
+                0,
+                pull.x
+            );
+
+
+        velocity.addScaledVector(
+            swing,
+            dt*10
+        );
+
+
+        velocity.y-=15*dt;
+
+    }
+    else{
+
+        velocity.y-=30*dt;
+
+    }
+
+
+    player.position.addScaledVector(
+        velocity,
+        dt
+    );
+
+
+    if(
+        player.position.y<1.1
+    ){
+
+        player.position.y=1.1;
+
+        velocity.y=0;
+
+        grounded=true;
+
+    }
+
+
+    updateWeb();
+
+}
+
+
+/* =====================================================
+   JUMP
+===================================================== */
+
+function jump(){
+
+    if(!grounded)
+        return;
+
+
+    const data=
+        characters[currentCharacter];
+
+
+    velocity.y=
+        data.jump;
+
+
+    grounded=false;
+
+}
+
+
+/* =====================================================
+   ENEMIES
+===================================================== */
+
+const enemies=[];
+
+
+function createEnemy(x,z){
+
+    const enemy=
+        new THREE.Group();
+
+
+    enemy.position.set(
+        x,1,z
+    );
+
+
+    const material=
+        new THREE.MeshStandardMaterial({
+            color:0x12151b,
+            roughness:.55
+        });
+
+
+    const b=
+        new THREE.Mesh(
+            new THREE.CapsuleGeometry(
+                .55,1.1,8,16
+            ),
+            material
+        );
+
+
+    b.position.y=1;
+
+    b.castShadow=true;
+
+    enemy.add(b);
+
+
+    enemy.userData={
+        hp:100,
+        alive:true,
+        cooldown:0
+    };
+
+
+    scene.add(enemy);
+
+    enemies.push(enemy);
+
+}
+
+
+for(
+    let i=0;
+    i<18;
+    i++
+){
+
+    createEnemy(
+        -700+
+        Math.random()*1400,
+
+        -700+
+        Math.random()*1400
+    );
+
+}
+
+
+/* =====================================================
+   COMBAT
+===================================================== */
+
+let attackCooldown=0;
+
+let health=100;
+
+let score=0;
+
+let invulnerable=0;
+
+
+function attack(){
+
+    if(attackCooldown>0)
+        return;
+
+
+    const data=
+        characters[currentCharacter];
+
+
+    attackCooldown=
+        .35;
+
+
+    let target=null;
+
+    let closest=8;
+
+
+    for(
+        const enemy of enemies
+    ){
+
+        if(!enemy.userData.alive)
+            continue;
+
+
+        const d=
+            player.position.distanceTo(
+                enemy.position
+            );
+
+
+        if(d<closest){
+
+            closest=d;
+
+            target=enemy;
+
+        }
+
+    }
+
+
+    if(!target)
+        return;
+
+
+    target.userData.hp-=
+        40*data.strength;
+
+
+    score+=40;
+
+
+    if(
+        target.userData.hp<=0
+    ){
+
+        target.userData.alive=false;
+
+        target.visible=false;
+
+        score+=100;
+
+        showMessage(
+            "ENEMY DEFEATED"
+        );
+
+    }
+    else{
+
+        showMessage(
+            "WEB STRIKE"
+        );
+
+    }
+
+}
+
+
+/* =====================================================
+   ENEMY AI
+===================================================== */
+
+function enemyAI(dt){
+
+    for(
+        const enemy of enemies
+    ){
+
+        if(!enemy.userData.alive)
+            continue;
+
+
+        enemy.userData.cooldown-=dt;
+
+
+        const direction=
+            new THREE.Vector3()
+            .subVectors(
+                player.position,
+                enemy.position
+            );
+
+
+        const d=
+            direction.length();
+
+
+        if(
+            d<450 &&
+            d>3
+        ){
+
+            direction.normalize();
+
+            enemy.position.addScaledVector(
+                direction,
+                dt*2
+            );
+
+        }
+
+
+        if(
+            d<4 &&
+            enemy.userData.cooldown<=0 &&
+            invulnerable<=0
+        ){
+
+            health-=10;
+
+            invulnerable=1;
+
+            enemy.userData.cooldown=1.2;
+
+            document.getElementById(
+                "damage"
+            ).style.opacity=.8;
+
+            setTimeout(
+                ()=>{
+                    document.getElementById(
+                        "damage"
+                    ).style.opacity=0;
+                },
+                150
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================
+   STORY
+===================================================== */
+
+const story=[
+
+    {
+        speaker:"Peter",
+        text:"The dimensional signal is getting stronger."
+    },
+
+    {
+        speaker:"Unknown Voice",
+        text:"Three universes are beginning to overlap."
+    },
+
+    {
+        speaker:"Peter",
+        text:"Three universes?"
+    },
+
+    {
+        speaker:"Unknown Voice",
+        text:"And three Spider-Men."
+    },
+
+    {
+        speaker:"Peter",
+        text:"Then let's find the others."
+    }
+
+];
+
+
+let dialogueIndex=0;
+
+let dialogueActive=false;
+
+
+function startStory(){
+
+    if(dialogueActive)
+        return;
+
+
+    dialogueActive=true;
+
+    dialogueIndex=0;
+
+    showDialogue();
+
+}
+
+
+function showDialogue(){
+
+    if(
+        dialogueIndex>=story.length
+    ){
+
+        endStory();
+
+        return;
+
+    }
+
+
+    const line=
+        story[dialogueIndex];
+
+
+    document.getElementById(
+        "speaker"
+    ).textContent=
+        line.speaker;
+
+
+    document.getElementById(
+        "dialogueText"
+    ).textContent=
+        line.text;
+
+
+    document.getElementById(
+        "dialogue"
+    ).style.display="block";
+
+}
+
+
+function nextDialogue(){
+
+    if(!dialogueActive)
+        return;
+
+
+    dialogueIndex++;
+
+
+    if(
+        dialogueIndex>=story.length
+    ){
+
+        endStory();
+
+    }
+    else{
+
+        showDialogue();
+
+    }
+
+}
+
+
+function endStory(){
+
+    dialogueActive=false;
+
+    document.getElementById(
+        "dialogue"
+    ).style.display="none";
+
+
+    document.getElementById(
+        "mission"
+    ).textContent=
+        "Mission: Locate the first portal";
+
+}
+
+
+/* =====================================================
+   SAVE / LOAD
+===================================================== */
+
+function saveGame(){
+
+    const save={
+        character:currentCharacter,
+        health,
+        score,
+        position:[
+            player.position.x,
+            player.position.y,
+            player.position.z
+        ]
+    };
+
+
+    localStorage.setItem(
+        "webboundV8Save",
+        JSON.stringify(save)
+    );
+
+
+    showMessage(
+        "GAME SAVED"
+    );
+
+}
+
+
+function loadGame(){
+
+    const raw=
+        localStorage.getItem(
+            "webboundV8Save"
+        );
+
+
+    if(!raw){
+
+        showMessage(
+            "NO SAVE FOUND"
+        );
+
+        return;
+
+    }
+
+
+    const save=
+        JSON.parse(raw);
+
+
+    health=save.health;
+
+    score=save.score;
+
+
+    player.position.set(
+        save.position[0],
+        save.position[1],
+        save.position[2]
+    );
+
+
+    selectCharacter(
+        save.character
+    );
+
+
+    showMessage(
+        "GAME LOADED"
+    );
+
+}
+
+
+/* =====================================================
+   RESET
+===================================================== */
+
+function resetGame(){
+
+    health=100;
+
+    score=0;
+
+    player.position.set(
+        0,1.2,0
+    );
+
+    velocity.set(
+        0,0,0
+    );
+
+
+    for(
+        const enemy of enemies
+    ){
+
+        enemy.userData.hp=100;
+
+        enemy.userData.alive=true;
+
+        enemy.visible=true;
+
+    }
+
+
+    if(webActive)
+        releaseWeb();
+
+}
+
+
+/* =====================================================
+   INPUT
+===================================================== */
+
+const keys={};
+
+
+addEventListener(
+    "keydown",
+    e=>{
+
+        keys[e.code]=true;
+
+
+        if(e.code==="Space")
+            jump();
+
+
+        if(e.code==="KeyE"){
+
+            if(webActive)
+                releaseWeb();
+            else
+                attachWeb();
+
+        }
+
+
+        if(e.code==="KeyF")
+            attack();
+
+
+        if(e.code==="KeyC")
+            startStory();
+
+
+        if(e.code==="KeyV"){
+
+            document.getElementById(
+                "selector"
+            ).style.display="flex";
+
+        }
+
+
+        if(e.code==="KeyP")
+            saveGame();
+
+
+        if(e.code==="KeyL")
+            loadGame();
+
+
+        if(e.code==="KeyR")
+            resetGame();
+
+
+        if(e.code==="Enter")
+            nextDialogue();
+
+    }
+);
+
+
+addEventListener(
+    "keyup",
+    e=>{
+        keys[e.code]=false;
+    }
+);
+
+
+/* =====================================================
+   PLAYER ANIMATION
+===================================================== */
+
+let animationTime=0;
+
+
+function playerAnimation(dt){
+
+    animationTime+=dt;
+
+
+    const speed=
+        Math.sqrt(
+            velocity.x*
+            velocity.x+
+            velocity.z*
+            velocity.z
+        );
+
+
+    if(speed>2){
+
+        body.rotation.z=
+            Math.sin(
+                animationTime*10
+            )*.12;
+
+    }
+    else{
+
+        body.rotation.z*=.9;
+
+    }
+
+
+    if(webActive){
+
+        body.rotation.x=-.18;
+
+        body.rotation.z=
+            Math.sin(
+                animationTime*5
+            )*.22;
+
+    }
+    else{
+
+        body.rotation.x*=.9;
+
+    }
+
+}
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+function updateCamera(){
+
+    const speed=
+        Math.sqrt(
+            velocity.x*
+            velocity.x+
+            velocity.z*
+            velocity.z
+        );
+
+
+    camera.position.lerp(
+        new THREE.Vector3(
+            player.position.x,
+            player.position.y+
+            6+
+            (speed>15?2:0),
+            player.position.z+
+            (webActive?15:12)
+        ),
+        .07
+    );
+
+
+    const look=
+        player.position.clone();
+
+    look.y+=2.4;
+
+
+    camera.lookAt(
+        look
+    );
+
+
+    camera.fov=
+        68+
+        Math.min(
+            speed*.3,
+            10
+        );
+
+
+    camera.updateProjectionMatrix();
+
+}
+
+
+/* =====================================================
+   HUD
+===================================================== */
+
+function updateHUD(){
+
+    document.getElementById(
+        "health"
+    ).textContent=
+        Math.max(
+            0,
+            Math.floor(health)
+        );
+
+
+    document.getElementById(
+        "score"
+    ).textContent=
+        score;
+
+
+    attackCooldown=
+        Math.max(
+            0,
+            attackCooldown-.016
+        );
+
+
+    invulnerable=
+        Math.max(
+            0,
+            invulnerable-.016
+        );
+
+}
+
+
+/* =====================================================
+   MESSAGE
+===================================================== */
+
+let messageTimer=0;
+
+
+function showMessage(text){
+
+    const m=
+        document.getElementById(
+            "message"
+        );
+
+
+    m.textContent=text;
+
+    m.style.opacity=1;
+
+    messageTimer=2;
+
+}
+
+
+function updateMessage(dt){
+
+    if(messageTimer>0){
+
+        messageTimer-=dt;
+
+    }
+    else{
+
+        document.getElementById(
+            "message"
+        ).style.opacity=0;
+
+    }
+
+}
+
+
+/* =====================================================
+   MAIN LOOP
+===================================================== */
+
+const clock=
+    new THREE.Clock();
+
+
+function animate(){
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    const dt=
+        Math.min(
+            clock.getDelta(),
+            .033
+        );
+
+
+    movement(dt);
+
+    enemyAI(dt);
+
+    playerAnimation(dt);
+
+    updateCamera();
+
+    updateHUD();
+
+    updateMessage(dt);
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+}
+
+
+animate();
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+addEventListener(
+    "resize",
+    ()=>{
+
+        camera.aspect=
+            innerWidth/
+            innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            innerWidth,
+            innerHeight
+        );
+
+    }
+);
+
+</script>
+
+</body>
+</html>
