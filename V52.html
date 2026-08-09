@@ -1,0 +1,905 @@
+<!-- V52 BOSS SYSTEM PATCH
+     Add this to your V51 code.
+
+     1. Keep your existing V51 HTML.
+     2. Add the HUD below before </body>.
+     3. Add the JavaScript below inside your existing <script>.
+-->
+
+<!-- ================= V52 BOSS HUD ================= -->
+
+<div id="bossHud" style="
+position:fixed;
+z-index:50;
+top:18px;
+left:50%;
+transform:translateX(-50%);
+width:310px;
+display:none;
+text-align:center;
+color:white;
+font-family:Arial;
+background:#000d;
+padding:12px;
+border-radius:14px;
+border:1px solid #ff4055;
+">
+
+<div style="font-size:18px;font-weight:800">
+👑 CITY BOSS
+</div>
+
+<div id="bossName">SHADOW BOSS</div>
+
+<div style="
+height:14px;
+margin-top:7px;
+background:#300;
+border-radius:10px;
+overflow:hidden;
+">
+
+<div id="bossBar" style="
+height:100%;
+width:100%;
+background:#ff304f;
+"></div>
+
+</div>
+
+<div>
+❤️ HP:
+<b id="bossHP">1000</b>
+</div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+V52 BOSS SYSTEM
+===================================================== */
+
+const bosses=[];
+
+let bossActive=false;
+let bossDefeated=false;
+let bossSpawnCooldown=0;
+
+
+/* =====================================================
+CREATE BOSS
+===================================================== */
+
+function createBoss(){
+
+if(bossActive)
+return;
+
+const boss=new THREE.Group();
+
+
+/* body */
+
+const body=new THREE.Mesh(
+new THREE.CapsuleGeometry(
+1.15,
+2.2,
+8,
+16
+),
+new THREE.MeshStandardMaterial({
+color:0x32152a,
+roughness:.8
+})
+);
+
+body.position.y=2;
+boss.add(body);
+
+
+/* head */
+
+const head=new THREE.Mesh(
+new THREE.SphereGeometry(
+.95,
+16,
+14
+),
+new THREE.MeshStandardMaterial({
+color:0x171019
+})
+);
+
+head.position.y=4.1;
+boss.add(head);
+
+
+/* eyes */
+
+for(const x of[-.3,.3]){
+
+const eye=new THREE.Mesh(
+new THREE.SphereGeometry(
+.14,
+8,
+8
+),
+new THREE.MeshBasicMaterial({
+color:0xff4055
+})
+);
+
+eye.position.set(
+x,
+4.15,
+-.88
+);
+
+boss.add(eye);
+
+}
+
+
+/* shoulders */
+
+for(const x of[-1.5,1.5]){
+
+const shoulder=new THREE.Mesh(
+new THREE.SphereGeometry(
+.55,
+10,
+10
+),
+new THREE.MeshStandardMaterial({
+color:0x241323
+})
+);
+
+shoulder.position.set(
+x,
+2.8,
+0
+);
+
+boss.add(shoulder);
+
+}
+
+
+/* spawn location */
+
+const angle=
+Math.random()*Math.PI*2;
+
+const distance=55;
+
+boss.position.set(
+player.position.x+
+Math.cos(angle)*distance,
+0,
+player.position.z+
+Math.sin(angle)*distance
+);
+
+
+/* boss data */
+
+boss.userData={
+
+name:"SHADOW BOSS",
+
+hp:1000+level*200,
+
+maxHp:1000+level*200,
+
+speed:3.1,
+
+attackCooldown:1.5,
+
+abilityCooldown:4,
+
+phase:1
+
+};
+
+scene.add(boss);
+
+bosses.push(boss);
+
+bossActive=true;
+
+document.getElementById(
+"bossHud"
+).style.display="block";
+
+document.getElementById(
+"bossName"
+).textContent=
+boss.userData.name;
+
+showMessage(
+"👑 BOSS HAS APPEARED!"
+);
+
+}
+
+
+/* =====================================================
+BOSS HEALTH
+===================================================== */
+
+function updateBossUI(boss){
+
+const hp=boss.userData.hp;
+const max=boss.userData.maxHp;
+
+const percent=
+Math.max(0,hp/max)*100;
+
+document.getElementById(
+"bossBar"
+).style.width=
+percent+"%";
+
+document.getElementById(
+"bossHP"
+).textContent=
+Math.max(
+0,
+Math.floor(hp)
+);
+
+
+/* boss phases */
+
+if(
+percent<=66 &&
+boss.userData.phase===1
+){
+
+boss.userData.phase=2;
+boss.userData.speed*=1.25;
+
+showMessage(
+"⚠️ BOSS PHASE 2"
+);
+
+}
+
+if(
+percent<=33 &&
+boss.userData.phase===2
+){
+
+boss.userData.phase=3;
+boss.userData.speed*=1.3;
+
+showMessage(
+"🔥 BOSS PHASE 3"
+);
+
+}
+
+}
+
+
+/* =====================================================
+BOSS AI
+===================================================== */
+
+function updateBosses(dt){
+
+for(let i=bosses.length-1;i>=0;i--){
+
+const boss=bosses[i];
+
+const u=boss.userData;
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+player.position,
+boss.position
+);
+
+direction.y=0;
+
+const distance=
+direction.length();
+
+
+/* face player */
+
+if(distance<120){
+
+boss.lookAt(
+player.position.x,
+0,
+player.position.z
+);
+
+}
+
+
+/* movement */
+
+if(
+distance>7 &&
+distance<120
+){
+
+direction.normalize();
+
+boss.position.addScaledVector(
+direction,
+u.speed*dt
+);
+
+}
+
+
+/* boss attack */
+
+u.attackCooldown-=dt;
+
+if(
+distance<=8 &&
+u.attackCooldown<=0
+){
+
+health-=
+10+
+level*1.5;
+
+u.attackCooldown=
+Math.max(
+.7,
+1.5-u.phase*.15
+);
+
+showMessage(
+"⚠️ BOSS ATTACK!"
+);
+
+}
+
+
+/* boss special ability */
+
+u.abilityCooldown-=dt;
+
+if(
+u.abilityCooldown<=0 &&
+distance<55
+){
+
+u.abilityCooldown=
+5-u.phase*.5;
+
+bossShockwave(boss);
+
+}
+
+
+/* update */
+
+updateBossUI(boss);
+
+}
+
+
+/* respawn system */
+
+if(
+!bossActive &&
+bossSpawnCooldown>0
+){
+
+bossSpawnCooldown-=dt;
+
+}
+
+}
+
+
+/* =====================================================
+BOSS SHOCKWAVE
+===================================================== */
+
+function bossShockwave(boss){
+
+const ring=new THREE.Mesh(
+
+new THREE.RingGeometry(
+1,
+2,
+32
+),
+
+new THREE.MeshBasicMaterial({
+color:0xff4055,
+transparent:true,
+opacity:.75,
+side:THREE.DoubleSide
+})
+
+);
+
+ring.rotation.x=-Math.PI/2;
+
+ring.position.copy(
+boss.position
+);
+
+ring.position.y=.15;
+
+scene.add(ring);
+
+let scale=1;
+
+const timer=setInterval(()=>{
+
+scale+=.25;
+
+ring.scale.set(
+scale,
+scale,
+scale
+);
+
+ring.material.opacity=
+Math.max(
+0,
+.75-scale*.06
+);
+
+const d=
+ring.position.distanceTo(
+player.position
+);
+
+if(d<12){
+
+health-=
+15+
+level*2;
+
+showMessage(
+"⚠️ SHOCKWAVE!"
+);
+
+}
+
+if(scale>=12){
+
+clearInterval(timer);
+
+scene.remove(ring);
+
+}
+
+},40);
+
+}
+
+
+/* =====================================================
+DAMAGE BOSS
+===================================================== */
+
+function damageBoss(amount){
+
+if(!bossActive)
+return;
+
+const boss=bosses[0];
+
+if(!boss)
+return;
+
+boss.userData.hp-=amount;
+
+updateBossUI(boss);
+
+showMessage(
+"💥 BOSS HIT!"
+);
+
+if(
+boss.userData.hp<=0
+){
+
+defeatBoss(boss);
+
+}
+
+}
+
+
+/* =====================================================
+BOSS DEFEATED
+===================================================== */
+
+function defeatBoss(boss){
+
+const index=
+bosses.indexOf(boss);
+
+if(index!==-1)
+bosses.splice(index,1);
+
+scene.remove(boss);
+
+bossActive=false;
+bossDefeated=true;
+
+score+=3000;
+
+addXP(1500);
+
+wantedHeat=0;
+
+updateWanted();
+
+document.getElementById(
+"bossHud"
+).style.display="none";
+
+showMessage(
+"🏆 BOSS DEFEATED!"
+);
+
+
+/* unlock next mission */
+
+mission++;
+
+missionKills=0;
+
+setTimeout(()=>{
+
+bossDefeated=false;
+
+},3000);
+
+}
+
+
+/* =====================================================
+CONNECT V51 ATTACKS TO BOSS
+===================================================== */
+
+
+/* Replace your V51 punch() with this version */
+
+function punch(){
+
+if(attackCooldown>0)
+return;
+
+attackCooldown=.45;
+
+if(bossActive){
+
+const boss=bosses[0];
+
+if(
+boss &&
+boss.position.distanceTo(
+player.position
+)<7
+){
+
+damageBoss(40);
+
+return;
+
+}
+
+}
+
+
+/* normal enemy */
+
+const enemy=nearestEnemy();
+
+if(!enemy){
+
+showMessage(
+"👊 NO TARGET"
+);
+
+return;
+
+}
+
+if(
+enemy.position.distanceTo(
+player.position
+)>6
+){
+
+showMessage(
+"👊 TOO FAR"
+);
+
+return;
+
+}
+
+enemy.userData.hp-=35;
+
+addWanted(1);
+
+showMessage(
+"👊 HIT!"
+);
+
+if(
+enemy.userData.hp<=0
+){
+
+defeatEnemy(enemy);
+
+}
+
+}
+
+
+/* Replace V51 webShot() with this */
+
+function webShot(){
+
+if(energy<15){
+
+showMessage(
+"🕸️ NOT ENOUGH ENERGY"
+);
+
+return;
+
+}
+
+if(bossActive){
+
+const boss=bosses[0];
+
+if(
+boss &&
+boss.position.distanceTo(
+player.position
+)<40
+){
+
+energy-=15;
+
+damageBoss(55);
+
+return;
+
+}
+
+}
+
+const enemy=nearestEnemy();
+
+if(!enemy){
+
+showMessage(
+"🕸️ NO TARGET"
+);
+
+return;
+
+}
+
+if(
+enemy.position.distanceTo(
+player.position
+)>35
+){
+
+showMessage(
+"🕸️ TARGET TOO FAR"
+);
+
+return;
+
+}
+
+energy-=15;
+
+enemy.userData.hp-=50;
+
+enemy.userData.speed*=.35;
+
+showMessage(
+"🕸️ WEB SHOT!"
+);
+
+if(
+enemy.userData.hp<=0
+){
+
+defeatEnemy(enemy);
+
+}
+
+}
+
+
+/* =====================================================
+BOSS SPAWN CONDITIONS
+===================================================== */
+
+function checkBossSpawn(){
+
+if(bossActive)
+return;
+
+if(bossDefeated)
+return;
+
+
+/*
+Every 3 completed missions
+the boss becomes available.
+*/
+
+if(
+mission>1 &&
+mission%3===1
+){
+
+createBoss();
+
+}
+
+}
+
+
+/* =====================================================
+V52 GAME LOOP CONNECTION
+===================================================== */
+
+
+/*
+Inside your existing loop(),
+add these lines:
+
+updateBosses(dt);
+checkBossSpawn();
+
+Place them after updateEnemies(dt).
+*/
+
+
+/* =====================================================
+BOSS MARKER ON MAP
+===================================================== */
+
+function drawBossOnMap(){
+
+if(!bossActive)
+return;
+
+const boss=bosses[0];
+
+if(!boss)
+return;
+
+const p=worldToMap(
+boss.position.x,
+boss.position.z
+);
+
+ctx.fillStyle="#ff00ff";
+
+ctx.beginPath();
+
+ctx.arc(
+p.x,
+p.y,
+10,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+ctx.strokeStyle="#ffffff";
+ctx.lineWidth=2;
+
+ctx.stroke();
+
+}
+
+
+/* =====================================================
+BOSS HEALTH REGEN BLOCK
+===================================================== */
+
+function preventBossRespawn(){
+
+if(
+bossDefeated
+){
+
+bossSpawnCooldown=60;
+
+}
+
+}
+
+
+/* =====================================================
+V52 MOBILE BUTTON
+===================================================== */
+
+const bossButton=
+document.createElement("button");
+
+bossButton.textContent=
+"👑 BOSS";
+
+bossButton.style.position=
+"fixed";
+
+bossButton.style.zIndex="50";
+
+bossButton.style.right="10px";
+
+bossButton.style.top="320px";
+
+bossButton.style.padding="12px";
+
+bossButton.style.display="none";
+
+document.body.appendChild(
+bossButton
+);
+
+
+/*
+Development/test button.
+
+It stays hidden during normal play.
+Set display="block" if you want
+to test the boss immediately.
+*/
+
+bossButton.onclick=()=>{
+createBoss();
+};
+
+
+/* =====================================================
+FINAL V52 CONNECTION
+===================================================== */
+
+const originalLoopMarker=true;
+
+
+/*
+IMPORTANT:
+
+Inside your existing loop(), use:
+
+updateEnemies(dt);
+updateBosses(dt);
+checkBossSpawn();
+
+And inside drawMap(), add:
+
+drawBossOnMap();
+
+*/
+
+
+console.log(
+"WEBBOUND V52 BOSS SYSTEM READY"
+);
+
+</script>
