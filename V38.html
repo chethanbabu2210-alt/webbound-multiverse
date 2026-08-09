@@ -1,0 +1,2290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WEBBOUND V38 — City Map System</title>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ background:#02040a;
+ font-family:Arial,sans-serif
+}
+
+canvas{display:block}
+
+#hud{
+ position:fixed;
+ z-index:20;
+ left:10px;
+ top:10px;
+ width:270px;
+ padding:13px;
+ color:white;
+ background:rgba(0,0,0,.78);
+ border:1px solid rgba(255,255,255,.18);
+ border-radius:15px;
+ backdrop-filter:blur(8px);
+ font-size:11px
+}
+
+.title{
+ font-size:18px;
+ font-weight:800
+}
+
+.sub{
+ color:#61dcff;
+ margin-top:3px
+}
+
+.row{
+ margin-top:8px;
+ line-height:1.55
+}
+
+#location{
+ color:#ffd45c;
+ font-weight:bold
+}
+
+#mapButton{
+ position:fixed;
+ z-index:30;
+ right:10px;
+ top:10px;
+ width:100px;
+ height:42px;
+}
+
+button{
+ border:1px solid rgba(255,255,255,.25);
+ background:rgba(0,0,0,.75);
+ color:white;
+ border-radius:12px;
+ font-size:10px;
+ font-weight:bold;
+ touch-action:none
+}
+
+button:active{
+ transform:scale(.94);
+ background:rgba(255,255,255,.25)
+}
+
+/* MAP */
+
+#mapScreen{
+ position:fixed;
+ z-index:80;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:rgba(0,0,0,.86);
+ backdrop-filter:blur(8px)
+}
+
+#mapBox{
+ width:min(900px,94vw);
+ height:min(650px,88vh);
+ background:#071019;
+ border:1px solid rgba(120,220,255,.5);
+ border-radius:18px;
+ padding:15px;
+ color:white;
+ box-shadow:0 15px 50px #000
+}
+
+#mapTitle{
+ font-size:20px;
+ font-weight:800;
+ color:#6ee2ff
+}
+
+#map{
+ position:relative;
+ margin-top:12px;
+ width:100%;
+ height:calc(100% - 85px);
+ overflow:hidden;
+ border-radius:12px;
+ background:
+ linear-gradient(
+  90deg,
+  transparent 48%,
+  rgba(255,255,255,.08) 49%,
+  rgba(255,255,255,.08) 51%,
+  transparent 52%
+ ),
+ linear-gradient(
+  0deg,
+  transparent 48%,
+  rgba(255,255,255,.08) 49%,
+  rgba(255,255,255,.08) 51%,
+  transparent 52%
+ );
+ background-color:#0c1822
+}
+
+.mapRoad{
+ position:absolute;
+ background:rgba(255,255,255,.08)
+}
+
+.roadH{
+ height:7px;
+ left:0;
+ right:0
+}
+
+.roadV{
+ width:7px;
+ top:0;
+ bottom:0
+}
+
+.mapMarker{
+ position:absolute;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ transform:translate(-50%,-50%);
+ border:2px solid white;
+ box-shadow:0 0 10px rgba(255,255,255,.4)
+}
+
+.playerMarker{
+ background:#fff
+}
+
+.missionMarker{
+ background:#34ddff
+}
+
+.fastMarker{
+ background:#ffd34d
+}
+
+.enemyMarker{
+ background:#ff4141
+}
+
+.markerLabel{
+ position:absolute;
+ transform:translate(12px,-5px);
+ white-space:nowrap;
+ font-size:9px;
+ color:white
+}
+
+#mapInfo{
+ position:absolute;
+ left:12px;
+ bottom:12px;
+ background:rgba(0,0,0,.7);
+ padding:8px;
+ border-radius:8px;
+ font-size:10px
+}
+
+/* MESSAGE */
+
+#message{
+ position:fixed;
+ z-index:100;
+ left:50%;
+ top:23%;
+ transform:translateX(-50%);
+ width:92%;
+ text-align:center;
+ color:white;
+ font-size:25px;
+ font-weight:800;
+ text-shadow:0 5px 25px #000;
+ opacity:0;
+ transition:.25s
+}
+
+/* MOBILE */
+
+#touch{
+ position:fixed;
+ z-index:40;
+ left:0;
+ right:0;
+ bottom:8px;
+ display:flex;
+ justify-content:space-between;
+ padding:9px;
+ pointer-events:none
+}
+
+.pad,.actions{
+ display:grid;
+ gap:6px;
+ pointer-events:auto
+}
+
+.pad{
+ grid-template-columns:48px 48px 48px;
+ grid-template-rows:48px 48px
+}
+
+.actions{
+ grid-template-columns:52px 52px;
+ grid-template-rows:52px 52px 52px
+}
+
+#touch button{
+ width:52px;
+ height:52px
+}
+
+.empty{
+ visibility:hidden
+}
+
+@media(max-width:600px){
+
+ #hud{
+  width:230px;
+  font-size:10px
+ }
+
+ #mapBox{
+  height:82vh
+ }
+
+ #mapButton{
+  top:145px
+ }
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+
+ <div class="title">
+  🕷️ WEBBOUND V38
+ </div>
+
+ <div class="sub">
+  CITY MAP SYSTEM
+ </div>
+
+ <div class="row">
+  📍 Location:
+  <b id="location">
+   Central City
+  </b>
+ </div>
+
+ <div class="row">
+  ⭐ Level:
+  <b id="level">1</b><br>
+
+  ❤️ Health:
+  <b id="health">100</b><br>
+
+  🕸️ Energy:
+  <b id="energy">100</b><br>
+
+  ⭐ XP:
+  <b id="xp">0</b><br>
+
+  🏆 Score:
+  <b id="score">0</b>
+ </div>
+
+ <div class="row">
+  📖 Chapter:
+  <b id="chapter">1</b><br>
+
+  🎯 Mission:
+  <b id="mission">1</b>
+ </div>
+
+</div>
+
+<button id="mapButton">
+ 🗺️ MAP
+</button>
+
+
+<!-- MAP SCREEN -->
+
+<div id="mapScreen">
+
+ <div id="mapBox">
+
+  <div id="mapTitle">
+   🗺️ CITY MAP
+  </div>
+
+  <div id="map">
+
+   <div class="mapRoad roadH"
+        style="top:25%"></div>
+
+   <div class="mapRoad roadH"
+        style="top:50%"></div>
+
+   <div class="mapRoad roadH"
+        style="top:75%"></div>
+
+   <div class="mapRoad roadV"
+        style="left:25%"></div>
+
+   <div class="mapRoad roadV"
+        style="left:50%"></div>
+
+   <div class="mapRoad roadV"
+        style="left:75%"></div>
+
+   <div id="mapInfo">
+    🔵 Mission
+    &nbsp; 🟡 Fast Travel
+    &nbsp; ⚪ You
+   </div>
+
+  </div>
+
+  <button id="closeMap">
+   CLOSE MAP
+  </button>
+
+ </div>
+
+</div>
+
+
+<div id="message"></div>
+
+
+<!-- CONTROLS -->
+
+<div id="touch">
+
+ <div class="pad">
+
+  <button class="empty"></button>
+
+  <button id="up">
+   ▲
+  </button>
+
+  <button class="empty"></button>
+
+  <button id="left">
+   ◀
+  </button>
+
+  <button id="down">
+   ▼
+  </button>
+
+  <button id="right">
+   ▶
+  </button>
+
+ </div>
+
+
+ <div class="actions">
+
+  <button id="jump">
+   JUMP
+  </button>
+
+  <button id="web">
+   WEB
+  </button>
+
+  <button id="punch">
+   PUNCH
+  </button>
+
+  <button id="shot">
+   WEB SHOT
+  </button>
+
+  <button id="travel">
+   TRAVEL
+  </button>
+
+  <button id="burst">
+   BURST
+  </button>
+
+ </div>
+
+</div>
+
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+   ENGINE
+===================================================== */
+
+const scene=
+ new THREE.Scene();
+
+scene.background=
+ new THREE.Color(
+  0x07111e
+ );
+
+scene.fog=
+ new THREE.FogExp2(
+  0x07111e,
+  .00115
+ );
+
+
+const camera=
+ new THREE.PerspectiveCamera(
+  68,
+  innerWidth/innerHeight,
+  .1,
+  3500
+ );
+
+
+const renderer=
+ new THREE.WebGLRenderer({
+  antialias:true,
+  powerPreference:
+   "high-performance"
+ });
+
+
+renderer.setSize(
+ innerWidth,
+ innerHeight
+);
+
+renderer.setPixelRatio(
+ Math.min(
+  devicePixelRatio,
+  1.3
+ )
+);
+
+renderer.outputColorSpace=
+ THREE.SRGBColorSpace;
+
+renderer.shadowMap.enabled=true;
+
+document.body.appendChild(
+ renderer.domElement
+);
+
+
+/* =====================================================
+   LIGHTING
+===================================================== */
+
+const sun=
+ new THREE.DirectionalLight(
+  0xffffff,
+  1.8
+ );
+
+sun.position.set(
+ -400,
+ 700,
+ 300
+);
+
+sun.castShadow=true;
+
+scene.add(sun);
+
+
+scene.add(
+ new THREE.HemisphereLight(
+  0x7897c4,
+  0x05070b,
+  1.1
+ )
+);
+
+
+/* =====================================================
+   CITY
+===================================================== */
+
+const buildings=[];
+
+const buildingMaterials=[
+ new THREE.MeshStandardMaterial({
+  color:0x17212b
+ }),
+
+ new THREE.MeshStandardMaterial({
+  color:0x222c36
+ }),
+
+ new THREE.MeshStandardMaterial({
+  color:0x101920
+ })
+];
+
+
+for(
+ let x=-850;
+ x<=850;
+ x+=100
+){
+
+ for(
+  let z=-850;
+  z<=850;
+  z+=100
+ ){
+
+  if(
+   Math.abs(x)<100 &&
+   Math.abs(z)<100
+  )
+   continue;
+
+
+  const w=
+   55+
+   Math.random()*20;
+
+  const d=
+   55+
+   Math.random()*20;
+
+  const h=
+   70+
+   Math.random()*250;
+
+
+  const building=
+   new THREE.Mesh(
+    new THREE.BoxGeometry(
+     w,h,d
+    ),
+    buildingMaterials[
+     Math.floor(
+      Math.random()*
+      buildingMaterials.length
+     )
+    ]
+   );
+
+
+  building.position.set(
+   x,
+   h/2,
+   z
+  );
+
+  building.castShadow=true;
+
+  scene.add(
+   building
+  );
+
+  buildings.push(
+   building
+  );
+ }
+}
+
+
+const ground=
+ new THREE.Mesh(
+  new THREE.PlaneGeometry(
+   3000,
+   3000
+  ),
+  new THREE.MeshStandardMaterial({
+   color:0x070a0e
+  })
+ );
+
+
+ground.rotation.x=
+ -Math.PI/2;
+
+ground.receiveShadow=true;
+
+scene.add(
+ ground
+);
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player=
+ new THREE.Group();
+
+player.position.set(
+ 0,
+ 1.1,
+ 0
+);
+
+scene.add(
+ player
+);
+
+
+const suit=
+ new THREE.MeshStandardMaterial({
+  color:0xa8192d,
+  roughness:.4
+ });
+
+
+const body=
+ new THREE.Mesh(
+  new THREE.CapsuleGeometry(
+   .65,
+   1.55,
+   8,
+   14
+  ),
+  suit
+ );
+
+
+body.position.y=
+ 1.45;
+
+player.add(
+ body
+ );
+
+
+const head=
+ new THREE.Mesh(
+  new THREE.SphereGeometry(
+   .57,
+   20,
+   16
+  ),
+  suit
+ );
+
+
+head.position.y=
+ 2.75;
+
+player.add(
+ head
+ );
+
+
+const eyes=
+ new THREE.MeshBasicMaterial({
+  color:0xffffff
+ });
+
+
+for(
+ const x of [-.2,.2]
+ ){
+
+ const eye=
+  new THREE.Mesh(
+   new THREE.SphereGeometry(
+    .18,
+    12,
+    10
+   ),
+   eyes
+  );
+
+ eye.position.set(
+  x,
+  2.78,
+  -.54
+ );
+
+ eye.scale.z=.18;
+
+ player.add(
+  eye
+ );
+}
+
+
+/* =====================================================
+   PLAYER STATE
+===================================================== */
+
+const velocity=
+ new THREE.Vector3();
+
+const input=
+ new THREE.Vector3();
+
+const keys={};
+
+let grounded=true;
+let doubleJump=true;
+
+let swinging=false;
+let anchor=null;
+let webLine=null;
+
+let health=100;
+let energy=100;
+let xp=0;
+let score=0;
+let level=1;
+
+let chapter=1;
+let mission=1;
+
+
+/* =====================================================
+   LOCATIONS
+===================================================== */
+
+const locations=[
+
+ {
+  name:"Central City",
+  x:0,
+  z:0
+ },
+
+ {
+  name:"Financial District",
+  x:300,
+  z:-250
+ },
+
+ {
+  name:"Harbor",
+  x:-450,
+  z:300
+ },
+
+ {
+  name:"Old Town",
+  x:-350,
+  z:-420
+ },
+
+ {
+  name:"Industrial Zone",
+  x:500,
+  z:420
+ },
+
+ {
+  name:"Downtown",
+  x:120,
+  z:350
+ }
+
+];
+
+
+function getLocation(){
+
+ let closest=
+  locations[0];
+
+ let distance=
+  Infinity;
+
+
+ for(
+  const location of locations
+ ){
+
+  const d=
+   Math.hypot(
+    player.position.x-
+    location.x,
+
+    player.position.z-
+    location.z
+   );
+
+
+  if(
+   d<distance
+  ){
+
+   distance=d;
+   closest=location;
+  }
+ }
+
+
+ return closest;
+}
+
+
+function updateLocation(){
+
+ const location=
+  getLocation();
+
+ document.getElementById(
+  "location"
+ ).textContent=
+  location.name;
+}
+
+
+/* =====================================================
+   MISSION TARGET
+===================================================== */
+
+const missionTargets=[
+ {
+  x:260,
+  z:-230,
+  name:"Financial District"
+ },
+
+ {
+  x:-450,
+  z:300,
+  name:"Harbor"
+ },
+
+ {
+  x:-350,
+  z:-420,
+  name:"Old Town"
+ },
+
+ {
+  x:500,
+  z:420,
+  name:"Industrial Zone"
+ },
+
+ {
+  x:120,
+  z:350,
+  name:"Downtown"
+ },
+
+ {
+  x:0,
+  z:0,
+  name:"Central City"
+ }
+];
+
+
+function getMissionTarget(){
+
+ return missionTargets[
+  (mission-1)%
+  missionTargets.length
+ ];
+}
+
+
+/* =====================================================
+   FAST TRAVEL
+===================================================== */
+
+let unlockedFastTravel=[
+  true,
+  false,
+  false,
+  false,
+  false,
+  false
+];
+
+
+function unlockNearbyLocation(){
+
+ const location=
+  getLocation();
+
+ const index=
+  locations.indexOf(
+   location
+  );
+
+ if(
+  index>=0 &&
+  !unlockedFastTravel[index]
+ ){
+
+  unlockedFastTravel[index]=true;
+
+  showMessage(
+   "🟡 FAST TRAVEL UNLOCKED"
+  );
+ }
+}
+
+
+function fastTravel(){
+
+ const unlocked=
+  locations.filter(
+   (_,i)=>
+    unlockedFastTravel[i]
+  );
+
+
+ if(unlocked.length<=1){
+
+  showMessage(
+   "🔒 DISCOVER MORE LOCATIONS"
+  );
+
+  return;
+ }
+
+
+ let index=
+  locations.indexOf(
+   getLocation()
+  );
+
+
+ index++;
+
+
+ for(
+  let i=0;
+  i<locations.length;
+  i++
+ ){
+
+  const next=
+   (index+i)%
+   locations.length;
+
+  if(
+   unlockedFastTravel[next]
+  ){
+
+   const destination=
+    locations[next];
+
+   player.position.set(
+    destination.x,
+    1.1,
+    destination.z
+   );
+
+   velocity.set(
+    0,0,0
+   );
+
+   showMessage(
+    "⚡ TRAVELED TO "+
+    destination.name
+   );
+
+   updateLocation();
+
+   return;
+  }
+ }
+}
+
+
+/* =====================================================
+   MAP
+===================================================== */
+
+const map=
+ document.getElementById(
+  "map"
+ );
+
+
+function clearMapMarkers(){
+
+ map.querySelectorAll(
+  ".mapMarker,.markerLabel"
+ ).forEach(
+  e=>e.remove()
+ );
+}
+
+
+function mapPosition(x,z){
+
+ const scale=.055;
+
+ return {
+  x:
+   50+
+   x*scale,
+
+  y:
+   50+
+   z*scale
+ };
+}
+
+
+function addMapMarker(
+ x,z,type,label
+){
+
+ const p=
+  mapPosition(x,z);
+
+
+ const marker=
+  document.createElement(
+   "div"
+  );
+
+
+ marker.className=
+  "mapMarker "+
+  type;
+
+
+ marker.style.left=
+  p.x+"%";
+
+ marker.style.top=
+  p.y+"%";
+
+
+ if(label){
+
+  const text=
+   document.createElement(
+    "div"
+   );
+
+  text.className=
+   "markerLabel";
+
+  text.style.left=
+   p.x+"%";
+
+  text.style.top=
+   p.y+"%";
+
+  text.textContent=
+   label;
+
+  map.appendChild(
+   text
+  );
+ }
+
+
+ map.appendChild(
+  marker
+ );
+}
+
+
+function updateMap(){
+
+ clearMapMarkers();
+
+
+ addMapMarker(
+  player.position.x,
+  player.position.z,
+  "playerMarker",
+  "You"
+ );
+
+
+ const target=
+  getMissionTarget();
+
+
+ addMapMarker(
+  target.x,
+  target.z,
+  "missionMarker",
+  "Mission"
+ );
+
+
+ locations.forEach(
+  (location,i)=>{
+
+   if(
+    unlockedFastTravel[i]
+   ){
+
+    addMapMarker(
+     location.x,
+     location.z,
+     "fastMarker",
+     location.name
+    );
+   }
+  }
+ );
+}
+
+
+function openMap(){
+
+ updateMap();
+
+ document.getElementById(
+  "mapScreen"
+ ).style.display=
+  "flex";
+}
+
+
+function closeMap(){
+
+ document.getElementById(
+  "mapScreen"
+ ).style.display=
+  "none";
+}
+
+
+/* =====================================================
+   PROGRESSION
+===================================================== */
+
+function xpRequired(){
+
+ return 500+
+  (level-1)*250;
+}
+
+
+function addXP(amount){
+
+ xp+=amount;
+
+ while(
+  xp>=xpRequired()
+ ){
+
+  xp-=xpRequired();
+
+  level++;
+
+  health=100;
+  energy=100;
+
+  showMessage(
+   "⭐ LEVEL "+
+   level+
+   "!"
+  );
+ }
+}
+
+
+/* =====================================================
+   ENEMIES
+===================================================== */
+
+const enemies=[];
+
+
+function createEnemy(){
+
+ const enemy=
+  new THREE.Mesh(
+   new THREE.CapsuleGeometry(
+    .55,
+    1,
+    6,
+    10
+   ),
+
+   new THREE.MeshStandardMaterial({
+    color:0x353941
+   })
+  );
+
+
+ const angle=
+  Math.random()*
+  Math.PI*2;
+
+ const distance=
+  100+
+  Math.random()*200;
+
+
+ enemy.position.set(
+  player.position.x+
+  Math.cos(angle)*
+  distance,
+
+  1,
+
+  player.position.z+
+  Math.sin(angle)*
+  distance
+ );
+
+
+ enemy.userData={
+  health:100,
+  speed:4
+ };
+
+
+ scene.add(
+  enemy
+ );
+
+ enemies.push(
+  enemy
+ );
+}
+
+
+for(
+ let i=0;
+ i<8;
+ i++
+)
+ createEnemy();
+
+
+function nearestEnemy(range){
+
+ let result=null;
+ let closest=range;
+
+
+ for(
+  const enemy of enemies
+ ){
+
+  const d=
+   enemy.position.distanceTo(
+    player.position
+   );
+
+
+  if(
+   d<closest
+  ){
+
+   closest=d;
+   result=enemy;
+  }
+ }
+
+
+ return result;
+}
+
+
+function defeatEnemy(enemy){
+
+ score+=250;
+
+ addXP(100);
+
+ scene.remove(
+  enemy
+ );
+
+ const i=
+  enemies.indexOf(
+   enemy
+  );
+
+ if(i>=0)
+  enemies.splice(
+   i,
+   1
+  );
+
+
+ setTimeout(
+  createEnemy,
+  1200
+ );
+}
+
+
+function punch(){
+
+ const enemy=
+  nearestEnemy(7);
+
+ if(!enemy)
+  return;
+
+
+ enemy.userData.health-=50;
+
+ score+=100;
+
+ addXP(20);
+
+
+ if(
+  enemy.userData.health<=0
+ )
+  defeatEnemy(
+   enemy
+ );
+}
+
+
+function webShot(){
+
+ if(
+  energy<15
+ )
+  return;
+
+
+ const enemy=
+  nearestEnemy(40);
+
+ if(!enemy)
+  return;
+
+
+ energy-=15;
+
+ enemy.userData.health-=60;
+
+ addXP(10);
+
+
+ if(
+  enemy.userData.health<=0
+ )
+  defeatEnemy(
+   enemy
+ );
+}
+
+
+function burst(){
+
+ if(
+  energy<35
+ )
+  return;
+
+
+ energy-=35;
+
+
+ for(
+  const enemy of [...enemies]
+ ){
+
+  if(
+   enemy.position.distanceTo(
+    player.position
+   )<18
+  ){
+
+   enemy.userData.health-=70;
+
+
+   if(
+    enemy.userData.health<=0
+   )
+    defeatEnemy(
+     enemy
+    );
+  }
+ }
+}
+
+
+function updateEnemies(dt){
+
+ for(
+  const enemy of enemies
+ ){
+
+  const d=
+   enemy.position.distanceTo(
+    player.position
+   );
+
+
+  if(
+   d<100
+  ){
+
+   const dir=
+    new THREE.Vector3()
+     .subVectors(
+      player.position,
+      enemy.position
+     )
+     .normalize();
+
+
+   dir.y=0;
+
+
+   enemy.position.addScaledVector(
+    dir,
+    enemy.userData.speed*
+    dt
+   );
+
+
+   if(
+    d<4
+   )
+    health-=7*dt;
+  }
+ }
+}
+
+
+/* =====================================================
+   MOVEMENT
+===================================================== */
+
+function jump(){
+
+ if(
+  grounded
+ ){
+
+  velocity.y=15;
+
+  grounded=false;
+
+  doubleJump=true;
+
+ }else if(
+  doubleJump
+ ){
+
+  velocity.y=13;
+
+  doubleJump=false;
+ }
+}
+
+
+function updateMovement(dt){
+
+ input.set(
+  0,0,0
+ );
+
+
+ if(keys.KeyW)
+  input.z-=1;
+
+ if(keys.KeyS)
+  input.z+=1;
+
+ if(keys.KeyA)
+  input.x-=1;
+
+ if(keys.KeyD)
+  input.x+=1;
+
+
+ if(
+  input.length()
+ )
+  input.normalize();
+
+
+ const speed=
+  keys.ShiftLeft?
+  14:
+  9;
+
+
+ velocity.x+=
+  input.x*
+  speed*
+  dt*
+  5;
+
+
+ velocity.z+=
+  input.z*
+  speed*
+  dt*
+  5;
+
+
+ velocity.x*=.91;
+ velocity.z*=.91;
+
+
+ if(
+  !grounded
+ )
+  velocity.y-=30*dt;
+
+
+ player.position.addScaledVector(
+  velocity,
+  dt
+ );
+
+
+ if(
+  player.position.y<=1.1
+ ){
+
+  player.position.y=1.1;
+
+  velocity.y=0;
+
+  grounded=true;
+
+  doubleJump=true;
+
+ }else{
+
+  grounded=false;
+ }
+}
+
+
+/* =====================================================
+   WEB SWING
+===================================================== */
+
+function findAnchor(){
+
+ let best=null;
+ let closest=450;
+
+
+ for(
+  const building of buildings
+ ){
+
+  const h=
+   building.geometry
+    .parameters
+    .height;
+
+
+  const point=
+   new THREE.Vector3(
+    building.position.x,
+    building.position.y+
+    h/2,
+    building.position.z
+   );
+
+
+  const d=
+   point.distanceTo(
+    player.position
+   );
+
+
+  if(
+   d<closest &&
+   point.y>
+   player.position.y+8
+  ){
+
+   closest=d;
+   best=point;
+  }
+ }
+
+
+ return best;
+}
+
+
+function toggleSwing(){
+
+ if(
+  swinging
+ ){
+
+  swinging=false;
+
+
+  if(webLine){
+
+   scene.remove(
+    webLine
+   );
+
+   webLine=null;
+  }
+
+
+  velocity.multiplyScalar(
+   1.4
+  );
+
+  return;
+ }
+
+
+ const point=
+  findAnchor();
+
+
+ if(!point)
+  return;
+
+
+ anchor=point;
+
+ swinging=true;
+
+
+ webLine=
+  new THREE.Line(
+   new THREE.BufferGeometry()
+    .setFromPoints([
+     player.position.clone(),
+     anchor.clone()
+    ]),
+
+   new THREE.LineBasicMaterial({
+    color:0xffffff
+   })
+  );
+
+
+ scene.add(
+  webLine
+ );
+}
+
+
+function updateSwing(dt){
+
+ if(
+  !swinging
+ )
+  return;
+
+
+ const pull=
+  new THREE.Vector3()
+   .subVectors(
+    anchor,
+    player.position
+   );
+
+
+ const distance=
+  pull.length();
+
+
+ pull.normalize();
+
+
+ if(
+  distance>10
+ ){
+
+  velocity.addScaledVector(
+   pull,
+   (distance-10)*
+   dt*
+   16
+  );
+ }
+
+
+ velocity.y-=7*dt;
+
+
+ if(webLine){
+
+  const p=
+   webLine.geometry
+    .attributes
+    .position
+    .array;
+
+
+  p[0]=
+   player.position.x;
+
+  p[1]=
+   player.position.y+1;
+
+  p[2]=
+   player.position.z;
+
+  p[3]=
+   anchor.x;
+
+  p[4]=
+   anchor.y;
+
+  p[5]=
+   anchor.z;
+
+
+  webLine.geometry
+   .attributes
+   .position
+   .needsUpdate=true;
+ }
+}
+
+
+/* =====================================================
+   MISSION PROGRESSION
+===================================================== */
+
+function updateMission(){
+
+ const target=
+  getMissionTarget();
+
+
+ const distance=
+  Math.hypot(
+   player.position.x-
+   target.x,
+
+   player.position.z-
+   target.z
+  );
+
+
+ if(
+  distance<20
+ ){
+
+  score+=500;
+
+  addXP(200);
+
+  mission++;
+
+  if(
+   mission>missionTargets.length
+  ){
+
+   mission=1;
+   chapter++;
+
+   showMessage(
+    "📖 CHAPTER "+
+    chapter+
+    " UNLOCKED"
+   );
+
+  }else{
+
+   showMessage(
+    "🎯 MISSION COMPLETE"
+   );
+  }
+ }
+}
+
+
+/* =====================================================
+   UI
+===================================================== */
+
+function updateUI(){
+
+ document.getElementById(
+  "level"
+ ).textContent=
+  level;
+
+
+ document.getElementById(
+  "health"
+ ).textContent=
+  Math.floor(
+   Math.max(
+    0,
+    health
+   )
+  );
+
+
+ document.getElementById(
+  "energy"
+ ).textContent=
+  Math.floor(
+   energy
+  );
+
+
+ document.getElementById(
+  "xp"
+ ).textContent=
+  Math.floor(
+   xp
+  );
+
+
+ document.getElementById(
+  "score"
+ ).textContent=
+  score;
+
+
+ document.getElementById(
+  "chapter"
+ ).textContent=
+  chapter;
+
+
+ document.getElementById(
+  "mission"
+ ).textContent=
+  mission;
+
+
+ updateLocation();
+}
+
+
+function showMessage(text){
+
+ const message=
+  document.getElementById(
+   "message"
+  );
+
+
+ message.textContent=
+  text;
+
+ message.style.opacity=1;
+
+
+ setTimeout(
+  ()=>{
+   message.style.opacity=0;
+  },
+  1300
+ );
+}
+
+
+/* =====================================================
+   CHECKPOINT / LOCATION
+===================================================== */
+
+function checkLocation(){
+
+ const location=
+  getLocation();
+
+
+ const index=
+  locations.indexOf(
+   location
+  );
+
+
+ if(
+  index>=0 &&
+  !unlockedFastTravel[index]
+ ){
+
+  unlockedFastTravel[index]=true;
+
+  showMessage(
+   "📍 DISCOVERED: "+
+   location.name
+  );
+ }
+}
+
+
+/* =====================================================
+   KEYBOARD
+===================================================== */
+
+addEventListener(
+ "keydown",
+ e=>{
+
+  keys[e.code]=true;
+
+
+  if(
+   e.code==="Space"
+  )
+   jump();
+
+
+  if(
+   e.code==="KeyE"
+  )
+   toggleSwing();
+
+
+  if(
+   e.code==="KeyF"
+  )
+   punch();
+
+
+  if(
+   e.code==="KeyZ"
+  )
+   webShot();
+
+
+  if(
+   e.code==="KeyC"
+  )
+   burst();
+
+
+  if(
+   e.code==="KeyM"
+  ){
+
+   openMap();
+  }
+
+
+  if(
+   e.code==="KeyT"
+  ){
+
+   fastTravel();
+  }
+ });
+
+
+addEventListener(
+ "keyup",
+ e=>{
+  keys[e.code]=false;
+ });
+
+
+/* =====================================================
+   MOBILE CONTROLS
+===================================================== */
+
+function hold(
+ id,
+ code
+){
+
+ const button=
+  document.getElementById(
+   id
+  );
+
+
+ const down=e=>{
+  e.preventDefault();
+  keys[code]=true;
+ };
+
+
+ const up=e=>{
+  e.preventDefault();
+  keys[code]=false;
+ };
+
+
+ button.addEventListener(
+  "touchstart",
+  down,
+  {passive:false}
+ );
+
+
+ button.addEventListener(
+  "touchend",
+  up,
+  {passive:false}
+ );
+
+
+ button.addEventListener(
+  "touchcancel",
+  up,
+  {passive:false}
+ );
+}
+
+
+hold(
+ "up",
+ "KeyW"
+);
+
+hold(
+ "down",
+ "KeyS"
+);
+
+hold(
+ "left",
+ "KeyA"
+);
+
+hold(
+ "right",
+ "KeyD"
+);
+
+
+function tap(
+ id,
+ action
+){
+
+ document
+  .getElementById(id)
+  .addEventListener(
+   "touchstart",
+   e=>{
+    e.preventDefault();
+    action();
+   },
+   {passive:false}
+  );
+}
+
+
+tap(
+ "jump",
+ jump
+);
+
+tap(
+ "web",
+ toggleSwing
+);
+
+tap(
+ "punch",
+ punch
+);
+
+tap(
+ "shot",
+ webShot
+);
+
+tap(
+ "travel",
+ fastTravel
+);
+
+tap(
+ "burst",
+ burst
+);
+
+
+/* =====================================================
+   MAP BUTTONS
+===================================================== */
+
+document.getElementById(
+ "mapButton"
+).onclick=
+ openMap;
+
+
+document.getElementById(
+ "closeMap"
+).onclick=
+ closeMap;
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+function updateCamera(){
+
+ camera.position.lerp(
+  new THREE.Vector3(
+   player.position.x,
+   player.position.y+5.5,
+   player.position.z+12
+  ),
+  .075
+ );
+
+
+ camera.lookAt(
+  player.position.x,
+  player.position.y+2,
+  player.position.z
+ );
+}
+
+
+/* =====================================================
+   AUTO SAVE
+===================================================== */
+
+setInterval(
+ ()=>{
+  try{
+
+   localStorage.setItem(
+    "WEBBOUND_V38",
+    JSON.stringify({
+     x:player.position.x,
+     y:player.position.y,
+     z:player.position.z,
+     level,
+     xp,
+     score,
+     chapter,
+     mission,
+     unlockedFastTravel
+    })
+   );
+
+  }catch(e){}
+ },
+ 30000
+);
+
+
+/* =====================================================
+   MAIN LOOP
+===================================================== */
+
+const clock=
+ new THREE.Clock();
+
+
+function loop(){
+
+ requestAnimationFrame(
+  loop
+ );
+
+
+ const dt=
+  Math.min(
+   clock.getDelta(),
+   .033
+  );
+
+
+ updateMovement(dt);
+
+ updateSwing(dt);
+
+ updateEnemies(dt);
+
+ updateMission();
+
+ checkLocation();
+
+
+ energy=
+  Math.min(
+   100,
+   energy+
+   dt*5
+  );
+
+
+ if(
+  health<=0
+ ){
+
+  health=100;
+  energy=100;
+
+  player.position.set(
+   0,
+   1.1,
+   0
+  );
+
+  velocity.set(
+   0,0,0
+  );
+
+  showMessage(
+   "📍 CHECKPOINT RESTORED"
+  );
+ }
+
+
+ updateUI();
+
+ updateCamera();
+
+
+ renderer.render(
+  scene,
+  camera
+ );
+}
+
+
+updateUI();
+
+loop();
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+addEventListener(
+ "resize",
+ ()=>{
+
+  camera.aspect=
+   innerWidth/
+   innerHeight;
+
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(
+   innerWidth,
+   innerHeight
+  );
+ }
+);
+
+</script>
+
+</body>
+</html>
