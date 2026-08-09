@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V25 — Living City</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#020308;
+    font-family:Arial,sans-serif;
+}
+
+canvas{display:block}
+
+#hud{
+    position:fixed;
+    z-index:20;
+    top:15px;
+    left:15px;
+    width:380px;
+    padding:16px;
+    color:white;
+    background:rgba(0,0,0,.78);
+    border:1px solid #ffffff20;
+    border-radius:16px;
+    backdrop-filter:blur(12px);
+}
+
+.title{
+    font-size:22px;
+    font-weight:bold;
+}
+
+.chapter{
+    color:#6fdcff;
+    margin-top:8px;
+    font-weight:bold;
+}
+
+#event{
+    margin-top:7px;
+    font-size:17px;
+    font-weight:bold;
+}
+
+#objective{
+    margin-top:7px;
+    color:#d8dde5;
+    line-height:1.4;
+}
+
+.stat{
+    margin-top:7px;
+    font-size:13px;
+}
+
+#controls{
+    position:fixed;
+    left:15px;
+    bottom:15px;
+    z-index:20;
+    padding:12px 15px;
+    color:#ddd;
+    background:rgba(0,0,0,.75);
+    border-radius:13px;
+    font-size:11px;
+    line-height:1.7;
+}
+
+#message{
+    position:fixed;
+    z-index:50;
+    top:15%;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
+    font-size:28px;
+    font-weight:bold;
+    text-shadow:0 5px 25px #000;
+    opacity:0;
+}
+
+#alert{
+    position:fixed;
+    z-index:30;
+    top:20px;
+    right:20px;
+    padding:12px 18px;
+    color:white;
+    background:rgba(150,20,25,.85);
+    border-radius:12px;
+    opacity:0;
+}
+
+#cinematic{
+    position:fixed;
+    inset:0;
+    z-index:80;
+    pointer-events:none;
+    opacity:0;
+    background:rgba(0,0,0,.2);
+}
+
+.bar{
+    position:absolute;
+    left:0;
+    width:100%;
+    height:13%;
+    background:#000;
+}
+
+#top{top:0}
+#bottom{bottom:0}
+
+#dialogue{
+    position:absolute;
+    left:50%;
+    bottom:17%;
+    transform:translateX(-50%);
+    width:min(850px,90%);
+    padding:18px 22px;
+    color:white;
+    background:rgba(0,0,0,.88);
+    border-radius:14px;
+}
+
+#speaker{
+    color:#6fdcff;
+    font-weight:bold;
+    margin-bottom:7px;
+}
+
+#text{
+    font-size:17px;
+    line-height:1.5;
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+
+<div class="title">🕷️ WEBBOUND V25</div>
+
+<div class="chapter">CHAPTER 3 — LIVING CITY</div>
+
+<div id="event">
+CITY PATROL
+</div>
+
+<div id="objective">
+Explore the city and help civilians.
+</div>
+
+<div class="stat">
+Civilians nearby: <b id="civilians">0</b>
+</div>
+
+<div class="stat">
+Events completed: <b id="events">0</b>
+</div>
+
+<div class="stat">
+Health: <b id="health">100</b>
+</div>
+
+<div class="stat">
+Web Energy: <b id="energy">100</b>
+</div>
+
+<div class="stat">
+XP: <b id="xp">0</b>
+</div>
+
+<div class="stat">
+Score: <b id="score">0</b>
+</div>
+
+</div>
+
+
+<div id="controls">
+W A S D — Move<br>
+SHIFT — Sprint<br>
+SPACE — Jump<br>
+E — Web Swing<br>
+Q — Web Zip<br>
+F — Attack<br>
+G — Web Strike<br>
+V — Change Suit<br>
+T — Weather<br>
+H — Help nearby civilian<br>
+B — Start emergency event
+</div>
+
+
+<div id="alert">
+⚠️ EMERGENCY
+</div>
+
+
+<div id="message"></div>
+
+
+<div id="cinematic">
+
+<div class="bar" id="top"></div>
+<div class="bar" id="bottom"></div>
+
+<div id="dialogue">
+
+<div id="speaker">
+CIVILIAN
+</div>
+
+<div id="text">
+Help!
+</div>
+
+</div>
+
+</div>
+
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+ENGINE
+===================================================== */
+
+const scene=
+new THREE.Scene();
+
+scene.background=
+new THREE.Color(0x07101c);
+
+scene.fog=
+new THREE.FogExp2(
+0x07101c,
+.00075
+);
+
+
+const camera=
+new THREE.PerspectiveCamera(
+68,
+innerWidth/innerHeight,
+.1,
+5000
+);
+
+
+const renderer=
+new THREE.WebGLRenderer({
+antialias:true
+});
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+renderer.setPixelRatio(
+Math.min(devicePixelRatio,2)
+);
+
+renderer.shadowMap.enabled=true;
+
+renderer.outputColorSpace=
+THREE.SRGBColorSpace;
+
+document.body.appendChild(
+renderer.domElement
+);
+
+
+/* =====================================================
+LIGHTING
+===================================================== */
+
+const sun=
+new THREE.DirectionalLight(
+0xffffff,
+2.3
+);
+
+sun.position.set(
+-500,
+800,
+300
+);
+
+sun.castShadow=true;
+
+scene.add(sun);
+
+
+scene.add(
+new THREE.HemisphereLight(
+0x7894c0,
+0x08090d,
+1.2
+)
+);
+
+
+/* =====================================================
+CITY
+===================================================== */
+
+const buildings=[];
+
+const materials=[
+new THREE.MeshStandardMaterial({
+color:0x171d29,
+roughness:.82
+}),
+new THREE.MeshStandardMaterial({
+color:0x222b38,
+roughness:.75
+}),
+new THREE.MeshStandardMaterial({
+color:0x10151e,
+roughness:.9
+})
+];
+
+
+function createBuilding(
+x,z,w,h,d
+){
+
+const building=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+w,h,d
+),
+materials[
+Math.floor(
+Math.random()*materials.length
+)
+]
+);
+
+building.position.set(
+x,
+h/2,
+z
+);
+
+building.castShadow=true;
+building.receiveShadow=true;
+
+scene.add(building);
+
+buildings.push(building);
+}
+
+
+for(
+let x=-1000;
+x<=1000;
+x+=85
+){
+
+for(
+let z=-1000;
+z<=1000;
+z+=85
+){
+
+if(
+Math.abs(x)<70 &&
+Math.abs(z)<70
+)
+continue;
+
+createBuilding(
+x,
+z,
+48+Math.random()*25,
+60+Math.random()*260,
+48+Math.random()*25
+);
+}
+}
+
+
+const ground=
+new THREE.Mesh(
+new THREE.PlaneGeometry(
+3200,
+3200
+),
+new THREE.MeshStandardMaterial({
+color:0x080a0e,
+roughness:1
+})
+);
+
+ground.rotation.x=-Math.PI/2;
+
+ground.receiveShadow=true;
+
+scene.add(ground);
+
+
+/* =====================================================
+PLAYER
+===================================================== */
+
+const player=
+new THREE.Group();
+
+player.position.set(
+0,1.1,0
+);
+
+scene.add(player);
+
+
+const suitMaterial=
+new THREE.MeshStandardMaterial({
+color:0x9d1727,
+roughness:.3,
+metalness:.2
+});
+
+
+const body=
+new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.65,1.55,10,20
+),
+suitMaterial
+);
+
+body.position.y=1.45;
+
+body.castShadow=true;
+
+player.add(body);
+
+
+const head=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.57,32,24
+),
+suitMaterial
+);
+
+head.position.y=2.75;
+
+player.add(head);
+
+
+const eyeMaterial=
+new THREE.MeshStandardMaterial({
+color:0xffffff
+});
+
+
+for(
+const x of [-.2,.2]
+){
+
+const eye=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.18,20,16
+),
+eyeMaterial
+);
+
+eye.position.set(
+x,
+2.78,
+-.54
+);
+
+eye.scale.z=.18;
+
+player.add(eye);
+}
+
+
+/* =====================================================
+PLAYER PHYSICS
+===================================================== */
+
+const velocity=
+new THREE.Vector3();
+
+const input=
+new THREE.Vector3();
+
+const keys={};
+
+let grounded=true;
+let doubleJump=true;
+let swinging=false;
+
+let webAnchor=null;
+let webLine=null;
+
+let health=100;
+let energy=100;
+let xp=0;
+let score=0;
+
+
+/* =====================================================
+CIVILIAN SYSTEM
+===================================================== */
+
+const civilians=[];
+
+const civilianColors=[
+0x3c70a8,
+0x8c463a,
+0x4c8b54,
+0x6d4f91,
+0xb1844a,
+0x777777
+];
+
+
+function createCivilian(){
+
+const civilian=
+new THREE.Group();
+
+
+const color=
+civilianColors[
+Math.floor(
+Math.random()*
+civilianColors.length
+)
+];
+
+
+const material=
+new THREE.MeshStandardMaterial({
+color,
+roughness:.8
+});
+
+
+const torso=
+new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.35,.75,6,10
+),
+material
+);
+
+torso.position.y=.9;
+
+civilian.add(torso);
+
+
+const head=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.28,12,10
+),
+new THREE.MeshStandardMaterial({
+color:0xc58f70
+})
+);
+
+head.position.y=1.65;
+
+civilian.add(head);
+
+
+const angle=
+Math.random()*Math.PI*2;
+
+const distance=
+100+Math.random()*500;
+
+
+civilian.position.set(
+Math.cos(angle)*distance,
+1,
+Math.sin(angle)*distance
+);
+
+
+civilian.userData={
+speed:1.5+Math.random()*1.5,
+direction:new THREE.Vector3(
+Math.random()-.5,
+0,
+Math.random()-.5
+).normalize(),
+state:"walking",
+panic:0,
+helped:false
+};
+
+
+scene.add(civilian);
+
+civilians.push(civilian);
+}
+
+
+for(
+let i=0;
+i<60;
+i++
+){
+
+createCivilian();
+}
+
+
+/* =====================================================
+CIVILIAN AI
+===================================================== */
+
+function updateCivilians(dt){
+
+for(
+const civilian of civilians
+){
+
+const data=
+civilian.userData;
+
+
+if(
+data.panic>0
+){
+
+data.panic-=dt;
+
+data.speed=5;
+
+}else{
+
+data.speed=
+THREE.MathUtils.lerp(
+data.speed,
+2,
+.03
+);
+}
+
+
+civilian.position.addScaledVector(
+data.direction,
+data.speed*dt
+);
+
+
+civilian.position.y=1;
+
+
+if(
+Math.abs(civilian.position.x)>1400 ||
+Math.abs(civilian.position.z)>1400
+){
+
+civilian.position.x=
+THREE.MathUtils.clamp(
+civilian.position.x,
+-1300,
+1300
+);
+
+civilian.position.z=
+THREE.MathUtils.clamp(
+civilian.position.z,
+-1300,
+1300
+);
+
+data.direction
+.multiplyScalar(-1);
+}
+
+
+civilian.lookAt(
+civilian.position.x+
+data.direction.x,
+civilian.position.y,
+civilian.position.z+
+data.direction.z
+);
+}
+
+
+/* nearest civilian */
+
+let count=0;
+
+for(
+const civilian of civilians
+){
+
+if(
+civilian.position.distanceTo(
+player.position
+)<40
+){
+
+count++;
+}
+}
+
+
+document.getElementById(
+"civilians"
+).textContent=count;
+}
+
+
+/* =====================================================
+EMERGENCY EVENTS
+===================================================== */
+
+let emergency=null;
+
+let completedEvents=0;
+
+
+function startEmergency(){
+
+if(emergency)
+return;
+
+
+const angle=
+Math.random()*Math.PI*2;
+
+const distance=100;
+
+
+const position=
+new THREE.Vector3(
+player.position.x+
+Math.cos(angle)*distance,
+1,
+player.position.z+
+Math.sin(angle)*distance
+);
+
+
+emergency={
+position,
+time:90,
+type:Math.random()<.5
+?"Robbery"
+:"Civilian Rescue",
+completed:false
+};
+
+
+showAlert();
+
+showMessage(
+"NEW EMERGENCY"
+);
+
+
+for(
+const civilian of civilians
+){
+
+if(
+civilian.position.distanceTo(
+position
+)<100
+){
+
+civilian.userData.panic=15;
+}
+}
+}
+
+
+/* =====================================================
+EMERGENCY CHECK
+===================================================== */
+
+function updateEmergency(dt){
+
+if(!emergency)
+return;
+
+
+emergency.time-=dt;
+
+
+const distance=
+player.position.distanceTo(
+emergency.position
+);
+
+
+if(
+distance<12
+){
+
+completeEmergency();
+
+return;
+}
+
+
+if(
+emergency.time<=0
+){
+
+showMessage(
+"EVENT FAILED"
+);
+
+emergency=null;
+}
+}
+
+
+function completeEmergency(){
+
+completedEvents++;
+
+score+=500;
+
+xp+=250;
+
+
+document.getElementById(
+"events"
+).textContent=
+completedEvents;
+
+
+showMessage(
+"EMERGENCY COMPLETE +500"
+);
+
+
+showDialogue(
+"CIVILIAN",
+"Thank you, Spider-Man!"
+);
+
+
+emergency=null;
+}
+
+
+/* =====================================================
+HELP CIVILIAN
+===================================================== */
+
+function helpCivilian(){
+
+let nearest=null;
+
+let limit=7;
+
+
+for(
+const civilian of civilians
+){
+
+const distance=
+civilian.position.distanceTo(
+player.position
+);
+
+
+if(
+distance<limit &&
+!civilian.userData.helped
+){
+
+limit=distance;
+nearest=civilian;
+}
+}
+
+
+if(!nearest){
+
+showMessage(
+"No civilian needs help nearby."
+);
+
+return;
+}
+
+
+nearest.userData.helped=true;
+
+nearest.userData.panic=0;
+
+xp+=100;
+
+score+=150;
+
+
+showMessage(
+"CIVILIAN HELPED +150"
+);
+
+
+showDialogue(
+"CIVILIAN",
+"I thought nobody was coming."
+);
+}
+
+
+/* =====================================================
+WEB SYSTEM
+===================================================== */
+
+function findAnchor(){
+
+let best=null;
+let limit=550;
+
+
+for(
+const building of buildings
+){
+
+const h=
+building.geometry.parameters.height;
+
+
+const point=
+new THREE.Vector3(
+building.position.x,
+building.position.y+h/2,
+building.position.z
+);
+
+
+const distance=
+point.distanceTo(
+player.position
+);
+
+
+if(
+distance<limit &&
+point.y>
+player.position.y+8
+){
+
+limit=distance;
+best=point;
+}
+}
+
+
+return best;
+}
+
+
+function toggleSwing(){
+
+if(swinging){
+
+swinging=false;
+
+if(webLine){
+
+scene.remove(
+webLine
+);
+
+webLine=null;
+}
+
+velocity.multiplyScalar(1.5);
+
+return;
+}
+
+
+if(energy<10)
+return;
+
+
+const anchor=
+findAnchor();
+
+if(!anchor)
+return;
+
+
+energy-=10;
+
+webAnchor=anchor;
+
+swinging=true;
+
+
+webLine=
+new THREE.Line(
+new THREE.BufferGeometry()
+.setFromPoints([
+player.position.clone(),
+anchor.clone()
+]),
+new THREE.LineBasicMaterial({
+color:0xffffff
+})
+);
+
+scene.add(webLine);
+}
+
+
+function updateSwing(dt){
+
+if(!swinging)
+return;
+
+
+const pull=
+new THREE.Vector3()
+.subVectors(
+webAnchor,
+player.position
+);
+
+const distance=
+pull.length();
+
+pull.normalize();
+
+
+if(distance>9){
+
+velocity.addScaledVector(
+pull,
+(distance-9)*dt*18
+);
+}
+
+
+velocity.y-=8*dt;
+
+
+if(webLine){
+
+const p=
+webLine.geometry
+.attributes
+.position
+.array;
+
+p[0]=player.position.x;
+p[1]=player.position.y+1;
+p[2]=player.position.z;
+
+p[3]=webAnchor.x;
+p[4]=webAnchor.y;
+p[5]=webAnchor.z;
+
+webLine.geometry
+.attributes
+.position
+.needsUpdate=true;
+}
+}
+
+
+/* =====================================================
+MOVEMENT
+===================================================== */
+
+function jump(){
+
+if(grounded){
+
+velocity.y=15.5;
+
+grounded=false;
+
+doubleJump=true;
+
+return;
+}
+
+
+if(doubleJump){
+
+velocity.y=13;
+
+doubleJump=false;
+}
+}
+
+
+function updateMovement(dt){
+
+input.set(0,0,0);
+
+if(keys.KeyW)
+input.z-=1;
+
+if(keys.KeyS)
+input.z+=1;
+
+if(keys.KeyA)
+input.x-=1;
+
+if(keys.KeyD)
+input.x+=1;
+
+if(input.length()>0)
+input.normalize();
+
+
+const speed=
+keys.ShiftLeft
+?15
+:10;
+
+
+velocity.x+=
+input.x*speed*dt*5;
+
+velocity.z+=
+input.z*speed*dt*5;
+
+
+velocity.x*=.91;
+velocity.z*=.91;
+
+
+if(
+!grounded &&
+!swinging
+){
+
+velocity.y-=31*dt;
+}
+
+
+updateSwing(dt);
+
+
+player.position.addScaledVector(
+velocity,
+dt
+);
+
+
+if(
+player.position.y<=1.1
+){
+
+player.position.y=1.1;
+
+velocity.y=0;
+
+grounded=true;
+
+doubleJump=true;
+}else{
+
+grounded=false;
+}
+
+
+if(input.length()>0){
+
+const target=
+Math.atan2(
+input.x,
+input.z
+);
+
+let diff=
+target-player.rotation.y;
+
+diff=
+Math.atan2(
+Math.sin(diff),
+Math.cos(diff)
+);
+
+player.rotation.y+=
+diff*
+Math.min(
+1,
+dt*10
+);
+}
+}
+
+
+/* =====================================================
+WEB ZIP
+===================================================== */
+
+function webZip(){
+
+if(energy<15)
+return;
+
+
+const anchor=
+findAnchor();
+
+if(!anchor)
+return;
+
+
+energy-=15;
+
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+anchor,
+player.position
+)
+.normalize();
+
+
+velocity.copy(
+direction.multiplyScalar(45)
+);
+
+
+showMessage(
+"WEB ZIP"
+);
+}
+
+
+/* =====================================================
+CAMERA
+===================================================== */
+
+function updateCamera(){
+
+const desired=
+new THREE.Vector3(
+player.position.x,
+player.position.y+5.5,
+player.position.z+12
+);
+
+
+if(swinging){
+
+desired.y=
+player.position.y+7;
+
+desired.z=
+player.position.z+16;
+}
+
+
+camera.position.lerp(
+desired,
+.075
+);
+
+
+camera.fov=
+THREE.MathUtils.lerp(
+camera.fov,
+swinging?78:68,
+.06
+);
+
+
+camera.updateProjectionMatrix();
+
+
+camera.lookAt(
+player.position.x,
+player.position.y+2,
+player.position.z
+);
+}
+
+
+/* =====================================================
+CINEMATIC DIALOGUE
+===================================================== */
+
+function showDialogue(
+speaker,
+text
+){
+
+document.getElementById(
+"speaker"
+).textContent=
+speaker;
+
+document.getElementById(
+"text"
+).textContent=
+text;
+
+
+const cinematic=
+document.getElementById(
+"cinematic"
+);
+
+cinematic.style.opacity=1;
+
+
+setTimeout(
+()=>{
+cinematic.style.opacity=0;
+},
+3500
+);
+}
+
+
+/* =====================================================
+ALERT
+===================================================== */
+
+function showAlert(){
+
+const alert=
+document.getElementById(
+"alert"
+);
+
+alert.style.opacity=1;
+
+
+setTimeout(
+()=>{
+alert.style.opacity=0;
+},
+3500
+);
+}
+
+
+/* =====================================================
+MESSAGE
+===================================================== */
+
+let messageTimer=0;
+
+
+function showMessage(text){
+
+document.getElementById(
+"message"
+).textContent=text;
+
+document.getElementById(
+"message"
+).style.opacity=1;
+
+messageTimer=1.7;
+}
+
+
+/* =====================================================
+PLAYER ANIMATION
+===================================================== */
+
+let animationTime=0;
+
+
+function animatePlayer(dt){
+
+animationTime+=dt;
+
+
+const speed=
+Math.sqrt(
+velocity.x**2+
+velocity.z**2
+);
+
+
+if(
+grounded &&
+speed>2
+){
+
+const run=
+animationTime*10;
+
+body.position.y=
+1.45+
+Math.abs(
+Math.sin(run)
+)*.07;
+
+body.rotation.z=
+Math.sin(run)*.08;
+
+}else{
+
+body.position.y+=
+(1.45-body.position.y)
+*.12;
+
+body.rotation.z*=.9;
+}
+
+
+if(swinging){
+
+body.rotation.x=-.55;
+
+body.rotation.z=
+Math.sin(
+animationTime*5
+)*.18;
+}
+}
+
+
+/* =====================================================
+HUD
+===================================================== */
+
+function updateHUD(dt){
+
+document.getElementById(
+"health"
+).textContent=
+Math.floor(health);
+
+document.getElementById(
+"energy"
+).textContent=
+Math.floor(energy);
+
+document.getElementById(
+"xp"
+).textContent=
+xp;
+
+document.getElementById(
+"score"
+).textContent=
+score;
+
+
+energy=
+Math.min(
+100,
+energy+dt*4
+);
+
+
+if(messageTimer>0){
+
+messageTimer-=dt;
+
+}else{
+
+document.getElementById(
+"message"
+).style.opacity=0;
+}
+}
+
+
+/* =====================================================
+INPUT
+===================================================== */
+
+addEventListener(
+"keydown",
+e=>{
+
+keys[e.code]=true;
+
+
+if(e.code==="Space")
+jump();
+
+
+if(e.code==="KeyE")
+toggleSwing();
+
+
+if(e.code==="KeyQ")
+webZip();
+
+
+if(e.code==="KeyH")
+helpCivilian();
+
+
+if(e.code==="KeyB")
+startEmergency();
+
+});
+
+
+addEventListener(
+"keyup",
+e=>{
+keys[e.code]=false;
+});
+
+
+/* =====================================================
+GAME LOOP
+===================================================== */
+
+const clock=
+new THREE.Clock();
+
+
+function loop(){
+
+requestAnimationFrame(loop);
+
+
+const dt=
+Math.min(
+clock.getDelta(),
+.033
+);
+
+
+updateMovement(dt);
+
+updateCivilians(dt);
+
+updateEmergency(dt);
+
+animatePlayer(dt);
+
+updateCamera();
+
+updateHUD(dt);
+
+
+renderer.render(
+scene,
+camera
+);
+}
+
+
+loop();
+
+
+/* =====================================================
+RESIZE
+===================================================== */
+
+addEventListener(
+"resize",
+()=>{
+
+camera.aspect=
+innerWidth/innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+});
+
+</script>
+
+</body>
+</html>
