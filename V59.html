@@ -1,0 +1,919 @@
+<!-- =========================================================
+ WEBBOUND V59
+ ADVANCED ENEMY AI + SQUADS + ENEMY TYPES
+ Add after V58
+ ========================================================= -->
+
+<style>
+#v59EnemyHud{
+position:fixed;
+z-index:72;
+right:10px;
+top:180px;
+padding:9px 12px;
+background:#000c;
+color:white;
+border-radius:12px;
+font:11px Arial;
+display:none;
+}
+</style>
+
+<div id="v59EnemyHud">
+⚔️ ENEMIES: <b id="v59EnemyCount">0</b>
+<br>
+🎯 THREAT: <b id="v59Threat">LOW</b>
+</div>
+
+
+<script>
+
+/* =========================================================
+ V59 STATE
+ ========================================================= */
+
+const V59={
+
+enemies:[],
+
+squads:[],
+
+spawnTimer:0,
+
+maxEnemies:18,
+
+initialized:false
+
+};
+
+
+/* =========================================================
+ ENEMY TYPES
+ ========================================================= */
+
+const V59Types={
+
+grunt:{
+name:"GRUNT",
+hp:100,
+speed:4,
+damage:8,
+range:2,
+color:0x884444
+},
+
+runner:{
+name:"RUNNER",
+hp:70,
+speed:8,
+damage:6,
+range:2,
+color:0x448844
+},
+
+tank:{
+name:"TANK",
+hp:260,
+speed:2.5,
+damage:18,
+range:3,
+color:0x555588
+},
+
+ranged:{
+name:"RANGED",
+hp:90,
+speed:3.5,
+damage:12,
+range:25,
+color:0x886633
+}
+
+};
+
+
+/* =========================================================
+ CREATE ENEMY
+ ========================================================= */
+
+function v59CreateEnemy(type="grunt"){
+
+const data=
+V59Types[type]||
+V59Types.grunt;
+
+const enemy=
+new THREE.Group();
+
+
+/* body */
+
+const body=
+new THREE.Mesh(
+
+new THREE.CapsuleGeometry(
+.4,
+1,
+6,
+10
+),
+
+new THREE.MeshStandardMaterial({
+color:data.color
+})
+
+);
+
+body.position.y=1;
+
+enemy.add(body);
+
+
+/* head */
+
+const head=
+new THREE.Mesh(
+
+new THREE.SphereGeometry(
+.3,
+12,
+10
+),
+
+new THREE.MeshStandardMaterial({
+color:0x9b684e
+})
+
+);
+
+head.position.y=1.9;
+
+enemy.add(head);
+
+
+/* spawn */
+
+const angle=
+Math.random()*Math.PI*2;
+
+const distance=
+35+Math.random()*45;
+
+enemy.position.set(
+
+player.position.x+
+Math.cos(angle)*distance,
+
+0,
+
+player.position.z+
+Math.sin(angle)*distance
+
+);
+
+
+enemy.userData={
+
+type:type,
+
+name:data.name,
+
+hp:data.hp,
+
+maxHp:data.hp,
+
+speed:data.speed,
+
+damage:data.damage,
+
+range:data.range,
+
+attackCooldown:0,
+
+state:"CHASE",
+
+target:player,
+
+group:null
+
+};
+
+
+scene.add(enemy);
+
+V59.enemies.push(enemy);
+
+return enemy;
+
+}
+
+
+/* =========================================================
+ SPAWN SQUAD
+ ========================================================= */
+
+function v59SpawnSquad(){
+
+if(
+V59.enemies.length>=
+V59.maxEnemies
+)
+return;
+
+const types=[
+"grunt",
+"grunt",
+"runner",
+"ranged"
+];
+
+if(
+Math.random()<.25
+){
+
+types.push("tank");
+
+}
+
+const squad={
+members:[]
+};
+
+for(
+const type of types
+){
+
+const enemy=
+v59CreateEnemy(type);
+
+enemy.userData.group=
+squad;
+
+squad.members.push(enemy);
+
+}
+
+V59.squads.push(squad);
+
+showMessage(
+"⚠️ ENEMY SQUAD APPROACHING"
+);
+
+}
+
+
+/* =========================================================
+ DISTANCE TO PLAYER
+ ========================================================= */
+
+function v59Distance(enemy){
+
+return enemy.position.distanceTo(
+player.position
+);
+
+}
+
+
+/* =========================================================
+ ENEMY STATE MACHINE
+ ========================================================= */
+
+function v59UpdateEnemy(enemy,dt){
+
+if(!enemy.userData)
+return;
+
+const data=
+enemy.userData;
+
+if(data.hp<=0)
+return;
+
+
+/* cooldown */
+
+data.attackCooldown=
+Math.max(
+0,
+data.attackCooldown-dt
+);
+
+
+const distance=
+v59Distance(enemy);
+
+
+/* =====================================================
+ RETREAT WHEN LOW HP
+ ===================================================== */
+
+if(
+data.hp<
+data.maxHp*.2
+){
+
+data.state="RETREAT";
+
+}
+
+
+/* =====================================================
+ CHASE
+ ===================================================== */
+
+if(
+data.state==="CHASE"
+){
+
+if(
+distance>data.range
+){
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+player.position,
+enemy.position
+);
+
+direction.y=0;
+
+if(direction.length()){
+
+direction.normalize();
+
+enemy.position.addScaledVector(
+direction,
+data.speed*dt
+);
+
+enemy.lookAt(
+player.position.x,
+enemy.position.y,
+player.position.z
+);
+
+}
+
+}else{
+
+data.state="ATTACK";
+
+}
+
+}
+
+
+/* =====================================================
+ ATTACK
+ ===================================================== */
+
+if(
+data.state==="ATTACK"
+){
+
+if(
+distance>data.range*1.5
+){
+
+data.state="CHASE";
+
+return;
+
+}
+
+if(
+data.attackCooldown<=0
+){
+
+v59EnemyAttack(enemy);
+
+data.attackCooldown=
+data.type==="tank"
+?
+1.8
+:
+1.1;
+
+}
+
+}
+
+
+/* =====================================================
+ RETREAT
+ ===================================================== */
+
+if(
+data.state==="RETREAT"
+){
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+enemy.position,
+player.position
+);
+
+direction.y=0;
+
+if(direction.length()){
+
+direction.normalize();
+
+enemy.position.addScaledVector(
+direction,
+data.speed*dt
+);
+
+}
+
+if(
+distance>60
+){
+
+data.state="CHASE";
+
+}
+
+}
+
+
+/* =====================================================
+ RANGED
+ ===================================================== */
+
+if(
+data.type==="ranged" &&
+distance<35 &&
+distance>8
+){
+
+v59RangedAttack(enemy);
+
+}
+
+}
+
+
+/* =========================================================
+ ENEMY ATTACK
+ ========================================================= */
+
+function v59EnemyAttack(enemy){
+
+const data=
+enemy.userData;
+
+if(
+typeof health==="undefined"
+)
+return;
+
+health=
+Math.max(
+0,
+health-data.damage
+);
+
+showMessage(
+"⚠️ "+data.name+
+" ATTACKED"
+);
+
+if(health<=0){
+
+health=50;
+
+player.position.set(
+0,
+1.1,
+0
+);
+
+showMessage(
+"💥 PLAYER DOWN"
+);
+
+}
+
+}
+
+
+/* =========================================================
+ RANGED ATTACK
+ ========================================================= */
+
+function v59RangedAttack(enemy){
+
+if(
+enemy.userData.attackCooldown>0
+)
+return;
+
+enemy.userData.attackCooldown=2;
+
+const distance=
+v59Distance(enemy);
+
+if(distance>35)
+return;
+
+if(
+typeof health!=="undefined"
+){
+
+health=
+Math.max(
+0,
+health-enemy.userData.damage
+);
+
+showMessage(
+"🎯 RANGED HIT"
+);
+
+}
+
+}
+
+
+/* =========================================================
+ PLAYER ATTACK HOOK
+ ========================================================= */
+
+function v59DamageEnemy(enemy,damage){
+
+if(!enemy||!enemy.userData)
+return;
+
+enemy.userData.hp-=damage;
+
+enemy.userData.state="CHASE";
+
+if(
+enemy.userData.hp<=0
+){
+
+v59DefeatEnemy(enemy);
+
+}
+
+}
+
+
+/* =========================================================
+ DEFEAT
+ ========================================================= */
+
+function v59DefeatEnemy(enemy){
+
+const index=
+V59.enemies.indexOf(enemy);
+
+if(index!==-1){
+
+V59.enemies.splice(
+index,
+1
+);
+
+}
+
+scene.remove(enemy);
+
+score+=100;
+
+if(
+typeof addXP==="function"
+){
+
+addXP(35);
+
+}
+
+showMessage(
+"💥 "+enemy.userData.name+
+" DEFEATED +100"
+);
+
+}
+
+
+/* =========================================================
+ COMPATIBILITY WITH V54/V55
+ ========================================================= */
+
+const v59OldNearest=
+typeof nearestEnemy==="function"
+?
+nearestEnemy
+:
+null;
+
+window.nearestEnemy=function(){
+
+let closest=null;
+
+let distance=Infinity;
+
+for(
+const enemy of V59.enemies
+){
+
+const d=
+v59Distance(enemy);
+
+if(d<distance){
+
+distance=d;
+closest=enemy;
+
+}
+
+}
+
+return closest||
+(
+v59OldNearest?
+v59OldNearest():
+null
+);
+
+};
+
+
+/* =========================================================
+ COMPATIBILITY DEFEAT
+ ========================================================= */
+
+const v59OldDefeat=
+typeof defeatEnemy==="function"
+?
+defeatEnemy
+:
+null;
+
+window.defeatEnemy=function(enemy){
+
+if(
+enemy &&
+V59.enemies.includes(enemy)
+){
+
+v59DefeatEnemy(enemy);
+
+return;
+
+}
+
+if(v59OldDefeat){
+
+v59OldDefeat(enemy);
+
+}
+
+};
+
+
+/* =========================================================
+ DIFFICULTY
+ ========================================================= */
+
+function v59Difficulty(){
+
+const level=
+typeof window.level==="number"
+?
+window.level
+:
+1;
+
+const multiplier=
+1+
+(level-1)*.08;
+
+for(
+const enemy of V59.enemies
+){
+
+enemy.userData.maxHp=
+V59Types[
+enemy.userData.type
+].hp*
+multiplier;
+
+}
+
+}
+
+
+/* =========================================================
+ SPAWN TIMER
+ ========================================================= */
+
+function v59SpawnUpdate(dt){
+
+V59.spawnTimer-=dt;
+
+if(
+V59.spawnTimer<=0
+){
+
+V59.spawnTimer=
+10+
+Math.random()*8;
+
+v59SpawnSquad();
+
+}
+
+}
+
+
+/* =========================================================
+ CLEANUP
+ ========================================================= */
+
+function v59Cleanup(){
+
+for(
+let i=V59.enemies.length-1;
+i>=0;
+i--
+){
+
+const enemy=
+V59.enemies[i];
+
+if(
+!enemy.parent ||
+enemy.userData.hp<=0
+){
+
+V59.enemies.splice(
+i,
+1
+);
+
+}
+
+}
+
+}
+
+
+/* =========================================================
+ HUD
+ ========================================================= */
+
+function v59UpdateHUD(){
+
+const hud=
+document.getElementById(
+"v59EnemyHud"
+);
+
+const count=
+document.getElementById(
+"v59EnemyCount"
+);
+
+const threat=
+document.getElementById(
+"v59Threat"
+);
+
+const amount=
+V59.enemies.length;
+
+count.textContent=
+amount;
+
+if(amount>=12){
+
+threat.textContent="EXTREME";
+
+}else if(amount>=7){
+
+threat.textContent="HIGH";
+
+}else if(amount>=3){
+
+threat.textContent="MEDIUM";
+
+}else{
+
+threat.textContent="LOW";
+
+}
+
+hud.style.display=
+amount>0?
+"block":
+"none";
+
+}
+
+
+/* =========================================================
+ MAIN V59 UPDATE
+ ========================================================= */
+
+function v59Update(dt){
+
+v59SpawnUpdate(dt);
+
+for(
+const enemy of V59.enemies
+){
+
+v59UpdateEnemy(
+enemy,
+dt
+);
+
+}
+
+v59Difficulty();
+
+v59Cleanup();
+
+v59UpdateHUD();
+
+}
+
+
+/* =========================================================
+ MOBILE ENEMY BUTTON
+ ========================================================= */
+
+const enemyButton=
+document.createElement("button");
+
+enemyButton.textContent=
+"⚔️ ENEMIES";
+
+enemyButton.style.position="fixed";
+enemyButton.style.left="10px";
+enemyButton.style.bottom="400px";
+enemyButton.style.zIndex="85";
+enemyButton.style.padding="11px";
+enemyButton.style.color="white";
+enemyButton.style.background="#000d";
+enemyButton.style.border="1px solid #ffffff40";
+enemyButton.style.borderRadius="11px";
+
+document.body.appendChild(
+enemyButton
+);
+
+enemyButton.onclick=
+()=>v59SpawnSquad();
+
+
+/* =========================================================
+ SAVE
+ ========================================================= */
+
+setInterval(()=>{
+
+try{
+
+localStorage.setItem(
+"WEBBOUND_V59",
+JSON.stringify({
+
+enemyCount:
+V59.enemies.length
+
+})
+);
+
+}catch(e){}
+
+},10000);
+
+
+/* =========================================================
+ LOOP
+ ========================================================= */
+
+/*
+Add inside your MAIN GAME LOOP:
+
+v59Update(dt);
+
+Do NOT create another animation loop.
+Use your existing game loop.
+*/
+
+
+V59.initialized=true;
+
+console.log(
+"WEBBOUND V59 ADVANCED ENEMY AI READY"
+);
+
+</script>
