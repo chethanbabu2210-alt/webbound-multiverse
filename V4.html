@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND: MULTIVERSE — V4 3D</title>
+
+<style>
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    font-family:Arial,sans-serif;
+}
+
+canvas{
+    display:block;
+}
+
+#hud{
+    position:fixed;
+    top:15px;
+    left:15px;
+    color:white;
+    background:#000b;
+    padding:14px;
+    border-radius:12px;
+    z-index:10;
+    line-height:1.6;
+}
+
+#controls{
+    position:fixed;
+    bottom:15px;
+    left:15px;
+    color:white;
+    background:#000b;
+    padding:12px;
+    border-radius:10px;
+    z-index:10;
+}
+
+#crosshair{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    color:white;
+    font-size:22px;
+    z-index:10;
+    pointer-events:none;
+}
+
+#loading{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#05070d;
+    color:white;
+    font-size:22px;
+    z-index:20;
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading">
+    Loading WEBBOUND 3D...
+</div>
+
+<div id="hud">
+    🕷️ WEBBOUND: MULTIVERSE<br>
+    ❤️ Health: <span id="health">100</span><br>
+    ⭐ Score: <span id="score">0</span><br>
+    🕸️ Web: <span id="web">Ready</span>
+</div>
+
+<div id="controls">
+    W A S D = Move<br>
+    SPACE = Jump<br>
+    SHIFT = Run<br>
+    E = Web Swing<br>
+    F = Attack
+</div>
+
+<div id="crosshair">+</div>
+
+<script type="module">
+
+/*
+=========================================================
+WEBBOUND: MULTIVERSE
+V4 — FIRST 3D PROTOTYPE
+=========================================================
+*/
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* ======================================================
+   SCENE
+====================================================== */
+
+const scene=new THREE.Scene();
+
+scene.background=
+    new THREE.Color(0x071225);
+
+scene.fog=
+    new THREE.Fog(
+        0x071225,
+        80,
+        1600
+    );
+
+
+/* ======================================================
+   CAMERA
+====================================================== */
+
+const camera=
+    new THREE.PerspectiveCamera(
+        70,
+        innerWidth/innerHeight,
+        0.1,
+        3000
+    );
+
+camera.position.set(
+    0,
+    8,
+    15
+);
+
+
+/* ======================================================
+   RENDERER
+====================================================== */
+
+const renderer=
+    new THREE.WebGLRenderer({
+        antialias:true
+    });
+
+renderer.setSize(
+    innerWidth,
+    innerHeight
+);
+
+renderer.setPixelRatio(
+    Math.min(
+        devicePixelRatio,
+        2
+    )
+);
+
+renderer.shadowMap.enabled=true;
+
+renderer.shadowMap.type=
+    THREE.PCFSoftShadowMap;
+
+document.body.appendChild(
+    renderer.domElement
+);
+
+
+/* ======================================================
+   LIGHTING
+====================================================== */
+
+const ambient=
+    new THREE.HemisphereLight(
+        0x8aaaff,
+        0x101010,
+        1.5
+    );
+
+scene.add(ambient);
+
+
+const sun=
+    new THREE.DirectionalLight(
+        0xffffff,
+        2
+    );
+
+sun.position.set(
+    300,
+    500,
+    200
+);
+
+sun.castShadow=true;
+
+sun.shadow.mapSize.width=2048;
+sun.shadow.mapSize.height=2048;
+
+scene.add(sun);
+
+
+/* ======================================================
+   WORLD
+====================================================== */
+
+const cityGroup=
+    new THREE.Group();
+
+scene.add(cityGroup);
+
+
+const buildings=[];
+
+
+function createBuilding(
+    x,
+    z,
+    width,
+    height,
+    depth
+){
+
+    const geometry=
+        new THREE.BoxGeometry(
+            width,
+            height,
+            depth
+        );
+
+
+    const material=
+        new THREE.MeshStandardMaterial({
+
+            color:
+                new THREE.Color(
+                    0.05+
+                    Math.random()*0.08,
+                    0.08+
+                    Math.random()*0.08,
+                    0.12+
+                    Math.random()*0.12
+                ),
+
+            roughness:.75,
+
+            metalness:.15
+
+        });
+
+
+    const building=
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+
+    building.position.set(
+        x,
+        height/2,
+        z
+    );
+
+
+    building.castShadow=true;
+    building.receiveShadow=true;
+
+
+    cityGroup.add(
+        building
+    );
+
+
+    buildings.push(
+        building
+    );
+
+
+    /*
+       Windows
+    */
+
+    const windowMaterial=
+        new THREE.MeshStandardMaterial({
+            color:0xffd66b,
+            emissive:0x442200,
+            emissiveIntensity:1
+        });
+
+
+    for(
+        let y=15;
+        y<height-10;
+        y+=18
+    ){
+
+        for(
+            let wx=-width/2+10;
+            wx<width/2-5;
+            wx+=18
+        ){
+
+            if(Math.random()<.55){
+
+                const window=
+                    new THREE.Mesh(
+                        new THREE.BoxGeometry(
+                            5,
+                            7,
+                            .4
+                        ),
+                        windowMaterial
+                    );
+
+
+                window.position.set(
+                    x+wx,
+                    y,
+                    z-depth/2-.3
+                );
+
+
+                cityGroup.add(
+                    window
+                );
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* ======================================================
+   CREATE CITY
+====================================================== */
+
+for(let x=-1200;x<1200;x+=90){
+
+    for(let z=-900;z<900;z+=90){
+
+        if(
+            Math.abs(x)<70 &&
+            Math.abs(z)<70
+        )
+            continue;
+
+
+        const height=
+            40+
+            Math.random()*220;
+
+
+        createBuilding(
+            x,
+            z,
+            60+
+            Math.random()*20,
+            height,
+            60+
+            Math.random()*20
+        );
+
+    }
+
+}
+
+
+/* ======================================================
+   GROUND
+====================================================== */
+
+const ground=
+    new THREE.Mesh(
+
+        new THREE.PlaneGeometry(
+            3000,
+            3000
+        ),
+
+        new THREE.MeshStandardMaterial({
+            color:0x111318,
+            roughness:.9
+        })
+
+    );
+
+
+ground.rotation.x=
+    -Math.PI/2;
+
+ground.receiveShadow=true;
+
+scene.add(ground);
+
+
+/* ======================================================
+   ROAD
+====================================================== */
+
+const roadMaterial=
+    new THREE.MeshStandardMaterial({
+        color:0x08090c,
+        roughness:.9
+    });
+
+
+for(let x=-1400;x<1400;x+=180){
+
+    const road=
+        new THREE.Mesh(
+            new THREE.PlaneGeometry(
+                45,
+                3000
+            ),
+            roadMaterial
+        );
+
+    road.rotation.x=
+        -Math.PI/2;
+
+    road.position.x=x;
+
+    road.position.y=.02;
+
+    scene.add(road);
+
+}
+
+
+for(let z=-1400;z<1400;z+=180){
+
+    const road=
+        new THREE.Mesh(
+            new THREE.PlaneGeometry(
+                3000,
+                45
+            ),
+            roadMaterial
+        );
+
+    road.rotation.x=
+        -Math.PI/2;
+
+    road.position.z=z;
+
+    road.position.y=.03;
+
+    scene.add(road);
+
+}
+
+
+/* ======================================================
+   PLAYER
+====================================================== */
+
+const player=
+    new THREE.Group();
+
+scene.add(player);
+
+player.position.set(
+    0,
+    3,
+    0
+);
+
+
+/*
+   Body
+*/
+
+const bodyMaterial=
+    new THREE.MeshStandardMaterial({
+        color:0x9d1f2c,
+        roughness:.5
+    });
+
+
+const body=
+    new THREE.Mesh(
+
+        new THREE.CapsuleGeometry(
+            .65,
+            1.7,
+            8,
+            16
+        ),
+
+        bodyMaterial
+
+    );
+
+
+body.position.y=1.4;
+
+body.castShadow=true;
+
+player.add(body);
+
+
+/*
+   Head
+*/
+
+const head=
+    new THREE.Mesh(
+
+        new THREE.SphereGeometry(
+            .58,
+            24,
+            24
+        ),
+
+        new THREE.MeshStandardMaterial({
+            color:0xb52332,
+            roughness:.5
+        })
+
+    );
+
+
+head.position.y=2.7;
+
+head.castShadow=true;
+
+player.add(head);
+
+
+/*
+   Eyes
+*/
+
+const eyeMaterial=
+    new THREE.MeshStandardMaterial({
+        color:0xffffff,
+        roughness:.25,
+        metalness:.1
+    });
+
+
+function createEye(x){
+
+    const eye=
+        new THREE.Mesh(
+            new THREE.SphereGeometry(
+                .16,
+                12,
+                12
+            ),
+            eyeMaterial
+        );
+
+    eye.scale.z=.3;
+
+    eye.position.set(
+        x,
+        2.75,
+        -.53
+    );
+
+    player.add(eye);
+
+}
+
+
+createEye(-.2);
+createEye(.2);
+
+
+/* ======================================================
+   PLAYER PHYSICS
+====================================================== */
+
+const velocity=
+    new THREE.Vector3();
+
+let grounded=false;
+
+let webActive=false;
+
+let webAnchor=
+    new THREE.Vector3();
+
+let webLine=null;
+
+let health=100;
+
+let score=0;
+
+
+/* ======================================================
+   INPUT
+====================================================== */
+
+const keys={};
+
+addEventListener(
+    "keydown",
+    e=>{
+
+        keys[e.code]=true;
+
+
+        if(e.code==="Space"){
+
+            if(grounded){
+
+                velocity.y=14;
+
+                grounded=false;
+
+            }
+
+        }
+
+
+        if(e.code==="KeyE"){
+
+            toggleWeb();
+
+        }
+
+
+        if(e.code==="KeyF"){
+
+            attack();
+
+        }
+
+    }
+);
+
+
+addEventListener(
+    "keyup",
+    e=>{
+        keys[e.code]=false;
+    }
+);
+
+
+/* ======================================================
+   WEB TARGET
+====================================================== */
+
+function findBuildingTarget(){
+
+    let best=null;
+
+    let bestDistance=700;
+
+
+    for(
+        const building of buildings
+    ){
+
+        const dx=
+            building.position.x-
+            player.position.x;
+
+
+        const dz=
+            building.position.z-
+            player.position.z;
+
+
+        const distance=
+            Math.sqrt(
+                dx*dx+
+                dz*dz
+            );
+
+
+        if(
+            distance<
+            bestDistance
+        ){
+
+            const top=
+                building.position.y+
+                building.geometry.parameters.height/2;
+
+
+            if(
+                top>
+                player.position.y+5
+            ){
+
+                bestDistance=
+                    distance;
+
+
+                best=
+                    new THREE.Vector3(
+                        building.position.x,
+                        top,
+                        building.position.z
+                    );
+
+            }
+
+        }
+
+    }
+
+
+    return best;
+
+}
+
+
+/* ======================================================
+   WEB SYSTEM
+====================================================== */
+
+function toggleWeb(){
+
+    if(webActive){
+
+        releaseWeb();
+
+        return;
+
+    }
+
+
+    const target=
+        findBuildingTarget();
+
+
+    if(!target)
+        return;
+
+
+    webActive=true;
+
+    webAnchor.copy(
+        target
+    );
+
+
+    const points=[
+        player.position.clone(),
+        webAnchor.clone()
+    ];
+
+
+    const geometry=
+        new THREE.BufferGeometry()
+        .setFromPoints(points);
+
+
+    const material=
+        new THREE.LineBasicMaterial({
+            color:0xffffff
+        });
+
+
+    webLine=
+        new THREE.Line(
+            geometry,
+            material
+        );
+
+
+    scene.add(
+        webLine
+    );
+
+}
+
+
+function releaseWeb(){
+
+    webActive=false;
+
+
+    if(webLine){
+
+        scene.remove(
+            webLine
+        );
+
+        webLine=null;
+
+    }
+
+
+    velocity.multiplyScalar(
+        1.2
+    );
+
+}
+
+
+/* ======================================================
+   WEB PHYSICS
+====================================================== */
+
+function updateWeb(dt){
+
+    if(!webActive)
+        return;
+
+
+    const direction=
+        new THREE.Vector3()
+        .subVectors(
+            webAnchor,
+            player.position
+        );
+
+
+    const distance=
+        direction.length();
+
+
+    direction.normalize();
+
+
+    const pull=
+        Math.max(
+            0,
+            distance-7
+        );
+
+
+    velocity.addScaledVector(
+        direction,
+        pull*dt*18
+    );
+
+
+    /*
+       Tangential swing force
+    */
+
+    const tangent=
+        new THREE.Vector3(
+            -direction.z,
+            0,
+            direction.x
+        );
+
+
+    velocity.addScaledVector(
+        tangent,
+        dt*9
+    );
+
+
+    /*
+       Update web visual
+    */
+
+    if(webLine){
+
+        const positions=
+            webLine.geometry
+            .attributes
+            .position
+            .array;
+
+
+        positions[0]=
+            player.position.x;
+
+        positions[1]=
+            player.position.y+1;
+
+        positions[2]=
+            player.position.z;
+
+
+        positions[3]=
+            webAnchor.x;
+
+        positions[4]=
+            webAnchor.y;
+
+        positions[5]=
+            webAnchor.z;
+
+
+        webLine.geometry
+            .attributes
+            .position
+            .needsUpdate=true;
+
+    }
+
+}
+
+
+/* ======================================================
+   MOVEMENT
+====================================================== */
+
+function updateMovement(dt){
+
+    const direction=
+        new THREE.Vector3();
+
+
+    if(keys["KeyW"])
+        direction.z-=1;
+
+    if(keys["KeyS"])
+        direction.z+=1;
+
+    if(keys["KeyA"])
+        direction.x-=1;
+
+    if(keys["KeyD"])
+        direction.x+=1;
+
+
+    if(direction.length()>0){
+
+        direction.normalize();
+
+
+        const speed=
+            keys["ShiftLeft"]
+            ?20
+            :10;
+
+
+        velocity.x+=
+            direction.x*
+            speed*
+            dt*
+            4;
+
+
+        velocity.z+=
+            direction.z*
+            speed*
+            dt*
+            4;
+
+    }
+
+
+    velocity.x*=.91;
+    velocity.z*=.91;
+
+
+    /*
+       Gravity
+    */
+
+    if(!webActive)
+        velocity.y-=30*dt;
+
+
+    /*
+       Web physics
+    */
+
+    updateWeb(dt);
+
+
+    player.position.addScaledVector(
+        velocity,
+        dt
+    );
+
+
+    /*
+       Ground collision
+    */
+
+    if(
+        player.position.y<1.1
+    ){
+
+        player.position.y=1.1;
+
+        velocity.y=0;
+
+        grounded=true;
+
+    }else{
+
+        grounded=false;
+
+    }
+
+
+    /*
+       Camera follows player
+    */
+
+    const target=
+        player.position.clone();
+
+    target.y+=5;
+
+
+    camera.position.lerp(
+        new THREE.Vector3(
+            player.position.x,
+            player.position.y+7,
+            player.position.z+18
+        ),
+        .08
+    );
+
+
+    camera.lookAt(
+        target
+    );
+
+}
+
+
+/* ======================================================
+   COMBAT
+====================================================== */
+
+function attack(){
+
+    score+=10;
+
+    /*
+       Placeholder combat system.
+       Enemy AI will be added in V5.
+    */
+
+}
+
+
+/* ======================================================
+   ANIMATION
+====================================================== */
+
+let animationTime=0;
+
+function updateAnimation(dt){
+
+    animationTime+=dt;
+
+
+    if(
+        Math.abs(velocity.x)+
+        Math.abs(velocity.z)>1
+    ){
+
+        const swing=
+            Math.sin(
+                animationTime*10
+            )*.25;
+
+
+        body.rotation.x=
+            swing;
+
+        head.rotation.y=
+            swing*.5;
+
+    }else{
+
+        body.rotation.x*=.9;
+
+    }
+
+
+    /*
+       Swinging pose
+    */
+
+    if(webActive){
+
+        body.rotation.z=
+            Math.sin(
+                animationTime*5
+            )*.15;
+
+    }
+
+}
+
+
+/* ======================================================
+   HUD
+====================================================== */
+
+function updateHUD(){
+
+    document.getElementById(
+        "health"
+    ).textContent=
+        Math.floor(
+            health
+        );
+
+
+    document.getElementById(
+        "score"
+    ).textContent=
+        score;
+
+
+    document.getElementById(
+        "web"
+    ).textContent=
+        webActive
+        ?"Attached"
+        :"Ready";
+
+}
+
+
+/* ======================================================
+   RESIZE
+====================================================== */
+
+addEventListener(
+    "resize",
+    ()=>{
+
+        camera.aspect=
+            innerWidth/
+            innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            innerWidth,
+            innerHeight
+        );
+
+    }
+);
+
+
+/* ======================================================
+   START
+====================================================== */
+
+document.getElementById(
+    "loading"
+).style.display="none";
+
+
+const clock=
+    new THREE.Clock();
+
+
+function animate(){
+
+    requestAnimationFrame(
+        animate
+    );
+
+
+    const dt=
+        Math.min(
+            clock.getDelta(),
+            .033
+        );
+
+
+    updateMovement(dt);
+
+    updateAnimation(dt);
+
+    updateHUD();
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+}
+
+
+animate();
+
+</script>
+
+</body>
+</html>
