@@ -1,0 +1,1004 @@
+<!-- =========================================================
+ WEBBOUND V54
+ NPC INTERACTION + SHOPS + SIDE MISSIONS + REWARDS
+ ========================================================= -->
+
+<style>
+#v54Panel{
+position:fixed;
+z-index:80;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%);
+width:min(420px,90%);
+display:none;
+padding:20px;
+background:#05070eee;
+color:white;
+border:1px solid #ffffff40;
+border-radius:18px;
+font-family:Arial;
+text-align:center;
+box-shadow:0 15px 50px #000;
+}
+
+#v54Panel h2{
+margin:0 0 8px;
+}
+
+#v54Panel button{
+padding:10px 16px;
+margin:5px;
+color:white;
+background:#111a24;
+border:1px solid #ffffff40;
+border-radius:10px;
+}
+
+#v54Hint{
+position:fixed;
+z-index:50;
+left:50%;
+bottom:80px;
+transform:translateX(-50%);
+padding:8px 14px;
+background:#000c;
+color:#fff;
+border-radius:10px;
+font-family:Arial;
+font-size:11px;
+display:none;
+}
+</style>
+
+
+<div id="v54Panel">
+
+<h2 id="v54Title">NPC</h2>
+
+<div id="v54Text">
+Hello.
+</div>
+
+<div id="v54Buttons"></div>
+
+<button onclick="v54Close()">
+CLOSE
+</button>
+
+</div>
+
+
+<div id="v54Hint">
+Press E / ENTER to interact
+</div>
+
+
+<script>
+
+/* =========================================================
+ V54 STATE
+ ========================================================= */
+
+const V54={
+
+activeNPC:null,
+
+sideMission:null,
+
+sideProgress:0,
+
+money:1000,
+
+interacting:false,
+
+shops:[],
+
+sideMissionDone:false
+
+};
+
+
+/* =========================================================
+ NPC TYPES
+ ========================================================= */
+
+const npcTypes=[
+
+{
+name:"Citizen",
+color:0x446688,
+dialogue:"The city has been strange lately."
+},
+
+{
+name:"Police Officer",
+color:0x243c68,
+dialogue:"Keep an eye out for suspicious activity."
+},
+
+{
+name:"Scientist",
+color:0x667777,
+dialogue:"I've detected unusual energy nearby."
+},
+
+{
+name:"Mechanic",
+color:0x775533,
+dialogue:"Need your equipment repaired?"
+},
+
+{
+name:"Shopkeeper",
+color:0x553366,
+dialogue:"Welcome to my shop."
+}
+
+];
+
+
+/* =========================================================
+ CREATE INTERACTIVE NPC
+ ========================================================= */
+
+function v54CreateNPC(typeIndex){
+
+const data=
+npcTypes[typeIndex];
+
+const npc=new THREE.Group();
+
+const body=new THREE.Mesh(
+
+new THREE.CapsuleGeometry(
+.38,.9,6,10
+),
+
+new THREE.MeshStandardMaterial({
+color:data.color
+})
+
+);
+
+body.position.y=1;
+
+npc.add(body);
+
+
+const head=new THREE.Mesh(
+
+new THREE.SphereGeometry(
+.31,12,10
+),
+
+new THREE.MeshStandardMaterial({
+color:0xb97855
+})
+
+);
+
+head.position.y=1.95;
+
+npc.add(head);
+
+
+/* location */
+
+npc.position.set(
+
+Math.round(
+(Math.random()*1400-700)/100
+)*100,
+
+0,
+
+Math.round(
+(Math.random()*1400-700)/100
+)*100
+
+);
+
+npc.userData={
+
+type:typeIndex,
+
+name:data.name,
+
+dialogue:data.dialogue,
+
+interactive:true
+
+};
+
+scene.add(npc);
+
+V54.shops.push(npc);
+
+}
+
+
+/* create special NPCs */
+
+v54CreateNPC(0);
+v54CreateNPC(0);
+v54CreateNPC(1);
+v54CreateNPC(2);
+v54CreateNPC(3);
+v54CreateNPC(4);
+
+
+/* =========================================================
+ FIND NPC
+ ========================================================= */
+
+function v54NearestNPC(){
+
+let closest=null;
+
+let distance=8;
+
+for(const npc of V54.shops){
+
+if(!npc.userData.interactive)
+continue;
+
+const d=
+npc.position.distanceTo(
+player.position
+);
+
+if(d<distance){
+
+distance=d;
+closest=npc;
+
+}
+
+}
+
+return closest;
+
+}
+
+
+/* =========================================================
+ INTERACTION
+ ========================================================= */
+
+function v54Interact(){
+
+const npc=
+v54NearestNPC();
+
+if(!npc){
+
+showMessage(
+"No one nearby."
+);
+
+return;
+
+}
+
+V54.activeNPC=npc;
+
+V54.interacting=true;
+
+const type=
+npc.userData.type;
+
+if(type===4){
+
+v54OpenShop(npc);
+
+return;
+
+}
+
+if(type===1){
+
+v54PoliceMission();
+
+return;
+
+}
+
+if(type===2){
+
+v54ScientistMission();
+
+return;
+
+}
+
+if(type===3){
+
+v54Mechanic();
+
+return;
+
+}
+
+
+/* normal citizen */
+
+v54OpenDialogue(
+
+npc.userData.name,
+
+npc.userData.dialogue
+
+);
+
+}
+
+
+/* =========================================================
+ DIALOGUE
+ ========================================================= */
+
+function v54OpenDialogue(
+title,
+text
+){
+
+document.getElementById(
+"v54Title"
+).textContent=
+title;
+
+document.getElementById(
+"v54Text"
+).textContent=
+text;
+
+document.getElementById(
+"v54Buttons"
+).innerHTML="";
+
+document.getElementById(
+"v54Panel"
+).style.display=
+"block";
+
+}
+
+
+/* =========================================================
+ SHOP
+ ========================================================= */
+
+function v54OpenShop(npc){
+
+document.getElementById(
+"v54Title"
+).textContent=
+"🛒 CITY SHOP";
+
+document.getElementById(
+"v54Text"
+).textContent=
+"Money: ₹"+V54.money;
+
+document.getElementById(
+"v54Buttons"
+).innerHTML=`
+
+<button onclick="
+v54BuyHealth()
+">
+❤️ Health +25 — ₹100
+</button>
+
+<button onclick="
+v54BuyEnergy()
+">
+🕸️ Energy +25 — ₹100
+</button>
+
+<button onclick="
+v54BuyXP()
+">
+⭐ XP +100 — ₹200
+</button>
+
+`;
+
+document.getElementById(
+"v54Panel"
+).style.display=
+"block";
+
+}
+
+
+/* =========================================================
+ SHOP ITEMS
+ ========================================================= */
+
+function v54BuyHealth(){
+
+if(V54.money<100){
+
+showMessage(
+"Not enough money."
+);
+
+return;
+
+}
+
+V54.money-=100;
+
+health=Math.min(
+100,
+health+25
+);
+
+v54OpenShop(
+V54.activeNPC
+);
+
+showMessage(
+"❤️ HEALTH RESTORED"
+);
+
+}
+
+
+function v54BuyEnergy(){
+
+if(V54.money<100){
+
+showMessage(
+"Not enough money."
+);
+
+return;
+
+}
+
+V54.money-=100;
+
+energy=Math.min(
+100,
+energy+25
+);
+
+v54OpenShop(
+V54.activeNPC
+);
+
+showMessage(
+"🕸️ ENERGY RESTORED"
+);
+
+}
+
+
+function v54BuyXP(){
+
+if(V54.money<200){
+
+showMessage(
+"Not enough money."
+);
+
+return;
+
+}
+
+V54.money-=200;
+
+addXP(100);
+
+v54OpenShop(
+V54.activeNPC
+);
+
+showMessage(
+"⭐ XP PURCHASED"
+);
+
+}
+
+
+/* =========================================================
+ POLICE SIDE MISSION
+ ========================================================= */
+
+function v54PoliceMission(){
+
+V54.sideMission={
+
+name:"POLICE REQUEST",
+
+type:"defeat",
+
+required:5,
+
+reward:1000
+
+};
+
+V54.sideProgress=0;
+
+V54.sideMissionDone=false;
+
+v54OpenDialogue(
+
+"POLICE OFFICER",
+
+"Stop 5 hostile enemies and return when you're done."
+
+);
+
+showMessage(
+"🚨 SIDE MISSION STARTED"
+);
+
+}
+
+
+/* =========================================================
+ SCIENTIST SIDE MISSION
+ ========================================================= */
+
+function v54ScientistMission(){
+
+V54.sideMission={
+
+name:"ENERGY INVESTIGATION",
+
+type:"reach",
+
+target:[
+player.position.x+250,
+player.position.z-250
+],
+
+reward:1200
+
+};
+
+V54.sideProgress=0;
+
+V54.sideMissionDone=false;
+
+v54OpenDialogue(
+
+"SCIENTIST",
+
+"Investigate the marked energy location."
+
+);
+
+showMessage(
+"🔬 INVESTIGATION STARTED"
+);
+
+}
+
+
+/* =========================================================
+ MECHANIC
+ ========================================================= */
+
+function v54Mechanic(){
+
+document.getElementById(
+"v54Title"
+).textContent=
+"🔧 MECHANIC";
+
+document.getElementById(
+"v54Text"
+).textContent=
+"Repair your health and energy.";
+
+document.getElementById(
+"v54Buttons"
+).innerHTML=`
+
+<button onclick="
+v54Repair()
+">
+REPAIR — ₹150
+</button>
+
+`;
+
+document.getElementById(
+"v54Panel"
+).style.display=
+"block";
+
+}
+
+
+function v54Repair(){
+
+if(V54.money<150){
+
+showMessage(
+"Not enough money."
+);
+
+return;
+
+}
+
+V54.money-=150;
+
+health=100;
+
+energy=100;
+
+showMessage(
+"🔧 REPAIRED"
+);
+
+v54Close();
+
+}
+
+
+/* =========================================================
+ CLOSE
+ ========================================================= */
+
+function v54Close(){
+
+V54.interacting=false;
+
+V54.activeNPC=null;
+
+document.getElementById(
+"v54Panel"
+).style.display=
+"none";
+
+}
+
+
+/* =========================================================
+ SIDE MISSION UPDATE
+ ========================================================= */
+
+function v54UpdateSideMission(){
+
+const mission=
+V54.sideMission;
+
+if(
+!mission ||
+V54.sideMissionDone
+)
+return;
+
+
+/* defeat mission */
+
+if(
+mission.type==="defeat"
+){
+
+const percent=
+Math.min(
+100,
+(V54.sideProgress/
+mission.required)*100
+);
+
+if(
+V54.sideProgress>=
+mission.required
+){
+
+v54CompleteSideMission();
+
+}
+
+}
+
+
+/* reach mission */
+
+if(
+mission.type==="reach"
+){
+
+const target=
+new THREE.Vector3(
+mission.target[0],
+1,
+mission.target[1]
+);
+
+const d=
+Math.hypot(
+player.position.x-target.x,
+player.position.z-target.z
+);
+
+if(d<30){
+
+v54CompleteSideMission();
+
+}
+
+}
+
+}
+
+
+/* =========================================================
+ COMPLETE SIDE MISSION
+ ========================================================= */
+
+function v54CompleteSideMission(){
+
+V54.sideMissionDone=true;
+
+const reward=
+V54.sideMission.reward;
+
+V54.money+=reward;
+
+score+=reward;
+
+addXP(
+Math.floor(reward*.35)
+);
+
+showMessage(
+"🏆 SIDE MISSION COMPLETE +₹"+
+reward
+);
+
+V54.sideMission=null;
+
+}
+
+
+/* =========================================================
+ COUNT DEFEATED ENEMIES
+ ========================================================= */
+
+const v54OldDefeat=
+typeof defeatEnemy==="function"
+?
+defeatEnemy
+:
+null;
+
+if(v54OldDefeat){
+
+window.defeatEnemy=
+function(enemy){
+
+v54OldDefeat(enemy);
+
+if(
+V54.sideMission &&
+V54.sideMission.type==="defeat"
+){
+
+V54.sideProgress++;
+
+}
+
+};
+
+}
+
+
+/* =========================================================
+ INTERACTION HINT
+ ========================================================= */
+
+function v54UpdateHint(){
+
+const npc=
+v54NearestNPC();
+
+const hint=
+document.getElementById(
+"v54Hint"
+);
+
+if(
+npc &&
+!V54.interacting
+){
+
+hint.style.display=
+"block";
+
+}else{
+
+hint.style.display=
+"none";
+
+}
+
+}
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+addEventListener(
+"keydown",
+e=>{
+
+if(
+e.code==="KeyE" ||
+e.code==="Enter"
+){
+
+if(V54.interacting){
+
+v54Close();
+
+}else{
+
+v54Interact();
+
+}
+
+}
+
+if(
+e.code==="Escape"
+){
+
+v54Close();
+
+}
+
+});
+
+
+/* =========================================================
+ MOBILE ENTER BUTTON
+ ========================================================= */
+
+const enterButton=
+document.getElementById(
+"enter"
+);
+
+if(enterButton){
+
+enterButton.addEventListener(
+"touchstart",
+e=>{
+
+e.preventDefault();
+
+if(V54.interacting)
+v54Close();
+else
+v54Interact();
+
+},
+{passive:false}
+);
+
+}
+
+
+/* =========================================================
+ SAVE V54
+ ========================================================= */
+
+setInterval(()=>{
+
+try{
+
+localStorage.setItem(
+"WEBBOUND_V54",
+JSON.stringify({
+
+money:V54.money,
+
+sideMission:V54.sideMission,
+
+sideProgress:V54.sideProgress
+
+})
+);
+
+}catch(e){}
+
+},10000);
+
+
+/* =========================================================
+ LOAD V54
+ ========================================================= */
+
+try{
+
+const save=
+localStorage.getItem(
+"WEBBOUND_V54"
+);
+
+if(save){
+
+const data=
+JSON.parse(save);
+
+if(
+typeof data.money==="number"
+){
+
+V54.money=
+Math.max(
+0,
+data.money
+);
+
+}
+
+if(data.sideMission){
+
+V54.sideMission=
+data.sideMission;
+
+}
+
+if(
+typeof data.sideProgress==="number"
+){
+
+V54.sideProgress=
+data.sideProgress;
+
+}
+
+}
+
+}catch(e){}
+
+
+/* =========================================================
+ V54 LOOP
+ ========================================================= */
+
+setInterval(()=>{
+
+v54UpdateHint();
+
+v54UpdateSideMission();
+
+},200);
+
+
+/* =========================================================
+ MONEY DISPLAY
+ ========================================================= */
+
+setInterval(()=>{
+
+const old=
+document.getElementById(
+"v54Money"
+);
+
+if(old)
+old.textContent=
+"₹"+V54.money;
+
+},500);
+
+
+console.log(
+"WEBBOUND V54 NPC + SHOP SYSTEM READY"
+);
+
+</script>
