@@ -1,0 +1,743 @@
+<!-- =========================================================
+ WEBBOUND V58
+ POLICE + WANTED + CHASE SYSTEM
+ Add after V57
+ ========================================================= -->
+
+<style>
+#v58Wanted{
+position:fixed;
+z-index:75;
+right:10px;
+top:100px;
+padding:10px 14px;
+background:#000c;
+color:white;
+border-radius:12px;
+font:12px Arial;
+display:none;
+}
+
+#v58WantedBar{
+width:150px;
+height:7px;
+background:#222;
+margin-top:5px;
+border-radius:8px;
+overflow:hidden;
+}
+
+#v58WantedFill{
+height:100%;
+width:0%;
+background:#e33;
+}
+</style>
+
+<div id="v58Wanted">
+🚨 WANTED: <b id="v58Level">0</b>/5
+<div id="v58WantedBar">
+<div id="v58WantedFill"></div>
+</div>
+<div id="v58PoliceText">No police nearby</div>
+</div>
+
+
+<script>
+
+/* =========================================================
+ V58 STATE
+ ========================================================= */
+
+const V58={
+
+wanted:0,
+
+police:[],
+
+chasing:false,
+
+arrestDistance:4,
+
+escapeTimer:0,
+
+maxEscapeTime:12,
+
+lastCrime:0,
+
+initialized:false
+
+};
+
+
+/* =========================================================
+ POLICE CREATION
+ ========================================================= */
+
+function v58CreatePolice(){
+
+const officer=new THREE.Group();
+
+
+const body=new THREE.Mesh(
+
+new THREE.CapsuleGeometry(
+.38,
+.9,
+6,
+10
+),
+
+new THREE.MeshStandardMaterial({
+color:0x182d55
+})
+
+);
+
+body.position.y=1;
+
+officer.add(body);
+
+
+const head=new THREE.Mesh(
+
+new THREE.SphereGeometry(
+.3,
+12,
+10
+),
+
+new THREE.MeshStandardMaterial({
+color:0xb97855
+})
+
+);
+
+head.position.y=1.9;
+
+officer.add(head);
+
+
+officer.position.set(
+
+player.position.x+
+(Math.random()*120-60),
+
+0,
+
+player.position.z+
+(Math.random()*120-60)
+
+);
+
+
+officer.userData={
+
+speed:7,
+
+health:120,
+
+police:true
+
+};
+
+
+scene.add(officer);
+
+V58.police.push(officer);
+
+return officer;
+
+}
+
+
+/* =========================================================
+ CREATE PATROLS
+ ========================================================= */
+
+for(let i=0;i<6;i++){
+
+v58CreatePolice();
+
+}
+
+
+/* =========================================================
+ WANTED LEVEL
+ ========================================================= */
+
+function v58AddWanted(amount=1){
+
+V58.wanted=
+Math.max(
+0,
+Math.min(
+5,
+V58.wanted+amount
+)
+);
+
+V58.lastCrime=
+Date.now();
+
+V58.escapeTimer=0;
+
+v58UpdateHUD();
+
+}
+
+
+/* =========================================================
+ GLOBAL COMPATIBILITY
+ ========================================================= */
+
+window.addWanted=v58AddWanted;
+
+
+/* =========================================================
+ REMOVE WANTED
+ ========================================================= */
+
+function v58ClearWanted(){
+
+V58.wanted=0;
+
+V58.chasing=false;
+
+V58.escapeTimer=0;
+
+v58UpdateHUD();
+
+showMessage(
+"🚨 YOU ESCAPED"
+);
+
+}
+
+
+/* =========================================================
+ POLICE DISTANCE
+ ========================================================= */
+
+function v58NearestPolice(){
+
+let nearest=null;
+
+let distance=Infinity;
+
+for(const officer of V58.police){
+
+if(!officer)
+continue;
+
+const d=
+officer.position.distanceTo(
+player.position
+);
+
+if(d<distance){
+
+distance=d;
+
+nearest=officer;
+
+}
+
+}
+
+return{
+officer:nearest,
+distance:distance
+};
+
+}
+
+
+/* =========================================================
+ POLICE AI
+ ========================================================= */
+
+function v58UpdatePolice(dt){
+
+if(V58.wanted<=0){
+
+V58.chasing=false;
+
+return;
+
+}
+
+const result=
+v58NearestPolice();
+
+if(!result.officer)
+return;
+
+const officer=
+result.officer;
+
+
+/* police become faster with wanted level */
+
+const speed=
+officer.userData.speed+
+V58.wanted*1.4;
+
+
+/* chase */
+
+if(
+result.distance<90
+){
+
+V58.chasing=true;
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+player.position,
+officer.position
+);
+
+direction.y=0;
+
+if(direction.length()>0){
+
+direction.normalize();
+
+officer.position.addScaledVector(
+direction,
+speed*dt
+);
+
+officer.lookAt(
+player.position.x,
+officer.position.y,
+player.position.z
+);
+
+}
+
+}else{
+
+V58.chasing=false;
+
+}
+
+
+/* arrest */
+
+if(
+result.distance<
+V58.arrestDistance
+){
+
+v58Arrest();
+
+}
+
+}
+
+
+/* =========================================================
+ ARREST
+ ========================================================= */
+
+function v58Arrest(){
+
+V58.wanted=0;
+
+V58.chasing=false;
+
+V58.escapeTimer=0;
+
+
+/* stop vehicle */
+
+if(
+typeof V57!=="undefined" &&
+V57.driving
+){
+
+V57.driving=false;
+
+V57.speed=0;
+
+}
+
+
+/* reset player */
+
+player.position.set(
+0,
+1.1,
+0
+);
+
+health=
+Math.max(
+20,
+health-25
+);
+
+score=
+Math.max(
+0,
+score-500
+);
+
+showMessage(
+"🚔 ARRESTED — FINE -500"
+);
+
+v58UpdateHUD();
+
+}
+
+
+/* =========================================================
+ ESCAPE SYSTEM
+ ========================================================= */
+
+function v58UpdateEscape(dt){
+
+if(V58.wanted<=0)
+return;
+
+const result=
+v58NearestPolice();
+
+if(
+result.distance>100
+){
+
+V58.escapeTimer+=dt;
+
+}else{
+
+V58.escapeTimer=0;
+
+}
+
+
+if(
+V58.escapeTimer>=
+V58.maxEscapeTime
+){
+
+v58ClearWanted();
+
+}
+
+}
+
+
+/* =========================================================
+ WANTED DECAY
+ ========================================================= */
+
+function v58WantedDecay(){
+
+if(V58.wanted<=0)
+return;
+
+if(V58.chasing)
+return;
+
+if(
+Date.now()-
+V58.lastCrime>
+20000
+){
+
+V58.wanted=
+Math.max(
+0,
+V58.wanted-1
+);
+
+V58.lastCrime=
+Date.now();
+
+v58UpdateHUD();
+
+}
+
+}
+
+
+/* =========================================================
+ HUD
+ ========================================================= */
+
+function v58UpdateHUD(){
+
+const hud=
+document.getElementById(
+"v58Wanted"
+);
+
+const level=
+document.getElementById(
+"v58Level"
+);
+
+const fill=
+document.getElementById(
+"v58WantedFill"
+);
+
+const text=
+document.getElementById(
+"v58PoliceText"
+);
+
+if(V58.wanted<=0){
+
+hud.style.display="none";
+
+return;
+
+}
+
+hud.style.display="block";
+
+level.textContent=
+V58.wanted;
+
+fill.style.width=
+(V58.wanted/5*100)+"%";
+
+text.textContent=
+V58.chasing
+?
+"🚔 POLICE CHASING YOU"
+:
+"⚠️ STAY AWAY FROM POLICE";
+
+}
+
+
+/* =========================================================
+ CRIME EVENTS
+ ========================================================= */
+
+function v58Crime(type){
+
+let amount=1;
+
+if(type==="vehicle")
+amount=1;
+
+if(type==="attack")
+amount=1;
+
+if(type==="boss")
+amount=2;
+
+v58AddWanted(amount);
+
+showMessage(
+"🚨 POLICE ALERT"
+);
+
+}
+
+
+/* =========================================================
+ VEHICLE CRIME HOOK
+ ========================================================= */
+
+if(
+typeof v57StartMission==="function"
+){
+
+const v58OldVehicleMission=
+v57StartMission;
+
+window.v57StartMission=function(){
+
+v58OldVehicleMission();
+
+v58Crime(
+"vehicle"
+);
+
+};
+
+}
+
+
+/* =========================================================
+ ATTACK HOOK
+ ========================================================= */
+
+if(
+typeof defeatEnemy==="function"
+){
+
+const v58OldDefeat=
+defeatEnemy;
+
+window.defeatEnemy=function(enemy){
+
+v58OldDefeat(enemy);
+
+v58Crime(
+"attack"
+);
+
+};
+
+}
+
+
+/* =========================================================
+ POLICE PATROL RESPAWN
+ ========================================================= */
+
+setInterval(()=>{
+
+if(
+V58.police.length<6
+){
+
+v58CreatePolice();
+
+}
+
+},5000);
+
+
+/* =========================================================
+ MAIN UPDATE
+ ========================================================= */
+
+/*
+Add inside your main game loop:
+
+v58Update(dt);
+
+*/
+
+function v58Update(dt){
+
+v58UpdatePolice(dt);
+
+v58UpdateEscape(dt);
+
+v58UpdateHUD();
+
+}
+
+
+/* =========================================================
+ WANTED TIMER
+ ========================================================= */
+
+setInterval(()=>{
+
+v58WantedDecay();
+
+},5000);
+
+
+/* =========================================================
+ MOBILE ESCAPE BUTTON
+ ========================================================= */
+
+const escapeButton=
+document.createElement("button");
+
+escapeButton.textContent=
+"🚨 STATUS";
+
+escapeButton.style.position="fixed";
+escapeButton.style.left="10px";
+escapeButton.style.bottom="345px";
+escapeButton.style.zIndex="85";
+escapeButton.style.padding="11px";
+escapeButton.style.color="white";
+escapeButton.style.background="#000d";
+escapeButton.style.border="1px solid #ffffff40";
+escapeButton.style.borderRadius="11px";
+
+document.body.appendChild(
+escapeButton
+);
+
+escapeButton.onclick=
+v58UpdateHUD;
+
+
+/* =========================================================
+ SAVE
+ ========================================================= */
+
+setInterval(()=>{
+
+try{
+
+localStorage.setItem(
+"WEBBOUND_V58",
+JSON.stringify({
+
+wanted:V58.wanted
+
+})
+);
+
+}catch(e){}
+
+},10000);
+
+
+/* =========================================================
+ LOAD
+ ========================================================= */
+
+try{
+
+const save=
+localStorage.getItem(
+"WEBBOUND_V58"
+);
+
+if(save){
+
+const data=
+JSON.parse(save);
+
+if(
+typeof data.wanted==="number"
+){
+
+V58.wanted=
+Math.max(
+0,
+Math.min(
+5,
+data.wanted
+)
+);
+
+}
+
+}
+
+}catch(e){}
+
+
+/* =========================================================
+ START
+ ========================================================= */
+
+V58.initialized=true;
+
+v58UpdateHUD();
+
+console.log(
+"WEBBOUND V58 POLICE SYSTEM READY"
+);
+
+</script>
