@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND — V21 Spider-Verse</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#03050a;
+    font-family:Arial,sans-serif;
+}
+
+canvas{
+    display:block;
+}
+
+#hud{
+    position:fixed;
+    z-index:20;
+    top:15px;
+    left:15px;
+    width:350px;
+    padding:16px;
+    color:white;
+    background:rgba(0,0,0,.78);
+    border:1px solid #ffffff22;
+    border-radius:16px;
+    backdrop-filter:blur(12px);
+}
+
+.title{
+    font-size:22px;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+#character{
+    color:#6fdcff;
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:8px;
+}
+
+.stat{
+    font-size:13px;
+    margin:5px 0;
+}
+
+#ability{
+    margin-top:12px;
+    padding-top:10px;
+    border-top:1px solid #ffffff20;
+    color:#ddd;
+    line-height:1.5;
+}
+
+#controls{
+    position:fixed;
+    z-index:20;
+    left:15px;
+    bottom:15px;
+    padding:12px 15px;
+    color:#ddd;
+    background:rgba(0,0,0,.75);
+    border-radius:13px;
+    font-size:11px;
+    line-height:1.7;
+}
+
+#message{
+    position:fixed;
+    z-index:50;
+    top:16%;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
+    font-size:29px;
+    font-weight:bold;
+    text-shadow:0 5px 30px #000;
+    opacity:0;
+}
+
+#characterIntro{
+    position:fixed;
+    z-index:60;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    pointer-events:none;
+    opacity:0;
+    background:rgba(0,0,0,.35);
+}
+
+.introBox{
+    text-align:center;
+    color:white;
+    padding:30px 50px;
+    background:rgba(0,0,0,.8);
+    border:1px solid #ffffff25;
+    border-radius:20px;
+}
+
+#introName{
+    font-size:36px;
+    font-weight:bold;
+}
+
+#introPower{
+    margin-top:10px;
+    font-size:16px;
+    color:#6fdcff;
+}
+
+#crosshair{
+    position:fixed;
+    left:50%;
+    top:50%;
+    width:8px;
+    height:8px;
+    margin:-4px;
+    border:1px solid white;
+    border-radius:50%;
+    opacity:.5;
+}
+
+#vignette{
+    position:fixed;
+    inset:0;
+    z-index:10;
+    pointer-events:none;
+    background:radial-gradient(
+        ellipse at center,
+        transparent 50%,
+        rgba(0,0,0,.4)
+    );
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+
+<div class="title">🕷️ WEBBOUND V21</div>
+
+<div id="character">
+PETER PARKER — CLASSIC
+</div>
+
+<div class="stat">
+Health: <b id="health">100</b>
+</div>
+
+<div class="stat">
+Web Energy: <b id="energy">100</b>
+</div>
+
+<div class="stat">
+XP: <b id="xp">0</b>
+</div>
+
+<div class="stat">
+Score: <b id="score">0</b>
+</div>
+
+<div id="ability">
+<b>ABILITIES</b>
+<br>
+<span id="abilityText">
+Powerful combat<br>
+Heavy web swing<br>
+High strength
+</span>
+</div>
+
+</div>
+
+<div id="controls">
+W A S D — Move<br>
+SHIFT — Sprint<br>
+SPACE — Jump<br>
+E — Web Swing<br>
+Q — Web Zip<br>
+F — Attack<br>
+G — Web Strike<br>
+1 — Classic Spider-Man<br>
+2 — Agile Spider-Man<br>
+3 — Advanced Spider-Man
+</div>
+
+<div id="crosshair"></div>
+
+<div id="message"></div>
+
+<div id="characterIntro">
+<div class="introBox">
+<div id="introName"></div>
+<div id="introPower"></div>
+</div>
+</div>
+
+<div id="vignette"></div>
+
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+ENGINE
+===================================================== */
+
+const scene =
+new THREE.Scene();
+
+scene.background =
+new THREE.Color(0x07101c);
+
+scene.fog =
+new THREE.FogExp2(
+0x07101c,
+.0007
+);
+
+
+const camera =
+new THREE.PerspectiveCamera(
+68,
+innerWidth/innerHeight,
+.1,
+5000
+);
+
+
+const renderer =
+new THREE.WebGLRenderer({
+antialias:true
+});
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+renderer.setPixelRatio(
+Math.min(devicePixelRatio,2)
+);
+
+renderer.shadowMap.enabled=true;
+
+renderer.outputColorSpace=
+THREE.SRGBColorSpace;
+
+document.body.appendChild(
+renderer.domElement
+);
+
+
+/* =====================================================
+LIGHTING
+===================================================== */
+
+const sun =
+new THREE.DirectionalLight(
+0xdce8ff,
+2.4
+);
+
+sun.position.set(
+-500,
+800,
+300
+);
+
+sun.castShadow=true;
+
+scene.add(sun);
+
+scene.add(
+new THREE.HemisphereLight(
+0x7894c0,
+0x08090d,
+1.25
+)
+);
+
+
+/* =====================================================
+CITY
+===================================================== */
+
+const buildings=[];
+
+const materials=[
+new THREE.MeshStandardMaterial({
+color:0x171d29,
+roughness:.82
+}),
+new THREE.MeshStandardMaterial({
+color:0x222b38,
+roughness:.75
+}),
+new THREE.MeshStandardMaterial({
+color:0x10151e,
+roughness:.9
+})
+];
+
+
+function createBuilding(
+x,z,w,h,d
+){
+
+const building=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+w,h,d
+),
+materials[
+Math.floor(
+Math.random()*materials.length
+)
+]
+);
+
+building.position.set(
+x,
+h/2,
+z
+);
+
+building.castShadow=true;
+building.receiveShadow=true;
+
+scene.add(building);
+
+buildings.push(building);
+}
+
+
+for(
+let x=-1000;
+x<=1000;
+x+=85
+){
+
+for(
+let z=-1000;
+z<=1000;
+z+=85
+){
+
+if(
+Math.abs(x)<70 &&
+Math.abs(z)<70
+)
+continue;
+
+createBuilding(
+x,
+z,
+48+Math.random()*25,
+60+Math.random()*260,
+48+Math.random()*25
+);
+}
+}
+
+
+/* =====================================================
+GROUND
+===================================================== */
+
+const ground=
+new THREE.Mesh(
+new THREE.PlaneGeometry(
+3200,
+3200
+),
+new THREE.MeshStandardMaterial({
+color:0x080a0e,
+roughness:1
+})
+);
+
+ground.rotation.x=
+-Math.PI/2;
+
+ground.receiveShadow=true;
+
+scene.add(ground);
+
+
+/* =====================================================
+THREE SPIDER-MEN
+===================================================== */
+
+const characters={
+
+classic:{
+name:"PETER PARKER — CLASSIC",
+short:"CLASSIC",
+color:0x9d1727,
+speed:10,
+jump:15.5,
+attack:55,
+webPower:1.2,
+energy:100,
+description:
+"Strong combat • Powerful swing • Experienced"
+},
+
+agile:{
+name:"PETER PARKER — AGILE",
+short:"AGILE",
+color:0x151b27,
+speed:14,
+jump:19,
+attack:45,
+webPower:1.0,
+energy:110,
+description:
+"Extreme agility • Fast movement • High jumps"
+},
+
+advanced:{
+name:"PETER PARKER — ADVANCED",
+short:"ADVANCED",
+color:0x183b91,
+speed:11,
+jump:16.5,
+attack:50,
+webPower:1.8,
+energy:150,
+description:
+"Advanced suit • Powerful webs • Technology"
+}
+
+};
+
+let currentCharacter="classic";
+
+
+/* =====================================================
+PLAYER
+===================================================== */
+
+const player=
+new THREE.Group();
+
+player.position.set(
+0,1.1,0
+);
+
+scene.add(player);
+
+
+const suitMaterial=
+new THREE.MeshStandardMaterial({
+color:
+characters.classic.color,
+roughness:.3,
+metalness:.2
+});
+
+
+const body=
+new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.65,1.55,10,20
+),
+suitMaterial
+);
+
+body.position.y=1.45;
+
+body.castShadow=true;
+
+player.add(body);
+
+
+const head=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.57,32,24
+),
+suitMaterial
+);
+
+head.position.y=2.75;
+
+player.add(head);
+
+
+/* EYES */
+
+const eyeMaterial=
+new THREE.MeshStandardMaterial({
+color:0xffffff,
+roughness:.05
+});
+
+
+for(
+const x of [-.2,.2]
+){
+
+const eye=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.18,20,16
+),
+eyeMaterial
+);
+
+eye.position.set(
+x,2.78,-.54
+);
+
+eye.scale.z=.18;
+
+player.add(eye);
+}
+
+
+/* =====================================================
+PLAYER STATE
+===================================================== */
+
+const velocity=
+new THREE.Vector3();
+
+const input=
+new THREE.Vector3();
+
+let grounded=true;
+let doubleJump=true;
+
+let swinging=false;
+
+let webAnchor=null;
+let webLine=null;
+
+let health=100;
+let energy=100;
+
+let xp=0;
+let score=0;
+
+let attackCooldown=0;
+
+
+/* =====================================================
+CHARACTER SWITCHING
+===================================================== */
+
+function switchCharacter(
+character
+){
+
+if(
+!characters[character]
+)
+return;
+
+currentCharacter=
+character;
+
+const data=
+characters[character];
+
+suitMaterial.color.setHex(
+data.color
+);
+
+energy=
+Math.min(
+data.energy,
+energy+30
+);
+
+document.getElementById(
+"character"
+).textContent=
+data.name;
+
+document.getElementById(
+"abilityText"
+).innerHTML=
+data.description
+.replaceAll(
+" • ",
+"<br>"
+);
+
+showCharacterIntro(
+data.name,
+data.description
+);
+
+showMessage(
+data.short+" SPIDER-MAN"
+);
+}
+
+
+function showCharacterIntro(
+name,
+power
+){
+
+const intro=
+document.getElementById(
+"characterIntro"
+);
+
+document.getElementById(
+"introName"
+).textContent=
+name;
+
+document.getElementById(
+"introPower"
+).textContent=
+power;
+
+intro.style.opacity=1;
+
+setTimeout(
+()=>{
+intro.style.opacity=0;
+},
+1700
+);
+}
+
+
+/* =====================================================
+INPUT
+===================================================== */
+
+const keys={};
+
+addEventListener(
+"keydown",
+e=>{
+
+keys[e.code]=true;
+
+if(e.code==="Digit1")
+switchCharacter("classic");
+
+if(e.code==="Digit2")
+switchCharacter("agile");
+
+if(e.code==="Digit3")
+switchCharacter("advanced");
+
+if(e.code==="Space")
+jump();
+
+if(e.code==="KeyE")
+toggleSwing();
+
+if(e.code==="KeyQ")
+webZip();
+
+if(e.code==="KeyF")
+attack();
+
+if(e.code==="KeyG")
+webStrike();
+
+});
+
+
+addEventListener(
+"keyup",
+e=>{
+keys[e.code]=false;
+});
+
+
+/* =====================================================
+MOVEMENT
+===================================================== */
+
+function jump(){
+
+const data=
+characters[currentCharacter];
+
+if(grounded){
+
+velocity.y=
+data.jump;
+
+grounded=false;
+
+doubleJump=true;
+
+return;
+}
+
+if(doubleJump){
+
+velocity.y=
+data.jump*.85;
+
+doubleJump=false;
+}
+}
+
+
+function updateMovement(dt){
+
+input.set(0,0,0);
+
+if(keys.KeyW)
+input.z-=1;
+
+if(keys.KeyS)
+input.z+=1;
+
+if(keys.KeyA)
+input.x-=1;
+
+if(keys.KeyD)
+input.x+=1;
+
+if(input.length()>0)
+input.normalize();
+
+
+const data=
+characters[currentCharacter];
+
+
+const speed=
+keys.ShiftLeft
+?data.speed*1.45
+:data.speed;
+
+
+velocity.x+=
+input.x*
+speed*
+dt*5;
+
+velocity.z+=
+input.z*
+speed*
+dt*5;
+
+velocity.x*=.91;
+velocity.z*=.91;
+
+
+if(
+!grounded &&
+!swinging
+){
+
+velocity.y-=31*dt;
+}
+
+
+updateSwing(dt);
+
+
+player.position.addScaledVector(
+velocity,
+dt
+);
+
+
+if(
+player.position.y<=1.1
+){
+
+player.position.y=1.1;
+
+velocity.y=0;
+
+grounded=true;
+
+doubleJump=true;
+
+}else{
+
+grounded=false;
+}
+
+
+if(
+input.length()>0
+){
+
+const target=
+Math.atan2(
+input.x,
+input.z
+);
+
+let difference=
+target-
+player.rotation.y;
+
+difference=
+Math.atan2(
+Math.sin(difference),
+Math.cos(difference)
+);
+
+player.rotation.y+=
+difference*
+Math.min(
+1,
+dt*10
+);
+}
+}
+
+
+/* =====================================================
+WEB ANCHOR
+===================================================== */
+
+function findAnchor(){
+
+let best=null;
+
+let limit=
+currentCharacter==="advanced"
+?700
+:550;
+
+
+for(
+const building of buildings
+){
+
+const h=
+building.geometry.parameters.height;
+
+const point=
+new THREE.Vector3(
+building.position.x,
+building.position.y+
+h/2,
+building.position.z
+);
+
+const distance=
+point.distanceTo(
+player.position
+);
+
+if(
+distance<limit &&
+point.y>
+player.position.y+8
+){
+
+limit=distance;
+
+best=point;
+}
+}
+
+return best;
+}
+
+
+/* =====================================================
+WEB SWING
+===================================================== */
+
+function toggleSwing(){
+
+if(swinging){
+
+swinging=false;
+
+if(webLine){
+
+scene.remove(
+webLine
+);
+
+webLine=null;
+}
+
+velocity.multiplyScalar(1.5);
+
+return;
+}
+
+
+if(energy<10)
+return;
+
+
+const anchor=
+findAnchor();
+
+if(!anchor)
+return;
+
+
+const data=
+characters[currentCharacter];
+
+energy-=
+10/data.webPower;
+
+webAnchor=
+anchor;
+
+swinging=true;
+
+
+webLine=
+new THREE.Line(
+new THREE.BufferGeometry()
+.setFromPoints([
+player.position.clone(),
+anchor.clone()
+]),
+new THREE.LineBasicMaterial({
+color:0xffffff
+})
+);
+
+scene.add(webLine);
+}
+
+
+function updateSwing(dt){
+
+if(!swinging)
+return;
+
+
+const pull=
+new THREE.Vector3()
+.subVectors(
+webAnchor,
+player.position
+);
+
+const distance=
+pull.length();
+
+pull.normalize();
+
+
+const data=
+characters[currentCharacter];
+
+
+if(distance>9){
+
+velocity.addScaledVector(
+pull,
+(distance-9)*
+dt*
+18*
+data.webPower
+);
+}
+
+
+velocity.y-=8*dt;
+
+
+if(webLine){
+
+const p=
+webLine.geometry
+.attributes
+.position
+.array;
+
+p[0]=player.position.x;
+p[1]=player.position.y+1;
+p[2]=player.position.z;
+
+p[3]=webAnchor.x;
+p[4]=webAnchor.y;
+p[5]=webAnchor.z;
+
+webLine.geometry
+.attributes
+.position
+.needsUpdate=true;
+}
+}
+
+
+/* =====================================================
+WEB ZIP
+===================================================== */
+
+function webZip(){
+
+const data=
+characters[currentCharacter];
+
+if(
+energy<15
+)
+return;
+
+
+const anchor=
+findAnchor();
+
+if(!anchor)
+return;
+
+
+energy-=15;
+
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+anchor,
+player.position
+)
+.normalize();
+
+
+velocity.copy(
+direction.multiplyScalar(
+48*
+data.webPower
+)
+);
+
+showMessage(
+"WEB ZIP"
+);
+}
+
+
+/* =====================================================
+COMBAT
+===================================================== */
+
+function attack(){
+
+if(
+attackCooldown>0
+)
+return;
+
+
+attackCooldown=.3;
+
+
+const data=
+characters[currentCharacter];
+
+const target=
+findNearestTarget();
+
+
+if(target){
+
+target.userData.hp-=
+data.attack;
+
+score+=25;
+
+xp+=10;
+
+showMessage(
+data.short+
+" COMBAT"
+);
+
+if(
+target.userData.hp<=0
+){
+
+target.userData.dead=true;
+
+scene.remove(target);
+
+}
+}else{
+
+showMessage(
+"NO TARGET"
+);
+}
+}
+
+
+function webStrike(){
+
+const data=
+characters[currentCharacter];
+
+const cost=15;
+
+if(
+energy<cost
+)
+return;
+
+
+const target=
+findNearestTarget();
+
+if(!target)
+return;
+
+
+energy-=cost;
+
+
+target.userData.hp-=
+120*
+data.webPower;
+
+target.userData.stunned=
+1;
+
+
+score+=60;
+
+xp+=30;
+
+
+showMessage(
+"WEB STRIKE"
+);
+
+
+if(
+target.userData.hp<=0
+){
+
+target.userData.dead=true;
+
+scene.remove(target);
+}
+}
+
+
+/* =====================================================
+TARGET SYSTEM
+===================================================== */
+
+const targets=[];
+
+
+function createTarget(){
+
+const target=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+2,3,2
+),
+new THREE.MeshStandardMaterial({
+color:0x6d2634
+})
+);
+
+const angle=
+Math.random()*
+Math.PI*2;
+
+const distance=
+30+
+Math.random()*70;
+
+
+target.position.set(
+player.position.x+
+Math.cos(angle)*distance,
+1.5,
+player.position.z+
+Math.sin(angle)*distance
+);
+
+target.userData={
+hp:200,
+dead:false
+};
+
+scene.add(target);
+
+targets.push(target);
+}
+
+
+for(
+let i=0;
+i<15;
+i++
+){
+
+createTarget();
+}
+
+
+function findNearestTarget(){
+
+let nearest=null;
+
+let limit=8;
+
+for(
+const target of targets
+){
+
+if(target.userData.dead)
+continue;
+
+const distance=
+target.position.distanceTo(
+player.position
+);
+
+if(
+distance<limit
+){
+
+limit=distance;
+
+nearest=target;
+}
+}
+
+return nearest;
+}
+
+
+/* =====================================================
+ANIMATION
+===================================================== */
+
+let animationTime=0;
+
+
+function animatePlayer(dt){
+
+animationTime+=dt;
+
+const data=
+characters[currentCharacter];
+
+const speed=
+Math.sqrt(
+velocity.x**2+
+velocity.z**2
+);
+
+
+if(
+grounded &&
+speed>2
+){
+
+const run=
+animationTime*
+(speed>data.speed?14:10);
+
+body.position.y=
+1.45+
+Math.abs(
+Math.sin(run)
+)*.08;
+
+body.rotation.z=
+Math.sin(run)*.08;
+
+}else{
+
+body.position.y+=
+(1.45-body.position.y)
+*.12;
+
+body.rotation.z*=.9;
+}
+
+
+if(swinging){
+
+body.rotation.x=-.55;
+
+body.rotation.z=
+Math.sin(
+animationTime*5
+)*.2;
+}
+}
+
+
+/* =====================================================
+CAMERA
+===================================================== */
+
+function updateCamera(){
+
+const speed=
+Math.sqrt(
+velocity.x**2+
+velocity.z**2
+);
+
+
+const desired=
+new THREE.Vector3(
+player.position.x,
+player.position.y+5.5,
+player.position.z+12
+);
+
+
+if(swinging){
+
+desired.y=
+player.position.y+7;
+
+desired.z=
+player.position.z+16;
+}
+
+
+camera.position.lerp(
+desired,
+.075
+);
+
+
+camera.fov=
+THREE.MathUtils.lerp(
+camera.fov,
+swinging
+?78+Math.min(
+speed*.3,
+12
+)
+:68+Math.min(
+speed*.15,
+8
+),
+.06
+);
+
+
+camera.updateProjectionMatrix();
+
+
+camera.lookAt(
+player.position.x,
+player.position.y+2,
+player.position.z
+);
+}
+
+
+/* =====================================================
+UI
+===================================================== */
+
+let messageTimer=0;
+
+
+function showMessage(text){
+
+document.getElementById(
+"message"
+).textContent=
+text;
+
+document.getElementById(
+"message"
+).style.opacity=1;
+
+messageTimer=1.5;
+}
+
+
+function updateHUD(dt){
+
+const data=
+characters[currentCharacter];
+
+
+document.getElementById(
+"health"
+).textContent=
+Math.floor(health);
+
+
+document.getElementById(
+"energy"
+).textContent=
+Math.floor(energy);
+
+
+document.getElementById(
+"xp"
+).textContent=
+xp;
+
+
+document.getElementById(
+"score"
+).textContent=
+score;
+
+
+energy=
+Math.min(
+data.energy,
+energy+dt*5
+);
+
+
+attackCooldown=
+Math.max(
+0,
+attackCooldown-dt
+);
+
+
+if(messageTimer>0){
+
+messageTimer-=dt;
+
+}else{
+
+document.getElementById(
+"message"
+).style.opacity=0;
+}
+}
+
+
+/* =====================================================
+LOOP
+===================================================== */
+
+const clock=
+new THREE.Clock();
+
+
+function loop(){
+
+requestAnimationFrame(loop);
+
+const dt=
+Math.min(
+clock.getDelta(),
+.033
+);
+
+updateMovement(dt);
+
+animatePlayer(dt);
+
+updateCamera();
+
+updateHUD(dt);
+
+renderer.render(
+scene,
+camera
+);
+}
+
+
+loop();
+
+
+/* =====================================================
+RESIZE
+===================================================== */
+
+addEventListener(
+"resize",
+()=>{
+
+camera.aspect=
+innerWidth/innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+});
+
+</script>
+
+</body>
+</html>
