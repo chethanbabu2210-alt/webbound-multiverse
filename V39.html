@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WEBBOUND V39 — NPC & Quest System</title>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040a;font-family:Arial,sans-serif}
+canvas{display:block}
+
+#hud{
+ position:fixed;z-index:20;left:10px;top:10px;width:270px;
+ padding:13px;color:#fff;background:rgba(0,0,0,.78);
+ border:1px solid rgba(255,255,255,.18);border-radius:15px;
+ backdrop-filter:blur(8px);font-size:11px
+}
+.title{font-size:18px;font-weight:800}
+.sub{color:#62dcff;margin-top:3px}
+.row{margin-top:8px;line-height:1.55}
+
+#interaction{
+ position:fixed;z-index:30;left:50%;bottom:155px;
+ transform:translateX(-50%);display:none
+}
+#interaction button{width:120px;height:42px}
+
+button{
+ border:1px solid rgba(255,255,255,.25);
+ background:rgba(0,0,0,.75);color:white;
+ border-radius:12px;font-size:10px;font-weight:bold;
+ touch-action:none
+}
+button:active{transform:scale(.94);background:rgba(255,255,255,.22)}
+
+#dialogue{
+ position:fixed;z-index:90;left:50%;bottom:25px;
+ transform:translateX(-50%);width:min(700px,92vw);
+ padding:16px;color:white;background:rgba(0,0,0,.9);
+ border:1px solid rgba(100,220,255,.45);
+ border-radius:16px;display:none
+}
+#speaker{color:#64dcff;font-size:14px;font-weight:bold}
+#dialogueText{margin-top:7px;font-size:14px;line-height:1.45}
+#nextDialogue{margin-top:10px;width:100%;height:38px}
+
+#message{
+ position:fixed;z-index:100;left:50%;top:23%;
+ transform:translateX(-50%);width:92%;text-align:center;
+ color:white;font-size:25px;font-weight:800;
+ text-shadow:0 5px 25px #000;opacity:0;transition:.25s
+}
+
+#touch{
+ position:fixed;z-index:40;left:0;right:0;bottom:8px;
+ display:flex;justify-content:space-between;padding:9px;
+ pointer-events:none
+}
+.pad,.actions{display:grid;gap:6px;pointer-events:auto}
+.pad{grid-template-columns:48px 48px 48px;grid-template-rows:48px 48px}
+.actions{grid-template-columns:52px 52px;grid-template-rows:52px 52px 52px}
+#touch button{width:52px;height:52px}
+.empty{visibility:hidden}
+
+@media(max-width:600px){
+ #hud{width:230px;font-size:10px}
+ #interaction{bottom:180px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+ <div class="title">🕷️ WEBBOUND V39</div>
+ <div class="sub">NPC & QUEST SYSTEM</div>
+
+ <div class="row">
+  ⭐ Level: <b id="level">1</b><br>
+  ❤️ Health: <b id="health">100</b><br>
+  🕸️ Energy: <b id="energy">100</b><br>
+  ⭐ XP: <b id="xp">0</b><br>
+  🏆 Score: <b id="score">0</b>
+ </div>
+
+ <div class="row">
+  📖 Chapter: <b id="chapter">1</b><br>
+  🎯 Mission: <b id="mission">1</b><br>
+  👤 NPCs met: <b id="npcCount">0</b>
+ </div>
+</div>
+
+<div id="interaction">
+ <button id="interactButton">💬 TALK</button>
+</div>
+
+<div id="dialogue">
+ <div id="speaker">NPC</div>
+ <div id="dialogueText"></div>
+ <button id="nextDialogue">NEXT</button>
+</div>
+
+<div id="message"></div>
+
+<div id="touch">
+
+ <div class="pad">
+  <button class="empty"></button>
+  <button id="up">▲</button>
+  <button class="empty"></button>
+  <button id="left">◀</button>
+  <button id="down">▼</button>
+  <button id="right">▶</button>
+ </div>
+
+ <div class="actions">
+  <button id="jump">JUMP</button>
+  <button id="web">WEB</button>
+  <button id="punch">PUNCH</button>
+  <button id="shot">WEB SHOT</button>
+  <button id="talk">TALK</button>
+  <button id="burst">BURST</button>
+ </div>
+
+</div>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+   ENGINE
+===================================================== */
+
+const scene=new THREE.Scene();
+
+scene.background=new THREE.Color(0x07111e);
+
+scene.fog=new THREE.FogExp2(
+ 0x07111e,.00115
+);
+
+const camera=new THREE.PerspectiveCamera(
+ 68,
+ innerWidth/innerHeight,
+ .1,
+ 3500
+);
+
+const renderer=new THREE.WebGLRenderer({
+ antialias:true,
+ powerPreference:"high-performance"
+});
+
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.shadowMap.enabled=true;
+
+document.body.appendChild(renderer.domElement);
+
+
+/* =====================================================
+   LIGHTING
+===================================================== */
+
+const sun=new THREE.DirectionalLight(
+ 0xffffff,1.8
+);
+
+sun.position.set(-400,700,300);
+sun.castShadow=true;
+scene.add(sun);
+
+scene.add(
+ new THREE.HemisphereLight(
+  0x7897c4,
+  0x05070b,
+  1.1
+ )
+);
+
+
+/* =====================================================
+   CITY
+===================================================== */
+
+const buildings=[];
+
+const buildingMaterials=[
+ new THREE.MeshStandardMaterial({color:0x17212b}),
+ new THREE.MeshStandardMaterial({color:0x222c36}),
+ new THREE.MeshStandardMaterial({color:0x101920})
+];
+
+for(let x=-850;x<=850;x+=100){
+
+ for(let z=-850;z<=850;z+=100){
+
+  if(Math.abs(x)<100 && Math.abs(z)<100)
+   continue;
+
+  const w=55+Math.random()*20;
+  const d=55+Math.random()*20;
+  const h=70+Math.random()*250;
+
+  const b=new THREE.Mesh(
+   new THREE.BoxGeometry(w,h,d),
+   buildingMaterials[
+    Math.floor(Math.random()*buildingMaterials.length)
+   ]
+  );
+
+  b.position.set(x,h/2,z);
+  b.castShadow=true;
+
+  scene.add(b);
+  buildings.push(b);
+ }
+}
+
+const ground=new THREE.Mesh(
+ new THREE.PlaneGeometry(3000,3000),
+ new THREE.MeshStandardMaterial({color:0x070a0e})
+);
+
+ground.rotation.x=-Math.PI/2;
+ground.receiveShadow=true;
+scene.add(ground);
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player=new THREE.Group();
+player.position.set(0,1.1,0);
+scene.add(player);
+
+const suit=new THREE.MeshStandardMaterial({
+ color:0xa8192d,
+ roughness:.4
+});
+
+const body=new THREE.Mesh(
+ new THREE.CapsuleGeometry(.65,1.55,8,14),
+ suit
+);
+
+body.position.y=1.45;
+player.add(body);
+
+const head=new THREE.Mesh(
+ new THREE.SphereGeometry(.57,20,16),
+ suit
+);
+
+head.position.y=2.75;
+player.add(head);
+
+const eyeMat=new THREE.MeshBasicMaterial({
+ color:0xffffff
+});
+
+for(const x of [-.2,.2]){
+
+ const eye=new THREE.Mesh(
+  new THREE.SphereGeometry(.18,12,10),
+  eyeMat
+ );
+
+ eye.position.set(x,2.78,-.54);
+ eye.scale.z=.18;
+ player.add(eye);
+}
+
+
+/* =====================================================
+   PLAYER STATE
+===================================================== */
+
+const velocity=new THREE.Vector3();
+const input=new THREE.Vector3();
+const keys={};
+
+let grounded=true;
+let doubleJump=true;
+let swinging=false;
+let anchor=null;
+let webLine=null;
+
+let health=100;
+let energy=100;
+let xp=0;
+let score=0;
+let level=1;
+
+let chapter=1;
+let mission=1;
+
+let npcMet=0;
+
+
+/* =====================================================
+   NPC SYSTEM
+===================================================== */
+
+const npcData=[
+ {
+  name:"Maya",
+  x:80,
+  z:-80,
+  color:0x36a9ff,
+  dialogues:[
+   "Hey! The city has been acting strange tonight.",
+   "People have reported unusual activity near the rooftops.",
+   "Can you investigate the area for me?"
+  ],
+  reward:100
+ },
+ {
+  name:"Officer Ray",
+  x:-180,
+  z:120,
+  color:0x55dd88,
+  dialogues:[
+   "Stay alert. Something is disturbing the city.",
+   "I've marked a dangerous area on the mission route.",
+   "Keep the civilians safe."
+  ],
+  reward:150
+ },
+ {
+  name:"Dr. Nova",
+  x:250,
+  z:180,
+  color:0xffc940,
+  dialogues:[
+   "I've detected a strange energy signal.",
+   "It seems to be coming from the industrial district.",
+   "Find out what is generating it."
+  ],
+  reward:200
+ },
+ {
+  name:"Alex",
+  x:-300,
+  z:-200,
+  color:0xff5d7a,
+  dialogues:[
+   "You move pretty fast!",
+   "The city needs someone who can reach places quickly.",
+   "Check the rooftops and report anything unusual."
+  ],
+  reward:125
+ }
+];
+
+const npcs=[];
+
+
+function createNPC(data,index){
+
+ const npc=new THREE.Group();
+
+ const material=new THREE.MeshStandardMaterial({
+  color:data.color
+ });
+
+ const body=new THREE.Mesh(
+  new THREE.CapsuleGeometry(
+   .48,1.15,7,12
+  ),
+  material
+ );
+
+ body.position.y=1.15;
+ npc.add(body);
+
+ const head=new THREE.Mesh(
+  new THREE.SphereGeometry(.45,16,12),
+  material
+ );
+
+ head.position.y=2.25;
+ npc.add(head);
+
+ npc.position.set(
+  data.x,
+  1.1,
+  data.z
+ );
+
+ npc.userData={
+  index,
+  name:data.name,
+  dialogue:data.dialogues,
+  reward:data.reward,
+  talked:false
+ };
+
+ scene.add(npc);
+ npcs.push(npc);
+}
+
+
+npcData.forEach(
+ (data,index)=>
+  createNPC(data,index)
+);
+
+
+/* =====================================================
+   NPC INTERACTION
+===================================================== */
+
+let nearbyNPC=null;
+let dialogueIndex=0;
+
+
+function findNearbyNPC(){
+
+ let closest=null;
+ let distance=8;
+
+ for(const npc of npcs){
+
+  const d=npc.position.distanceTo(
+   player.position
+  );
+
+  if(d<distance){
+
+   distance=d;
+   closest=npc;
+  }
+ }
+
+ return closest;
+}
+
+
+function updateNPCInteraction(){
+
+ nearbyNPC=findNearbyNPC();
+
+ const panel=document.getElementById(
+  "interaction"
+ );
+
+ if(nearbyNPC && !document.getElementById("dialogue").style.display){
+
+  panel.style.display="block";
+
+ }else{
+
+  panel.style.display="none";
+ }
+}
+
+
+function talkToNPC(){
+
+ const npc=findNearbyNPC();
+
+ if(!npc){
+
+  showMessage("❌ NO NPC NEARBY");
+  return;
+ }
+
+ nearbyNPC=npc;
+ dialogueIndex=0;
+
+ npc.userData.talked=true;
+
+ openDialogue(
+  npc
+ );
+
+ if(!npc.userData.met){
+
+  npc.userData.met=true;
+  npcMet++;
+
+  score+=50;
+  addXP(50);
+ }
+}
+
+
+function openDialogue(npc){
+
+ const box=document.getElementById(
+  "dialogue"
+ );
+
+ const speaker=document.getElementById(
+  "speaker"
+ );
+
+ const text=document.getElementById(
+  "dialogueText"
+ );
+
+ speaker.textContent=
+  "👤 "+
+  npc.userData.name;
+
+ text.textContent=
+  npc.userData.dialogue[
+   dialogueIndex
+  ];
+
+ box.style.display="block";
+
+ document.getElementById(
+  "interaction"
+ ).style.display="none";
+}
+
+
+function nextDialogue(){
+
+ if(!nearbyNPC)
+  return;
+
+ dialogueIndex++;
+
+ if(
+  dialogueIndex>=
+  nearbyNPC.userData.dialogue.length
+ ){
+
+  const reward=
+   nearbyNPC.userData.reward;
+
+  score+=reward;
+  addXP(reward);
+
+  showMessage(
+   "🎁 QUEST REWARD +"+
+   reward+
+   " XP"
+  );
+
+  document.getElementById(
+   "dialogue"
+  ).style.display="none";
+
+  nearbyNPC=null;
+
+  updateUI();
+
+ }else{
+
+  openDialogue(
+   nearbyNPC
+  );
+ }
+}
+
+
+/* =====================================================
+   QUEST SYSTEM
+===================================================== */
+
+const quests=[
+ {
+  title:"City Investigation",
+  x:300,
+  z:-250
+ },
+ {
+  title:"Harbor Patrol",
+  x:-450,
+  z:300
+ },
+ {
+  title:"Old Town Mystery",
+  x:-350,
+  z:-420
+ },
+ {
+  title:"Industrial Signal",
+  x:500,
+  z:420
+ },
+ {
+  title:"Downtown Threat",
+  x:120,
+  z:350
+ }
+];
+
+
+function currentQuest(){
+
+ return quests[
+  (mission-1)%quests.length
+ ];
+}
+
+
+function updateQuest(){
+
+ const q=currentQuest();
+
+ const distance=Math.hypot(
+  player.position.x-q.x,
+  player.position.z-q.z
+ );
+
+ if(distance<25){
+
+  score+=500;
+  addXP(200);
+
+  mission++;
+
+  if(mission>quests.length){
+
+   mission=1;
+   chapter++;
+
+   showMessage(
+    "📖 CHAPTER "+
+    chapter+
+    " UNLOCKED"
+   );
+
+  }else{
+
+   showMessage(
+    "🎯 QUEST COMPLETE"
+   );
+  }
+ }
+}
+
+
+/* =====================================================
+   XP
+===================================================== */
+
+function xpRequired(){
+
+ return 500+
+  (level-1)*250;
+}
+
+
+function addXP(amount){
+
+ xp+=amount;
+
+ while(xp>=xpRequired()){
+
+  xp-=xpRequired();
+  level++;
+
+  health=100;
+  energy=100;
+
+  showMessage(
+   "⭐ LEVEL UP! LEVEL "+
+   level
+  );
+ }
+}
+
+
+/* =====================================================
+   ENEMIES
+===================================================== */
+
+const enemies=[];
+
+function createEnemy(){
+
+ const enemy=new THREE.Mesh(
+  new THREE.CapsuleGeometry(
+   .55,1,6,10
+  ),
+  new THREE.MeshStandardMaterial({
+   color:0x353941
+  })
+ );
+
+ const angle=Math.random()*Math.PI*2;
+ const distance=100+Math.random()*200;
+
+ enemy.position.set(
+  player.position.x+
+  Math.cos(angle)*distance,
+  1,
+  player.position.z+
+  Math.sin(angle)*distance
+ );
+
+ enemy.userData={
+  health:100,
+  speed:4
+ };
+
+ scene.add(enemy);
+ enemies.push(enemy);
+}
+
+for(let i=0;i<8;i++)
+ createEnemy();
+
+
+function nearestEnemy(range){
+
+ let target=null;
+ let closest=range;
+
+ for(const e of enemies){
+
+  const d=e.position.distanceTo(
+   player.position
+  );
+
+  if(d<closest){
+
+   closest=d;
+   target=e;
+  }
+ }
+
+ return target;
+}
+
+
+function defeatEnemy(enemy){
+
+ score+=250;
+ addXP(100);
+
+ scene.remove(enemy);
+
+ const i=enemies.indexOf(enemy);
+
+ if(i>=0)
+  enemies.splice(i,1);
+
+ setTimeout(
+  createEnemy,
+  1200
+ );
+}
+
+
+function punch(){
+
+ const e=nearestEnemy(7);
+
+ if(!e)return;
+
+ e.userData.health-=50;
+ score+=100;
+ addXP(20);
+
+ if(e.userData.health<=0)
+  defeatEnemy(e);
+}
+
+
+function webShot(){
+
+ if(energy<15)return;
+
+ const e=nearestEnemy(40);
+
+ if(!e)return;
+
+ energy-=15;
+ e.userData.health-=60;
+
+ if(e.userData.health<=0)
+  defeatEnemy(e);
+}
+
+
+function burst(){
+
+ if(energy<35)return;
+
+ energy-=35;
+
+ for(const e of [...enemies]){
+
+  if(
+   e.position.distanceTo(
+    player.position
+   )<18
+  ){
+
+   e.userData.health-=70;
+
+   if(e.userData.health<=0)
+    defeatEnemy(e);
+  }
+ }
+}
+
+
+function updateEnemies(dt){
+
+ for(const e of enemies){
+
+  const d=e.position.distanceTo(
+   player.position
+  );
+
+  if(d<100){
+
+   const dir=new THREE.Vector3()
+    .subVectors(
+     player.position,
+     e.position
+    )
+    .normalize();
+
+   dir.y=0;
+
+   e.position.addScaledVector(
+    dir,
+    e.userData.speed*dt
+   );
+
+   if(d<4)
+    health-=7*dt;
+  }
+ }
+}
+
+
+/* =====================================================
+   MOVEMENT
+===================================================== */
+
+function jump(){
+
+ if(grounded){
+
+  velocity.y=15;
+  grounded=false;
+  doubleJump=true;
+
+ }else if(doubleJump){
+
+  velocity.y=13;
+  doubleJump=false;
+ }
+}
+
+
+function updateMovement(dt){
+
+ input.set(0,0,0);
+
+ if(keys.KeyW)input.z-=1;
+ if(keys.KeyS)input.z+=1;
+ if(keys.KeyA)input.x-=1;
+ if(keys.KeyD)input.x+=1;
+
+ if(input.length())
+  input.normalize();
+
+ const speed=
+  keys.ShiftLeft?14:9;
+
+ velocity.x+=
+  input.x*speed*dt*5;
+
+ velocity.z+=
+  input.z*speed*dt*5;
+
+ velocity.x*=.91;
+ velocity.z*=.91;
+
+ if(!grounded)
+  velocity.y-=30*dt;
+
+ player.position.addScaledVector(
+  velocity,
+  dt
+ );
+
+ if(player.position.y<=1.1){
+
+  player.position.y=1.1;
+  velocity.y=0;
+  grounded=true;
+  doubleJump=true;
+
+ }else{
+
+  grounded=false;
+ }
+}
+
+
+/* =====================================================
+   WEB SWING
+===================================================== */
+
+function findAnchor(){
+
+ let best=null;
+ let closest=450;
+
+ for(const b of buildings){
+
+  const h=
+   b.geometry.parameters.height;
+
+  const point=new THREE.Vector3(
+   b.position.x,
+   b.position.y+h/2,
+   b.position.z
+  );
+
+  const d=point.distanceTo(
+   player.position
+  );
+
+  if(
+   d<closest &&
+   point.y>
+   player.position.y+8
+  ){
+
+   closest=d;
+   best=point;
+  }
+ }
+
+ return best;
+}
+
+
+function toggleSwing(){
+
+ if(swinging){
+
+  swinging=false;
+
+  if(webLine){
+
+   scene.remove(webLine);
+   webLine=null;
+  }
+
+  velocity.multiplyScalar(1.4);
+  return;
+ }
+
+ const point=findAnchor();
+
+ if(!point)return;
+
+ anchor=point;
+ swinging=true;
+
+ webLine=new THREE.Line(
+  new THREE.BufferGeometry()
+   .setFromPoints([
+    player.position.clone(),
+    anchor.clone()
+   ]),
+  new THREE.LineBasicMaterial({
+   color:0xffffff
+  })
+ );
+
+ scene.add(webLine);
+}
+
+
+function updateSwing(dt){
+
+ if(!swinging)return;
+
+ const pull=new THREE.Vector3()
+  .subVectors(
+   anchor,
+   player.position
+  );
+
+ const distance=pull.length();
+
+ pull.normalize();
+
+ if(distance>10){
+
+  velocity.addScaledVector(
+   pull,
+   (distance-10)*dt*16
+  );
+ }
+
+ velocity.y-=7*dt;
+
+ if(webLine){
+
+  const p=
+   webLine.geometry
+    .attributes
+    .position.array;
+
+  p[0]=player.position.x;
+  p[1]=player.position.y+1;
+  p[2]=player.position.z;
+
+  p[3]=anchor.x;
+  p[4]=anchor.y;
+  p[5]=anchor.z;
+
+  webLine.geometry
+   .attributes
+   .position
+   .needsUpdate=true;
+ }
+}
+
+
+/* =====================================================
+   UI
+===================================================== */
+
+function updateUI(){
+
+ document.getElementById(
+  "level"
+ ).textContent=level;
+
+ document.getElementById(
+  "health"
+ ).textContent=
+  Math.floor(Math.max(0,health));
+
+ document.getElementById(
+  "energy"
+ ).textContent=
+  Math.floor(energy);
+
+ document.getElementById(
+  "xp"
+ ).textContent=
+  Math.floor(xp);
+
+ document.getElementById(
+  "score"
+ ).textContent=score;
+
+ document.getElementById(
+  "chapter"
+ ).textContent=chapter;
+
+ document.getElementById(
+  "mission"
+ ).textContent=mission;
+
+ document.getElementById(
+  "npcCount"
+ ).textContent=npcMet;
+}
+
+
+function showMessage(text){
+
+ const m=document.getElementById(
+  "message"
+ );
+
+ m.textContent=text;
+ m.style.opacity=1;
+
+ setTimeout(
+  ()=>m.style.opacity=0,
+  1300
+ );
+}
+
+
+/* =====================================================
+   KEYBOARD
+===================================================== */
+
+addEventListener(
+ "keydown",
+ e=>{
+
+  keys[e.code]=true;
+
+  if(e.code==="Space")
+   jump();
+
+  if(e.code==="KeyE")
+   talkToNPC();
+
+  if(e.code==="KeyF")
+   punch();
+
+  if(e.code==="KeyZ")
+   webShot();
+
+  if(e.code==="KeyC")
+   burst();
+ });
+
+addEventListener(
+ "keyup",
+ e=>{
+  keys[e.code]=false;
+ });
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+function hold(id,code){
+
+ const b=document.getElementById(id);
+
+ const down=e=>{
+  e.preventDefault();
+  keys[code]=true;
+ };
+
+ const up=e=>{
+  e.preventDefault();
+  keys[code]=false;
+ };
+
+ b.addEventListener(
+  "touchstart",
+  down,
+  {passive:false}
+ );
+
+ b.addEventListener(
+  "touchend",
+  up,
+  {passive:false}
+ );
+
+ b.addEventListener(
+  "touchcancel",
+  up,
+  {passive:false}
+ );
+}
+
+hold("up","KeyW");
+hold("down","KeyS");
+hold("left","KeyA");
+hold("right","KeyD");
+
+
+function tap(id,fn){
+
+ document.getElementById(id)
+ .addEventListener(
+  "touchstart",
+  e=>{
+   e.preventDefault();
+   fn();
+  },
+  {passive:false}
+ );
+}
+
+tap("jump",jump);
+tap("web",toggleSwing);
+tap("punch",punch);
+tap("shot",webShot);
+tap("talk",talkToNPC);
+tap("burst",burst);
+
+
+/* =====================================================
+   DIALOGUE BUTTON
+===================================================== */
+
+document.getElementById(
+ "interactButton"
+).onclick=talkToNPC;
+
+document.getElementById(
+ "nextDialogue"
+).onclick=nextDialogue;
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+function updateCamera(){
+
+ camera.position.lerp(
+  new THREE.Vector3(
+   player.position.x,
+   player.position.y+5.5,
+   player.position.z+12
+  ),
+  .075
+ );
+
+ camera.lookAt(
+  player.position.x,
+  player.position.y+2,
+  player.position.z
+ );
+}
+
+
+/* =====================================================
+   AUTO SAVE
+===================================================== */
+
+setInterval(
+ ()=>{
+
+  try{
+
+   localStorage.setItem(
+    "WEBBOUND_V39",
+    JSON.stringify({
+     x:player.position.x,
+     y:player.position.y,
+     z:player.position.z,
+     level,
+     xp,
+     score,
+     health,
+     energy,
+     chapter,
+     mission,
+     npcMet
+    })
+   );
+
+  }catch(e){}
+ },
+ 30000
+);
+
+
+/* =====================================================
+   MAIN LOOP
+===================================================== */
+
+const clock=new THREE.Clock();
+
+function loop(){
+
+ requestAnimationFrame(loop);
+
+ const dt=Math.min(
+  clock.getDelta(),
+  .033
+ );
+
+ updateMovement(dt);
+ updateSwing(dt);
+ updateEnemies(dt);
+ updateQuest();
+ updateNPCInteraction();
+
+ energy=Math.min(
+  100,
+  energy+dt*5
+ );
+
+ if(health<=0){
+
+  health=100;
+  energy=100;
+
+  player.position.set(
+   0,1.1,0
+  );
+
+  velocity.set(0,0,0);
+
+  showMessage(
+   "📍 CHECKPOINT RESTORED"
+  );
+ }
+
+ updateUI();
+ updateCamera();
+
+ renderer.render(
+  scene,
+  camera
+ );
+}
+
+updateUI();
+loop();
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+addEventListener(
+ "resize",
+ ()=>{
+
+  camera.aspect=
+   innerWidth/innerHeight;
+
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(
+   innerWidth,
+   innerHeight
+  );
+ });
+
+</script>
+</body>
+</html>
