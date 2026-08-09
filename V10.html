@@ -1,0 +1,2560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND: MULTIVERSE — V10</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#02040a;
+    font-family:Arial,sans-serif;
+}
+
+canvas{display:block}
+
+#hud{
+    position:fixed;
+    top:15px;
+    left:15px;
+    z-index:20;
+    color:white;
+    background:rgba(0,0,0,.76);
+    border:1px solid #ffffff25;
+    border-radius:15px;
+    padding:15px;
+    min-width:290px;
+    line-height:1.6;
+    backdrop-filter:blur(10px);
+}
+
+.title{
+    font-size:18px;
+    font-weight:bold;
+}
+
+#missionBox{
+    margin-top:9px;
+    padding-top:9px;
+    border-top:1px solid #ffffff20;
+}
+
+#objective{
+    color:#8fd7ff;
+    font-size:13px;
+}
+
+#controls{
+    position:fixed;
+    bottom:15px;
+    left:15px;
+    z-index:20;
+    color:white;
+    background:rgba(0,0,0,.75);
+    padding:10px 14px;
+    border-radius:12px;
+    font-size:12px;
+    line-height:1.55;
+}
+
+#crosshair{
+    position:fixed;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    color:white;
+    z-index:20;
+}
+
+#message{
+    position:fixed;
+    top:18%;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
+    font-size:25px;
+    font-weight:bold;
+    z-index:30;
+    opacity:0;
+    text-shadow:0 4px 15px #000;
+}
+
+#cinematic{
+    position:fixed;
+    inset:0;
+    z-index:50;
+    display:none;
+    pointer-events:none;
+}
+
+.bar{
+    position:absolute;
+    left:0;
+    width:100%;
+    height:11%;
+    background:#000;
+}
+
+.bar.top{top:0}
+.bar.bottom{bottom:0}
+
+#subtitle{
+    position:absolute;
+    bottom:15%;
+    width:100%;
+    text-align:center;
+    color:white;
+    font-size:19px;
+    text-shadow:0 3px 8px #000;
+}
+
+#dialogue{
+    position:fixed;
+    left:50%;
+    bottom:30px;
+    transform:translateX(-50%);
+    width:min(850px,90%);
+    background:rgba(0,0,0,.92);
+    border:1px solid #ffffff30;
+    border-radius:17px;
+    color:white;
+    padding:20px;
+    z-index:60;
+    display:none;
+}
+
+#speaker{
+    font-size:18px;
+    font-weight:bold;
+    margin-bottom:8px;
+}
+
+#dialogueText{
+    line-height:1.5;
+}
+
+#dialogueHint{
+    margin-top:10px;
+    opacity:.55;
+    font-size:12px;
+}
+
+#checkpoint{
+    position:fixed;
+    left:50%;
+    top:30%;
+    transform:translate(-50%,-50%);
+    z-index:40;
+    color:white;
+    text-align:center;
+    opacity:0;
+}
+
+#checkpoint h1{
+    font-size:42px;
+    margin:0;
+}
+
+#checkpoint p{
+    opacity:.7;
+}
+
+#weather{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:10;
+    opacity:.5;
+}
+
+#damage{
+    position:fixed;
+    inset:0;
+    background:rgba(255,0,0,.3);
+    pointer-events:none;
+    z-index:55;
+    opacity:0;
+}
+
+#boss{
+    position:fixed;
+    bottom:18px;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(650px,80%);
+    z-index:25;
+    display:none;
+}
+
+#bossName{
+    color:white;
+    text-align:center;
+    margin-bottom:6px;
+    font-weight:bold;
+}
+
+#bossOuter{
+    height:14px;
+    border-radius:20px;
+    overflow:hidden;
+    background:#222;
+}
+
+#bossHealth{
+    height:100%;
+    width:100%;
+    background:#d21d39;
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+
+<div class="title">
+🕷️ WEBBOUND: MULTIVERSE
+</div>
+
+🕷️ Hero:
+<span id="hero">Classic</span><br>
+
+❤️ Health:
+<span id="health">100</span><br>
+
+⭐ Score:
+<span id="score">0</span><br>
+
+🌍 Universe:
+<span id="universe">Earth-96283</span><br>
+
+🕐 Time:
+<span id="time">Night</span>
+
+<div id="missionBox">
+<b id="mission">MISSION 01</b>
+<div id="objective">
+Reach the city signal
+</div>
+</div>
+
+</div>
+
+<div id="controls">
+W A S D — Move<br>
+SHIFT — Sprint<br>
+SPACE — Jump<br>
+E — Web Swing<br>
+F — Web Strike<br>
+C — Talk<br>
+V — Switch Hero<br>
+P — Save<br>
+L — Load<br>
+R — Reset
+</div>
+
+<div id="crosshair">+</div>
+
+<div id="message"></div>
+
+<div id="damage"></div>
+
+<div id="weather"></div>
+
+<div id="boss">
+<div id="bossName">DIMENSIONAL GUARDIAN</div>
+<div id="bossOuter">
+<div id="bossHealth"></div>
+</div>
+</div>
+
+
+<div id="cinematic">
+
+<div class="bar top"></div>
+<div class="bar bottom"></div>
+
+<div id="subtitle"></div>
+
+</div>
+
+
+<div id="dialogue">
+
+<div id="speaker">
+Character
+</div>
+
+<div id="dialogueText">
+Dialogue
+</div>
+
+<div id="dialogueHint">
+Press ENTER
+</div>
+
+</div>
+
+
+<div id="checkpoint">
+
+<h1>CHECKPOINT</h1>
+<p>Progress saved</p>
+
+</div>
+
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+   SCENE
+===================================================== */
+
+const scene=new THREE.Scene();
+
+scene.background=
+new THREE.Color(0x050912);
+
+scene.fog=
+new THREE.FogExp2(
+0x050912,
+0.00065
+);
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+const camera=
+new THREE.PerspectiveCamera(
+67,
+innerWidth/innerHeight,
+0.1,
+5000
+);
+
+camera.position.set(
+0,7,15
+);
+
+
+/* =====================================================
+   RENDERER
+===================================================== */
+
+const renderer=
+new THREE.WebGLRenderer({
+antialias:true
+});
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+renderer.setPixelRatio(
+Math.min(devicePixelRatio,2)
+);
+
+renderer.shadowMap.enabled=true;
+
+renderer.shadowMap.type=
+THREE.PCFSoftShadowMap;
+
+renderer.outputColorSpace=
+THREE.SRGBColorSpace;
+
+document.body.appendChild(
+renderer.domElement
+);
+
+
+/* =====================================================
+   LIGHTS
+===================================================== */
+
+const moon=
+new THREE.DirectionalLight(
+0x9dbbff,
+2.3
+);
+
+moon.position.set(
+-500,
+700,
+300
+);
+
+moon.castShadow=true;
+
+moon.shadow.mapSize.width=2048;
+moon.shadow.mapSize.height=2048;
+
+scene.add(moon);
+
+const ambient=
+new THREE.HemisphereLight(
+0x5774b8,
+0x08090d,
+1.15
+);
+
+scene.add(ambient);
+
+
+/* =====================================================
+   CITY
+===================================================== */
+
+const city=
+new THREE.Group();
+
+scene.add(city);
+
+const buildings=[];
+
+const buildingMaterials=[
+new THREE.MeshStandardMaterial({
+color:0x151b27,
+roughness:.82
+}),
+new THREE.MeshStandardMaterial({
+color:0x202938,
+roughness:.75
+}),
+new THREE.MeshStandardMaterial({
+color:0x10151e,
+roughness:.9
+})
+];
+
+
+const windows=
+new THREE.MeshStandardMaterial({
+color:0xffc45c,
+emissive:0x6a3100,
+emissiveIntensity:1.7
+});
+
+
+function building(
+x,z,w,h,d
+){
+
+const mesh=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+w,h,d
+),
+buildingMaterials[
+Math.floor(
+Math.random()*3
+)]
+);
+
+mesh.position.set(
+x,
+h/2,
+z
+);
+
+mesh.castShadow=true;
+mesh.receiveShadow=true;
+
+city.add(mesh);
+
+buildings.push(mesh);
+
+
+for(
+let y=12;
+y<h-8;
+y+=18
+){
+
+for(
+let xw=-w/2+8;
+xw<w/2-5;
+xw+=15
+){
+
+if(
+Math.random()<.42
+){
+
+const light=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+4,5,.2
+),
+windows
+);
+
+light.position.set(
+x+xw,
+y,
+z-d/2-.15
+);
+
+city.add(light);
+
+}
+
+}
+
+}
+
+}
+
+
+for(
+let x=-1000;
+x<=1000;
+x+=85
+){
+
+for(
+let z=-900;
+z<=900;
+z+=85
+){
+
+if(
+Math.abs(x)<80 &&
+Math.abs(z)<80
+)
+continue;
+
+building(
+x,
+z,
+48+Math.random()*25,
+45+Math.random()*260,
+48+Math.random()*25
+);
+
+}
+
+}
+
+
+/* =====================================================
+   ROADS
+===================================================== */
+
+const roadMaterial=
+new THREE.MeshStandardMaterial({
+color:0x111318,
+roughness:.95
+});
+
+
+for(
+let x=-1000;
+x<=1000;
+x+=170
+){
+
+const road=
+new THREE.Mesh(
+new THREE.PlaneGeometry(
+22,
+2000
+),
+roadMaterial
+);
+
+road.rotation.x=-Math.PI/2;
+
+road.position.x=x;
+
+road.position.y=.02;
+
+scene.add(road);
+
+}
+
+
+for(
+let z=-900;
+z<=900;
+z+=170
+){
+
+const road=
+new THREE.Mesh(
+new THREE.PlaneGeometry(
+2000,
+22
+),
+roadMaterial
+);
+
+road.rotation.x=-Math.PI/2;
+
+road.position.z=z;
+
+road.position.y=.03;
+
+scene.add(road);
+
+}
+
+
+/* =====================================================
+   GROUND
+===================================================== */
+
+const ground=
+new THREE.Mesh(
+new THREE.PlaneGeometry(
+3200,
+3200
+),
+new THREE.MeshStandardMaterial({
+color:0x080a0e,
+roughness:1
+})
+);
+
+ground.rotation.x=-Math.PI/2;
+
+ground.receiveShadow=true;
+
+scene.add(ground);
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player=
+new THREE.Group();
+
+player.position.set(
+0,1.1,0
+);
+
+scene.add(player);
+
+
+const heroes={
+
+tobey:{
+name:"Classic",
+universe:"Earth-96283",
+color:0x9e1827,
+speed:10,
+jump:14,
+strength:1.35
+},
+
+andrew:{
+name:"Agile",
+universe:"Earth-120703",
+color:0x152a49,
+speed:14,
+jump:17,
+strength:1.05
+},
+
+tom:{
+name:"Tech",
+universe:"Earth-616",
+color:0x152d83,
+speed:12,
+jump:15,
+strength:1.2
+}
+
+};
+
+
+let currentHero="tobey";
+
+
+const suit=
+new THREE.MeshStandardMaterial({
+color:heroes.tobey.color,
+roughness:.38,
+metalness:.12
+});
+
+
+const body=
+new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.68,
+1.55,
+10,
+20
+),
+suit
+);
+
+body.position.y=1.45;
+
+body.castShadow=true;
+
+player.add(body);
+
+
+const head=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.58,
+32,
+24
+),
+suit
+);
+
+head.position.y=2.75;
+
+head.castShadow=true;
+
+player.add(head);
+
+
+const eyeMaterial=
+new THREE.MeshStandardMaterial({
+color:0xffffff,
+roughness:.1
+});
+
+
+function eye(x){
+
+const e=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.18,
+20,
+16
+),
+eyeMaterial
+);
+
+e.scale.z=.2;
+
+e.position.set(
+x,
+2.78,
+-.54
+);
+
+player.add(e);
+
+}
+
+eye(-.2);
+eye(.2);
+
+
+/* =====================================================
+   PLAYER STATE
+===================================================== */
+
+const velocity=
+new THREE.Vector3();
+
+let grounded=true;
+
+let health=100;
+
+let score=0;
+
+let webActive=false;
+
+let webAnchor=
+new THREE.Vector3();
+
+let webLine=null;
+
+let attackCooldown=0;
+
+let invulnerable=0;
+
+
+/* =====================================================
+   INPUT
+===================================================== */
+
+const keys={};
+
+addEventListener(
+"keydown",
+e=>{
+
+keys[e.code]=true;
+
+if(e.code==="Space")
+jump();
+
+if(e.code==="KeyE"){
+
+if(webActive)
+releaseWeb();
+else
+attachWeb();
+
+}
+
+if(e.code==="KeyF")
+attack();
+
+if(e.code==="KeyC")
+talk();
+
+if(e.code==="KeyV")
+switchHero();
+
+if(e.code==="KeyP")
+save();
+
+if(e.code==="KeyL")
+load();
+
+if(e.code==="KeyR")
+reset();
+
+if(e.code==="Enter")
+nextDialogue();
+
+}
+);
+
+
+addEventListener(
+"keyup",
+e=>{
+keys[e.code]=false;
+}
+);
+
+
+/* =====================================================
+   WEB SWING
+===================================================== */
+
+function target(){
+
+let closest=null;
+let distance=700;
+
+for(
+const b of buildings
+){
+
+const d=
+player.position.distanceTo(
+b.position
+);
+
+if(
+d<distance &&
+b.position.y>
+player.position.y+15
+){
+
+distance=d;
+
+closest=
+new THREE.Vector3(
+b.position.x,
+b.position.y+
+b.geometry.parameters.height/2,
+b.position.z
+);
+
+}
+
+}
+
+return closest;
+
+}
+
+
+function attachWeb(){
+
+const t=target();
+
+if(!t)return;
+
+webActive=true;
+
+webAnchor.copy(t);
+
+webLine=
+new THREE.Line(
+new THREE.BufferGeometry()
+.setFromPoints([
+player.position.clone(),
+webAnchor.clone()
+]),
+new THREE.LineBasicMaterial({
+color:0xffffff
+})
+);
+
+scene.add(webLine);
+
+}
+
+
+function releaseWeb(){
+
+webActive=false;
+
+if(webLine){
+
+scene.remove(webLine);
+
+webLine=null;
+
+}
+
+velocity.multiplyScalar(1.35);
+
+}
+
+
+function updateWeb(){
+
+if(!webLine)return;
+
+const p=
+webLine.geometry
+.attributes
+.position
+.array;
+
+p[0]=player.position.x;
+p[1]=player.position.y+1;
+p[2]=player.position.z;
+
+p[3]=webAnchor.x;
+p[4]=webAnchor.y;
+p[5]=webAnchor.z;
+
+webLine.geometry
+.attributes
+.position
+.needsUpdate=true;
+
+}
+
+
+/* =====================================================
+   MOVEMENT
+===================================================== */
+
+function movement(dt){
+
+const data=
+heroes[currentHero];
+
+const direction=
+new THREE.Vector3();
+
+if(keys.KeyW)
+direction.z-=1;
+
+if(keys.KeyS)
+direction.z+=1;
+
+if(keys.KeyA)
+direction.x-=1;
+
+if(keys.KeyD)
+direction.x+=1;
+
+
+if(direction.length()>0){
+
+direction.normalize();
+
+const speed=
+keys.ShiftLeft
+?data.speed*2
+:data.speed;
+
+velocity.x+=
+direction.x*speed*dt*4;
+
+velocity.z+=
+direction.z*speed*dt*4;
+
+player.rotation.y=
+Math.atan2(
+direction.x,
+direction.z
+);
+
+}
+
+velocity.x*=.90;
+velocity.z*=.90;
+
+
+if(webActive){
+
+const pull=
+new THREE.Vector3()
+.subVectors(
+webAnchor,
+player.position
+);
+
+const d=pull.length();
+
+pull.normalize();
+
+if(d>8){
+
+velocity.addScaledVector(
+pull,
+(d-8)*dt*18
+);
+
+}
+
+velocity.y-=13*dt;
+
+}else{
+
+velocity.y-=30*dt;
+
+}
+
+
+player.position.addScaledVector(
+velocity,
+dt
+);
+
+
+if(player.position.y<1.1){
+
+player.position.y=1.1;
+
+velocity.y=0;
+
+grounded=true;
+
+}
+
+updateWeb();
+
+}
+
+
+function jump(){
+
+if(!grounded)return;
+
+velocity.y=
+heroes[currentHero].jump;
+
+grounded=false;
+
+}
+
+
+/* =====================================================
+   NPC SYSTEM
+===================================================== */
+
+const npcs=[];
+
+
+function createNPC(x,z){
+
+const npc=
+new THREE.Group();
+
+npc.position.set(
+x,1,z
+);
+
+
+const mat=
+new THREE.MeshStandardMaterial({
+color:
+Math.random()>.5
+?0x3b536e
+:0x6b3c43
+});
+
+
+const mesh=
+new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.35,.8,8,12
+),
+mat
+);
+
+mesh.position.y=.9;
+
+mesh.castShadow=true;
+
+npc.add(mesh);
+
+npc.userData={
+homeX:x,
+homeZ:z,
+target:null
+};
+
+scene.add(npc);
+
+npcs.push(npc);
+
+}
+
+
+for(
+let i=0;
+i<80;
+i++
+){
+
+createNPC(
+-900+Math.random()*1800,
+-800+Math.random()*1600
+);
+
+}
+
+
+/* =====================================================
+   NPC AI
+===================================================== */
+
+function updateNPCs(dt){
+
+for(
+const npc of npcs
+){
+
+if(
+Math.random()<.01 ||
+!npc.userData.target
+){
+
+npc.userData.target=
+new THREE.Vector3(
+npc.userData.homeX+
+(Math.random()-.5)*100,
+1,
+npc.userData.homeZ+
+(Math.random()-.5)*100
+);
+
+}
+
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+npc.userData.target,
+npc.position
+);
+
+if(direction.length()>2){
+
+direction.normalize();
+
+npc.position.addScaledVector(
+direction,
+dt*1.3
+);
+
+}
+
+}
+
+}
+
+
+/* =====================================================
+   CARS
+===================================================== */
+
+const cars=[];
+
+
+function createCar(
+x,z
+){
+
+const car=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+4,1.2,8
+),
+new THREE.MeshStandardMaterial({
+color:
+Math.random()>.5
+?0x992b2b
+:0x254b79,
+roughness:.4,
+metalness:.4
+})
+);
+
+car.position.set(
+x,.8,z
+);
+
+car.castShadow=true;
+
+scene.add(car);
+
+cars.push(car);
+
+}
+
+
+for(
+let i=0;
+i<25;
+i++
+){
+
+createCar(
+-900+Math.random()*1800,
+-850+Math.random()*1700
+);
+
+}
+
+
+function updateCars(dt){
+
+for(
+const car of cars
+){
+
+car.position.x+=dt*15;
+
+if(
+car.position.x>1000
+)
+car.position.x=-1000;
+
+}
+
+}
+
+
+/* =====================================================
+   POLICE
+===================================================== */
+
+const police=[];
+
+
+function createPolice(x,z){
+
+const p=
+new THREE.Group();
+
+p.position.set(
+x,1,z
+);
+
+
+const body=
+new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.42,.9,8,12
+),
+new THREE.MeshStandardMaterial({
+color:0x172334
+})
+);
+
+body.position.y=1;
+
+body.castShadow=true;
+
+p.add(body);
+
+scene.add(p);
+
+police.push(p);
+
+}
+
+
+for(
+let i=0;
+i<8;
+i++
+){
+
+createPolice(
+-700+Math.random()*1400,
+-700+Math.random()*1400
+);
+
+}
+
+
+function updatePolice(dt){
+
+for(
+const p of police
+){
+
+const d=
+p.position.distanceTo(
+player.position
+);
+
+if(
+d<80
+){
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+player.position,
+p.position
+)
+.normalize();
+
+p.position.addScaledVector(
+direction,
+dt*2
+);
+
+}
+
+}
+
+}
+
+
+/* =====================================================
+   DAY / NIGHT
+===================================================== */
+
+let worldTime=0;
+
+function updateDayNight(dt){
+
+worldTime+=dt*.025;
+
+const cycle=
+(Math.sin(worldTime)+1)/2;
+
+const night=
+1-cycle;
+
+const brightness=
+.25+
+cycle*.75;
+
+moon.intensity=
+.8+
+brightness*2;
+
+ambient.intensity=
+.35+
+brightness*.9;
+
+scene.background.lerp(
+new THREE.Color(
+0x4b6688
+),
+cycle*.015
+);
+
+document.getElementById(
+"time"
+).textContent=
+cycle>.55
+?"Day"
+:"Night";
+
+}
+
+
+/* =====================================================
+   RAIN
+===================================================== */
+
+const rainCount=1800;
+
+const rainPositions=
+new Float32Array(
+rainCount*3
+);
+
+for(
+let i=0;
+i<rainCount;
+i++
+){
+
+rainPositions[i*3]=
+(Math.random()-.5)*1800;
+
+rainPositions[i*3+1]=
+Math.random()*600;
+
+rainPositions[i*3+2]=
+(Math.random()-.5)*1600;
+
+}
+
+
+const rainGeometry=
+new THREE.BufferGeometry();
+
+rainGeometry.setAttribute(
+"position",
+new THREE.BufferAttribute(
+rainPositions,
+3
+)
+);
+
+
+const rain=
+new THREE.Points(
+rainGeometry,
+new THREE.PointsMaterial({
+color:0x9acbff,
+size:.8,
+transparent:true,
+opacity:.55
+})
+);
+
+scene.add(rain);
+
+
+function updateRain(dt){
+
+const p=
+rain.geometry.attributes.position.array;
+
+for(
+let i=0;
+i<rainCount;
+i++
+){
+
+p[i*3+1]-=
+dt*45;
+
+if(
+p[i*3+1]<0
+)
+p[i*3+1]=600;
+
+}
+
+rain.geometry
+.attributes
+.position
+.needsUpdate=true;
+
+}
+
+
+/* =====================================================
+   ENEMIES
+===================================================== */
+
+const enemies=[];
+
+
+function createEnemy(x,z){
+
+const enemy=
+new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.55,1.1,8,16
+),
+new THREE.MeshStandardMaterial({
+color:0x16191e
+})
+);
+
+enemy.position.set(
+x,1,z
+);
+
+enemy.castShadow=true;
+
+enemy.userData={
+hp:100,
+alive:true
+};
+
+scene.add(enemy);
+
+enemies.push(enemy);
+
+}
+
+
+for(
+let i=0;
+i<18;
+i++
+){
+
+createEnemy(
+-700+Math.random()*1400,
+-700+Math.random()*1400
+);
+
+}
+
+
+/* =====================================================
+   COMBAT
+===================================================== */
+
+function attack(){
+
+if(attackCooldown>0)return;
+
+attackCooldown=.4;
+
+let target=null;
+
+let closest=8;
+
+for(
+const e of enemies
+){
+
+if(!e.userData.alive)continue;
+
+const d=
+player.position.distanceTo(
+e.position
+);
+
+if(d<closest){
+
+closest=d;
+
+target=e;
+
+}
+
+}
+
+if(!target)return;
+
+target.userData.hp-=
+40*heroes[currentHero].strength;
+
+score+=40;
+
+impact(
+target.position.clone()
+);
+
+if(
+target.userData.hp<=0
+){
+
+target.userData.alive=false;
+
+target.visible=false;
+
+score+=100;
+
+showMessage(
+"ENEMY DEFEATED"
+);
+
+}
+
+}
+
+
+/* =====================================================
+   IMPACT
+===================================================== */
+
+function impact(pos){
+
+const mesh=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.3,12,12
+),
+new THREE.MeshBasicMaterial({
+color:0xffffff,
+transparent:true
+})
+);
+
+mesh.position.copy(pos);
+
+scene.add(mesh);
+
+let life=1;
+
+function animate(){
+
+life-=.05;
+
+mesh.scale.multiplyScalar(
+1.15
+);
+
+mesh.material.opacity=life;
+
+if(life<=0){
+
+scene.remove(mesh);
+
+return;
+
+}
+
+requestAnimationFrame(
+animate
+);
+
+}
+
+animate();
+
+}
+
+
+/* =====================================================
+   BOSS
+===================================================== */
+
+let boss=null;
+
+let bossHP=1000;
+
+let bossActive=false;
+
+
+function createBoss(){
+
+if(boss)return;
+
+boss=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+5,32,24
+),
+new THREE.MeshStandardMaterial({
+color:0x401450,
+roughness:.3,
+metalness:.45
+})
+);
+
+boss.position.set(
+0,6,-300
+);
+
+boss.castShadow=true;
+
+scene.add(boss);
+
+bossActive=true;
+
+document.getElementById(
+"boss"
+).style.display="block";
+
+showMessage(
+"DIMENSIONAL GUARDIAN"
+);
+
+}
+
+
+function updateBoss(dt){
+
+if(!bossActive)return;
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+player.position,
+boss.position
+);
+
+const d=
+direction.length();
+
+if(d>12){
+
+direction.normalize();
+
+boss.position.addScaledVector(
+direction,
+dt*3
+);
+
+}
+
+boss.rotation.y+=dt;
+
+if(
+d<12 &&
+invulnerable<=0
+){
+
+health-=15;
+
+invulnerable=1;
+
+damageFlash();
+
+}
+
+document.getElementById(
+"bossHealth"
+).style.width=
+Math.max(
+0,
+bossHP/1000*100
+)+"%";
+
+}
+
+
+/* =====================================================
+   MISSIONS
+===================================================== */
+
+let mission=1;
+
+
+function objective(text){
+
+document.getElementById(
+"objective"
+).textContent=text;
+
+}
+
+
+function updateMissions(){
+
+if(
+mission===1 &&
+player.position.distanceTo(
+new THREE.Vector3(
+0,0,-300
+)
+)<50
+){
+
+mission=2;
+
+objective(
+"Talk to the mysterious stranger"
+);
+
+startCinematic();
+
+}
+
+
+if(
+mission===2 &&
+dialogueFinished
+){
+
+mission=3;
+
+objective(
+"Defeat the dimensional guardian"
+);
+
+createBoss();
+
+}
+
+
+if(
+mission===3 &&
+bossActive &&
+bossHP<=0
+){
+
+bossActive=false;
+
+boss.visible=false;
+
+document.getElementById(
+"boss"
+).style.display="none";
+
+mission=4;
+
+objective(
+"Reach the dimensional portal"
+);
+
+createPortal();
+
+}
+
+
+if(
+mission===4 &&
+portal &&
+player.position.distanceTo(
+portal.position
+)<40
+){
+
+mission=5;
+
+objective(
+"Chapter complete"
+);
+
+startCinematic2();
+
+}
+
+}
+
+
+/* =====================================================
+   PORTAL
+===================================================== */
+
+let portal=null;
+
+
+function createPortal(){
+
+portal=
+new THREE.Mesh(
+new THREE.TorusGeometry(
+18,
+1.4,
+24,
+80
+),
+new THREE.MeshBasicMaterial({
+color:0x994cff
+})
+);
+
+portal.position.set(
+0,20,-600
+);
+
+scene.add(portal);
+
+}
+
+
+function updatePortal(){
+
+if(!portal)return;
+
+portal.rotation.x+=.01;
+
+portal.rotation.y+=.018;
+
+}
+
+
+/* =====================================================
+   DIALOGUE
+===================================================== */
+
+const lines=[
+
+[
+"Peter",
+"The signal is getting stronger."
+],
+
+[
+"Mysterious Stranger",
+"You should not be here."
+],
+
+[
+"Peter",
+"Who are you?"
+],
+
+[
+"Mysterious Stranger",
+"Someone who has seen what happens when the worlds collide."
+],
+
+[
+"Peter",
+"Then I'm going to stop it."
+]
+
+];
+
+
+let dialogueIndex=0;
+
+let dialogueActive=false;
+
+let dialogueFinished=false;
+
+
+function talk(){
+
+if(dialogueActive)return;
+
+dialogueActive=true;
+
+dialogueIndex=0;
+
+showLine();
+
+}
+
+
+function showLine(){
+
+if(
+dialogueIndex>=lines.length
+){
+
+dialogueActive=false;
+
+dialogueFinished=true;
+
+document.getElementById(
+"dialogue"
+).style.display="none";
+
+return;
+
+}
+
+document.getElementById(
+"speaker"
+).textContent=
+lines[dialogueIndex][0];
+
+document.getElementById(
+"dialogueText"
+).textContent=
+lines[dialogueIndex][1];
+
+document.getElementById(
+"dialogue"
+).style.display="block";
+
+}
+
+
+function nextDialogue(){
+
+if(!dialogueActive)return;
+
+dialogueIndex++;
+
+showLine();
+
+}
+
+
+/* =====================================================
+   CINEMATIC
+===================================================== */
+
+let cinematicRunning=false;
+
+
+function startCinematic(){
+
+if(cinematicRunning)return;
+
+cinematicRunning=true;
+
+const cinematic=
+document.getElementById(
+"cinematic"
+);
+
+const subtitle=
+document.getElementById(
+"subtitle"
+);
+
+cinematic.style.display="block";
+
+subtitle.textContent=
+"THE CITY HIDES MORE THAN IT REVEALS";
+
+setTimeout(
+()=>{
+
+subtitle.textContent=
+"ANOTHER UNIVERSE IS BREAKING THROUGH";
+
+},
+2200
+);
+
+setTimeout(
+()=>{
+
+subtitle.textContent="";
+
+cinematic.style.display="none";
+
+cinematicRunning=false;
+
+talk();
+
+},
+4500
+);
+
+}
+
+
+function startCinematic2(){
+
+cinematicRunning=true;
+
+const cinematic=
+document.getElementById(
+"cinematic"
+);
+
+const subtitle=
+document.getElementById(
+"subtitle"
+);
+
+cinematic.style.display="block";
+
+subtitle.textContent=
+"TO BE CONTINUED...";
+
+setTimeout(
+()=>{
+
+cinematic.style.display="none";
+
+cinematicRunning=false;
+
+},
+4000
+);
+
+}
+
+
+/* =====================================================
+   HERO SWITCH
+===================================================== */
+
+function switchHero(){
+
+const list=
+Object.keys(heroes);
+
+let i=
+list.indexOf(
+currentHero
+);
+
+currentHero=
+list[
+(i+1)%list.length
+];
+
+const h=
+heroes[currentHero];
+
+suit.color.setHex(
+h.color
+);
+
+document.getElementById(
+"hero"
+).textContent=
+h.name;
+
+document.getElementById(
+"universe"
+).textContent=
+h.universe;
+
+showMessage(
+h.name+
+" Spider-Man"
+);
+
+}
+
+
+/* =====================================================
+   SAVE / LOAD
+===================================================== */
+
+function save(){
+
+localStorage.setItem(
+"webboundV10",
+JSON.stringify({
+
+hero:currentHero,
+
+health,
+
+score,
+
+mission,
+
+position:[
+player.position.x,
+player.position.y,
+player.position.z
+]
+
+})
+);
+
+showCheckpoint();
+
+}
+
+
+function load(){
+
+const data=
+localStorage.getItem(
+"webboundV10"
+);
+
+if(!data){
+
+showMessage(
+"No save found"
+);
+
+return;
+
+}
+
+const s=
+JSON.parse(data);
+
+currentHero=s.hero;
+
+health=s.health;
+
+score=s.score;
+
+mission=s.mission;
+
+player.position.set(
+s.position[0],
+s.position[1],
+s.position[2]
+);
+
+suit.color.setHex(
+heroes[currentHero].color
+);
+
+document.getElementById(
+"hero"
+).textContent=
+heroes[currentHero].name;
+
+document.getElementById(
+"universe"
+).textContent=
+heroes[currentHero].universe;
+
+showMessage(
+"GAME LOADED"
+);
+
+}
+
+
+function showCheckpoint(){
+
+const c=
+document.getElementById(
+"checkpoint"
+);
+
+c.style.opacity=1;
+
+setTimeout(
+()=>{
+c.style.opacity=0;
+},
+1800
+);
+
+}
+
+
+/* =====================================================
+   RESET
+===================================================== */
+
+function reset(){
+
+player.position.set(
+0,1.1,0
+);
+
+velocity.set(
+0,0,0
+);
+
+health=100;
+
+score=0;
+
+mission=1;
+
+bossHP=1000;
+
+bossActive=false;
+
+if(boss){
+
+scene.remove(boss);
+
+boss=null;
+
+}
+
+if(portal){
+
+scene.remove(portal);
+
+portal=null;
+
+}
+
+document.getElementById(
+"boss"
+).style.display="none";
+
+objective(
+"Reach the city signal"
+);
+
+for(
+const e of enemies
+){
+
+e.userData.hp=100;
+
+e.userData.alive=true;
+
+e.visible=true;
+
+}
+
+}
+
+
+/* =====================================================
+   DAMAGE
+===================================================== */
+
+function damageFlash(){
+
+const d=
+document.getElementById(
+"damage"
+);
+
+d.style.opacity=.8;
+
+setTimeout(
+()=>{
+d.style.opacity=0;
+},
+150
+);
+
+}
+
+
+/* =====================================================
+   MESSAGE
+===================================================== */
+
+let messageTime=0;
+
+
+function showMessage(text){
+
+const m=
+document.getElementById(
+"message"
+);
+
+m.textContent=text;
+
+m.style.opacity=1;
+
+messageTime=2;
+
+}
+
+
+/* =====================================================
+   ANIMATION
+===================================================== */
+
+let animationTime=0;
+
+
+function animatePlayer(dt){
+
+animationTime+=dt;
+
+const speed=
+Math.sqrt(
+velocity.x*velocity.x+
+velocity.z*velocity.z
+);
+
+if(speed>2){
+
+body.rotation.z=
+Math.sin(
+animationTime*10
+)*.1;
+
+}else{
+
+body.rotation.z*=.9;
+
+}
+
+if(webActive){
+
+body.rotation.x=-.2;
+
+}
+
+}
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+function cameraUpdate(){
+
+const speed=
+Math.sqrt(
+velocity.x*velocity.x+
+velocity.z*velocity.z
+);
+
+camera.position.lerp(
+new THREE.Vector3(
+player.position.x,
+player.position.y+
+6+
+(speed>15?2:0),
+player.position.z+
+(webActive?15:12)
+),
+.075
+);
+
+const look=
+player.position.clone();
+
+look.y+=2.5;
+
+camera.lookAt(look);
+
+camera.fov=
+67+
+Math.min(
+speed*.25,
+12
+);
+
+camera.updateProjectionMatrix();
+
+}
+
+
+/* =====================================================
+   HUD
+===================================================== */
+
+function hudUpdate(){
+
+document.getElementById(
+"health"
+).textContent=
+Math.max(
+0,
+Math.floor(health)
+);
+
+document.getElementById(
+"score"
+).textContent=
+score;
+
+document.getElementById(
+"mission"
+).textContent=
+"MISSION "+
+String(mission).padStart(2,"0");
+
+attackCooldown=
+Math.max(
+0,
+attackCooldown-.016
+);
+
+invulnerable=
+Math.max(
+0,
+invulnerable-.016
+);
+
+}
+
+
+/* =====================================================
+   MAIN LOOP
+===================================================== */
+
+const clock=
+new THREE.Clock();
+
+
+function loop(){
+
+requestAnimationFrame(loop);
+
+const dt=
+Math.min(
+clock.getDelta(),
+.033
+);
+
+movement(dt);
+
+updateNPCs(dt);
+
+updateCars(dt);
+
+updatePolice(dt);
+
+updateRain(dt);
+
+updateDayNight(dt);
+
+updateBoss(dt);
+
+updatePortal();
+
+updateMissions();
+
+animatePlayer(dt);
+
+cameraUpdate();
+
+hudUpdate();
+
+if(messageTime>0){
+
+messageTime-=dt;
+
+}else{
+
+document.getElementById(
+"message"
+).style.opacity=0;
+
+}
+
+if(health<=0){
+
+showMessage(
+"MISSION FAILED — PRESS R"
+);
+
+health=0;
+
+}
+
+renderer.render(
+scene,
+camera
+);
+
+}
+
+
+loop();
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+addEventListener(
+"resize",
+()=>{
+
+camera.aspect=
+innerWidth/innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+}
+);
+
+</script>
+
+</body>
+</html>
