@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V28 — Advanced Combat</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#020308;
+    font-family:Arial,sans-serif;
+}
+
+canvas{display:block}
+
+#hud{
+    position:fixed;
+    z-index:20;
+    top:15px;
+    left:15px;
+    width:390px;
+    padding:16px;
+    color:white;
+    background:rgba(0,0,0,.82);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:16px;
+    backdrop-filter:blur(12px);
+}
+
+.title{
+    font-size:22px;
+    font-weight:bold;
+}
+
+.chapter{
+    margin-top:7px;
+    color:#6fdcff;
+    font-weight:bold;
+}
+
+.stat{
+    margin-top:7px;
+    font-size:13px;
+}
+
+#objective{
+    margin-top:8px;
+    color:#ddd;
+    line-height:1.4;
+}
+
+#controls{
+    position:fixed;
+    z-index:20;
+    left:15px;
+    bottom:15px;
+    padding:12px 15px;
+    color:#ddd;
+    background:rgba(0,0,0,.8);
+    border-radius:13px;
+    font-size:11px;
+    line-height:1.7;
+}
+
+#message{
+    position:fixed;
+    z-index:50;
+    top:15%;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
+    font-size:28px;
+    font-weight:bold;
+    text-shadow:0 5px 25px #000;
+    opacity:0;
+}
+
+#danger{
+    position:fixed;
+    z-index:30;
+    top:20px;
+    right:20px;
+    padding:12px 18px;
+    color:white;
+    background:rgba(160,20,25,.9);
+    border-radius:12px;
+    opacity:0;
+}
+
+#comboText{
+    position:fixed;
+    z-index:30;
+    top:30%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    color:white;
+    font-size:42px;
+    font-weight:bold;
+    text-shadow:0 5px 25px #000;
+    opacity:0;
+}
+
+#crosshair{
+    position:fixed;
+    z-index:15;
+    left:50%;
+    top:50%;
+    width:14px;
+    height:14px;
+    transform:translate(-50%,-50%);
+    border:1px solid white;
+    border-radius:50%;
+    opacity:.65;
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+    <div class="title">🕷️ WEBBOUND V28</div>
+
+    <div class="chapter">
+        CHAPTER 6 — WEB WARRIOR
+    </div>
+
+    <div id="objective">
+        Use Spider-Man's web attacks and combat abilities to defeat the enemy wave.
+    </div>
+
+    <div class="stat">Enemies: <b id="enemyCount">0</b></div>
+    <div class="stat">Defeated: <b id="defeated">0</b></div>
+    <div class="stat">Combo: <b id="combo">0</b></div>
+    <div class="stat">Health: <b id="health">100</b></div>
+    <div class="stat">Web Energy: <b id="energy">100</b></div>
+    <div class="stat">XP: <b id="xp">0</b></div>
+    <div class="stat">Score: <b id="score">0</b></div>
+</div>
+
+<div id="controls">
+W A S D — Move<br>
+SHIFT — Sprint<br>
+SPACE — Jump<br>
+E — Web Swing<br>
+Q — Web Zip<br>
+F — Punch<br>
+G — Web Pull<br>
+Z — Web Ball<br>
+C — Area Web Burst<br>
+P — Enemy Wave
+</div>
+
+<div id="crosshair"></div>
+<div id="danger">⚠️ UNDER ATTACK</div>
+<div id="message"></div>
+<div id="comboText"></div>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =========================
+   ENGINE
+========================= */
+
+const scene = new THREE.Scene();
+
+scene.background =
+    new THREE.Color(0x07101c);
+
+scene.fog =
+    new THREE.FogExp2(
+        0x07101c,
+        0.00075
+    );
+
+const camera =
+    new THREE.PerspectiveCamera(
+        68,
+        innerWidth / innerHeight,
+        0.1,
+        5000
+    );
+
+const renderer =
+    new THREE.WebGLRenderer({
+        antialias:true
+    });
+
+renderer.setSize(
+    innerWidth,
+    innerHeight
+);
+
+renderer.setPixelRatio(
+    Math.min(devicePixelRatio,2)
+);
+
+renderer.shadowMap.enabled = true;
+
+renderer.outputColorSpace =
+    THREE.SRGBColorSpace;
+
+document.body.appendChild(
+    renderer.domElement
+);
+
+
+/* =========================
+   LIGHTING
+========================= */
+
+const sun =
+    new THREE.DirectionalLight(
+        0xffffff,
+        2.3
+    );
+
+sun.position.set(
+    -500,
+    800,
+    300
+);
+
+sun.castShadow = true;
+
+scene.add(sun);
+
+scene.add(
+    new THREE.HemisphereLight(
+        0x7894c0,
+        0x08090d,
+        1.2
+    )
+);
+
+
+/* =========================
+   CITY
+========================= */
+
+const buildings = [];
+
+const buildingMaterials = [
+
+    new THREE.MeshStandardMaterial({
+        color:0x171d29,
+        roughness:.82
+    }),
+
+    new THREE.MeshStandardMaterial({
+        color:0x222b38,
+        roughness:.75
+    }),
+
+    new THREE.MeshStandardMaterial({
+        color:0x10151e,
+        roughness:.9
+    })
+];
+
+
+function createBuilding(
+    x,
+    z,
+    w,
+    h,
+    d
+){
+
+    const building =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                w,h,d
+            ),
+            buildingMaterials[
+                Math.floor(
+                    Math.random() *
+                    buildingMaterials.length
+                )
+            ]
+        );
+
+    building.position.set(
+        x,
+        h/2,
+        z
+    );
+
+    building.castShadow = true;
+    building.receiveShadow = true;
+
+    scene.add(building);
+
+    buildings.push(building);
+}
+
+
+for(
+    let x=-1000;
+    x<=1000;
+    x+=85
+){
+
+    for(
+        let z=-1000;
+        z<=1000;
+        z+=85
+    ){
+
+        if(
+            Math.abs(x)<70 &&
+            Math.abs(z)<70
+        ) continue;
+
+        createBuilding(
+            x,
+            z,
+            48+Math.random()*25,
+            60+Math.random()*260,
+            48+Math.random()*25
+        );
+    }
+}
+
+
+const ground =
+    new THREE.Mesh(
+        new THREE.PlaneGeometry(
+            3200,
+            3200
+        ),
+        new THREE.MeshStandardMaterial({
+            color:0x080a0e,
+            roughness:1
+        })
+    );
+
+ground.rotation.x =
+    -Math.PI/2;
+
+ground.receiveShadow = true;
+
+scene.add(ground);
+
+
+/* =========================
+   PLAYER
+========================= */
+
+const player =
+    new THREE.Group();
+
+player.position.set(
+    0,
+    1.1,
+    0
+);
+
+scene.add(player);
+
+
+const suitMaterial =
+    new THREE.MeshStandardMaterial({
+        color:0x9d1727,
+        roughness:.3,
+        metalness:.2
+    });
+
+
+const body =
+    new THREE.Mesh(
+        new THREE.CapsuleGeometry(
+            .65,
+            1.55,
+            10,
+            20
+        ),
+        suitMaterial
+    );
+
+body.position.y = 1.45;
+
+body.castShadow = true;
+
+player.add(body);
+
+
+const head =
+    new THREE.Mesh(
+        new THREE.SphereGeometry(
+            .57,
+            32,
+            24
+        ),
+        suitMaterial
+    );
+
+head.position.y = 2.75;
+
+player.add(head);
+
+
+const eyeMaterial =
+    new THREE.MeshStandardMaterial({
+        color:0xffffff
+    });
+
+
+for(
+    const x of [-.2,.2]
+){
+
+    const eye =
+        new THREE.Mesh(
+            new THREE.SphereGeometry(
+                .18,
+                20,
+                16
+            ),
+            eyeMaterial
+        );
+
+    eye.position.set(
+        x,
+        2.78,
+        -.54
+    );
+
+    eye.scale.z = .18;
+
+    player.add(eye);
+}
+
+
+/* =========================
+   PHYSICS
+========================= */
+
+const velocity =
+    new THREE.Vector3();
+
+const input =
+    new THREE.Vector3();
+
+const keys = {};
+
+let grounded = true;
+
+let doubleJump = true;
+
+let swinging = false;
+
+let webAnchor = null;
+
+let webLine = null;
+
+let health = 100;
+
+let energy = 100;
+
+let xp = 0;
+
+let score = 0;
+
+let combo = 0;
+
+let comboTimer = 0;
+
+let attackCooldown = 0;
+
+let defeated = 0;
+
+
+/* =========================
+   ENEMIES
+========================= */
+
+const enemies = [];
+
+
+function createEnemy(
+    elite=false
+){
+
+    const enemy =
+        new THREE.Group();
+
+
+    const material =
+        new THREE.MeshStandardMaterial({
+            color:
+                elite
+                ? 0x20242c
+                : 0x30353d,
+            roughness:.55,
+            metalness:.15
+        });
+
+
+    const enemyBody =
+        new THREE.Mesh(
+            new THREE.CapsuleGeometry(
+                elite?.72:.55,
+                elite?1.25:1,
+                8,
+                14
+            ),
+            material
+        );
+
+    enemyBody.position.y =
+        elite?1.6:1.35;
+
+    enemyBody.castShadow = true;
+
+    enemy.add(enemyBody);
+
+
+    const enemyHead =
+        new THREE.Mesh(
+            new THREE.SphereGeometry(
+                elite?.55:.42,
+                20,
+                16
+            ),
+            new THREE.MeshStandardMaterial({
+                color:0x6d493c
+            })
+        );
+
+    enemyHead.position.y =
+        elite?3.05:2.35;
+
+    enemy.add(enemyHead);
+
+
+    const angle =
+        Math.random()*Math.PI*2;
+
+    const distance =
+        80+Math.random()*140;
+
+
+    enemy.position.set(
+        player.position.x+
+        Math.cos(angle)*distance,
+        1,
+        player.position.z+
+        Math.sin(angle)*distance
+    );
+
+
+    enemy.userData = {
+
+        health:
+            elite?260:90,
+
+        maxHealth:
+            elite?260:90,
+
+        speed:
+            elite?4.2:5.5,
+
+        damage:
+            elite?18:8,
+
+        elite,
+
+        stagger:0,
+
+        attackCooldown:0
+    };
+
+
+    scene.add(enemy);
+
+    enemies.push(enemy);
+}
+
+
+for(
+    let i=0;
+    i<9;
+    i++
+){
+    createEnemy(false);
+}
+
+
+/* =========================
+   ENEMY AI
+========================= */
+
+function updateEnemies(dt){
+
+    for(
+        const enemy of [...enemies]
+    ){
+
+        const data =
+            enemy.userData;
+
+
+        data.attackCooldown =
+            Math.max(
+                0,
+                data.attackCooldown-dt
+            );
+
+
+        data.stagger =
+            Math.max(
+                0,
+                data.stagger-dt
+            );
+
+
+        if(
+            data.stagger>0
+        ) continue;
+
+
+        const distance =
+            enemy.position.distanceTo(
+                player.position
+            );
+
+
+        if(
+            distance<100
+        ){
+
+            const direction =
+                new THREE.Vector3()
+                .subVectors(
+                    player.position,
+                    enemy.position
+                )
+                .normalize();
+
+
+            direction.y = 0;
+
+
+            enemy.position.addScaledVector(
+                direction,
+                data.speed*dt
+            );
+
+
+            enemy.lookAt(
+                player.position.x,
+                enemy.position.y,
+                player.position.z
+            );
+
+
+            if(
+                distance<4 &&
+                data.attackCooldown<=0
+            ){
+
+                health -= data.damage;
+
+                health =
+                    Math.max(
+                        0,
+                        health
+                    );
+
+                data.attackCooldown =
+                    data.elite
+                    ? 1.7
+                    : 1.2;
+
+                combo = 0;
+
+                showDanger();
+            }
+        }
+    }
+}
+
+
+/* =========================
+   TARGET
+========================= */
+
+function nearestEnemy(
+    range=12
+){
+
+    let target = null;
+
+    let closest = range;
+
+
+    for(
+        const enemy of enemies
+    ){
+
+        if(
+            enemy.userData.health<=0
+        ) continue;
+
+
+        const distance =
+            enemy.position.distanceTo(
+                player.position
+            );
+
+
+        if(
+            distance<closest
+        ){
+
+            closest = distance;
+
+            target = enemy;
+        }
+    }
+
+
+    return target;
+}
+
+
+/* =========================
+   COMBO
+========================= */
+
+function addCombo(
+    points,
+    xpGain
+){
+
+    combo++;
+
+    comboTimer = 2.5;
+
+    score +=
+        points * combo;
+
+    xp +=
+        xpGain * combo;
+
+
+    if(
+        combo>=3
+    ){
+
+        const element =
+            document.getElementById(
+                "comboText"
+            );
+
+        element.textContent =
+            combo + " HIT COMBO!";
+
+        element.style.opacity = 1;
+
+
+        setTimeout(
+            ()=>{
+                element.style.opacity = 0;
+            },
+            600
+        );
+    }
+}
+
+
+/* =========================
+   PUNCH
+========================= */
+
+function punch(){
+
+    if(
+        attackCooldown>0
+    ) return;
+
+
+    attackCooldown = .32;
+
+
+    const target =
+        nearestEnemy(7);
+
+
+    if(!target){
+
+        showMessage("MISS");
+
+        return;
+    }
+
+
+    const data =
+        target.userData;
+
+
+    data.health -=
+        data.elite
+        ? 30
+        : 40;
+
+
+    data.stagger = .45;
+
+
+    const direction =
+        new THREE.Vector3()
+        .subVectors(
+            target.position,
+            player.position
+        )
+        .normalize();
+
+
+    target.position.addScaledVector(
+        direction,
+        data.elite?2:4
+    );
+
+
+    addCombo(
+        50,
+        20
+    );
+
+
+    if(
+        data.health<=0
+    ){
+
+        defeat(target);
+    }
+}
+
+
+/* =========================
+   WEB BALL
+========================= */
+
+function webBall(){
+
+    if(
+        energy<15
+    ){
+
+        showMessage(
+            "NO WEB ENERGY"
+        );
+
+        return;
+    }
+
+
+    const target =
+        nearestEnemy(35);
+
+
+    if(!target){
+
+        showMessage(
+            "NO TARGET"
+        );
+
+        return;
+    }
+
+
+    energy -= 15;
+
+
+    const data =
+        target.userData;
+
+
+    data.health -=
+        data.elite
+        ? 35
+        : 55;
+
+
+    data.stagger = 1;
+
+
+    createWebProjectile(
+        target
+    );
+
+
+    addCombo(
+        100,
+        40
+    );
+
+
+    if(
+        data.health<=0
+    ){
+
+        defeat(target);
+    }
+}
+
+
+/* =========================
+   WEB PROJECTILE
+========================= */
+
+function createWebProjectile(
+    target
+){
+
+    const start =
+        player.position.clone();
+
+    start.y += 2;
+
+
+    const projectile =
+        new THREE.Mesh(
+            new THREE.SphereGeometry(
+                .16,
+                12,
+                12
+            ),
+            new THREE.MeshBasicMaterial({
+                color:0xffffff
+            })
+        );
+
+
+    projectile.position.copy(
+        start
+    );
+
+
+    scene.add(projectile);
+
+
+    let time = 0;
+
+
+    function animate(){
+
+        time += .04;
+
+
+        if(
+            !target.parent
+        ){
+
+            scene.remove(
+                projectile
+            );
+
+            return;
+        }
+
+
+        const direction =
+            new THREE.Vector3()
+            .subVectors(
+                target.position,
+                projectile.position
+            )
+            .multiplyScalar(.15);
+
+
+        projectile.position.add(
+            direction
+        );
+
+
+        if(
+            projectile.position.distanceTo(
+                target.position
+            )<1 ||
+            time>1
+        ){
+
+            scene.remove(
+                projectile
+            );
+
+            return;
+        }
+
+
+        requestAnimationFrame(
+            animate
+        );
+    }
+
+
+    animate();
+}
+
+
+/* =========================
+   WEB PULL
+========================= */
+
+function webPull(){
+
+    if(
+        energy<20
+    ){
+
+        showMessage(
+            "NO WEB ENERGY"
+        );
+
+        return;
+    }
+
+
+    const target =
+        nearestEnemy(45);
+
+
+    if(!target){
+
+        showMessage(
+            "NO TARGET"
+        );
+
+        return;
+    }
+
+
+    energy -= 20;
+
+
+    const direction =
+        new THREE.Vector3()
+        .subVectors(
+            player.position,
+            target.position
+        )
+        .normalize();
+
+
+    target.position.addScaledVector(
+        direction,
+        25
+    );
+
+
+    target.userData.stagger =
+        .8;
+
+
+    addCombo(
+        120,
+        50
+    );
+}
+
+
+/* =========================
+   AREA WEB BURST
+========================= */
+
+function webBurst(){
+
+    if(
+        energy<35
+    ){
+
+        showMessage(
+            "NO WEB ENERGY"
+        );
+
+        return;
+    }
+
+
+    energy -= 35;
+
+
+    let hit = 0;
+
+
+    for(
+        const enemy of [...enemies]
+    ){
+
+        const distance =
+            enemy.position.distanceTo(
+                player.position
+            );
+
+
+        if(
+            distance<18
+        ){
+
+            enemy.userData.health -= 70;
+
+            enemy.userData.stagger = 1;
+
+
+            const direction =
+                new THREE.Vector3()
+                .subVectors(
+                    enemy.position,
+                    player.position
+                )
+                .normalize();
+
+
+            enemy.position.addScaledVector(
+                direction,
+                7
+            );
+
+
+            hit++;
+
+
+            if(
+                enemy.userData.health<=0
+            ){
+
+                defeat(enemy);
+            }
+        }
+    }
+
+
+    if(hit>0){
+
+        addCombo(
+            hit*150,
+            hit*60
+        );
+
+    }else{
+
+        showMessage(
+            "NO ENEMIES IN RANGE"
+        );
+    }
+}
+
+
+/* =========================
+   DEFEAT
+========================= */
+
+function defeat(
+    enemy
+){
+
+    const elite =
+        enemy.userData.elite;
+
+
+    defeated++;
+
+
+    score +=
+        elite
+        ? 1200
+        : 250;
+
+
+    xp +=
+        elite
+        ? 600
+        : 120;
+
+
+    scene.remove(
+        enemy
+    );
+
+
+    const index =
+        enemies.indexOf(
+            enemy
+        );
+
+
+    if(index>=0){
+
+        enemies.splice(
+            index,
+            1
+        );
+    }
+
+
+    showMessage(
+        elite
+        ? "ELITE DEFEATED!"
+        : "ENEMY DEFEATED"
+    );
+}
+
+
+/* =========================
+   WEB SWING
+========================= */
+
+function findAnchor(){
+
+    let best = null;
+
+    let limit = 550;
+
+
+    for(
+        const building of buildings
+    ){
+
+        const h =
+            building.geometry
+            .parameters
+            .height;
+
+
+        const point =
+            new THREE.Vector3(
+                building.position.x,
+                building.position.y+h/2,
+                building.position.z
+            );
+
+
+        const distance =
+            point.distanceTo(
+                player.position
+            );
+
+
+        if(
+            distance<limit &&
+            point.y>
+            player.position.y+8
+        ){
+
+            limit = distance;
+
+            best = point;
+        }
+    }
+
+
+    return best;
+}
+
+
+function toggleSwing(){
+
+    if(
+        swinging
+    ){
+
+        swinging = false;
+
+
+        if(webLine){
+
+            scene.remove(
+                webLine
+            );
+
+            webLine = null;
+        }
+
+
+        velocity.multiplyScalar(
+            1.5
+        );
+
+        return;
+    }
+
+
+    if(
+        energy<10
+    ) return;
+
+
+    const anchor =
+        findAnchor();
+
+
+    if(!anchor)
+        return;
+
+
+    energy -= 10;
+
+    webAnchor = anchor;
+
+    swinging = true;
+
+
+    webLine =
+        new THREE.Line(
+            new THREE.BufferGeometry()
+            .setFromPoints([
+                player.position.clone(),
+                anchor.clone()
+            ]),
+            new THREE.LineBasicMaterial({
+                color:0xffffff
+            })
+        );
+
+
+    scene.add(
+        webLine
+    );
+}
+
+
+function updateSwing(dt){
+
+    if(!swinging)
+        return;
+
+
+    const pull =
+        new THREE.Vector3()
+        .subVectors(
+            webAnchor,
+            player.position
+        );
+
+
+    const distance =
+        pull.length();
+
+
+    pull.normalize();
+
+
+    if(
+        distance>9
+    ){
+
+        velocity.addScaledVector(
+            pull,
+            (distance-9) *
+            dt *
+            18
+        );
+    }
+
+
+    velocity.y -=
+        8*dt;
+
+
+    if(webLine){
+
+        const p =
+            webLine.geometry
+            .attributes
+            .position
+            .array;
+
+
+        p[0] =
+            player.position.x;
+
+        p[1] =
+            player.position.y+1;
+
+        p[2] =
+            player.position.z;
+
+
+        p[3] =
+            webAnchor.x;
+
+        p[4] =
+            webAnchor.y;
+
+        p[5] =
+            webAnchor.z;
+
+
+        webLine.geometry
+            .attributes
+            .position
+            .needsUpdate = true;
+    }
+}
+
+
+/* =========================
+   MOVEMENT
+========================= */
+
+function jump(){
+
+    if(
+        grounded
+    ){
+
+        velocity.y = 15.5;
+
+        grounded = false;
+
+        doubleJump = true;
+
+        return;
+    }
+
+
+    if(
+        doubleJump
+    ){
+
+        velocity.y = 13;
+
+        doubleJump = false;
+    }
+}
+
+
+function updateMovement(dt){
+
+    input.set(
+        0,
+        0,
+        0
+    );
+
+
+    if(keys.KeyW)
+        input.z -= 1;
+
+    if(keys.KeyS)
+        input.z += 1;
+
+    if(keys.KeyA)
+        input.x -= 1;
+
+    if(keys.KeyD)
+        input.x += 1;
+
+
+    if(
+        input.length()>0
+    )
+        input.normalize();
+
+
+    const speed =
+        keys.ShiftLeft
+        ? 15
+        : 10;
+
+
+    velocity.x +=
+        input.x *
+        speed *
+        dt *
+        5;
+
+
+    velocity.z +=
+        input.z *
+        speed *
+        dt *
+        5;
+
+
+    velocity.x *= .91;
+
+    velocity.z *= .91;
+
+
+    if(
+        !grounded &&
+        !swinging
+    ){
+
+        velocity.y -=
+            31*dt;
+    }
+
+
+    updateSwing(dt);
+
+
+    player.position.addScaledVector(
+        velocity,
+        dt
+    );
+
+
+    if(
+        player.position.y<=1.1
+    ){
+
+        player.position.y = 1.1;
+
+        velocity.y = 0;
+
+        grounded = true;
+
+        doubleJump = true;
+
+    }else{
+
+        grounded = false;
+    }
+
+
+    if(
+        input.length()>0
+    ){
+
+        const target =
+            Math.atan2(
+                input.x,
+                input.z
+            );
+
+
+        let diff =
+            target -
+            player.rotation.y;
+
+
+        diff =
+            Math.atan2(
+                Math.sin(diff),
+                Math.cos(diff)
+            );
+
+
+        player.rotation.y +=
+            diff *
+            Math.min(
+                1,
+                dt*10
+            );
+    }
+}
+
+
+/* =========================
+   WEB ZIP
+========================= */
+
+function webZip(){
+
+    if(
+        energy<15
+    ) return;
+
+
+    const anchor =
+        findAnchor();
+
+
+    if(!anchor)
+        return;
+
+
+    energy -= 15;
+
+
+    const direction =
+        new THREE.Vector3()
+        .subVectors(
+            anchor,
+            player.position
+        )
+        .normalize();
+
+
+    velocity.copy(
+        direction.multiplyScalar(
+            45
+        )
+    );
+
+
+    showMessage(
+        "WEB ZIP"
+    );
+}
+
+
+/* =========================
+   PLAYER ANIMATION
+========================= */
+
+let animationTime = 0;
+
+
+function animatePlayer(dt){
+
+    animationTime += dt;
+
+
+    const speed =
+        Math.sqrt(
+            velocity.x**2 +
+            velocity.z**2
+        );
+
+
+    if(
+        grounded &&
+        speed>2
+    ){
+
+        const run =
+            animationTime*10;
+
+
+        body.position.y =
+            1.45 +
+            Math.abs(
+                Math.sin(run)
+            )*.07;
+
+
+        body.rotation.z =
+            Math.sin(run)*.08;
+
+    }else{
+
+        body.position.y +=
+            (
+                1.45 -
+                body.position.y
+            )*.12;
+
+        body.rotation.z *= .9;
+    }
+
+
+    if(
+        swinging
+    ){
+
+        body.rotation.x =
+            -.55;
+
+        body.rotation.z =
+            Math.sin(
+                animationTime*5
+            )*.18;
+    }
+}
+
+
+/* =========================
+   CAMERA
+========================= */
+
+function updateCamera(){
+
+    const desired =
+        new THREE.Vector3(
+            player.position.x,
+            player.position.y+5.5,
+            player.position.z+12
+        );
+
+
+    if(
+        swinging
+    ){
+
+        desired.y =
+            player.position.y+7;
+
+        desired.z =
+            player.position.z+16;
+    }
+
+
+    camera.position.lerp(
+        desired,
+        .075
+    );
+
+
+    camera.fov =
+        THREE.MathUtils.lerp(
+            camera.fov,
+            swinging?78:68,
+            .06
+        );
+
+
+    camera.updateProjectionMatrix();
+
+
+    camera.lookAt(
+        player.position.x,
+        player.position.y+2,
+        player.position.z
+    );
+}
+
+
+/* =========================
+   UI
+========================= */
+
+let messageTimer = 0;
+
+
+function showMessage(text){
+
+    const message =
+        document.getElementById(
+            "message"
+        );
+
+
+    message.textContent = text;
+
+    message.style.opacity = 1;
+
+    messageTimer = 1.3;
+}
+
+
+function showDanger(){
+
+    const danger =
+        document.getElementById(
+            "danger"
+        );
+
+
+    danger.style.opacity = 1;
+
+
+    setTimeout(
+        ()=>{
+            danger.style.opacity = 0;
+        },
+        700
+    );
+}
+
+
+function updateHUD(dt){
+
+    document.getElementById(
+        "enemyCount"
+    ).textContent =
+        enemies.length;
+
+
+    document.getElementById(
+        "defeated"
+    ).textContent =
+        defeated;
+
+
+    document.getElementById(
+        "combo"
+    ).textContent =
+        combo;
+
+
+    document.getElementById(
+        "health"
+    ).textContent =
+        Math.floor(
+            health
+        );
+
+
+    document.getElementById(
+        "energy"
+    ).textContent =
+        Math.floor(
+            energy
+        );
+
+
+    document.getElementById(
+        "xp"
+    ).textContent =
+        xp;
+
+
+    document.getElementById(
+        "score"
+    ).textContent =
+        score;
+
+
+    energy =
+        Math.min(
+            100,
+            energy+dt*4
+        );
+
+
+    attackCooldown =
+        Math.max(
+            0,
+            attackCooldown-dt
+        );
+
+
+    comboTimer =
+        Math.max(
+            0,
+            comboTimer-dt
+        );
+
+
+    if(
+        comboTimer<=0
+    )
+        combo = 0;
+
+
+    if(
+        health<=0
+    ){
+
+        health = 100;
+
+        combo = 0;
+
+        player.position.set(
+            0,
+            1.1,
+            0
+        );
+
+        showMessage(
+            "CHECKPOINT RESTORED"
+        );
+    }
+
+
+    if(
+        messageTimer>0
+    ){
+
+        messageTimer -= dt;
+
+    }else{
+
+        document.getElementById(
+            "message"
+        ).style.opacity = 0;
+    }
+}
+
+
+/* =========================
+   INPUT
+========================= */
+
+addEventListener(
+    "keydown",
+    e=>{
+
+        keys[e.code] = true;
+
+
+        if(
+            e.code==="Space"
+        )
+            jump();
+
+
+        if(
+            e.code==="KeyE"
+        )
+            toggleSwing();
+
+
+        if(
+            e.code==="KeyQ"
+        )
+            webZip();
+
+
+        if(
+            e.code==="KeyF"
+        )
+            punch();
+
+
+        if(
+            e.code==="KeyG"
+        )
+            webPull();
+
+
+        if(
+            e.code==="KeyZ"
+        )
+            webBall();
+
+
+        if(
+            e.code==="KeyC"
+        )
+            webBurst();
+
+
+        if(
+            e.code==="KeyP"
+        ){
+
+            for(
+                let i=0;
+                i<5;
+                i++
+            )
+                createEnemy(false);
+
+
+            showMessage(
+                "ENEMY WAVE"
+            );
+        }
+
+    }
+);
+
+
+addEventListener(
+    "keyup",
+    e=>{
+        keys[e.code] = false;
+    }
+);
+
+
+/* =========================
+   GAME LOOP
+========================= */
+
+const clock =
+    new THREE.Clock();
+
+
+function loop(){
+
+    requestAnimationFrame(
+        loop
+    );
+
+
+    const dt =
+        Math.min(
+            clock.getDelta(),
+            .033
+        );
+
+
+    updateMovement(dt);
+
+    updateEnemies(dt);
+
+    animatePlayer(dt);
+
+    updateCamera();
+
+    updateHUD(dt);
+
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+
+loop();
+
+
+/* =========================
+   RESIZE
+========================= */
+
+addEventListener(
+    "resize",
+    ()=>{
+
+        camera.aspect =
+            innerWidth /
+            innerHeight;
+
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+            innerWidth,
+            innerHeight
+        );
+    }
+);
+
+</script>
+
+</body>
+</html>
