@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WEBBOUND V51</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040a;font-family:Arial}
+canvas{display:block}
+
+#hud{
+position:fixed;z-index:20;left:10px;top:10px;width:295px;
+padding:13px;color:#fff;background:#000c;
+border:1px solid #ffffff30;border-radius:15px;
+font-size:11px;line-height:1.5
+}
+.title{font-size:18px;font-weight:800}
+.sub{color:#63dcff}
+#objective{color:#ffd34d}
+#wanted,#enemyCount{color:#ff4055;font-weight:bold}
+
+#box{
+position:fixed;z-index:20;right:10px;top:205px;width:185px;
+padding:10px;text-align:center;color:#fff;
+background:#000c;border-radius:13px
+}
+#stars{font-size:23px;color:#ff4055}
+#safe{color:#66ff99}
+
+#map{
+position:fixed;z-index:20;right:10px;top:10px;
+width:180px;height:180px;border-radius:14px;
+overflow:hidden;border:2px solid #ffffff40;
+background:#06101a
+}
+#mapCanvas{width:100%;height:100%}
+
+#buttons{
+position:fixed;z-index:30;right:205px;top:10px;
+display:flex;gap:5px
+}
+
+button{
+color:#fff;background:#000c;border:1px solid #ffffff40;
+border-radius:11px;font-weight:bold;font-size:10px;
+touch-action:none
+}
+button:active{transform:scale(.94)}
+
+#message{
+position:fixed;z-index:100;top:24%;left:50%;
+transform:translateX(-50%);width:92%;
+text-align:center;color:#fff;font-size:25px;
+font-weight:800;text-shadow:0 5px 20px #000;
+opacity:0;transition:.25s
+}
+
+#combatHud{
+position:fixed;z-index:25;left:50%;bottom:125px;
+transform:translateX(-50%);color:#fff;
+background:#000c;padding:9px 16px;
+border-radius:12px;text-align:center;
+display:none
+}
+
+#touch{
+position:fixed;z-index:40;left:0;right:0;bottom:8px;
+display:flex;justify-content:space-between;
+padding:8px;pointer-events:none
+}
+
+.pad,.actions{
+display:grid;gap:5px;pointer-events:auto
+}
+.pad{grid-template-columns:48px 48px 48px}
+.actions{grid-template-columns:52px 52px}
+#touch button{width:52px;height:52px}
+.empty{visibility:hidden}
+
+@media(max-width:600px){
+#hud{width:240px;font-size:10px}
+#map{width:135px;height:135px;top:125px}
+#buttons{right:10px;top:268px}
+#box{top:365px;width:135px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+<div class="title">🕷️ WEBBOUND V51</div>
+<div class="sub">COMBAT & ENEMY AI</div>
+
+⭐ Level: <b id="level">1</b><br>
+❤️ Health: <b id="health">100</b><br>
+🕸️ Energy: <b id="energy">100</b><br>
+⭐ XP: <b id="xp">0</b><br>
+🏆 Score: <b id="score">0</b><br>
+👥 Citizens: <b id="citizens">0</b><br>
+👾 Enemies: <b id="enemyCount">0</b><br>
+🚨 Wanted: <b id="wanted">0</b><br>
+🌦️ Weather: <b id="weather">CLEAR</b><br>
+🕐 Time: <b id="time">12:00</b><br>
+🎯 Objective: <b id="objective">Explore the city</b><br>
+📍 Distance: <b id="distance">0</b> m
+</div>
+
+<div id="map">
+<canvas id="mapCanvas" width="360" height="360"></canvas>
+</div>
+
+<div id="box">
+<div id="stars">☆☆☆☆☆</div>
+<div id="status">PEACEFUL</div>
+<div id="safe">SAFE ZONE: NO</div>
+</div>
+
+<div id="buttons">
+<button id="mapTop">🗺️ MAP</button>
+<button id="weatherBtn">🌦️ WEATHER</button>
+</div>
+
+<div id="combatHud">
+👾 TARGET: <b id="targetName">ENEMY</b><br>
+❤️ ENEMY HP: <b id="targetHP">100</b>
+</div>
+
+<div id="message"></div>
+
+<div id="touch">
+<div class="pad">
+<button class="empty"></button>
+<button id="up">▲</button>
+<button class="empty"></button>
+<button id="left">◀</button>
+<button id="down">▼</button>
+<button id="right">▶</button>
+</div>
+
+<div class="actions">
+<button id="jump">JUMP</button>
+<button id="web">WEB</button>
+<button id="punch">PUNCH</button>
+<button id="shot">WEB SHOT</button>
+<button id="enter">ENTER</button>
+<button id="mapBtn">MAP</button>
+</div>
+</div>
+
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+ENGINE
+===================================================== */
+
+const scene=new THREE.Scene();
+
+const camera=new THREE.PerspectiveCamera(
+68,innerWidth/innerHeight,.1,3500
+);
+
+const renderer=new THREE.WebGLRenderer({
+antialias:true,
+powerPreference:"high-performance"
+});
+
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+
+document.body.appendChild(renderer.domElement);
+
+
+/* =====================================================
+LIGHT
+===================================================== */
+
+const sun=new THREE.DirectionalLight(
+0xffffff,1.7
+);
+
+sun.position.set(-400,700,300);
+scene.add(sun);
+
+scene.add(
+new THREE.HemisphereLight(
+0x7897c4,
+0x05070b,
+1.1
+)
+);
+
+
+/* =====================================================
+CITY
+===================================================== */
+
+const buildings=[];
+
+for(let x=-850;x<=850;x+=100){
+
+for(let z=-850;z<=850;z+=100){
+
+if(Math.abs(x)<100&&Math.abs(z)<100)
+continue;
+
+const h=70+Math.random()*250;
+
+const b=new THREE.Mesh(
+new THREE.BoxGeometry(
+55+Math.random()*20,
+h,
+55+Math.random()*20
+),
+new THREE.MeshStandardMaterial({
+color:[
+0x17212b,
+0x222c36,
+0x101920
+][Math.floor(Math.random()*3)]
+})
+);
+
+b.position.set(x,h/2,z);
+scene.add(b);
+buildings.push(b);
+
+}
+}
+
+
+/* =====================================================
+GROUND
+===================================================== */
+
+const ground=new THREE.Mesh(
+new THREE.PlaneGeometry(3000,3000),
+new THREE.MeshStandardMaterial({
+color:0x070a0e
+})
+);
+
+ground.rotation.x=-Math.PI/2;
+scene.add(ground);
+
+
+/* =====================================================
+ROADS
+===================================================== */
+
+const roadMat=new THREE.MeshStandardMaterial({
+color:0x111318
+});
+
+for(let x=-800;x<=800;x+=200){
+
+const road=new THREE.Mesh(
+new THREE.BoxGeometry(32,.05,1700),
+roadMat
+);
+
+road.position.set(x,.02,0);
+scene.add(road);
+
+}
+
+for(let z=-800;z<=800;z+=200){
+
+const road=new THREE.Mesh(
+new THREE.BoxGeometry(1700,.05,32),
+roadMat
+);
+
+road.position.set(0,.02,z);
+scene.add(road);
+
+}
+
+
+/* =====================================================
+PLAYER
+===================================================== */
+
+const player=new THREE.Group();
+
+player.position.set(0,1.1,0);
+scene.add(player);
+
+const suit=new THREE.MeshStandardMaterial({
+color:0xa8192d
+});
+
+const body=new THREE.Mesh(
+new THREE.CapsuleGeometry(.65,1.55,8,14),
+suit
+);
+
+body.position.y=1.45;
+player.add(body);
+
+const head=new THREE.Mesh(
+new THREE.SphereGeometry(.57,20,16),
+suit
+);
+
+head.position.y=2.75;
+player.add(head);
+
+const eyeMat=new THREE.MeshBasicMaterial({
+color:0xffffff
+});
+
+for(const x of [-.2,.2]){
+
+const eye=new THREE.Mesh(
+new THREE.SphereGeometry(.18,12,10),
+eyeMat
+);
+
+eye.position.set(x,2.78,-.54);
+eye.scale.z=.18;
+player.add(eye);
+
+}
+
+
+/* =====================================================
+GAME STATE
+===================================================== */
+
+const velocity=new THREE.Vector3();
+const input=new THREE.Vector3();
+const keys={};
+
+let grounded=true;
+let doubleJump=true;
+
+let health=100;
+let energy=100;
+let xp=0;
+let score=0;
+let level=1;
+
+let wantedLevel=0;
+let wantedHeat=0;
+
+let mission=1;
+let chapter=1;
+let missionDone=false;
+
+let attacking=false;
+let attackCooldown=0;
+
+let targetEnemy=null;
+
+
+/* =====================================================
+DAY / NIGHT
+===================================================== */
+
+let worldTime=12;
+let timeSpeed=.035;
+
+function updateDayNight(dt){
+
+worldTime+=dt*timeSpeed;
+
+if(worldTime>=24)
+worldTime-=24;
+
+const hour=Math.floor(worldTime);
+const minute=Math.floor((worldTime-hour)*60);
+
+document.getElementById("time").textContent=
+String(hour).padStart(2,"0")+":"+
+String(minute).padStart(2,"0");
+
+const daylight=Math.max(
+0,
+Math.sin((worldTime-6)/24*Math.PI*2)
+);
+
+sun.intensity=.25+daylight*1.5;
+
+}
+
+
+/* =====================================================
+WEATHER
+===================================================== */
+
+const weatherTypes=[
+"CLEAR",
+"RAIN",
+"FOG",
+"STORM"
+];
+
+let weatherIndex=0;
+let weather="CLEAR";
+
+function setWeather(index){
+
+weatherIndex=
+(index+weatherTypes.length)%
+weatherTypes.length;
+
+weather=weatherTypes[weatherIndex];
+
+document.getElementById(
+"weather"
+).textContent=weather;
+
+}
+
+function nextWeather(){
+setWeather(weatherIndex+1);
+}
+
+
+/* =====================================================
+NPC
+===================================================== */
+
+const citizens=[];
+
+function createCitizen(){
+
+const npc=new THREE.Group();
+
+const body=new THREE.Mesh(
+new THREE.CapsuleGeometry(.35,.8,5,8),
+new THREE.MeshStandardMaterial({
+color:
+[0x334455,0x774422,0x445522,0x663366]
+[Math.floor(Math.random()*4)]
+})
+);
+
+body.position.y=1;
+npc.add(body);
+
+const head=new THREE.Mesh(
+new THREE.SphereGeometry(.3,10,8),
+new THREE.MeshStandardMaterial({
+color:0xb87955
+})
+);
+
+head.position.y=1.95;
+npc.add(head);
+
+npc.position.set(
+Math.round((Math.random()*1600-800)/100)*100,
+0,
+Math.round((Math.random()*1600-800)/100)*100
+);
+
+npc.userData={
+speed:1+Math.random()*2,
+dir:Math.random()<.5?1:-1
+};
+
+scene.add(npc);
+citizens.push(npc);
+
+}
+
+for(let i=0;i<40;i++)
+createCitizen();
+
+function updateCitizens(dt){
+
+for(const npc of citizens){
+
+npc.position.x+=
+npc.userData.speed*
+npc.userData.dir*dt;
+
+if(Math.abs(npc.position.x)>900)
+npc.userData.dir*=-1;
+
+}
+
+document.getElementById(
+"citizens"
+).textContent=citizens.length;
+
+}
+
+
+/* =====================================================
+ENEMY SYSTEM
+===================================================== */
+
+const enemies=[];
+
+function createEnemy(){
+
+const enemy=new THREE.Group();
+
+const material=
+new THREE.MeshStandardMaterial({
+color:0x531c25
+});
+
+const body=new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.55,1.15,8,12
+),
+material
+);
+
+body.position.y=1.35;
+enemy.add(body);
+
+const head=new THREE.Mesh(
+new THREE.SphereGeometry(
+.48,14,12
+),
+new THREE.MeshStandardMaterial({
+color:0x241417
+})
+);
+
+head.position.y=2.65;
+enemy.add(head);
+
+
+/* eyes */
+
+for(const x of [-.15,.15]){
+
+const eye=new THREE.Mesh(
+new THREE.SphereGeometry(
+.09,8,8
+),
+new THREE.MeshBasicMaterial({
+color:0xff3333
+})
+);
+
+eye.position.set(
+x,
+2.67,
+-.45
+);
+
+enemy.add(eye);
+
+}
+
+
+/* health bar */
+
+const barBG=new THREE.Mesh(
+new THREE.PlaneGeometry(1.6,.18),
+new THREE.MeshBasicMaterial({
+color:0x220000
+})
+);
+
+barBG.position.y=3.5;
+enemy.add(barBG);
+
+const bar=new THREE.Mesh(
+new THREE.PlaneGeometry(1.6,.18),
+new THREE.MeshBasicMaterial({
+color:0xff3333
+})
+);
+
+bar.position.set(0,3.5,.01);
+enemy.add(bar);
+
+
+const angle=Math.random()*Math.PI*2;
+const distance=100+Math.random()*300;
+
+enemy.position.set(
+player.position.x+
+Math.cos(angle)*distance,
+0,
+player.position.z+
+Math.sin(angle)*distance
+);
+
+enemy.userData={
+hp:100+level*15,
+maxHp:100+level*15,
+speed:2.2+Math.random()*1.8,
+damage:5+level,
+attackCooldown:0,
+bar
+};
+
+scene.add(enemy);
+enemies.push(enemy);
+
+}
+
+
+for(let i=0;i<10;i++)
+createEnemy();
+
+
+function updateEnemyBar(enemy){
+
+const u=enemy.userData;
+
+u.bar.scale.x=
+Math.max(
+0.01,
+u.hp/u.maxHp
+);
+
+}
+
+
+function nearestEnemy(){
+
+let best=null;
+let closest=15;
+
+for(const enemy of enemies){
+
+const d=
+enemy.position.distanceTo(
+player.position
+);
+
+if(d<closest){
+
+closest=d;
+best=enemy;
+
+}
+
+}
+
+return best;
+
+}
+
+
+function updateEnemies(dt){
+
+for(let i=enemies.length-1;i>=0;i--){
+
+const enemy=enemies[i];
+const u=enemy.userData;
+
+const dir=new THREE.Vector3()
+.subVectors(
+player.position,
+enemy.position
+);
+
+dir.y=0;
+
+const distance=dir.length();
+
+if(distance<90){
+
+dir.normalize();
+
+enemy.lookAt(
+player.position.x,
+0,
+player.position.z
+);
+
+if(distance>4){
+
+enemy.position.addScaledVector(
+dir,
+u.speed*dt
+);
+
+}else{
+
+u.attackCooldown-=dt;
+
+if(u.attackCooldown<=0){
+
+health-=u.damage;
+u.attackCooldown=1.1;
+
+showMessage("⚠️ ENEMY HIT!");
+
+}
+
+}
+
+}
+
+updateEnemyBar(enemy);
+
+}
+
+
+/* target */
+
+targetEnemy=nearestEnemy();
+
+if(targetEnemy){
+
+document.getElementById(
+"combatHud"
+).style.display="block";
+
+document.getElementById(
+"targetHP"
+).textContent=
+Math.max(
+0,
+Math.floor(
+targetEnemy.userData.hp
+)
+);
+
+}else{
+
+document.getElementById(
+"combatHud"
+).style.display="none";
+
+}
+
+document.getElementById(
+"enemyCount"
+).textContent=enemies.length;
+
+}
+
+
+/* =====================================================
+MELEE ATTACK
+===================================================== */
+
+function punch(){
+
+if(attackCooldown>0)
+return;
+
+attackCooldown=.45;
+
+const enemy=nearestEnemy();
+
+if(!enemy){
+
+showMessage("👊 NO TARGET");
+return;
+
+}
+
+const distance=
+enemy.position.distanceTo(
+player.position
+);
+
+if(distance>6){
+
+showMessage("👊 TOO FAR");
+return;
+
+}
+
+enemy.userData.hp-=35;
+
+addWanted(1);
+
+showMessage("👊 HIT!");
+
+if(enemy.userData.hp<=0)
+defeatEnemy(enemy);
+
+}
+
+
+/* =====================================================
+WEB SHOT
+===================================================== */
+
+function webShot(){
+
+if(energy<15){
+
+showMessage(
+"🕸️ NOT ENOUGH ENERGY"
+);
+
+return;
+
+}
+
+const enemy=nearestEnemy();
+
+if(!enemy){
+
+showMessage(
+"🕸️ NO TARGET"
+);
+
+return;
+
+}
+
+const distance=
+enemy.position.distanceTo(
+player.position
+);
+
+if(distance>35){
+
+showMessage(
+"🕸️ TARGET TOO FAR"
+);
+
+return;
+
+}
+
+energy-=15;
+
+enemy.userData.hp-=50;
+
+enemy.userData.speed*=.35;
+
+showMessage(
+"🕸️ WEB SHOT!"
+);
+
+if(enemy.userData.hp<=0)
+defeatEnemy(enemy);
+
+}
+
+
+function defeatEnemy(enemy){
+
+const index=
+enemies.indexOf(enemy);
+
+if(index===-1)
+return;
+
+scene.remove(enemy);
+enemies.splice(index,1);
+
+score+=150;
+addXP(100);
+
+showMessage(
+"💥 ENEMY DEFEATED +150"
+);
+
+addWanted(.5);
+
+setTimeout(()=>{
+createEnemy();
+},1800);
+
+}
+
+
+/* =====================================================
+XP
+===================================================== */
+
+function addXP(amount){
+
+xp+=amount;
+
+while(
+xp>=500+(level-1)*250
+){
+
+xp-=500+(level-1)*250;
+
+level++;
+
+health=100;
+energy=100;
+
+showMessage(
+"⭐ LEVEL "+level+"!"
+);
+
+}
+
+}
+
+
+/* =====================================================
+WANTED
+===================================================== */
+
+function updateWanted(){
+
+if(wantedHeat<10)wantedLevel=0;
+else if(wantedHeat<30)wantedLevel=1;
+else if(wantedHeat<50)wantedLevel=2;
+else if(wantedHeat<70)wantedLevel=3;
+else if(wantedHeat<85)wantedLevel=4;
+else wantedLevel=5;
+
+document.getElementById(
+"wanted"
+).textContent=wantedLevel;
+
+let stars="";
+
+for(let i=1;i<=5;i++)
+stars+=
+i<=wantedLevel?"★":"☆";
+
+document.getElementById(
+"stars"
+).textContent=stars;
+
+document.getElementById(
+"status"
+).textContent=
+wantedLevel?
+"POLICE ALERT":
+"PEACEFUL";
+
+}
+
+function addWanted(amount){
+
+wantedHeat=
+Math.min(
+100,
+wantedHeat+amount
+);
+
+updateWanted();
+
+}
+
+
+/* =====================================================
+MISSIONS
+===================================================== */
+
+const missions=[
+{
+name:"DEFEAT 3 ENEMIES",
+reward:800,
+xp:300
+},
+{
+name:"EXPLORE THE CITY",
+target:[300,-250],
+reward:500,
+xp:200
+},
+{
+name:"DEFEAT 5 ENEMIES",
+reward:1200,
+xp:500
+},
+{
+name:"REACH THE ROOFTOP",
+target:[-450,300],
+reward:1500,
+xp:600
+}
+];
+
+let missionKills=0;
+
+function missionTarget(){
+
+const m=
+missions[
+(mission-1)%missions.length
+];
+
+if(!m.target)
+return null;
+
+return new THREE.Vector3(
+m.target[0],
+1,
+m.target[1]
+);
+
+}
+
+
+function updateMission(){
+
+const m=
+missions[
+(mission-1)%missions.length
+];
+
+document.getElementById(
+"objective"
+).textContent=m.name;
+
+if(
+m.name.includes("DEFEAT")
+){
+
+const needed=
+m.name.includes("5")?5:3;
+
+if(
+missionKills>=needed&&
+!missionDone
+){
+
+missionDone=true;
+
+score+=m.reward;
+addXP(m.xp);
+
+showMessage(
+"🎯 MISSION COMPLETE!"
+);
+
+mission++;
+
+missionKills=0;
+missionDone=false;
+
+}
+
+return;
+
+}
+
+const target=missionTarget();
+
+if(!target)
+return;
+
+const d=Math.hypot(
+player.position.x-target.x,
+player.position.z-target.z
+);
+
+document.getElementById(
+"distance"
+).textContent=
+Math.floor(d);
+
+if(
+d<28&&!missionDone
+){
+
+missionDone=true;
+
+score+=m.reward;
+addXP(m.xp);
+
+showMessage(
+"🎯 MISSION COMPLETE!"
+);
+
+mission++;
+
+setTimeout(()=>{
+missionDone=false;
+},1000);
+
+}
+
+}
+
+
+/* =====================================================
+MOVEMENT
+===================================================== */
+
+function jump(){
+
+if(grounded){
+
+velocity.y=15;
+grounded=false;
+doubleJump=true;
+
+}else if(doubleJump){
+
+velocity.y=13;
+doubleJump=false;
+
+}
+
+}
+
+function updateMovement(dt){
+
+input.set(0,0,0);
+
+if(keys.KeyW)input.z-=1;
+if(keys.KeyS)input.z+=1;
+if(keys.KeyA)input.x-=1;
+if(keys.KeyD)input.x+=1;
+
+if(input.length())
+input.normalize();
+
+const speed=9;
+
+velocity.x+=input.x*speed*dt*5;
+velocity.z+=input.z*speed*dt*5;
+
+velocity.x*=.91;
+velocity.z*=.91;
+
+if(!grounded)
+velocity.y-=30*dt;
+
+player.position.addScaledVector(
+velocity,dt
+);
+
+if(player.position.y<=1.1){
+
+player.position.y=1.1;
+velocity.y=0;
+grounded=true;
+doubleJump=true;
+
+}
+
+}
+
+
+/* =====================================================
+WEB SWING
+===================================================== */
+
+let swinging=false;
+let anchor=null;
+let webLine=null;
+
+function findAnchor(){
+
+let best=null;
+let closest=450;
+
+for(const b of buildings){
+
+const h=b.geometry.parameters.height;
+
+const p=new THREE.Vector3(
+b.position.x,
+b.position.y+h/2,
+b.position.z
+);
+
+const d=p.distanceTo(
+player.position
+);
+
+if(
+d<closest&&
+p.y>player.position.y+8
+){
+
+closest=d;
+best=p;
+
+}
+
+}
+
+return best;
+
+}
+
+
+function toggleSwing(){
+
+if(swinging){
+
+swinging=false;
+
+if(webLine){
+
+scene.remove(webLine);
+webLine=null;
+
+}
+
+return;
+
+}
+
+const p=findAnchor();
+
+if(!p)return;
+
+anchor=p;
+swinging=true;
+
+webLine=new THREE.Line(
+new THREE.BufferGeometry()
+.setFromPoints([
+player.position.clone(),
+anchor.clone()
+]),
+new THREE.LineBasicMaterial({
+color:0xffffff
+})
+);
+
+scene.add(webLine);
+
+}
+
+
+function updateSwing(dt){
+
+if(!swinging)return;
+
+const pull=new THREE.Vector3()
+.subVectors(
+anchor,
+player.position
+);
+
+const d=pull.length();
+
+pull.normalize();
+
+if(d>10){
+
+velocity.addScaledVector(
+pull,
+(d-10)*dt*16
+);
+
+}
+
+velocity.y-=7*dt;
+
+if(webLine){
+
+const p=
+webLine.geometry.attributes
+.position.array;
+
+p[0]=player.position.x;
+p[1]=player.position.y+1;
+p[2]=player.position.z;
+
+p[3]=anchor.x;
+p[4]=anchor.y;
+p[5]=anchor.z;
+
+webLine.geometry.attributes
+.position.needsUpdate=true;
+
+}
+
+}
+
+
+/* =====================================================
+SAFE ZONE
+===================================================== */
+
+function updateSafe(dt){
+
+const d=Math.hypot(
+player.position.x,
+player.position.z
+);
+
+const safe=d<85;
+
+document.getElementById(
+"safe"
+).textContent=
+safe?
+"SAFE ZONE: YES":
+"SAFE ZONE: NO";
+
+if(safe){
+
+health=Math.min(
+100,
+health+dt*8
+);
+
+wantedHeat=
+Math.max(
+0,
+wantedHeat-dt*10
+);
+
+updateWanted();
+
+}
+
+}
+
+
+/* =====================================================
+MAP
+===================================================== */
+
+const mapCanvas=
+document.getElementById(
+"mapCanvas"
+);
+
+const ctx=
+mapCanvas.getContext("2d");
+
+function worldToMap(x,z){
+
+return{
+x:180+x*.09,
+y:180+z*.09
+};
+
+}
+
+function drawMap(){
+
+ctx.fillStyle="#07101a";
+ctx.fillRect(0,0,360,360);
+
+ctx.strokeStyle="#333a42";
+ctx.lineWidth=8;
+
+for(let i=-800;i<=800;i+=200){
+
+let p=worldToMap(i,0);
+
+ctx.beginPath();
+ctx.moveTo(p.x,0);
+ctx.lineTo(p.x,360);
+ctx.stroke();
+
+p=worldToMap(0,i);
+
+ctx.beginPath();
+ctx.moveTo(0,p.y);
+ctx.lineTo(360,p.y);
+ctx.stroke();
+
+}
+
+
+/* enemies */
+
+ctx.fillStyle="#ff304f";
+
+for(const e of enemies){
+
+const p=worldToMap(
+e.position.x,
+e.position.z
+);
+
+ctx.fillRect(
+p.x-4,
+p.y-4,
+8,
+8
+);
+
+}
+
+
+/* citizens */
+
+ctx.fillStyle="#aaa";
+
+for(const n of citizens){
+
+const p=worldToMap(
+n.position.x,
+n.position.z
+);
+
+ctx.fillRect(
+p.x-1,
+p.y-1,
+2,
+2
+);
+
+}
+
+
+/* mission */
+
+const target=missionTarget();
+
+if(target){
+
+const t=worldToMap(
+target.x,
+target.z
+);
+
+ctx.fillStyle="#ffd34d";
+
+ctx.beginPath();
+
+ctx.arc(
+t.x,t.y,8,0,Math.PI*2
+);
+
+ctx.fill();
+
+}
+
+
+/* player */
+
+const p=worldToMap(
+player.position.x,
+player.position.z
+);
+
+ctx.fillStyle="#00ffff";
+
+ctx.beginPath();
+
+ctx.arc(
+p.x,p.y,7,0,Math.PI*2
+);
+
+ctx.fill();
+
+}
+
+
+/* =====================================================
+UI
+===================================================== */
+
+function updateUI(){
+
+document.getElementById(
+"level"
+).textContent=level;
+
+document.getElementById(
+"health"
+).textContent=
+Math.floor(Math.max(0,health));
+
+document.getElementById(
+"energy"
+).textContent=
+Math.floor(energy);
+
+document.getElementById(
+"xp"
+).textContent=
+Math.floor(xp);
+
+document.getElementById(
+"score"
+).textContent=score;
+
+}
+
+
+function showMessage(text){
+
+const m=
+document.getElementById(
+"message"
+);
+
+m.textContent=text;
+m.style.opacity=1;
+
+setTimeout(()=>{
+m.style.opacity=0;
+},1200);
+
+}
+
+
+/* =====================================================
+INPUT
+===================================================== */
+
+addEventListener("keydown",e=>{
+
+keys[e.code]=true;
+
+if(e.code==="Space")
+jump();
+
+if(e.code==="KeyE")
+toggleSwing();
+
+if(e.code==="KeyQ")
+punch();
+
+if(e.code==="KeyR")
+webShot();
+
+if(e.code==="KeyM")
+toggleMap();
+
+if(e.code==="KeyT")
+addWanted(25);
+
+});
+
+addEventListener("keyup",e=>{
+keys[e.code]=false;
+});
+
+
+/* =====================================================
+TOUCH
+===================================================== */
+
+function hold(id,code){
+
+const b=
+document.getElementById(id);
+
+const down=e=>{
+e.preventDefault();
+keys[code]=true;
+};
+
+const up=e=>{
+e.preventDefault();
+keys[code]=false;
+};
+
+b.addEventListener(
+"touchstart",
+down,
+{passive:false}
+);
+
+b.addEventListener(
+"touchend",
+up,
+{passive:false}
+);
+
+b.addEventListener(
+"touchcancel",
+up,
+{passive:false}
+);
+
+}
+
+hold("up","KeyW");
+hold("down","KeyS");
+hold("left","KeyA");
+hold("right","KeyD");
+
+
+function tap(id,fn){
+
+document.getElementById(id)
+.addEventListener(
+"touchstart",
+e=>{
+e.preventDefault();
+fn();
+},
+{passive:false}
+);
+
+}
+
+tap("jump",jump);
+tap("web",toggleSwing);
+tap("punch",punch);
+tap("shot",webShot);
+tap("mapBtn",toggleMap);
+
+
+document.getElementById(
+"mapTop"
+).onclick=toggleMap;
+
+document.getElementById(
+"weatherBtn"
+).onclick=nextWeather;
+
+
+/* =====================================================
+MAP TOGGLE
+===================================================== */
+
+let mapVisible=true;
+
+function toggleMap(){
+
+mapVisible=!mapVisible;
+
+document.getElementById(
+"map"
+).style.display=
+mapVisible?"block":"none";
+
+}
+
+
+/* =====================================================
+CAMERA
+===================================================== */
+
+function updateCamera(){
+
+camera.position.lerp(
+new THREE.Vector3(
+player.position.x,
+player.position.y+5.5,
+player.position.z+12
+),
+.075
+);
+
+camera.lookAt(
+player.position.x,
+player.position.y+2,
+player.position.z
+);
+
+}
+
+
+/* =====================================================
+SAVE
+===================================================== */
+
+setInterval(()=>{
+
+try{
+
+localStorage.setItem(
+"WEBBOUND_V51",
+JSON.stringify({
+x:player.position.x,
+z:player.position.z,
+level,
+health,
+energy,
+xp,
+score,
+mission,
+chapter,
+wantedHeat,
+worldTime,
+weatherIndex
+})
+);
+
+}catch(e){}
+
+},30000);
+
+
+/* =====================================================
+MAIN LOOP
+===================================================== */
+
+const clock=new THREE.Clock();
+
+function loop(){
+
+requestAnimationFrame(loop);
+
+const dt=Math.min(
+clock.getDelta(),
+.033
+);
+
+updateDayNight(dt);
+updateMovement(dt);
+updateSwing(dt);
+
+attackCooldown=
+Math.max(
+0,
+attackCooldown-dt
+);
+
+updateCitizens(dt);
+updateEnemies(dt);
+updateSafe(dt);
+updateMission();
+
+wantedHeat=
+Math.max(
+0,
+wantedHeat-dt*.35
+);
+
+updateWanted();
+
+energy=Math.min(
+100,
+energy+dt*5
+);
+
+if(health<=0){
+
+health=100;
+energy=100;
+wantedHeat=0;
+
+updateWanted();
+
+player.position.set(
+0,1.1,0
+);
+
+velocity.set(0,0,0);
+
+showMessage(
+"📍 CHECKPOINT RESTORED"
+);
+
+}
+
+updateUI();
+drawMap();
+updateCamera();
+
+renderer.render(
+scene,
+camera
+);
+
+}
+
+setWeather(0);
+updateWanted();
+updateUI();
+loop();
+
+
+/* =====================================================
+RESIZE
+===================================================== */
+
+addEventListener("resize",()=>{
+
+camera.aspect=
+innerWidth/innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+});
+
+</script>
+</body>
+</html>
