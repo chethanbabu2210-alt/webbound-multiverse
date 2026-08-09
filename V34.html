@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WEBBOUND V34 — Living City</title>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040a;font-family:Arial,sans-serif}
+canvas{display:block}
+
+#hud{
+ position:fixed;z-index:20;top:10px;left:10px;width:255px;
+ padding:12px;color:white;background:rgba(0,0,0,.74);
+ border:1px solid rgba(255,255,255,.15);border-radius:14px;
+ backdrop-filter:blur(8px);font-size:11px
+}
+.title{font-size:18px;font-weight:bold}
+.sub{color:#72dcff;margin-top:3px}
+.stats{margin-top:8px;line-height:1.55}
+#mission{margin-top:8px;line-height:1.45}
+#event{margin-top:8px;color:#ffd36a}
+
+#radar{
+ position:fixed;z-index:20;right:10px;top:10px;width:120px;height:120px;
+ border-radius:50%;background:rgba(0,20,30,.7);
+ border:2px solid rgba(100,220,255,.55)
+}
+#radarPlayer{
+ position:absolute;left:50%;top:50%;width:8px;height:8px;
+ background:white;border-radius:50%;transform:translate(-50%,-50%)
+}
+.dot{position:absolute;width:6px;height:6px;border-radius:50%}
+.civilian{background:#55ddff}
+.enemy{background:#ff4040}
+.police{background:#5577ff}
+
+#quality{
+ position:fixed;z-index:30;right:10px;top:140px;color:white;
+ background:rgba(0,0,0,.75);padding:7px;border-radius:9px;font-size:11px
+}
+#quality select{background:#111;color:white;border:0;padding:4px;border-radius:5px}
+
+#dialogue{
+ position:fixed;z-index:45;left:50%;bottom:125px;transform:translateX(-50%);
+ width:min(650px,90%);padding:13px;color:white;text-align:center;
+ background:rgba(0,0,0,.82);border:1px solid rgba(255,255,255,.2);
+ border-radius:14px;opacity:0;transition:.25s;pointer-events:none
+}
+
+#message{
+ position:fixed;z-index:50;left:50%;top:24%;transform:translateX(-50%);
+ width:90%;text-align:center;color:white;font-size:24px;font-weight:bold;
+ text-shadow:0 5px 25px #000;opacity:0;transition:.25s
+}
+
+#touch{
+ position:fixed;z-index:40;left:0;right:0;bottom:8px;
+ display:flex;justify-content:space-between;padding:9px;pointer-events:none
+}
+.pad,.actions{display:grid;gap:6px;pointer-events:auto}
+.pad{grid-template-columns:48px 48px 48px;grid-template-rows:48px 48px}
+.actions{grid-template-columns:52px 52px;grid-template-rows:52px 52px 52px}
+button{
+ border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.68);
+ color:white;border-radius:13px;font-size:9px;font-weight:bold;touch-action:none
+}
+button:active{background:rgba(255,255,255,.25);transform:scale(.94)}
+.empty{visibility:hidden}
+
+@media(max-width:600px){
+ #hud{width:225px;font-size:10px}
+ .title{font-size:16px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+ <div class="title">🕷️ WEBBOUND V34</div>
+ <div class="sub">LIVING CITY SYSTEM</div>
+
+ <div id="mission">
+  Explore the city and help civilians.
+ </div>
+
+ <div id="event">
+  🌆 City status: Active
+ </div>
+
+ <div class="stats">
+  ❤️ Health: <b id="health">100</b><br>
+  🕸️ Web: <b id="energy">100</b><br>
+  ⭐ XP: <b id="xp">0</b><br>
+  🏆 Score: <b id="score">0</b><br>
+  👥 Civilians: <b id="civilians">0</b><br>
+  🚔 Alerts: <b id="alerts">0</b>
+ </div>
+</div>
+
+<div id="radar">
+ <div id="radarPlayer"></div>
+</div>
+
+<div id="quality">
+ Graphics:
+ <select id="qualitySelect">
+  <option value="low">Low</option>
+  <option value="medium" selected>Medium</option>
+  <option value="high">High</option>
+ </select>
+</div>
+
+<div id="dialogue"></div>
+<div id="message"></div>
+
+<div id="touch">
+
+ <div class="pad">
+  <button class="empty"></button>
+  <button id="up">▲</button>
+  <button class="empty"></button>
+  <button id="left">◀</button>
+  <button id="down">▼</button>
+  <button id="right">▶</button>
+ </div>
+
+ <div class="actions">
+  <button id="jump">JUMP</button>
+  <button id="swing">WEB</button>
+  <button id="punch">PUNCH</button>
+  <button id="shot">WEB SHOT</button>
+  <button id="talk">TALK</button>
+  <button id="burst">BURST</button>
+ </div>
+
+</div>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+   ENGINE
+===================================================== */
+
+const scene=new THREE.Scene();
+
+scene.background=new THREE.Color(0x07101b);
+
+scene.fog=new THREE.FogExp2(
+  0x07101b,
+  .0011
+);
+
+const camera=new THREE.PerspectiveCamera(
+  68,
+  innerWidth/innerHeight,
+  .1,
+  3500
+);
+
+const renderer=new THREE.WebGLRenderer({
+  antialias:true,
+  powerPreference:"high-performance"
+});
+
+renderer.setSize(
+  innerWidth,
+  innerHeight
+);
+
+renderer.setPixelRatio(
+  Math.min(devicePixelRatio,1.3)
+);
+
+renderer.outputColorSpace=
+  THREE.SRGBColorSpace;
+
+renderer.shadowMap.enabled=true;
+
+document.body.appendChild(
+  renderer.domElement
+);
+
+
+/* =====================================================
+   QUALITY
+===================================================== */
+
+const quality={
+ low:{pixel:.8,buildings:130,npcs:20,cars:8},
+ medium:{pixel:1.1,buildings:260,npcs:38,cars:14},
+ high:{pixel:1.4,buildings:420,npcs:60,cars:24}
+};
+
+let currentQuality="medium";
+
+document.getElementById(
+ "qualitySelect"
+).addEventListener(
+ "change",
+ e=>{
+  currentQuality=e.target.value;
+  renderer.setPixelRatio(
+   Math.min(
+    devicePixelRatio,
+    quality[currentQuality].pixel
+   )
+  );
+ }
+);
+
+
+/* =====================================================
+   LIGHT
+===================================================== */
+
+const sun=new THREE.DirectionalLight(
+ 0xffffff,
+ 1.8
+);
+
+sun.position.set(
+ -400,
+ 700,
+ 300
+);
+
+sun.castShadow=true;
+
+scene.add(sun);
+
+scene.add(
+ new THREE.HemisphereLight(
+  0x7899c5,
+  0x05070b,
+  1.2
+ )
+);
+
+
+/* =====================================================
+   CITY
+===================================================== */
+
+const buildings=[];
+
+const buildingMaterials=[
+ new THREE.MeshStandardMaterial({
+  color:0x141d28,
+  roughness:.9
+ }),
+ new THREE.MeshStandardMaterial({
+  color:0x202936,
+  roughness:.85
+ }),
+ new THREE.MeshStandardMaterial({
+  color:0x101820,
+  roughness:.95
+ })
+];
+
+function addBuilding(x,z){
+
+ const w=55+Math.random()*20;
+ const d=55+Math.random()*20;
+ const h=70+Math.random()*250;
+
+ const mesh=new THREE.Mesh(
+  new THREE.BoxGeometry(w,h,d),
+  buildingMaterials[
+   Math.floor(
+    Math.random()*
+    buildingMaterials.length
+   )
+  ]
+ );
+
+ mesh.position.set(
+  x,
+  h/2,
+  z
+ );
+
+ mesh.castShadow=true;
+ mesh.receiveShadow=true;
+
+ scene.add(mesh);
+ buildings.push(mesh);
+}
+
+let buildingCount=0;
+
+for(
+ let x=-850;
+ x<=850;
+ x+=100
+){
+
+ for(
+  let z=-850;
+  z<=850;
+  z+=100
+ ){
+
+  if(
+   Math.abs(x)<100 &&
+   Math.abs(z)<100
+  )
+   continue;
+
+  if(
+   buildingCount>=
+   quality[currentQuality].buildings
+  )
+   break;
+
+  addBuilding(x,z);
+  buildingCount++;
+ }
+}
+
+const ground=new THREE.Mesh(
+ new THREE.PlaneGeometry(
+  3000,
+  3000
+ ),
+ new THREE.MeshStandardMaterial({
+  color:0x06090d,
+  roughness:1
+ })
+);
+
+ground.rotation.x=-Math.PI/2;
+ground.receiveShadow=true;
+
+scene.add(ground);
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player=new THREE.Group();
+
+player.position.set(
+ 0,
+ 1.1,
+ 0
+);
+
+scene.add(player);
+
+const suit=new THREE.MeshStandardMaterial({
+ color:0xa8192d,
+ roughness:.4
+});
+
+const body=new THREE.Mesh(
+ new THREE.CapsuleGeometry(
+  .65,1.55,8,14
+ ),
+ suit
+);
+
+body.position.y=1.45;
+player.add(body);
+
+const head=new THREE.Mesh(
+ new THREE.SphereGeometry(
+  .57,20,16
+ ),
+ suit
+);
+
+head.position.y=2.75;
+player.add(head);
+
+const eyeMaterial=new THREE.MeshBasicMaterial({
+ color:0xffffff
+});
+
+for(
+ const x of [-.2,.2]
+){
+
+ const eye=new THREE.Mesh(
+  new THREE.SphereGeometry(
+   .18,12,10
+  ),
+  eyeMaterial
+ );
+
+ eye.position.set(
+  x,2.78,-.54
+ );
+
+ eye.scale.z=.18;
+
+ player.add(eye);
+}
+
+
+/* =====================================================
+   STATE
+===================================================== */
+
+const velocity=new THREE.Vector3();
+const input=new THREE.Vector3();
+
+const keys={};
+
+let grounded=true;
+let doubleJump=true;
+let swinging=false;
+let anchor=null;
+let webLine=null;
+
+let health=100;
+let energy=100;
+let xp=0;
+let score=0;
+let alerts=0;
+
+
+/* =====================================================
+   CIVILIANS
+===================================================== */
+
+const civilians=[];
+
+const civilianColors=[
+ 0x2f75b5,
+ 0xb87b38,
+ 0x4b9857,
+ 0x784f9d,
+ 0xaaaaaa
+];
+
+function createCivilian(){
+
+ const npc=new THREE.Group();
+
+ const material=new THREE.MeshStandardMaterial({
+  color:
+   civilianColors[
+    Math.floor(
+     Math.random()*
+     civilianColors.length
+    )
+   ]
+ });
+
+ const body=new THREE.Mesh(
+  new THREE.CapsuleGeometry(
+   .42,.85,6,8
+  ),
+  material
+ );
+
+ body.position.y=1.05;
+ npc.add(body);
+
+ const head=new THREE.Mesh(
+  new THREE.SphereGeometry(
+   .33,10,8
+  ),
+  new THREE.MeshStandardMaterial({
+   color:0x9a6d55
+  })
+ );
+
+ head.position.y=1.95;
+ npc.add(head);
+
+ const angle=Math.random()*Math.PI*2;
+ const distance=80+Math.random()*250;
+
+ npc.position.set(
+  player.position.x+
+  Math.cos(angle)*distance,
+  1,
+  player.position.z+
+  Math.sin(angle)*distance
+ );
+
+ npc.userData={
+  speed:1.5+Math.random()*2.5,
+  direction:Math.random()*Math.PI*2,
+  panic:0,
+  talkCooldown:0
+ };
+
+ scene.add(npc);
+ civilians.push(npc);
+}
+
+for(
+ let i=0;
+ i<quality.medium.npcs;
+ i++
+)
+ createCivilian();
+
+
+function updateCivilians(dt){
+
+ for(
+  const npc of civilians
+ ){
+
+  const data=npc.userData;
+
+  data.talkCooldown=
+   Math.max(
+    0,
+    data.talkCooldown-dt
+   );
+
+  data.panic=
+   Math.max(
+    0,
+    data.panic-dt
+   );
+
+  if(
+   data.panic>0
+  ){
+
+   data.direction+=
+    Math.sin(
+     performance.now()*.003
+    )*dt;
+
+  }else{
+
+   if(
+    Math.random()<.01
+   )
+    data.direction=
+     Math.random()*
+     Math.PI*2;
+  }
+
+  const speed=
+   data.panic>0
+   ?data.speed*2.5
+   :data.speed;
+
+  npc.position.x+=
+   Math.sin(
+    data.direction
+   )*speed*dt;
+
+  npc.position.z+=
+   Math.cos(
+    data.direction
+   )*speed*dt;
+
+  npc.rotation.y=
+   data.direction;
+
+  const distance=
+   npc.position.distanceTo(
+    player.position
+   );
+
+  if(
+   distance<30
+  ){
+
+   data.panic=
+    2;
+  }
+ }
+}
+
+
+/* =====================================================
+   TRAFFIC
+===================================================== */
+
+const cars=[];
+
+const carMaterials=[
+ 0x9e2525,
+ 0x284d7c,
+ 0x3e5c42,
+ 0x777777,
+ 0xc8a13b
+];
+
+function createCar(){
+
+ const car=new THREE.Group();
+
+ const material=
+  new THREE.MeshStandardMaterial({
+   color:
+    carMaterials[
+     Math.floor(
+      Math.random()*
+      carMaterials.length
+     )
+    ],
+   roughness:.55
+  });
+
+ const base=new THREE.Mesh(
+  new THREE.BoxGeometry(
+   5,1.3,9
+  ),
+  material
+ );
+
+ base.position.y=1;
+ car.add(base);
+
+ const top=new THREE.Mesh(
+  new THREE.BoxGeometry(
+   4,1.2,4
+  ),
+  new THREE.MeshStandardMaterial({
+   color:0x17202a
+  })
+ );
+
+ top.position.y=2;
+ car.add(top);
+
+ const lane=
+  Math.random()<.5
+  ?-1
+  :1;
+
+ car.position.set(
+  -900,
+  0,
+  Math.floor(
+   (Math.random()*16-8)
+  )*100+
+  lane*25
+ );
+
+ car.userData={
+  speed:
+   15+
+   Math.random()*15,
+  lane:lane
+ };
+
+ scene.add(car);
+ cars.push(car);
+}
+
+for(
+ let i=0;
+ i<quality.medium.cars;
+ i++
+)
+ createCar();
+
+
+function updateCars(dt){
+
+ for(
+  const car of cars
+ ){
+
+  car.position.x+=
+   car.userData.speed*dt*
+   car.userData.lane;
+
+  if(
+   car.position.x>900
+  )
+   car.position.x=-900;
+
+  if(
+   car.position.x<-900
+  )
+   car.position.x=900;
+ }
+}
+
+
+/* =====================================================
+   DIALOGUE
+===================================================== */
+
+const dialogues=[
+ "Hey! Thanks for helping the city.",
+ "Did you see that strange person on the roof?",
+ "The city feels safer when you're around.",
+ "I heard something happened downtown.",
+ "Be careful out there!",
+ "Nice suit!",
+ "Someone needs help nearby."
+];
+
+function talk(){
+
+ let closest=null;
+ let distance=8;
+
+ for(
+  const npc of civilians
+ ){
+
+  const d=
+   npc.position.distanceTo(
+    player.position
+   );
+
+  if(
+   d<distance
+  ){
+
+   distance=d;
+   closest=npc;
+  }
+ }
+
+ if(!closest){
+
+  showMessage(
+   "No civilian nearby"
+  );
+
+  return;
+ }
+
+ const text=
+  dialogues[
+   Math.floor(
+    Math.random()*
+    dialogues.length
+   )
+  ];
+
+ showDialogue(
+  text
+ );
+
+ xp+=15;
+ score+=25;
+}
+
+
+/* =====================================================
+   RANDOM CITY EVENTS
+===================================================== */
+
+let eventTimer=8;
+
+function updateEvents(dt){
+
+ eventTimer-=dt;
+
+ if(
+  eventTimer<=0
+ ){
+
+  eventTimer=
+   12+
+   Math.random()*15;
+
+  const type=
+   Math.floor(
+    Math.random()*3
+   );
+
+  if(type===0){
+
+   showMessage(
+    "🚨 CITY ALERT!"
+   );
+
+   document.getElementById(
+    "event"
+   ).textContent=
+    "🚨 Emergency reported downtown";
+
+   alerts++;
+
+   for(
+    const npc of civilians
+   ){
+
+    if(
+     npc.position.distanceTo(
+      player.position
+     )<100
+    )
+     npc.userData.panic=5;
+   }
+
+  }else if(type===1){
+
+   showMessage(
+    "🌆 City activity increased"
+   );
+
+   document.getElementById(
+    "event"
+   ).textContent=
+    "🌆 Traffic is busy";
+
+  }else{
+
+   showMessage(
+    "⭐ Someone needs help"
+   );
+
+   document.getElementById(
+    "event"
+   ).textContent=
+    "⭐ Help civilians to earn XP";
+  }
+ }
+}
+
+
+/* =====================================================
+   COMBAT TARGET
+===================================================== */
+
+const enemies=[];
+
+function createEnemy(){
+
+ const enemy=new THREE.Mesh(
+  new THREE.CapsuleGeometry(
+   .55,1,6,10
+  ),
+  new THREE.MeshStandardMaterial({
+   color:0x353940
+  })
+ );
+
+ enemy.position.set(
+  player.position.x+
+  (Math.random()-.5)*250,
+  1,
+  player.position.z+
+  (Math.random()-.5)*250
+ );
+
+ enemy.userData={
+  health:100,
+  speed:4,
+  stagger:0
+ };
+
+ scene.add(enemy);
+ enemies.push(enemy);
+}
+
+for(
+ let i=0;
+ i<6;
+ i++
+)
+ createEnemy();
+
+
+function nearestEnemy(range){
+
+ let target=null;
+ let closest=range;
+
+ for(
+  const enemy of enemies
+ ){
+
+  const d=
+   enemy.position.distanceTo(
+    player.position
+   );
+
+  if(
+   d<closest
+  ){
+
+   closest=d;
+   target=enemy;
+  }
+ }
+
+ return target;
+}
+
+
+function punch(){
+
+ const target=
+  nearestEnemy(7);
+
+ if(!target)
+  return;
+
+ target.userData.health-=50;
+ target.userData.stagger=.5;
+
+ score+=100;
+ xp+=20;
+
+ if(
+  target.userData.health<=0
+ )
+  defeatEnemy(target);
+}
+
+
+function webShot(){
+
+ if(energy<15)
+  return;
+
+ const target=
+  nearestEnemy(40);
+
+ if(!target)
+  return;
+
+ energy-=15;
+
+ target.userData.health-=60;
+
+ target.userData.stagger=.8;
+
+ createWeb(target);
+
+ if(
+  target.userData.health<=0
+ )
+  defeatEnemy(target);
+}
+
+
+function burst(){
+
+ if(energy<35)
+  return;
+
+ energy-=35;
+
+ for(
+  const enemy of [...enemies]
+ ){
+
+  if(
+   enemy.position.distanceTo(
+    player.position
+   )<18
+  ){
+
+   enemy.userData.health-=70;
+
+   if(
+    enemy.userData.health<=0
+   )
+    defeatEnemy(enemy);
+  }
+ }
+}
+
+
+function defeatEnemy(enemy){
+
+ score+=250;
+ xp+=100;
+
+ scene.remove(enemy);
+
+ const i=
+  enemies.indexOf(enemy);
+
+ if(i>=0)
+  enemies.splice(i,1);
+}
+
+
+/* =====================================================
+   WEB
+===================================================== */
+
+function createWeb(target){
+
+ const start=
+  player.position.clone();
+
+ start.y+=2;
+
+ const end=
+  target.position.clone();
+
+ end.y+=1;
+
+ const line=new THREE.Line(
+  new THREE.BufferGeometry()
+   .setFromPoints([
+    start,end
+   ]),
+  new THREE.LineBasicMaterial({
+   color:0xffffff
+  })
+ );
+
+ scene.add(line);
+
+ setTimeout(
+  ()=>{
+   scene.remove(line);
+  },
+  300
+ );
+}
+
+
+/* =====================================================
+   SWING
+===================================================== */
+
+function findAnchor(){
+
+ let best=null;
+ let closest=450;
+
+ for(
+  const building of buildings
+ ){
+
+  const h=
+   building.geometry
+   .parameters.height;
+
+  const point=
+   new THREE.Vector3(
+    building.position.x,
+    building.position.y+h/2,
+    building.position.z
+   );
+
+  const d=
+   point.distanceTo(
+    player.position
+   );
+
+  if(
+   d<closest &&
+   point.y>
+   player.position.y+8
+  ){
+
+   closest=d;
+   best=point;
+  }
+ }
+
+ return best;
+}
+
+
+function toggleSwing(){
+
+ if(swinging){
+
+  swinging=false;
+
+  if(webLine){
+   scene.remove(webLine);
+   webLine=null;
+  }
+
+  velocity.multiplyScalar(1.4);
+
+  return;
+ }
+
+ const point=
+  findAnchor();
+
+ if(!point)
+  return;
+
+ anchor=point;
+ swinging=true;
+
+ webLine=new THREE.Line(
+  new THREE.BufferGeometry()
+   .setFromPoints([
+    player.position.clone(),
+    anchor.clone()
+   ]),
+  new THREE.LineBasicMaterial({
+   color:0xffffff
+  })
+ );
+
+ scene.add(webLine);
+}
+
+
+function updateSwing(dt){
+
+ if(!swinging)
+  return;
+
+ const pull=
+  new THREE.Vector3()
+   .subVectors(
+    anchor,
+    player.position
+   );
+
+ const d=pull.length();
+
+ pull.normalize();
+
+ if(d>10)
+  velocity.addScaledVector(
+   pull,
+   (d-10)*dt*16
+  );
+
+ velocity.y-=7*dt;
+
+ if(webLine){
+
+  const p=
+   webLine.geometry
+   .attributes
+   .position.array;
+
+  p[0]=player.position.x;
+  p[1]=player.position.y+1;
+  p[2]=player.position.z;
+
+  p[3]=anchor.x;
+  p[4]=anchor.y;
+  p[5]=anchor.z;
+
+  webLine.geometry
+   .attributes
+   .position
+   .needsUpdate=true;
+ }
+}
+
+
+/* =====================================================
+   MOVEMENT
+===================================================== */
+
+function jump(){
+
+ if(grounded){
+
+  velocity.y=15;
+  grounded=false;
+  doubleJump=true;
+  return;
+ }
+
+ if(doubleJump){
+
+  velocity.y=13;
+  doubleJump=false;
+ }
+}
+
+
+function updateMovement(dt){
+
+ input.set(0,0,0);
+
+ if(keys.KeyW)input.z-=1;
+ if(keys.KeyS)input.z+=1;
+ if(keys.KeyA)input.x-=1;
+ if(keys.KeyD)input.x+=1;
+
+ if(input.length()>0)
+  input.normalize();
+
+ const speed=
+  keys.ShiftLeft
+  ?14
+  :9;
+
+ velocity.x+=
+  input.x*speed*dt*5;
+
+ velocity.z+=
+  input.z*speed*dt*5;
+
+ velocity.x*=.91;
+ velocity.z*=.91;
+
+ if(
+  !grounded &&
+  !swinging
+ )
+  velocity.y-=30*dt;
+
+ updateSwing(dt);
+
+ player.position.addScaledVector(
+  velocity,
+  dt
+ );
+
+ if(
+  player.position.y<=1.1
+ ){
+
+  player.position.y=1.1;
+  velocity.y=0;
+  grounded=true;
+  doubleJump=true;
+
+ }else{
+
+  grounded=false;
+ }
+}
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+function updateCamera(){
+
+ const desired=
+  new THREE.Vector3(
+   player.position.x,
+   player.position.y+5.5,
+   player.position.z+12
+  );
+
+ if(swinging){
+
+  desired.y=
+   player.position.y+7;
+
+  desired.z=
+   player.position.z+15;
+ }
+
+ camera.position.lerp(
+  desired,
+  .075
+ );
+
+ camera.fov=
+  THREE.MathUtils.lerp(
+   camera.fov,
+   swinging?78:68,
+   .06
+  );
+
+ camera.updateProjectionMatrix();
+
+ camera.lookAt(
+  player.position.x,
+  player.position.y+2,
+  player.position.z
+ );
+}
+
+
+/* =====================================================
+   RADAR
+===================================================== */
+
+function updateRadar(){
+
+ document
+  .querySelectorAll(".dot")
+  .forEach(
+   e=>e.remove()
+  );
+
+ const radar=
+  document.getElementById(
+   "radar"
+  );
+
+ function addDot(
+  object,
+  className
+ ){
+
+  const dx=
+   object.position.x-
+   player.position.x;
+
+  const dz=
+   object.position.z-
+   player.position.z;
+
+  let x=
+   60+dx*.25;
+
+  let y=
+   60+dz*.25;
+
+  x=Math.max(
+   4,
+   Math.min(116,x)
+  );
+
+  y=Math.max(
+   4,
+   Math.min(116,y)
+  );
+
+  const dot=
+   document.createElement(
+    "div"
+   );
+
+  dot.className=
+   "dot "+
+   className;
+
+  dot.style.left=x+"px";
+  dot.style.top=y+"px";
+
+  radar.appendChild(dot);
+ }
+
+ civilians
+  .slice(0,25)
+  .forEach(
+   n=>addDot(
+    n,
+    "civilian"
+   )
+  );
+
+ enemies
+  .forEach(
+   n=>addDot(
+    n,
+    "enemy"
+   )
+  );
+}
+
+
+/* =====================================================
+   UI
+===================================================== */
+
+function showMessage(text){
+
+ const e=
+  document.getElementById(
+   "message"
+  );
+
+ e.textContent=text;
+ e.style.opacity=1;
+
+ setTimeout(
+  ()=>{
+   e.style.opacity=0;
+  },
+  1100
+ );
+}
+
+
+function showDialogue(text){
+
+ const e=
+  document.getElementById(
+   "dialogue"
+  );
+
+ e.textContent=
+  "👤 Civilian: "+
+  text;
+
+ e.style.opacity=1;
+
+ setTimeout(
+  ()=>{
+   e.style.opacity=0;
+  },
+  3500
+ );
+}
+
+
+function updateHUD(){
+
+ document.getElementById(
+  "health"
+ ).textContent=
+  Math.floor(health);
+
+ document.getElementById(
+  "energy"
+ ).textContent=
+  Math.floor(energy);
+
+ document.getElementById(
+  "xp"
+ ).textContent=xp;
+
+ document.getElementById(
+  "score"
+ ).textContent=score;
+
+ document.getElementById(
+  "civilians"
+ ).textContent=
+  civilians.length;
+
+ document.getElementById(
+  "alerts"
+ ).textContent=
+  alerts;
+}
+
+
+/* =====================================================
+   KEYBOARD
+===================================================== */
+
+addEventListener(
+ "keydown",
+ e=>{
+
+  keys[e.code]=true;
+
+  if(e.code==="Space")
+   jump();
+
+  if(e.code==="KeyE")
+   toggleSwing();
+
+  if(e.code==="KeyF")
+   punch();
+
+  if(e.code==="KeyZ")
+   webShot();
+
+  if(e.code==="KeyC")
+   burst();
+
+  if(e.code==="KeyT")
+   talk();
+ }
+);
+
+addEventListener(
+ "keyup",
+ e=>{
+  keys[e.code]=false;
+ }
+);
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+function holdButton(
+ id,
+ code
+){
+
+ const b=
+  document.getElementById(id);
+
+ const start=e=>{
+  e.preventDefault();
+  keys[code]=true;
+ };
+
+ const end=e=>{
+  e.preventDefault();
+  keys[code]=false;
+ };
+
+ b.addEventListener(
+  "touchstart",
+  start,
+  {passive:false}
+ );
+
+ b.addEventListener(
+  "touchend",
+  end,
+  {passive:false}
+ );
+
+ b.addEventListener(
+  "touchcancel",
+  end,
+  {passive:false}
+ );
+}
+
+holdButton("up","KeyW");
+holdButton("down","KeyS");
+holdButton("left","KeyA");
+holdButton("right","KeyD");
+
+
+function tapButton(
+ id,
+ action
+){
+
+ document
+  .getElementById(id)
+  .addEventListener(
+   "touchstart",
+   e=>{
+    e.preventDefault();
+    action();
+   },
+   {passive:false}
+  );
+}
+
+tapButton("jump",jump);
+tapButton("swing",toggleSwing);
+tapButton("punch",punch);
+tapButton("shot",webShot);
+tapButton("talk",talk);
+tapButton("burst",burst);
+
+
+/* =====================================================
+   GAME LOOP
+===================================================== */
+
+const clock=
+ new THREE.Clock();
+
+function loop(){
+
+ requestAnimationFrame(
+  loop
+ );
+
+ const dt=
+  Math.min(
+   clock.getDelta(),
+   .033
+  );
+
+ updateMovement(dt);
+ updateCivilians(dt);
+ updateCars(dt);
+ updateEvents(dt);
+
+ for(
+  const enemy of enemies
+ ){
+
+  const data=
+   enemy.userData;
+
+  data.stagger=
+   Math.max(
+    0,
+    data.stagger-dt
+   );
+
+  if(data.stagger>0)
+   continue;
+
+  const d=
+   enemy.position.distanceTo(
+    player.position
+   );
+
+  if(d<100){
+
+   const dir=
+    new THREE.Vector3()
+     .subVectors(
+      player.position,
+      enemy.position
+     )
+     .normalize();
+
+   dir.y=0;
+
+   enemy.position.addScaledVector(
+    dir,
+    data.speed*dt
+   );
+
+   if(d<4){
+    health-=5*dt;
+   }
+  }
+ }
+
+ energy=
+  Math.min(
+   100,
+   energy+dt*5
+  );
+
+ if(health<=0){
+  health=100;
+  player.position.set(
+   0,1.1,0
+  );
+  velocity.set(0,0,0);
+  showMessage(
+   "CHECKPOINT RESTORED"
+  );
+ }
+
+ updateCamera();
+ updateRadar();
+ updateHUD();
+
+ renderer.render(
+  scene,
+  camera
+ );
+}
+
+loop();
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+addEventListener(
+ "resize",
+ ()=>{
+
+  camera.aspect=
+   innerWidth/
+   innerHeight;
+
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(
+   innerWidth,
+   innerHeight
+  );
+ }
+);
+
+</script>
+
+</body>
+</html>
