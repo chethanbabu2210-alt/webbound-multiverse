@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WEBBOUND V49</title>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040a;font-family:Arial,sans-serif}
+canvas{display:block}
+
+#hud{
+position:fixed;z-index:20;left:10px;top:10px;width:290px;
+padding:13px;color:white;background:rgba(0,0,0,.78);
+border:1px solid #ffffff30;border-radius:15px;
+font-size:11px;line-height:1.5
+}
+.title{font-size:18px;font-weight:800}
+.sub{color:#63dcff}
+#objective{color:#ffd34d}
+#wanted{color:#ff4055;font-weight:bold}
+
+#box{
+position:fixed;z-index:20;right:10px;top:205px;width:185px;
+padding:10px;text-align:center;color:white;
+background:rgba(0,0,0,.78);border-radius:13px
+}
+#stars{font-size:23px;color:#ff4055}
+#safe{color:#66ff99}
+
+#map{
+position:fixed;z-index:20;right:10px;top:10px;
+width:180px;height:180px;border-radius:14px;
+overflow:hidden;border:2px solid #ffffff40;
+background:#06101a
+}
+#mapCanvas{width:100%;height:100%}
+
+#buttons{
+position:fixed;z-index:30;right:205px;top:10px;
+display:flex;gap:5px
+}
+
+button{
+color:white;background:rgba(0,0,0,.78);
+border:1px solid #ffffff40;border-radius:11px;
+font-weight:bold;font-size:10px;touch-action:none
+}
+button:active{transform:scale(.94)}
+
+#message{
+position:fixed;z-index:100;top:24%;left:50%;
+transform:translateX(-50%);width:92%;
+text-align:center;color:white;font-size:25px;
+font-weight:800;text-shadow:0 5px 20px #000;
+opacity:0;transition:.25s
+}
+
+#vehicleHud{
+position:fixed;z-index:25;left:50%;bottom:125px;
+transform:translateX(-50%);color:white;
+background:#000c;padding:9px 16px;
+border-radius:12px;text-align:center;
+display:none
+}
+
+#garageHud{
+position:fixed;z-index:25;left:50%;top:18%;
+transform:translateX(-50%);
+padding:10px 16px;color:white;
+background:#000d;border-radius:12px;
+display:none;text-align:center
+}
+
+#touch{
+position:fixed;z-index:40;left:0;right:0;bottom:8px;
+display:flex;justify-content:space-between;
+padding:8px;pointer-events:none
+}
+.pad,.actions{display:grid;gap:5px;pointer-events:auto}
+.pad{grid-template-columns:48px 48px 48px}
+.actions{grid-template-columns:52px 52px}
+#touch button{width:52px;height:52px}
+.empty{visibility:hidden}
+
+@media(max-width:600px){
+#hud{width:235px;font-size:10px}
+#map{width:135px;height:135px;top:125px}
+#buttons{right:10px;top:268px}
+#box{top:365px;width:135px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+<div class="title">🕷️ WEBBOUND V49</div>
+<div class="sub">LIVING CITY + GARAGE SYSTEM</div>
+
+⭐ Level: <b id="level">1</b><br>
+❤️ Health: <b id="health">100</b><br>
+🕸️ Energy: <b id="energy">100</b><br>
+⭐ XP: <b id="xp">0</b><br>
+🏆 Score: <b id="score">0</b><br>
+🚗 Vehicle: <b id="vehicle">ON FOOT</b><br>
+👥 Citizens: <b id="citizens">0</b><br>
+🚨 Wanted: <b id="wanted">0</b><br>
+
+🎯 Objective:<br>
+<b id="objective">Explore the city</b><br>
+
+📍 Distance: <b id="distance">0</b> m
+</div>
+
+<div id="map">
+<canvas id="mapCanvas" width="360" height="360"></canvas>
+</div>
+
+<div id="box">
+<div id="stars">☆☆☆☆☆</div>
+<div id="status">PEACEFUL</div>
+<div id="safe">SAFE ZONE: NO</div>
+</div>
+
+<div id="buttons">
+<button id="mapTop">🗺️ MAP</button>
+<button id="wantedTop">🚨 WANTED</button>
+</div>
+
+<div id="vehicleHud">
+🚗 <b id="carName">CITY CAR</b><br>
+❤️ Vehicle HP: <b id="carHP">100</b><br>
+⚡ Speed: <b id="carSpeed">0</b>
+</div>
+
+<div id="garageHud">
+🏠 <b>GARAGE</b><br>
+Drive near a garage and press ENTER
+</div>
+
+<div id="message"></div>
+
+<div id="touch">
+
+<div class="pad">
+<button class="empty"></button>
+<button id="up">▲</button>
+<button class="empty"></button>
+<button id="left">◀</button>
+<button id="down">▼</button>
+<button id="right">▶</button>
+</div>
+
+<div class="actions">
+<button id="jump">JUMP</button>
+<button id="web">WEB</button>
+<button id="enter">ENTER</button>
+<button id="punch">PUNCH</button>
+<button id="shot">SHOT</button>
+<button id="mapBtn">MAP</button>
+</div>
+
+</div>
+
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+   ENGINE
+===================================================== */
+
+const scene=new THREE.Scene();
+
+const camera=new THREE.PerspectiveCamera(
+68,
+innerWidth/innerHeight,
+.1,
+3500
+);
+
+const renderer=new THREE.WebGLRenderer({
+antialias:true,
+powerPreference:"high-performance"
+});
+
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+
+document.body.appendChild(renderer.domElement);
+
+
+/* =====================================================
+   LIGHT
+===================================================== */
+
+const sun=new THREE.DirectionalLight(
+0xffffff,1.7
+);
+
+sun.position.set(-400,700,300);
+scene.add(sun);
+
+scene.add(
+new THREE.HemisphereLight(
+0x7897c4,
+0x05070b,
+1.1
+)
+);
+
+
+/* =====================================================
+   CITY
+===================================================== */
+
+const buildings=[];
+
+for(let x=-850;x<=850;x+=100){
+
+for(let z=-850;z<=850;z+=100){
+
+if(Math.abs(x)<100&&Math.abs(z)<100)
+continue;
+
+const h=70+Math.random()*250;
+
+const b=new THREE.Mesh(
+new THREE.BoxGeometry(
+55+Math.random()*20,
+h,
+55+Math.random()*20
+),
+new THREE.MeshStandardMaterial({
+color:[
+0x17212b,
+0x222c36,
+0x101920
+][Math.floor(Math.random()*3)]
+})
+);
+
+b.position.set(x,h/2,z);
+scene.add(b);
+buildings.push(b);
+
+}
+}
+
+
+/* =====================================================
+   GROUND
+===================================================== */
+
+const ground=new THREE.Mesh(
+new THREE.PlaneGeometry(3000,3000),
+new THREE.MeshStandardMaterial({
+color:0x070a0e
+})
+);
+
+ground.rotation.x=-Math.PI/2;
+scene.add(ground);
+
+
+/* =====================================================
+   ROADS
+===================================================== */
+
+const roadMat=new THREE.MeshStandardMaterial({
+color:0x111318
+});
+
+for(let x=-800;x<=800;x+=200){
+
+const road=new THREE.Mesh(
+new THREE.BoxGeometry(32,.05,1700),
+roadMat
+);
+
+road.position.set(x,.02,0);
+scene.add(road);
+
+}
+
+for(let z=-800;z<=800;z+=200){
+
+const road=new THREE.Mesh(
+new THREE.BoxGeometry(1700,.05,32),
+roadMat
+);
+
+road.position.set(0,.02,z);
+scene.add(road);
+
+}
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player=new THREE.Group();
+
+player.position.set(0,1.1,0);
+scene.add(player);
+
+const suit=new THREE.MeshStandardMaterial({
+color:0xa8192d
+});
+
+const body=new THREE.Mesh(
+new THREE.CapsuleGeometry(.65,1.55,8,14),
+suit
+);
+
+body.position.y=1.45;
+player.add(body);
+
+const head=new THREE.Mesh(
+new THREE.SphereGeometry(.57,20,16),
+suit
+);
+
+head.position.y=2.75;
+player.add(head);
+
+const eyeMat=new THREE.MeshBasicMaterial({
+color:0xffffff
+});
+
+for(const x of [-.2,.2]){
+
+const eye=new THREE.Mesh(
+new THREE.SphereGeometry(.18,12,10),
+eyeMat
+);
+
+eye.position.set(x,2.78,-.54);
+eye.scale.z=.18;
+player.add(eye);
+
+}
+
+
+/* =====================================================
+   GAME STATE
+===================================================== */
+
+const velocity=new THREE.Vector3();
+const input=new THREE.Vector3();
+const keys={};
+
+let grounded=true;
+let doubleJump=true;
+
+let health=100;
+let energy=100;
+let xp=0;
+let score=0;
+let level=1;
+
+let wantedLevel=0;
+let wantedHeat=0;
+
+let vehicle=null;
+let driving=false;
+
+let mission=1;
+let chapter=1;
+let missionDone=false;
+
+
+/* =====================================================
+   VEHICLES
+===================================================== */
+
+const vehicles=[];
+
+const vehicleColors=[
+0x2266aa,
+0xaa2222,
+0xeeeeee,
+0x222222,
+0x228844,
+0xffaa22
+];
+
+function createVehicle(){
+
+const car=new THREE.Group();
+
+const color=
+vehicleColors[
+Math.floor(
+Math.random()*vehicleColors.length
+)
+];
+
+const body=new THREE.Mesh(
+new THREE.BoxGeometry(4.4,1.25,7),
+new THREE.MeshStandardMaterial({
+color
+})
+);
+
+body.position.y=.75;
+car.add(body);
+
+const roof=new THREE.Mesh(
+new THREE.BoxGeometry(3.1,1.05,3.4),
+new THREE.MeshStandardMaterial({
+color:0x182028
+})
+);
+
+roof.position.y=1.65;
+car.add(roof);
+
+for(const x of [-2.25,2.25]){
+for(const z of [-2.3,2.3]){
+
+const wheel=new THREE.Mesh(
+new THREE.CylinderGeometry(
+.65,.65,.35,12
+),
+new THREE.MeshStandardMaterial({
+color:0x080808
+})
+);
+
+wheel.rotation.z=Math.PI/2;
+wheel.position.set(x,.55,z);
+car.add(wheel);
+
+}
+}
+
+const angle=Math.random()*Math.PI*2;
+const distance=80+Math.random()*350;
+
+car.position.set(
+Math.round(
+(player.position.x+
+Math.cos(angle)*distance)/200
+)*200,
+0,
+Math.round(
+(player.position.z+
+Math.sin(angle)*distance)/200
+)*200
+);
+
+car.userData={
+speed:0,
+maxSpeed:28+Math.random()*12,
+hp:100,
+name:"CITY CAR",
+traffic:true,
+direction:Math.random()<.5?1:-1
+};
+
+scene.add(car);
+vehicles.push(car);
+
+}
+
+for(let i=0;i<28;i++)
+createVehicle();
+
+
+/* =====================================================
+   TRAFFIC
+===================================================== */
+
+function updateTraffic(dt){
+
+for(const car of vehicles){
+
+if(car===vehicle)
+continue;
+
+if(!car.userData.traffic)
+continue;
+
+const axis=
+Math.abs(car.position.x%200)<18;
+
+if(axis){
+
+car.position.z+=
+car.userData.direction*
+(7+Math.abs(car.userData.maxSpeed)/3)*
+dt;
+
+if(car.position.z>900)
+car.position.z=-900;
+
+if(car.position.z<-900)
+car.position.z=900;
+
+}else{
+
+car.position.x+=
+car.userData.direction*
+(7+Math.abs(car.userData.maxSpeed)/3)*
+dt;
+
+if(car.position.x>900)
+car.position.x=-900;
+
+if(car.position.x<-900)
+car.position.x=900;
+
+}
+
+}
+
+}
+
+
+/* =====================================================
+   VEHICLE ENTER / EXIT
+===================================================== */
+
+function nearestVehicle(){
+
+let best=null;
+let distance=9;
+
+for(const car of vehicles){
+
+if(car===vehicle)
+continue;
+
+const d=
+car.position.distanceTo(
+player.position
+);
+
+if(d<distance){
+
+distance=d;
+best=car;
+
+}
+
+}
+
+return best;
+}
+
+
+function enterVehicle(){
+
+if(driving){
+
+exitVehicle();
+return;
+
+}
+
+const car=nearestVehicle();
+
+if(!car){
+
+showMessage(
+"🚗 NO VEHICLE NEARBY"
+);
+
+return;
+
+}
+
+vehicle=car;
+driving=true;
+
+vehicle.userData.traffic=false;
+
+player.visible=false;
+
+document.getElementById(
+"vehicleHud"
+).style.display="block";
+
+document.getElementById(
+"vehicle"
+).textContent="DRIVING";
+
+showMessage(
+"🚗 VEHICLE ENTERED"
+);
+
+addWanted(2);
+
+}
+
+
+function exitVehicle(){
+
+if(!vehicle)
+return;
+
+player.visible=true;
+
+player.position.copy(
+vehicle.position
+);
+
+player.position.x+=5;
+
+driving=false;
+
+vehicle.userData.traffic=true;
+
+document.getElementById(
+"vehicleHud"
+).style.display="none";
+
+document.getElementById(
+"vehicle"
+).textContent="ON FOOT";
+
+showMessage(
+"🚶 VEHICLE EXITED"
+);
+
+vehicle=null;
+
+}
+
+
+/* =====================================================
+   DRIVING
+===================================================== */
+
+function drive(dt){
+
+if(!vehicle)
+return;
+
+let throttle=0;
+
+if(keys.KeyW)
+throttle=1;
+
+if(keys.KeyS)
+throttle=-1;
+
+vehicle.userData.speed+=
+throttle*35*dt;
+
+vehicle.userData.speed*=
+throttle===0?.985:1;
+
+vehicle.userData.speed=
+Math.max(
+-12,
+Math.min(
+vehicle.userData.maxSpeed,
+vehicle.userData.speed
+)
+);
+
+if(keys.KeyA)
+vehicle.rotation.y+=
+1.8*dt*
+Math.abs(vehicle.userData.speed)/20;
+
+if(keys.KeyD)
+vehicle.rotation.y-=
+1.8*dt*
+Math.abs(vehicle.userData.speed)/20;
+
+const forward=new THREE.Vector3(
+0,0,-1
+);
+
+forward.applyQuaternion(
+vehicle.quaternion
+);
+
+vehicle.position.addScaledVector(
+forward,
+vehicle.userData.speed*dt
+);
+
+player.position.copy(
+vehicle.position
+);
+
+document.getElementById(
+"carSpeed"
+).textContent=
+Math.floor(
+Math.abs(vehicle.userData.speed)
+);
+
+document.getElementById(
+"carHP"
+).textContent=
+Math.floor(
+vehicle.userData.hp
+);
+
+
+/* vehicle collision */
+
+for(const other of vehicles){
+
+if(other===vehicle)
+continue;
+
+const d=
+other.position.distanceTo(
+vehicle.position
+);
+
+if(d<5){
+
+vehicle.userData.hp-=20*dt;
+vehicle.userData.speed*=.9;
+
+}
+
+}
+
+if(vehicle.userData.hp<=0){
+
+vehicle.userData.hp=0;
+
+showMessage(
+"💥 VEHICLE DESTROYED"
+);
+
+exitVehicle();
+
+}
+
+}
+
+
+/* =====================================================
+   NPC PEDESTRIANS
+===================================================== */
+
+const citizens=[];
+
+const citizenColors=[
+0x334455,
+0x774422,
+0x445522,
+0x663366,
+0x885544
+];
+
+function createCitizen(){
+
+const npc=new THREE.Group();
+
+const mat=new THREE.MeshStandardMaterial({
+color:
+citizenColors[
+Math.floor(
+Math.random()*citizenColors.length
+)]
+});
+
+const body=new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.35,.8,5,8
+),
+mat
+);
+
+body.position.y=1;
+npc.add(body);
+
+const head=new THREE.Mesh(
+new THREE.SphereGeometry(
+.3,10,8
+),
+new THREE.MeshStandardMaterial({
+color:0xb87955
+})
+);
+
+head.position.y=1.95;
+npc.add(head);
+
+const axis=
+Math.random()<.5?"x":"z";
+
+const dir=
+Math.random()<.5?1:-1;
+
+npc.userData={
+speed:1.2+Math.random()*1.8,
+axis,
+dir
+};
+
+npc.position.set(
+Math.round(
+(Math.random()*1600-800)/100
+)*100+
+(Math.random()*20-10),
+0,
+Math.round(
+(Math.random()*1600-800)/100
+)*100+
+(Math.random()*20-10)
+);
+
+scene.add(npc);
+citizens.push(npc);
+
+}
+
+for(let i=0;i<45;i++)
+createCitizen();
+
+
+function updateCitizens(dt){
+
+for(const npc of citizens){
+
+if(npc.userData.axis==="x")
+npc.position.x+=
+npc.userData.speed*
+npc.userData.dir*dt;
+else
+npc.position.z+=
+npc.userData.speed*
+npc.userData.dir*dt;
+
+if(
+Math.abs(npc.position.x)>900 ||
+Math.abs(npc.position.z)>900
+){
+
+npc.userData.dir*=-1;
+
+}
+
+const d=
+npc.position.distanceTo(
+player.position
+);
+
+if(d<6&&driving){
+
+npc.userData.dir*=-1;
+
+addWanted(.3);
+
+}
+
+}
+
+document.getElementById(
+"citizens"
+).textContent=
+citizens.length;
+
+}
+
+
+/* =====================================================
+   GARAGES
+===================================================== */
+
+const garages=[
+{x:0,z:200},
+{x:-400,z:-400},
+{x:600,z:600}
+];
+
+for(const g of garages){
+
+const garage=new THREE.Mesh(
+new THREE.BoxGeometry(
+28,8,20
+),
+new THREE.MeshStandardMaterial({
+color:0x34495e
+})
+);
+
+garage.position.set(
+g.x,4,g.z
+);
+
+scene.add(garage);
+
+const sign=new THREE.Mesh(
+new THREE.BoxGeometry(
+16,5,.5
+),
+new THREE.MeshBasicMaterial({
+color:0x00ff88
+})
+);
+
+sign.position.set(
+g.x,10,g.z-10
+);
+
+scene.add(sign);
+
+}
+
+
+function nearGarage(){
+
+for(const g of garages){
+
+const d=Math.hypot(
+player.position.x-g.x,
+player.position.z-g.z
+);
+
+if(d<35)
+return true;
+
+}
+
+return false;
+
+}
+
+
+/* =====================================================
+   GARAGE SYSTEM
+===================================================== */
+
+function garageAction(){
+
+if(!nearGarage()){
+
+showMessage(
+"🏠 DRIVE TO A GARAGE"
+);
+
+return;
+
+}
+
+if(!driving){
+
+showMessage(
+"🚗 ENTER A VEHICLE FIRST"
+);
+
+return;
+
+}
+
+vehicle.position.set(
+0,0,200
+);
+
+vehicle.userData.speed=0;
+vehicle.userData.hp=100;
+
+showMessage(
+"🔧 VEHICLE REPAIRED & STORED"
+);
+
+score+=250;
+
+}
+
+
+/* =====================================================
+   WANTED SYSTEM
+===================================================== */
+
+function updateWanted(){
+
+if(wantedHeat<10)
+wantedLevel=0;
+else if(wantedHeat<30)
+wantedLevel=1;
+else if(wantedHeat<50)
+wantedLevel=2;
+else if(wantedHeat<70)
+wantedLevel=3;
+else if(wantedHeat<85)
+wantedLevel=4;
+else
+wantedLevel=5;
+
+document.getElementById(
+"wanted"
+).textContent=wantedLevel;
+
+let stars="";
+
+for(let i=1;i<=5;i++)
+stars+=
+i<=wantedLevel?"★":"☆";
+
+document.getElementById(
+"stars"
+).textContent=stars;
+
+document.getElementById(
+"status"
+).textContent=
+wantedLevel?
+"POLICE PURSUIT":
+"PEACEFUL";
+
+}
+
+
+function addWanted(amount){
+
+const old=wantedLevel;
+
+wantedHeat=
+Math.min(
+100,
+wantedHeat+amount
+);
+
+updateWanted();
+
+if(wantedLevel>old)
+showMessage(
+"🚨 WANTED LEVEL "+
+wantedLevel
+);
+
+}
+
+
+/* =====================================================
+   POLICE
+===================================================== */
+
+const police=[];
+
+function createPolice(){
+
+const car=new THREE.Group();
+
+const body=new THREE.Mesh(
+new THREE.BoxGeometry(4.3,1.25,7),
+new THREE.MeshStandardMaterial({
+color:0x10151c
+})
+);
+
+body.position.y=.75;
+car.add(body);
+
+const roof=new THREE.Mesh(
+new THREE.BoxGeometry(3,1,3.2),
+new THREE.MeshStandardMaterial({
+color:0xffffff
+})
+);
+
+roof.position.y=1.6;
+car.add(roof);
+
+const red=new THREE.Mesh(
+new THREE.BoxGeometry(.55,.2,.3),
+new THREE.MeshBasicMaterial({
+color:0xff0000
+})
+);
+
+red.position.set(-.7,2.1,0);
+car.add(red);
+
+const blue=new THREE.Mesh(
+new THREE.BoxGeometry(.55,.2,.3),
+new THREE.MeshBasicMaterial({
+color:0x0066ff
+})
+);
+
+blue.position.set(.7,2.1,0);
+car.add(blue);
+
+const a=Math.random()*Math.PI*2;
+const d=120+Math.random()*120;
+
+car.position.set(
+player.position.x+Math.cos(a)*d,
+0,
+player.position.z+Math.sin(a)*d
+);
+
+car.userData={
+speed:15+Math.random()*8,
+red,
+blue
+};
+
+scene.add(car);
+police.push(car);
+
+}
+
+
+function updatePolice(dt){
+
+while(police.length<wantedLevel)
+createPolice();
+
+while(police.length>wantedLevel)
+scene.remove(
+police.pop()
+);
+
+for(const p of police){
+
+const dir=new THREE.Vector3()
+.subVectors(
+player.position,
+p.position
+);
+
+dir.y=0;
+
+const d=dir.length();
+
+if(d>2){
+
+dir.normalize();
+
+p.position.addScaledVector(
+dir,
+p.userData.speed*dt
+);
+
+p.lookAt(
+player.position.x,
+0,
+player.position.z
+);
+
+}
+
+const blink=
+Math.floor(
+performance.now()/120
+)%2===0;
+
+p.userData.red.visible=blink;
+p.userData.blue.visible=!blink;
+
+if(d<7&&!driving){
+
+health-=
+(8+wantedLevel*2)*dt;
+
+}
+
+if(d<7&&driving){
+
+vehicle.userData.hp-=
+(12+wantedLevel*3)*dt;
+
+}
+
+}
+
+}
+
+
+/* =====================================================
+   SAFE ZONES
+===================================================== */
+
+const safeZones=[
+{x:0,z:0,r:85},
+{x:-600,z:400,r:70},
+{x:600,z:-400,r:70}
+];
+
+function updateSafe(dt){
+
+let safe=false;
+
+for(const z of safeZones){
+
+const d=Math.hypot(
+player.position.x-z.x,
+player.position.z-z.z
+);
+
+if(d<z.r){
+safe=true;
+break;
+}
+
+}
+
+document.getElementById(
+"safe"
+).textContent=
+safe?
+"SAFE ZONE: YES":
+"SAFE ZONE: NO";
+
+if(safe){
+
+health=Math.min(
+100,
+health+dt*8
+);
+
+wantedHeat=
+Math.max(
+0,
+wantedHeat-dt*10
+);
+
+updateWanted();
+
+}
+
+}
+
+
+/* =====================================================
+   MISSIONS
+===================================================== */
+
+const missions=[
+{
+name:"EXPLORE THE CITY",
+target:[300,-250],
+reward:500,
+xp:200
+},
+{
+name:"REACH THE ROOFTOP",
+target:[-450,300],
+reward:750,
+xp:300
+},
+{
+name:"STEAL A CITY CAR",
+target:[300,200],
+reward:900,
+xp:350
+},
+{
+name:"TAKE THE CAR TO A GARAGE",
+target:[0,200],
+reward:1300,
+xp:500
+},
+{
+name:"ESCAPE THE POLICE",
+target:[-600,400],
+reward:1600,
+xp:650
+}
+];
+
+
+function missionTarget(){
+
+const m=
+missions[
+(mission-1)%missions.length
+];
+
+return new THREE.Vector3(
+m.target[0],
+1,
+m.target[1]
+);
+
+}
+
+
+function addXP(amount){
+
+xp+=amount;
+
+while(
+xp>=500+(level-1)*250
+){
+
+xp-=
+500+(level-1)*250;
+
+level++;
+
+health=100;
+energy=100;
+
+showMessage(
+"⭐ LEVEL "+level+"!"
+);
+
+}
+
+}
+
+
+function updateMission(){
+
+const m=
+missions[
+(mission-1)%missions.length
+];
+
+const target=
+missionTarget();
+
+const d=Math.hypot(
+player.position.x-target.x,
+player.position.z-target.z
+);
+
+document.getElementById(
+"distance"
+).textContent=
+Math.floor(d);
+
+document.getElementById(
+"objective"
+).textContent=
+m.name;
+
+
+/* car mission */
+
+if(
+mission===3&&
+driving
+){
+
+if(
+d<30&&
+!missionDone
+){
+
+missionDone=true;
+
+score+=m.reward;
+addXP(m.xp);
+
+showMessage(
+"🚗 CAR MISSION COMPLETE!"
+);
+
+setTimeout(()=>{
+mission++;
+missionDone=false;
+},1500);
+
+}
+
+return;
+
+}
+
+
+/* garage mission */
+
+if(
+mission===4&&
+driving&&
+nearGarage()&&
+!missionDone
+){
+
+missionDone=true;
+
+garageAction();
+
+score+=m.reward;
+addXP(m.xp);
+
+showMessage(
+"🏠 GARAGE MISSION COMPLETE!"
+);
+
+setTimeout(()=>{
+mission++;
+missionDone=false;
+},1500);
+
+return;
+
+}
+
+
+/* normal mission */
+
+if(
+d<28&&
+!missionDone
+){
+
+missionDone=true;
+
+score+=m.reward;
+addXP(m.xp);
+
+showMessage(
+"🎯 MISSION COMPLETE!"
+);
+
+setTimeout(()=>{
+
+mission++;
+
+if(mission>missions.length){
+
+mission=1;
+chapter++;
+
+showMessage(
+"📖 CHAPTER "+
+chapter+
+" UNLOCKED!"
+);
+
+}
+
+missionDone=false;
+
+},1500);
+
+}
+
+}
+
+
+/* =====================================================
+   PLAYER MOVEMENT
+===================================================== */
+
+function jump(){
+
+if(driving)return;
+
+if(grounded){
+
+velocity.y=15;
+grounded=false;
+doubleJump=true;
+
+}else if(doubleJump){
+
+velocity.y=13;
+doubleJump=false;
+
+}
+
+}
+
+
+function updateMovement(dt){
+
+if(driving)return;
+
+input.set(0,0,0);
+
+if(keys.KeyW)input.z-=1;
+if(keys.KeyS)input.z+=1;
+if(keys.KeyA)input.x-=1;
+if(keys.KeyD)input.x+=1;
+
+if(input.length())
+input.normalize();
+
+const speed=
+keys.ShiftLeft?14:9;
+
+velocity.x+=
+input.x*speed*dt*5;
+
+velocity.z+=
+input.z*speed*dt*5;
+
+velocity.x*=.91;
+velocity.z*=.91;
+
+if(!grounded)
+velocity.y-=30*dt;
+
+player.position.addScaledVector(
+velocity,
+dt
+);
+
+if(player.position.y<=1.1){
+
+player.position.y=1.1;
+velocity.y=0;
+grounded=true;
+doubleJump=true;
+
+}
+
+}
+
+
+/* =====================================================
+   WEB SWING
+===================================================== */
+
+let swinging=false;
+let anchor=null;
+let webLine=null;
+
+function findAnchor(){
+
+let best=null;
+let closest=450;
+
+for(const b of buildings){
+
+const h=
+b.geometry.parameters.height;
+
+const p=new THREE.Vector3(
+b.position.x,
+b.position.y+h/2,
+b.position.z
+);
+
+const d=
+p.distanceTo(
+player.position
+);
+
+if(
+d<closest&&
+p.y>player.position.y+8
+){
+
+closest=d;
+best=p;
+
+}
+
+}
+
+return best;
+
+}
+
+
+function toggleSwing(){
+
+if(driving)return;
+
+if(swinging){
+
+swinging=false;
+
+if(webLine){
+
+scene.remove(webLine);
+webLine=null;
+
+}
+
+velocity.multiplyScalar(1.4);
+return;
+
+}
+
+const p=findAnchor();
+
+if(!p)return;
+
+anchor=p;
+swinging=true;
+
+webLine=new THREE.Line(
+new THREE.BufferGeometry()
+.setFromPoints([
+player.position.clone(),
+anchor.clone()
+]),
+new THREE.LineBasicMaterial({
+color:0xffffff
+})
+);
+
+scene.add(webLine);
+
+}
+
+
+function updateSwing(dt){
+
+if(!swinging)return;
+
+const pull=new THREE.Vector3()
+.subVectors(
+anchor,
+player.position
+);
+
+const d=pull.length();
+
+pull.normalize();
+
+if(d>10){
+
+velocity.addScaledVector(
+pull,
+(d-10)*dt*16
+);
+
+}
+
+velocity.y-=7*dt;
+
+if(webLine){
+
+const p=
+webLine.geometry
+.attributes.position.array;
+
+p[0]=player.position.x;
+p[1]=player.position.y+1;
+p[2]=player.position.z;
+
+p[3]=anchor.x;
+p[4]=anchor.y;
+p[5]=anchor.z;
+
+webLine.geometry
+.attributes.position
+.needsUpdate=true;
+
+}
+
+}
+
+
+/* =====================================================
+   MAP
+===================================================== */
+
+const mapCanvas=
+document.getElementById(
+"mapCanvas"
+);
+
+const ctx=
+mapCanvas.getContext("2d");
+
+function worldToMap(x,z){
+
+return{
+x:180+x*.09,
+y:180+z*.09
+};
+
+}
+
+
+function drawMap(){
+
+ctx.fillStyle="#07101a";
+ctx.fillRect(0,0,360,360);
+
+ctx.strokeStyle="#333a42";
+ctx.lineWidth=8;
+
+for(let i=-800;i<=800;i+=200){
+
+let p=worldToMap(i,0);
+
+ctx.beginPath();
+ctx.moveTo(p.x,0);
+ctx.lineTo(p.x,360);
+ctx.stroke();
+
+p=worldToMap(0,i);
+
+ctx.beginPath();
+ctx.moveTo(0,p.y);
+ctx.lineTo(360,p.y);
+ctx.stroke();
+
+}
+
+
+/* garages */
+
+ctx.fillStyle="#00ff88";
+
+for(const g of garages){
+
+const p=
+worldToMap(g.x,g.z);
+
+ctx.fillRect(
+p.x-5,p.y-5,10,10
+);
+
+}
+
+
+/* cars */
+
+ctx.fillStyle="#aaa";
+
+for(const car of vehicles){
+
+const p=
+worldToMap(
+car.position.x,
+car.position.z
+);
+
+ctx.fillRect(
+p.x-2,p.y-2,4,4
+);
+
+}
+
+
+/* police */
+
+ctx.fillStyle="#3388ff";
+
+for(const p of police){
+
+const q=
+worldToMap(
+p.position.x,
+p.position.z
+);
+
+ctx.fillRect(
+q.x-4,q.y-4,8,8
+);
+
+}
+
+
+/* citizens */
+
+ctx.fillStyle="#bbbbbb";
+
+for(const n of citizens){
+
+const p=
+worldToMap(
+n.position.x,
+n.position.z
+);
+
+ctx.fillRect(
+p.x-1,p.y-1,2,2
+);
+
+}
+
+
+/* mission */
+
+const target=
+missionTarget();
+
+const t=
+worldToMap(
+target.x,
+target.z
+);
+
+ctx.fillStyle="#ffd34d";
+
+ctx.beginPath();
+
+ctx.arc(
+t.x,t.y,8,
+0,Math.PI*2
+);
+
+ctx.fill();
+
+
+/* player */
+
+const p=
+worldToMap(
+player.position.x,
+player.position.z
+);
+
+ctx.fillStyle="#ff304f";
+
+ctx.beginPath();
+
+ctx.arc(
+p.x,p.y,7,
+0,Math.PI*2
+);
+
+ctx.fill();
+
+}
+
+
+/* =====================================================
+   UI
+===================================================== */
+
+function updateUI(){
+
+document.getElementById("level")
+.textContent=level;
+
+document.getElementById("health")
+.textContent=Math.floor(
+Math.max(0,health)
+);
+
+document.getElementById("energy")
+.textContent=Math.floor(energy);
+
+document.getElementById("xp")
+.textContent=Math.floor(xp);
+
+document.getElementById("score")
+.textContent=score;
+
+}
+
+
+function showMessage(text){
+
+const m=
+document.getElementById(
+"message"
+);
+
+m.textContent=text;
+m.style.opacity=1;
+
+setTimeout(()=>{
+m.style.opacity=0;
+},1300);
+
+}
+
+
+/* =====================================================
+   MAP
+===================================================== */
+
+let mapVisible=true;
+
+function toggleMap(){
+
+mapVisible=!mapVisible;
+
+document.getElementById(
+"map"
+).style.display=
+mapVisible?"block":"none";
+
+}
+
+
+/* =====================================================
+   INPUT
+===================================================== */
+
+addEventListener("keydown",e=>{
+
+keys[e.code]=true;
+
+if(e.code==="Space")jump();
+if(e.code==="KeyE")toggleSwing();
+if(e.code==="KeyF")enterVehicle();
+if(e.code==="KeyG")garageAction();
+if(e.code==="KeyM")toggleMap();
+if(e.code==="KeyT")addWanted(25);
+
+});
+
+
+addEventListener("keyup",e=>{
+keys[e.code]=false;
+});
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+function hold(id,code){
+
+const b=
+document.getElementById(id);
+
+const down=e=>{
+e.preventDefault();
+keys[code]=true;
+};
+
+const up=e=>{
+e.preventDefault();
+keys[code]=false;
+};
+
+b.addEventListener(
+"touchstart",
+down,
+{passive:false}
+);
+
+b.addEventListener(
+"touchend",
+up,
+{passive:false}
+);
+
+b.addEventListener(
+"touchcancel",
+up,
+{passive:false}
+);
+
+}
+
+hold("up","KeyW");
+hold("down","KeyS");
+hold("left","KeyA");
+hold("right","KeyD");
+
+
+function tap(id,fn){
+
+document.getElementById(id)
+.addEventListener(
+"touchstart",
+e=>{
+e.preventDefault();
+fn();
+},
+{passive:false}
+);
+
+}
+
+tap("jump",jump);
+tap("web",toggleSwing);
+tap("enter",enterVehicle);
+tap("mapBtn",toggleMap);
+
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+
+document.getElementById(
+"mapTop"
+).onclick=toggleMap;
+
+document.getElementById(
+"wantedTop"
+).onclick=()=>addWanted(25);
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+function updateCamera(){
+
+if(driving){
+
+camera.position.lerp(
+new THREE.Vector3(
+vehicle.position.x,
+vehicle.position.y+7,
+vehicle.position.z+15
+),
+.08
+);
+
+camera.lookAt(
+vehicle.position.x,
+vehicle.position.y+1,
+vehicle.position.z
+);
+
+}else{
+
+camera.position.lerp(
+new THREE.Vector3(
+player.position.x,
+player.position.y+5.5,
+player.position.z+12
+),
+.075
+);
+
+camera.lookAt(
+player.position.x,
+player.position.y+2,
+player.position.z
+);
+
+}
+
+}
+
+
+/* =====================================================
+   SAVE
+===================================================== */
+
+setInterval(()=>{
+
+try{
+
+localStorage.setItem(
+"WEBBOUND_V49",
+JSON.stringify({
+x:player.position.x,
+z:player.position.z,
+level,
+health,
+energy,
+xp,
+score,
+mission,
+chapter,
+wantedHeat
+})
+);
+
+}catch(e){}
+
+},30000);
+
+
+/* =====================================================
+   MAIN LOOP
+===================================================== */
+
+const clock=new THREE.Clock();
+
+function loop(){
+
+requestAnimationFrame(loop);
+
+const dt=Math.min(
+clock.getDelta(),
+.033
+);
+
+updateMovement(dt);
+updateSwing(dt);
+drive(dt);
+updateTraffic(dt);
+updateCitizens(dt);
+updatePolice(dt);
+updateSafe(dt);
+updateMission();
+
+if(wantedLevel>0){
+
+wantedHeat=
+Math.max(
+0,
+wantedHeat-dt*.55
+);
+
+updateWanted();
+
+}
+
+energy=Math.min(
+100,
+energy+dt*5
+);
+
+if(health<=0){
+
+health=100;
+energy=100;
+wantedHeat=0;
+
+updateWanted();
+
+if(driving)
+exitVehicle();
+
+player.position.set(
+0,1.1,0
+);
+
+velocity.set(0,0,0);
+
+showMessage(
+"📍 CHECKPOINT RESTORED"
+);
+
+}
+
+updateUI();
+drawMap();
+updateCamera();
+
+renderer.render(
+scene,
+camera
+);
+
+}
+
+updateWanted();
+updateUI();
+loop();
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+addEventListener("resize",()=>{
+
+camera.aspect=
+innerWidth/innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+});
+
+</script>
+</body>
+</html>
