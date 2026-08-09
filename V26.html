@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V26 — City Traffic</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#020308;
+    font-family:Arial,sans-serif;
+}
+
+canvas{display:block}
+
+#hud{
+    position:fixed;
+    z-index:20;
+    top:15px;
+    left:15px;
+    width:390px;
+    padding:16px;
+    color:white;
+    background:rgba(0,0,0,.78);
+    border:1px solid #ffffff20;
+    border-radius:16px;
+    backdrop-filter:blur(12px);
+}
+
+.title{
+    font-size:22px;
+    font-weight:bold;
+}
+
+.chapter{
+    color:#6fdcff;
+    margin-top:8px;
+    font-weight:bold;
+}
+
+#event{
+    margin-top:6px;
+    font-size:17px;
+    font-weight:bold;
+}
+
+#objective{
+    margin-top:7px;
+    color:#d7dce4;
+    line-height:1.4;
+}
+
+.stat{
+    margin-top:7px;
+    font-size:13px;
+}
+
+#controls{
+    position:fixed;
+    z-index:20;
+    left:15px;
+    bottom:15px;
+    padding:12px 15px;
+    color:#ddd;
+    background:rgba(0,0,0,.75);
+    border-radius:13px;
+    font-size:11px;
+    line-height:1.7;
+}
+
+#message{
+    position:fixed;
+    z-index:60;
+    top:15%;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
+    font-size:28px;
+    font-weight:bold;
+    text-shadow:0 5px 25px #000;
+    opacity:0;
+}
+
+#alert{
+    position:fixed;
+    z-index:30;
+    top:20px;
+    right:20px;
+    padding:12px 18px;
+    color:white;
+    background:rgba(150,20,25,.9);
+    border-radius:12px;
+    opacity:0;
+}
+
+#cinematic{
+    position:fixed;
+    inset:0;
+    z-index:80;
+    pointer-events:none;
+    opacity:0;
+}
+
+.bar{
+    position:absolute;
+    left:0;
+    width:100%;
+    height:13%;
+    background:#000;
+}
+
+#top{top:0}
+#bottom{bottom:0}
+
+#dialogue{
+    position:absolute;
+    left:50%;
+    bottom:17%;
+    transform:translateX(-50%);
+    width:min(850px,90%);
+    padding:18px 22px;
+    color:white;
+    background:rgba(0,0,0,.88);
+    border-radius:14px;
+}
+
+#speaker{
+    color:#6fdcff;
+    font-weight:bold;
+    margin-bottom:7px;
+}
+
+#text{
+    font-size:17px;
+    line-height:1.5;
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+
+<div class="title">🕷️ WEBBOUND V26</div>
+
+<div class="chapter">
+CHAPTER 4 — CITY UNDER PRESSURE
+</div>
+
+<div id="event">
+CITY TRAFFIC
+</div>
+
+<div id="objective">
+Patrol the streets.
+</div>
+
+<div class="stat">
+Vehicles: <b id="vehicleCount">0</b>
+</div>
+
+<div class="stat">
+Traffic Events: <b id="events">0</b>
+</div>
+
+<div class="stat">
+Wanted Level: <b id="wanted">0</b>/5
+</div>
+
+<div class="stat">
+Health: <b id="health">100</b>
+</div>
+
+<div class="stat">
+Web Energy: <b id="energy">100</b>
+</div>
+
+<div class="stat">
+XP: <b id="xp">0</b>
+</div>
+
+<div class="stat">
+Score: <b id="score">0</b>
+</div>
+
+</div>
+
+
+<div id="controls">
+W A S D — Move<br>
+SHIFT — Sprint<br>
+SPACE — Jump<br>
+E — Web Swing<br>
+Q — Web Zip<br>
+F — Attack<br>
+G — Web Strike<br>
+V — Change Suit<br>
+P — Start Police Chase<br>
+R — Reduce Wanted Level
+</div>
+
+
+<div id="alert">
+🚨 POLICE CHASE
+</div>
+
+
+<div id="message"></div>
+
+
+<div id="cinematic">
+
+<div class="bar" id="top"></div>
+<div class="bar" id="bottom"></div>
+
+<div id="dialogue">
+
+<div id="speaker">
+POLICE RADIO
+</div>
+
+<div id="text">
+All units, suspect spotted.
+</div>
+
+</div>
+
+</div>
+
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+ENGINE
+===================================================== */
+
+const scene=
+new THREE.Scene();
+
+scene.background=
+new THREE.Color(0x07101c);
+
+scene.fog=
+new THREE.FogExp2(
+0x07101c,
+.00075
+);
+
+
+const camera=
+new THREE.PerspectiveCamera(
+68,
+innerWidth/innerHeight,
+.1,
+5000
+);
+
+
+const renderer=
+new THREE.WebGLRenderer({
+antialias:true
+});
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+renderer.setPixelRatio(
+Math.min(devicePixelRatio,2)
+);
+
+renderer.shadowMap.enabled=true;
+
+renderer.outputColorSpace=
+THREE.SRGBColorSpace;
+
+document.body.appendChild(
+renderer.domElement
+);
+
+
+/* =====================================================
+LIGHTING
+===================================================== */
+
+const sun=
+new THREE.DirectionalLight(
+0xffffff,
+2.3
+);
+
+sun.position.set(
+-500,
+800,
+300
+);
+
+sun.castShadow=true;
+
+scene.add(sun);
+
+scene.add(
+new THREE.HemisphereLight(
+0x7894c0,
+0x08090d,
+1.2
+)
+);
+
+
+/* =====================================================
+CITY
+===================================================== */
+
+const buildings=[];
+
+const buildingMaterials=[
+new THREE.MeshStandardMaterial({
+color:0x171d29,
+roughness:.82
+}),
+new THREE.MeshStandardMaterial({
+color:0x222b38,
+roughness:.75
+}),
+new THREE.MeshStandardMaterial({
+color:0x10151e,
+roughness:.9
+})
+];
+
+
+function createBuilding(
+x,z,w,h,d
+){
+
+const building=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+w,h,d
+),
+buildingMaterials[
+Math.floor(
+Math.random()*
+buildingMaterials.length
+)
+]
+);
+
+building.position.set(
+x,
+h/2,
+z
+);
+
+building.castShadow=true;
+building.receiveShadow=true;
+
+scene.add(building);
+
+buildings.push(building);
+}
+
+
+for(
+let x=-1000;
+x<=1000;
+x+=85
+){
+
+for(
+let z=-1000;
+z<=1000;
+z+=85
+){
+
+if(
+Math.abs(x)<70 &&
+Math.abs(z)<70
+)
+continue;
+
+createBuilding(
+x,
+z,
+48+Math.random()*25,
+60+Math.random()*260,
+48+Math.random()*25
+);
+}
+}
+
+
+/* =====================================================
+GROUND + ROADS
+===================================================== */
+
+const ground=
+new THREE.Mesh(
+new THREE.PlaneGeometry(
+3200,
+3200
+),
+new THREE.MeshStandardMaterial({
+color:0x080a0e,
+roughness:1
+})
+);
+
+ground.rotation.x=-Math.PI/2;
+
+ground.receiveShadow=true;
+
+scene.add(ground);
+
+
+const roadMaterial=
+new THREE.MeshStandardMaterial({
+color:0x111318,
+roughness:.9
+});
+
+
+for(
+let x=-1000;
+x<=1000;
+x+=170
+){
+
+const road=
+new THREE.Mesh(
+new THREE.PlaneGeometry(
+32,
+3200
+),
+roadMaterial
+);
+
+road.rotation.x=-Math.PI/2;
+
+road.position.x=x;
+
+road.position.y=.02;
+
+scene.add(road);
+}
+
+
+for(
+let z=-1000;
+z<=1000;
+z+=170
+){
+
+const road=
+new THREE.Mesh(
+new THREE.PlaneGeometry(
+3200,
+32
+),
+roadMaterial
+);
+
+road.rotation.x=-Math.PI/2;
+
+road.position.z=z;
+
+road.position.y=.03;
+
+scene.add(road);
+}
+
+
+/* =====================================================
+PLAYER
+===================================================== */
+
+const player=
+new THREE.Group();
+
+player.position.set(
+0,1.1,0
+);
+
+scene.add(player);
+
+
+const suitMaterial=
+new THREE.MeshStandardMaterial({
+color:0x9d1727,
+roughness:.3,
+metalness:.2
+});
+
+
+const body=
+new THREE.Mesh(
+new THREE.CapsuleGeometry(
+.65,1.55,10,20
+),
+suitMaterial
+);
+
+body.position.y=1.45;
+
+body.castShadow=true;
+
+player.add(body);
+
+
+const head=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.57,32,24
+),
+suitMaterial
+);
+
+head.position.y=2.75;
+
+player.add(head);
+
+
+const eyeMaterial=
+new THREE.MeshStandardMaterial({
+color:0xffffff
+});
+
+
+for(
+const x of [-.2,.2]
+){
+
+const eye=
+new THREE.Mesh(
+new THREE.SphereGeometry(
+.18,20,16
+),
+eyeMaterial
+);
+
+eye.position.set(
+x,
+2.78,
+-.54
+);
+
+eye.scale.z=.18;
+
+player.add(eye);
+}
+
+
+/* =====================================================
+PHYSICS
+===================================================== */
+
+const velocity=
+new THREE.Vector3();
+
+const input=
+new THREE.Vector3();
+
+const keys={};
+
+let grounded=true;
+let doubleJump=true;
+
+let swinging=false;
+
+let webAnchor=null;
+let webLine=null;
+
+let health=100;
+let energy=100;
+let xp=0;
+let score=0;
+
+
+/* =====================================================
+VEHICLES
+===================================================== */
+
+const vehicles=[];
+
+const vehicleColors=[
+0x222222,
+0x8b1d25,
+0x1e4f83,
+0x858585,
+0xddd1a1,
+0x3d6e50
+];
+
+
+function createVehicle(
+police=false
+){
+
+const vehicle=
+new THREE.Group();
+
+
+const color=
+police
+?0x20252c
+:vehicleColors[
+Math.floor(
+Math.random()*
+vehicleColors.length
+)
+];
+
+
+const bodyMaterial=
+new THREE.MeshStandardMaterial({
+color,
+roughness:.4,
+metalness:.15
+});
+
+
+const carBody=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+3.2,
+1,
+6
+),
+bodyMaterial
+);
+
+carBody.position.y=1;
+
+carBody.castShadow=true;
+
+vehicle.add(carBody);
+
+
+const roof=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+2.5,
+.8,
+3
+),
+bodyMaterial
+);
+
+roof.position.y=1.8;
+
+vehicle.add(roof);
+
+
+/* wheels */
+
+const wheelMaterial=
+new THREE.MeshStandardMaterial({
+color:0x080808,
+roughness:.9
+});
+
+
+for(
+const x of [-1.45,1.45]
+){
+
+for(
+const z of [-2,2]
+){
+
+const wheel=
+new THREE.Mesh(
+new THREE.CylinderGeometry(
+.55,
+.55,
+.35,
+16
+),
+wheelMaterial
+);
+
+wheel.rotation.z=
+Math.PI/2;
+
+wheel.position.set(
+x,
+.55,
+z
+);
+
+vehicle.add(wheel);
+}
+}
+
+
+if(police){
+
+const light=
+new THREE.Mesh(
+new THREE.BoxGeometry(
+1.4,
+.25,
+.4
+),
+new THREE.MeshBasicMaterial({
+color:0x2255ff
+})
+);
+
+light.position.y=2.35;
+
+vehicle.add(light);
+
+vehicle.userData.police=true;
+}
+
+
+const horizontal=
+Math.random()<.5;
+
+
+if(horizontal){
+
+vehicle.position.set(
+-1400+
+Math.random()*2800,
+.1,
+Math.round(
+(-1000+
+Math.random()*2000)/170
+)*170
+);
+
+vehicle.userData.direction=
+new THREE.Vector3(
+Math.random()<.5?1:-1,
+0,
+0);
+
+}else{
+
+vehicle.position.set(
+Math.round(
+(-1000+
+Math.random()*2000)/170
+)*170,
+.1,
+-1400+
+Math.random()*2800
+);
+
+vehicle.userData.direction=
+new THREE.Vector3(
+0,
+0,
+Math.random()<.5?1:-1);
+}
+
+
+vehicle.userData.speed=
+police
+?28
+:14+Math.random()*10;
+
+
+vehicle.userData.police=police;
+
+scene.add(vehicle);
+
+vehicles.push(vehicle);
+
+return vehicle;
+}
+
+
+for(
+let i=0;
+i<45;
+i++
+){
+
+createVehicle(false);
+}
+
+
+/* =====================================================
+POLICE
+===================================================== */
+
+let policeCars=[];
+
+let wantedLevel=0;
+
+let chase=false;
+
+
+function startPoliceChase(){
+
+if(chase)
+return;
+
+
+chase=true;
+
+wantedLevel=3;
+
+document.getElementById(
+"wanted"
+).textContent=
+wantedLevel;
+
+
+for(
+let i=0;
+i<4;
+i++
+){
+
+const car=
+createVehicle(true);
+
+car.position.copy(
+player.position
+);
+
+car.position.x+=
+(i-2)*15;
+
+car.position.z+=
+40+Math.random()*30;
+
+policeCars.push(car);
+}
+
+
+showPoliceAlert();
+
+showDialogue(
+"POLICE RADIO",
+"All units, Spider-Man is moving through the area."
+);
+}
+
+
+function updatePolice(dt){
+
+if(!chase)
+return;
+
+
+for(
+const car of policeCars
+){
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+player.position,
+car.position
+)
+.normalize();
+
+
+car.userData.direction.copy(
+direction
+);
+
+
+car.position.addScaledVector(
+direction,
+car.userData.speed*dt
+);
+
+
+car.lookAt(
+player.position.x,
+car.position.y,
+player.position.z
+);
+
+
+const distance=
+car.position.distanceTo(
+player.position
+);
+
+
+if(distance<7){
+
+health-=12*dt;
+
+health=
+Math.max(
+0,
+health
+);
+}
+}
+
+
+if(
+wantedLevel<=0
+){
+
+endPoliceChase();
+}
+}
+
+
+function endPoliceChase(){
+
+chase=false;
+
+for(
+const car of policeCars
+){
+
+scene.remove(car);
+
+const index=
+vehicles.indexOf(car);
+
+if(index>=0)
+vehicles.splice(index,1);
+}
+
+policeCars=[];
+
+showMessage(
+"CHASE ENDED"
+);
+}
+
+
+function reduceWanted(){
+
+if(wantedLevel<=0)
+return;
+
+
+wantedLevel--;
+
+document.getElementById(
+"wanted"
+).textContent=
+wantedLevel;
+
+
+showMessage(
+"WANTED LEVEL -1"
+);
+
+
+if(wantedLevel===0)
+endPoliceChase();
+}
+
+
+/* =====================================================
+VEHICLE AI
+===================================================== */
+
+function updateVehicles(dt){
+
+for(
+const vehicle of vehicles
+){
+
+if(vehicle.userData.police)
+continue;
+
+
+const direction=
+vehicle.userData.direction;
+
+
+vehicle.position.addScaledVector(
+direction,
+vehicle.userData.speed*dt
+);
+
+
+vehicle.lookAt(
+vehicle.position.x+
+direction.x,
+vehicle.position.y,
+vehicle.position.z+
+direction.z
+);
+
+
+if(
+Math.abs(vehicle.position.x)>1500 ||
+Math.abs(vehicle.position.z)>1500
+){
+
+vehicle.position.x=
+THREE.MathUtils.clamp(
+vehicle.position.x,
+-1490,
+1490
+);
+
+vehicle.position.z=
+THREE.MathUtils.clamp(
+vehicle.position.z,
+-1490,
+1490
+);
+}
+}
+}
+
+
+/* =====================================================
+WEB SWING
+===================================================== */
+
+function findAnchor(){
+
+let best=null;
+let limit=550;
+
+
+for(
+const building of buildings
+){
+
+const h=
+building.geometry.parameters.height;
+
+
+const point=
+new THREE.Vector3(
+building.position.x,
+building.position.y+h/2,
+building.position.z
+);
+
+
+const distance=
+point.distanceTo(
+player.position
+);
+
+
+if(
+distance<limit &&
+point.y>
+player.position.y+8
+){
+
+limit=distance;
+
+best=point;
+}
+}
+
+
+return best;
+}
+
+
+function toggleSwing(){
+
+if(swinging){
+
+swinging=false;
+
+if(webLine){
+
+scene.remove(
+webLine
+);
+
+webLine=null;
+}
+
+velocity.multiplyScalar(1.5);
+
+return;
+}
+
+
+if(energy<10)
+return;
+
+
+const anchor=
+findAnchor();
+
+if(!anchor)
+return;
+
+
+energy-=10;
+
+webAnchor=anchor;
+
+swinging=true;
+
+
+webLine=
+new THREE.Line(
+new THREE.BufferGeometry()
+.setFromPoints([
+player.position.clone(),
+anchor.clone()
+]),
+new THREE.LineBasicMaterial({
+color:0xffffff
+})
+);
+
+scene.add(webLine);
+}
+
+
+function updateSwing(dt){
+
+if(!swinging)
+return;
+
+
+const pull=
+new THREE.Vector3()
+.subVectors(
+webAnchor,
+player.position
+);
+
+const distance=
+pull.length();
+
+pull.normalize();
+
+
+if(distance>9){
+
+velocity.addScaledVector(
+pull,
+(distance-9)*dt*18
+);
+}
+
+
+velocity.y-=8*dt;
+
+
+if(webLine){
+
+const p=
+webLine.geometry
+.attributes
+.position
+.array;
+
+p[0]=player.position.x;
+p[1]=player.position.y+1;
+p[2]=player.position.z;
+
+p[3]=webAnchor.x;
+p[4]=webAnchor.y;
+p[5]=webAnchor.z;
+
+webLine.geometry
+.attributes
+.position
+.needsUpdate=true;
+}
+}
+
+
+/* =====================================================
+MOVEMENT
+===================================================== */
+
+function jump(){
+
+if(grounded){
+
+velocity.y=15.5;
+
+grounded=false;
+
+doubleJump=true;
+
+return;
+}
+
+
+if(doubleJump){
+
+velocity.y=13;
+
+doubleJump=false;
+}
+}
+
+
+function updateMovement(dt){
+
+input.set(0,0,0);
+
+if(keys.KeyW)
+input.z-=1;
+
+if(keys.KeyS)
+input.z+=1;
+
+if(keys.KeyA)
+input.x-=1;
+
+if(keys.KeyD)
+input.x+=1;
+
+if(input.length()>0)
+input.normalize();
+
+
+const speed=
+keys.ShiftLeft
+?15
+:10;
+
+
+velocity.x+=
+input.x*speed*dt*5;
+
+velocity.z+=
+input.z*speed*dt*5;
+
+
+velocity.x*=.91;
+velocity.z*=.91;
+
+
+if(
+!grounded &&
+!swinging
+){
+
+velocity.y-=31*dt;
+}
+
+
+updateSwing(dt);
+
+
+player.position.addScaledVector(
+velocity,
+dt
+);
+
+
+if(
+player.position.y<=1.1
+){
+
+player.position.y=1.1;
+
+velocity.y=0;
+
+grounded=true;
+
+doubleJump=true;
+}else{
+
+grounded=false;
+}
+
+
+if(input.length()>0){
+
+const target=
+Math.atan2(
+input.x,
+input.z
+);
+
+let diff=
+target-player.rotation.y;
+
+diff=
+Math.atan2(
+Math.sin(diff),
+Math.cos(diff)
+);
+
+player.rotation.y+=
+diff*
+Math.min(1,dt*10);
+}
+}
+
+
+/* =====================================================
+WEB ZIP
+===================================================== */
+
+function webZip(){
+
+if(energy<15)
+return;
+
+
+const anchor=
+findAnchor();
+
+if(!anchor)
+return;
+
+
+energy-=15;
+
+
+const direction=
+new THREE.Vector3()
+.subVectors(
+anchor,
+player.position
+)
+.normalize();
+
+
+velocity.copy(
+direction.multiplyScalar(45)
+);
+
+showMessage(
+"WEB ZIP"
+);
+}
+
+
+/* =====================================================
+PLAYER ANIMATION
+===================================================== */
+
+let animationTime=0;
+
+
+function animatePlayer(dt){
+
+animationTime+=dt;
+
+
+const speed=
+Math.sqrt(
+velocity.x**2+
+velocity.z**2
+);
+
+
+if(
+grounded &&
+speed>2
+){
+
+const run=
+animationTime*10;
+
+body.position.y=
+1.45+
+Math.abs(
+Math.sin(run)
+)*.07;
+
+body.rotation.z=
+Math.sin(run)*.08;
+
+}else{
+
+body.position.y+=
+(1.45-body.position.y)
+*.12;
+
+body.rotation.z*=.9;
+}
+
+
+if(swinging){
+
+body.rotation.x=-.55;
+
+body.rotation.z=
+Math.sin(
+animationTime*5
+)*.18;
+}
+}
+
+
+/* =====================================================
+CAMERA
+===================================================== */
+
+function updateCamera(){
+
+const desired=
+new THREE.Vector3(
+player.position.x,
+player.position.y+5.5,
+player.position.z+12
+);
+
+
+if(swinging){
+
+desired.y=
+player.position.y+7;
+
+desired.z=
+player.position.z+16;
+}
+
+
+camera.position.lerp(
+desired,
+.075
+);
+
+
+camera.fov=
+THREE.MathUtils.lerp(
+camera.fov,
+swinging?78:68,
+.06
+);
+
+
+camera.updateProjectionMatrix();
+
+
+camera.lookAt(
+player.position.x,
+player.position.y+2,
+player.position.z
+);
+}
+
+
+/* =====================================================
+CINEMATIC
+===================================================== */
+
+function showDialogue(
+speaker,
+text
+){
+
+document.getElementById(
+"speaker"
+).textContent=
+speaker;
+
+document.getElementById(
+"text"
+).textContent=
+text;
+
+
+const cinematic=
+document.getElementById(
+"cinematic"
+);
+
+cinematic.style.opacity=1;
+
+
+setTimeout(
+()=>{
+cinematic.style.opacity=0;
+},
+3500
+);
+}
+
+
+function showPoliceAlert(){
+
+const alert=
+document.getElementById(
+"alert"
+);
+
+alert.style.opacity=1;
+
+
+setTimeout(
+()=>{
+alert.style.opacity=0;
+},
+4000
+);
+}
+
+
+/* =====================================================
+MESSAGE
+===================================================== */
+
+let messageTimer=0;
+
+
+function showMessage(text){
+
+document.getElementById(
+"message"
+).textContent=text;
+
+document.getElementById(
+"message"
+).style.opacity=1;
+
+messageTimer=1.7;
+}
+
+
+/* =====================================================
+HUD
+===================================================== */
+
+function updateHUD(dt){
+
+document.getElementById(
+"vehicleCount"
+).textContent=
+vehicles.length;
+
+document.getElementById(
+"health"
+).textContent=
+Math.floor(health);
+
+document.getElementById(
+"energy"
+).textContent=
+Math.floor(energy);
+
+document.getElementById(
+"xp"
+).textContent=
+xp;
+
+document.getElementById(
+"score"
+).textContent=
+score;
+
+
+energy=
+Math.min(
+100,
+energy+dt*4
+);
+
+
+if(messageTimer>0){
+
+messageTimer-=dt;
+
+}else{
+
+document.getElementById(
+"message"
+).style.opacity=0;
+}
+
+
+if(health<=0){
+
+health=100;
+
+wantedLevel=0;
+
+document.getElementById(
+"wanted"
+).textContent=0;
+
+if(chase)
+endPoliceChase();
+
+player.position.set(
+0,1.1,0
+);
+
+showMessage(
+"CHECKPOINT RESTORED"
+);
+}
+}
+
+
+/* =====================================================
+INPUT
+===================================================== */
+
+addEventListener(
+"keydown",
+e=>{
+
+keys[e.code]=true;
+
+
+if(e.code==="Space")
+jump();
+
+
+if(e.code==="KeyE")
+toggleSwing();
+
+
+if(e.code==="KeyQ")
+webZip();
+
+
+if(e.code==="KeyP")
+startPoliceChase();
+
+
+if(e.code==="KeyR")
+reduceWanted();
+
+});
+
+
+addEventListener(
+"keyup",
+e=>{
+keys[e.code]=false;
+});
+
+
+/* =====================================================
+LOOP
+===================================================== */
+
+const clock=
+new THREE.Clock();
+
+
+function loop(){
+
+requestAnimationFrame(loop);
+
+
+const dt=
+Math.min(
+clock.getDelta(),
+.033
+);
+
+
+updateMovement(dt);
+
+updateVehicles(dt);
+
+updatePolice(dt);
+
+animatePlayer(dt);
+
+updateCamera();
+
+updateHUD(dt);
+
+
+renderer.render(
+scene,
+camera
+);
+}
+
+
+loop();
+
+
+/* =====================================================
+RESIZE
+===================================================== */
+
+addEventListener(
+"resize",
+()=>{
+
+camera.aspect=
+innerWidth/innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+});
+
+</script>
+
+</body>
+</html>
