@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WEBBOUND V35 — Story Quest System</title>
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02040a;font-family:Arial,sans-serif}
+canvas{display:block}
+
+#hud{
+ position:fixed;z-index:20;left:10px;top:10px;width:270px;
+ padding:13px;color:#fff;background:rgba(0,0,0,.78);
+ border:1px solid rgba(255,255,255,.16);border-radius:15px;
+ backdrop-filter:blur(9px);font-size:11px
+}
+.title{font-size:19px;font-weight:800}
+.sub{color:#65d9ff;margin-top:3px;font-weight:bold}
+#quest{margin-top:10px;line-height:1.5}
+#progress{margin-top:7px;color:#ffd66b}
+.stats{margin-top:9px;line-height:1.6}
+
+#questPanel{
+ position:fixed;z-index:25;right:10px;top:10px;width:190px;
+ padding:11px;color:white;background:rgba(0,0,0,.72);
+ border-radius:13px;font-size:10px
+}
+.qtitle{font-weight:bold;color:#6fe0ff;font-size:13px}
+.questItem{margin-top:7px;padding:6px;border-left:2px solid #4fdcff}
+
+#radar{
+ position:fixed;z-index:20;right:10px;top:145px;width:125px;height:125px;
+ border-radius:50%;background:rgba(0,20,30,.72);
+ border:2px solid rgba(100,220,255,.6)
+}
+#playerDot{
+ position:absolute;left:50%;top:50%;width:8px;height:8px;
+ background:#fff;border-radius:50%;transform:translate(-50%,-50%)
+}
+.marker{
+ position:absolute;width:7px;height:7px;border-radius:50%;
+ transform:translate(-50%,-50%)
+}
+.target{background:#42e7ff}
+.enemy{background:#ff4141}
+.npc{background:#ffd34d}
+
+#message{
+ position:fixed;z-index:60;left:50%;top:22%;transform:translateX(-50%);
+ width:92%;text-align:center;color:white;font-size:25px;font-weight:800;
+ text-shadow:0 5px 25px #000;opacity:0;transition:.25s
+}
+
+#dialogue{
+ position:fixed;z-index:55;left:50%;bottom:125px;
+ transform:translateX(-50%);width:min(650px,90%);
+ padding:14px;text-align:center;color:white;
+ background:rgba(0,0,0,.85);border:1px solid rgba(255,255,255,.22);
+ border-radius:14px;opacity:0;transition:.25s
+}
+
+#touch{
+ position:fixed;z-index:50;left:0;right:0;bottom:8px;
+ display:flex;justify-content:space-between;padding:9px;pointer-events:none
+}
+.pad,.actions{display:grid;gap:6px;pointer-events:auto}
+.pad{grid-template-columns:48px 48px 48px;grid-template-rows:48px 48px}
+.actions{grid-template-columns:52px 52px;grid-template-rows:52px 52px 52px}
+button{
+ border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.7);
+ color:white;border-radius:13px;font-size:9px;font-weight:bold;touch-action:none
+}
+button:active{transform:scale(.94);background:rgba(255,255,255,.25)}
+.empty{visibility:hidden}
+
+#fade{
+ position:fixed;z-index:100;inset:0;background:#000;opacity:0;
+ pointer-events:none;transition:.5s
+}
+
+@media(max-width:600px){
+ #hud{width:235px;font-size:10px}
+ #questPanel{display:none}
+ .title{font-size:16px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+ <div class="title">🕷️ WEBBOUND V35</div>
+ <div class="sub">STORY QUEST SYSTEM</div>
+
+ <div id="quest"></div>
+ <div id="progress"></div>
+
+ <div class="stats">
+  ❤️ Health: <b id="health">100</b><br>
+  🕸️ Web Energy: <b id="energy">100</b><br>
+  ⭐ XP: <b id="xp">0</b><br>
+  🏆 Score: <b id="score">0</b><br>
+  📖 Chapter: <b id="chapter">1</b><br>
+  🎯 Mission: <b id="mission">1</b>
+ </div>
+</div>
+
+<div id="questPanel">
+ <div class="qtitle">QUEST LOG</div>
+ <div id="questList"></div>
+</div>
+
+<div id="radar">
+ <div id="playerDot"></div>
+</div>
+
+<div id="message"></div>
+<div id="dialogue"></div>
+<div id="fade"></div>
+
+<div id="touch">
+
+ <div class="pad">
+  <button class="empty"></button>
+  <button id="up">▲</button>
+  <button class="empty"></button>
+  <button id="left">◀</button>
+  <button id="down">▼</button>
+  <button id="right">▶</button>
+ </div>
+
+ <div class="actions">
+  <button id="jump">JUMP</button>
+  <button id="swing">WEB</button>
+  <button id="punch">PUNCH</button>
+  <button id="shot">WEB SHOT</button>
+  <button id="talk">TALK</button>
+  <button id="burst">BURST</button>
+ </div>
+
+</div>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================================
+   ENGINE
+===================================================== */
+
+const scene=new THREE.Scene();
+
+scene.background=new THREE.Color(0x07101b);
+
+scene.fog=new THREE.FogExp2(
+ 0x07101b,
+ .0011
+);
+
+const camera=new THREE.PerspectiveCamera(
+ 68,
+ innerWidth/innerHeight,
+ .1,
+ 3500
+);
+
+const renderer=new THREE.WebGLRenderer({
+ antialias:true,
+ powerPreference:"high-performance"
+});
+
+renderer.setSize(
+ innerWidth,
+ innerHeight
+);
+
+renderer.setPixelRatio(
+ Math.min(devicePixelRatio,1.3)
+);
+
+renderer.outputColorSpace=
+ THREE.SRGBColorSpace;
+
+renderer.shadowMap.enabled=true;
+
+document.body.appendChild(
+ renderer.domElement
+);
+
+
+/* =====================================================
+   LIGHTING
+===================================================== */
+
+const sun=new THREE.DirectionalLight(
+ 0xffffff,
+ 1.8
+);
+
+sun.position.set(
+ -400,700,300
+);
+
+sun.castShadow=true;
+
+scene.add(sun);
+
+scene.add(
+ new THREE.HemisphereLight(
+  0x7798c4,
+  0x05070b,
+  1.2
+ )
+);
+
+
+/* =====================================================
+   CITY
+===================================================== */
+
+const buildings=[];
+
+const materials=[
+ new THREE.MeshStandardMaterial({
+  color:0x141d28,
+  roughness:.9
+ }),
+ new THREE.MeshStandardMaterial({
+  color:0x202936,
+  roughness:.85
+ }),
+ new THREE.MeshStandardMaterial({
+  color:0x101820,
+  roughness:.95
+ })
+];
+
+function building(x,z){
+
+ const w=55+Math.random()*20;
+ const d=55+Math.random()*20;
+ const h=70+Math.random()*250;
+
+ const b=new THREE.Mesh(
+  new THREE.BoxGeometry(w,h,d),
+  materials[
+   Math.floor(
+    Math.random()*materials.length
+   )
+  ]
+ );
+
+ b.position.set(
+  x,h/2,z
+ );
+
+ b.castShadow=true;
+ b.receiveShadow=true;
+
+ scene.add(b);
+ buildings.push(b);
+}
+
+let buildingCount=0;
+
+for(
+ let x=-850;
+ x<=850;
+ x+=100
+){
+
+ for(
+  let z=-850;
+  z<=850;
+  z+=100
+ ){
+
+  if(
+   Math.abs(x)<100 &&
+   Math.abs(z)<100
+  )
+   continue;
+
+  if(buildingCount>=280)
+   break;
+
+  building(x,z);
+  buildingCount++;
+ }
+}
+
+const ground=new THREE.Mesh(
+ new THREE.PlaneGeometry(
+  3000,
+  3000
+ ),
+ new THREE.MeshStandardMaterial({
+  color:0x06090d,
+  roughness:1
+ })
+);
+
+ground.rotation.x=-Math.PI/2;
+ground.receiveShadow=true;
+
+scene.add(ground);
+
+
+/* =====================================================
+   PLAYER
+===================================================== */
+
+const player=new THREE.Group();
+
+player.position.set(
+ 0,1.1,0
+);
+
+scene.add(player);
+
+const suit=new THREE.MeshStandardMaterial({
+ color:0xa8192d,
+ roughness:.4
+});
+
+const body=new THREE.Mesh(
+ new THREE.CapsuleGeometry(
+  .65,1.55,8,14
+ ),
+ suit
+);
+
+body.position.y=1.45;
+player.add(body);
+
+const head=new THREE.Mesh(
+ new THREE.SphereGeometry(
+  .57,20,16
+ ),
+ suit
+);
+
+head.position.y=2.75;
+player.add(head);
+
+const eyeMat=new THREE.MeshBasicMaterial({
+ color:0xffffff
+});
+
+for(
+ const x of [-.2,.2]
+){
+
+ const eye=new THREE.Mesh(
+  new THREE.SphereGeometry(
+   .18,12,10
+  ),
+  eyeMat
+ );
+
+ eye.position.set(
+  x,2.78,-.54
+ );
+
+ eye.scale.z=.18;
+
+ player.add(eye);
+}
+
+
+/* =====================================================
+   PLAYER STATE
+===================================================== */
+
+const velocity=new THREE.Vector3();
+const input=new THREE.Vector3();
+const keys={};
+
+let grounded=true;
+let doubleJump=true;
+let swinging=false;
+let anchor=null;
+let webLine=null;
+
+let health=100;
+let energy=100;
+let xp=0;
+let score=0;
+
+let checkpoint=new THREE.Vector3(
+ 0,1.1,0
+);
+
+
+/* =====================================================
+   QUEST SYSTEM
+===================================================== */
+
+const quests=[
+ {
+  chapter:1,
+  title:"A NEW BEGINNING",
+  description:"Reach the first rooftop.",
+  type:"reach",
+  target:new THREE.Vector3(
+   260,1.1,-230
+  ),
+  reward:500
+ },
+
+ {
+  chapter:1,
+  title:"CITY WATCH",
+  description:"Defeat 3 enemies.",
+  type:"defeat",
+  amount:3,
+  reward:700
+ },
+
+ {
+  chapter:1,
+  title:"THE STRANGE SIGNAL",
+  description:"Investigate the signal.",
+  type:"reach",
+  target:new THREE.Vector3(
+   -380,1.1,260
+  ),
+  reward:900
+ },
+
+ {
+  chapter:2,
+  title:"NIGHT PATROL",
+  description:"Defeat 5 enemies.",
+  type:"defeat",
+  amount:5,
+  reward:1200
+ },
+
+ {
+  chapter:2,
+  title:"ROOFTOP RUN",
+  description:"Reach the marked rooftop.",
+  type:"reach",
+  target:new THREE.Vector3(
+   470,1.1,390
+  ),
+  reward:1500
+ },
+
+ {
+  chapter:2,
+  title:"CITY UNDER THREAT",
+  description:"Defeat 8 enemies.",
+  type:"defeat",
+  amount:8,
+  reward:2200
+ },
+
+ {
+  chapter:3,
+  title:"FINAL SIGNAL",
+  description:"Reach the final location.",
+  type:"reach",
+  target:new THREE.Vector3(
+   -520,1.1,-430
+  ),
+  reward:3000
+ }
+];
+
+let questIndex=0;
+let questStartDefeated=0;
+
+const questMarker=new THREE.Mesh(
+ new THREE.TorusGeometry(
+  9,1.5,12,32
+ ),
+ new THREE.MeshBasicMaterial({
+  color:0x43e8ff
+ })
+);
+
+questMarker.rotation.x=
+ Math.PI/2;
+
+scene.add(questMarker);
+
+
+function currentQuest(){
+
+ return quests[
+  questIndex
+ ];
+}
+
+
+function startQuest(){
+
+ const q=currentQuest();
+
+ if(!q)
+  return;
+
+ questStartDefeated=
+  defeated;
+
+ if(q.type==="reach"){
+
+  questMarker.visible=true;
+
+  questMarker.position.copy(
+   q.target
+  );
+
+ }else{
+
+  questMarker.visible=false;
+ }
+
+ updateQuestUI();
+
+ showMessage(
+  "MISSION "+(questIndex+1)+
+  " STARTED"
+ );
+}
+
+
+function updateQuestUI(){
+
+ const q=currentQuest();
+
+ if(!q)
+  return;
+
+ document.getElementById(
+  "quest"
+ ).innerHTML=
+  "<b>"+q.title+
+  "</b><br>"+
+  q.description;
+
+ document.getElementById(
+  "chapter"
+ ).textContent=
+  q.chapter;
+
+ document.getElementById(
+  "mission"
+ ).textContent=
+  questIndex+1;
+
+ let progress="";
+
+ if(
+  q.type==="defeat"
+ ){
+
+  const value=
+   defeated-
+   questStartDefeated;
+
+  progress=
+   "Progress: "+
+   Math.min(
+    value,
+    q.amount
+   )+
+   " / "+
+   q.amount;
+
+ }else{
+
+  const d=
+   player.position.distanceTo(
+    q.target
+   );
+
+  progress=
+   "Distance: "+
+   Math.floor(d)+
+   " m";
+ }
+
+ document.getElementById(
+  "progress"
+ ).textContent=
+  progress;
+
+
+ updateQuestList();
+}
+
+
+function updateQuestList(){
+
+ const list=
+  document.getElementById(
+   "questList"
+  );
+
+ list.innerHTML="";
+
+ quests.forEach(
+  (q,i)=>{
+
+   const div=
+    document.createElement(
+     "div"
+    );
+
+   div.className=
+    "questItem";
+
+   if(i<questIndex){
+
+    div.innerHTML=
+     "✅ "+
+     q.title;
+
+   }else if(i===questIndex){
+
+    div.innerHTML=
+     "🎯 "+
+     q.title;
+
+   }else{
+
+    div.innerHTML=
+     "🔒 "+
+     q.title;
+   }
+
+   list.appendChild(
+    div
+   );
+  }
+ );
+
+
+ document.getElementById(
+  "chapter"
+ ).textContent=
+  currentQuest()
+  ?.chapter || 3;
+}
+
+
+function completeQuest(){
+
+ const q=currentQuest();
+
+ if(!q)
+  return;
+
+ score+=q.reward;
+
+ xp+=
+  Math.floor(
+   q.reward/2
+  );
+
+ checkpoint.copy(
+  player.position
+ );
+
+ showMessage(
+  "MISSION COMPLETE! +"+
+  q.reward
+ );
+
+
+ questIndex++;
+
+ if(
+  questIndex>=quests.length
+ ){
+
+  showMessage(
+   "🎉 STORY CHAPTER COMPLETE"
+  );
+
+  questIndex=0;
+ }
+
+
+ setTimeout(
+  startQuest,
+  1300
+ );
+}
+
+
+function updateQuest(){
+
+ const q=currentQuest();
+
+ if(!q)
+  return;
+
+ if(
+  q.type==="reach"
+ ){
+
+  questMarker.rotation.z+=.025;
+
+  const distance=
+   player.position.distanceTo(
+    q.target
+   );
+
+  if(
+   distance<18
+  )
+   completeQuest();
+
+ }else{
+
+  const progress=
+   defeated-
+   questStartDefeated;
+
+  if(
+   progress>=q.amount
+  )
+   completeQuest();
+ }
+
+ updateQuestUI();
+}
+
+
+startQuest();
+
+
+/* =====================================================
+   ENEMIES
+===================================================== */
+
+const enemies=[];
+let defeated=0;
+
+function createEnemy(){
+
+ const enemy=new THREE.Group();
+
+ const body=new THREE.Mesh(
+  new THREE.CapsuleGeometry(
+   .55,1,6,10
+  ),
+  new THREE.MeshStandardMaterial({
+   color:0x353940
+  })
+ );
+
+ body.position.y=1.3;
+ enemy.add(body);
+
+ const head=new THREE.Mesh(
+  new THREE.SphereGeometry(
+   .43,12,10
+  ),
+  new THREE.MeshStandardMaterial({
+   color:0x704b3e
+  })
+ );
+
+ head.position.y=2.3;
+ enemy.add(head);
+
+ const angle=
+  Math.random()*Math.PI*2;
+
+ const distance=
+  80+Math.random()*180;
+
+ enemy.position.set(
+  player.position.x+
+  Math.cos(angle)*distance,
+  1,
+  player.position.z+
+  Math.sin(angle)*distance
+ );
+
+ enemy.userData={
+  health:100,
+  speed:4.5,
+  stagger:0,
+  cooldown:0
+ };
+
+ scene.add(enemy);
+ enemies.push(enemy);
+}
+
+for(
+ let i=0;
+ i<8;
+ i++
+)
+ createEnemy();
+
+
+function nearestEnemy(range){
+
+ let target=null;
+ let closest=range;
+
+ for(
+  const enemy of enemies
+ ){
+
+  const d=
+   enemy.position.distanceTo(
+    player.position
+   );
+
+  if(d<closest){
+
+   closest=d;
+   target=enemy;
+  }
+ }
+
+ return target;
+}
+
+
+function punch(){
+
+ const target=
+  nearestEnemy(7);
+
+ if(!target)
+  return;
+
+ target.userData.health-=50;
+ target.userData.stagger=.5;
+
+ score+=100;
+ xp+=20;
+
+ if(
+  target.userData.health<=0
+ )
+  defeatEnemy(target);
+}
+
+
+function webShot(){
+
+ if(energy<15)
+  return;
+
+ const target=
+  nearestEnemy(40);
+
+ if(!target)
+  return;
+
+ energy-=15;
+
+ target.userData.health-=60;
+ target.userData.stagger=.8;
+
+ createWeb(target);
+
+ if(
+  target.userData.health<=0
+ )
+  defeatEnemy(target);
+}
+
+
+function burst(){
+
+ if(energy<35)
+  return;
+
+ energy-=35;
+
+ for(
+  const enemy of [...enemies]
+ ){
+
+  if(
+   enemy.position.distanceTo(
+    player.position
+   )<18
+  ){
+
+   enemy.userData.health-=70;
+
+   if(
+    enemy.userData.health<=0
+   )
+    defeatEnemy(enemy);
+  }
+ }
+}
+
+
+function defeatEnemy(enemy){
+
+ defeated++;
+
+ score+=250;
+ xp+=100;
+
+ scene.remove(enemy);
+
+ const i=
+  enemies.indexOf(enemy);
+
+ if(i>=0)
+  enemies.splice(i,1);
+
+ setTimeout(
+  createEnemy,
+  1500
+ );
+}
+
+
+/* =====================================================
+   WEB
+===================================================== */
+
+function createWeb(target){
+
+ const start=
+  player.position.clone();
+
+ start.y+=2;
+
+ const end=
+  target.position.clone();
+
+ end.y+=1;
+
+ const line=new THREE.Line(
+  new THREE.BufferGeometry()
+   .setFromPoints([
+    start,end
+   ]),
+  new THREE.LineBasicMaterial({
+   color:0xffffff
+  })
+ );
+
+ scene.add(line);
+
+ setTimeout(
+  ()=>{
+   scene.remove(line);
+  },
+  300
+ );
+}
+
+
+/* =====================================================
+   SWING
+===================================================== */
+
+function findAnchor(){
+
+ let best=null;
+ let closest=450;
+
+ for(
+  const building of buildings
+ ){
+
+  const h=
+   building.geometry
+   .parameters.height;
+
+  const point=
+   new THREE.Vector3(
+    building.position.x,
+    building.position.y+h/2,
+    building.position.z
+   );
+
+  const d=
+   point.distanceTo(
+    player.position
+   );
+
+  if(
+   d<closest &&
+   point.y>
+   player.position.y+8
+  ){
+
+   closest=d;
+   best=point;
+  }
+ }
+
+ return best;
+}
+
+
+function toggleSwing(){
+
+ if(swinging){
+
+  swinging=false;
+
+  if(webLine){
+
+   scene.remove(webLine);
+   webLine=null;
+  }
+
+  velocity.multiplyScalar(1.4);
+
+  return;
+ }
+
+ const point=findAnchor();
+
+ if(!point)
+  return;
+
+ anchor=point;
+ swinging=true;
+
+ webLine=new THREE.Line(
+  new THREE.BufferGeometry()
+   .setFromPoints([
+    player.position.clone(),
+    anchor.clone()
+   ]),
+  new THREE.LineBasicMaterial({
+   color:0xffffff
+  })
+ );
+
+ scene.add(webLine);
+}
+
+
+function updateSwing(dt){
+
+ if(!swinging)
+  return;
+
+ const pull=
+  new THREE.Vector3()
+   .subVectors(
+    anchor,
+    player.position
+   );
+
+ const distance=
+  pull.length();
+
+ pull.normalize();
+
+ if(distance>10){
+
+  velocity.addScaledVector(
+   pull,
+   (distance-10)*
+   dt*16
+  );
+ }
+
+ velocity.y-=7*dt;
+
+ if(webLine){
+
+  const p=
+   webLine.geometry
+   .attributes
+   .position.array;
+
+  p[0]=player.position.x;
+  p[1]=player.position.y+1;
+  p[2]=player.position.z;
+
+  p[3]=anchor.x;
+  p[4]=anchor.y;
+  p[5]=anchor.z;
+
+  webLine.geometry
+   .attributes
+   .position
+   .needsUpdate=true;
+ }
+}
+
+
+/* =====================================================
+   MOVEMENT
+===================================================== */
+
+function jump(){
+
+ if(grounded){
+
+  velocity.y=15;
+  grounded=false;
+  doubleJump=true;
+  return;
+ }
+
+ if(doubleJump){
+
+  velocity.y=13;
+  doubleJump=false;
+ }
+}
+
+
+function updateMovement(dt){
+
+ input.set(0,0,0);
+
+ if(keys.KeyW)
+  input.z-=1;
+
+ if(keys.KeyS)
+  input.z+=1;
+
+ if(keys.KeyA)
+  input.x-=1;
+
+ if(keys.KeyD)
+  input.x+=1;
+
+ if(input.length()>0)
+  input.normalize();
+
+ const speed=
+  keys.ShiftLeft
+  ?14
+  :9;
+
+ velocity.x+=
+  input.x*speed*dt*5;
+
+ velocity.z+=
+  input.z*speed*dt*5;
+
+ velocity.x*=.91;
+ velocity.z*=.91;
+
+ if(
+  !grounded &&
+  !swinging
+ )
+  velocity.y-=30*dt;
+
+ updateSwing(dt);
+
+ player.position.addScaledVector(
+  velocity,
+  dt
+ );
+
+ if(
+  player.position.y<=1.1
+ ){
+
+  player.position.y=1.1;
+  velocity.y=0;
+  grounded=true;
+  doubleJump=true;
+
+ }else{
+
+  grounded=false;
+ }
+}
+
+
+/* =====================================================
+   ENEMY AI
+===================================================== */
+
+function updateEnemies(dt){
+
+ for(
+  const enemy of enemies
+ ){
+
+  const data=
+   enemy.userData;
+
+  data.stagger=
+   Math.max(
+    0,
+    data.stagger-dt
+   );
+
+  if(
+   data.stagger>0
+  )
+   continue;
+
+  const d=
+   enemy.position.distanceTo(
+    player.position
+   );
+
+  if(d<100){
+
+   const dir=
+    new THREE.Vector3()
+     .subVectors(
+      player.position,
+      enemy.position
+     )
+     .normalize();
+
+   dir.y=0;
+
+   enemy.position.addScaledVector(
+    dir,
+    data.speed*dt
+   );
+
+   enemy.lookAt(
+    player.position.x,
+    enemy.position.y,
+    player.position.z
+   );
+
+   if(d<4)
+    health-=7*dt;
+  }
+ }
+}
+
+
+/* =====================================================
+   RADAR
+===================================================== */
+
+function updateRadar(){
+
+ document
+  .querySelectorAll(".marker")
+  .forEach(
+   e=>e.remove()
+  );
+
+ const radar=
+  document.getElementById(
+   "radar"
+  );
+
+
+ function addMarker(
+  position,
+  type
+ ){
+
+  const dx=
+   position.x-
+   player.position.x;
+
+  const dz=
+   position.z-
+   player.position.z;
+
+  let x=
+   62.5+dx*.22;
+
+  let y=
+   62.5+dz*.22;
+
+  x=Math.max(
+   5,
+   Math.min(120,x)
+  );
+
+  y=Math.max(
+   5,
+   Math.min(120,y)
+  );
+
+  const dot=
+   document.createElement(
+    "div"
+   );
+
+  dot.className=
+   "marker "+
+   type;
+
+  dot.style.left=
+   x+"px";
+
+  dot.style.top=
+   y+"px";
+
+  radar.appendChild(dot);
+ }
+
+
+ const q=currentQuest();
+
+ if(
+  q &&
+  q.type==="reach"
+ )
+  addMarker(
+   q.target,
+   "target"
+  );
+
+
+ enemies.forEach(
+  e=>
+   addMarker(
+    e.position,
+    "enemy"
+   )
+ );
+}
+
+
+/* =====================================================
+   UI
+===================================================== */
+
+function showMessage(text){
+
+ const element=
+  document.getElementById(
+   "message"
+  );
+
+ element.textContent=text;
+ element.style.opacity=1;
+
+ setTimeout(
+  ()=>{
+   element.style.opacity=0;
+  },
+  1200
+ );
+}
+
+
+function showDialogue(text){
+
+ const element=
+  document.getElementById(
+   "dialogue"
+  );
+
+ element.textContent=text;
+ element.style.opacity=1;
+
+ setTimeout(
+  ()=>{
+   element.style.opacity=0;
+  },
+  3000
+ );
+}
+
+
+function updateHUD(){
+
+ document.getElementById(
+  "health"
+ ).textContent=
+  Math.floor(health);
+
+ document.getElementById(
+  "energy"
+ ).textContent=
+  Math.floor(energy);
+
+ document.getElementById(
+  "xp"
+ ).textContent=xp;
+
+ document.getElementById(
+  "score"
+ ).textContent=score;
+}
+
+
+/* =====================================================
+   CHECKPOINT
+===================================================== */
+
+function resetCheckpoint(){
+
+ player.position.copy(
+  checkpoint
+ );
+
+ velocity.set(
+  0,0,0
+ );
+
+ health=100;
+ energy=100;
+
+ showMessage(
+  "CHECKPOINT RESTORED"
+ );
+}
+
+
+/* =====================================================
+   KEYBOARD
+===================================================== */
+
+addEventListener(
+ "keydown",
+ e=>{
+
+  keys[e.code]=true;
+
+  if(e.code==="Space")
+   jump();
+
+  if(e.code==="KeyE")
+   toggleSwing();
+
+  if(e.code==="KeyF")
+   punch();
+
+  if(e.code==="KeyZ")
+   webShot();
+
+  if(e.code==="KeyC")
+   burst();
+
+  if(e.code==="KeyR")
+   resetCheckpoint();
+
+  if(e.code==="KeyT")
+   showDialogue(
+    "The city needs you."
+   );
+ }
+);
+
+addEventListener(
+ "keyup",
+ e=>{
+  keys[e.code]=false;
+ }
+);
+
+
+/* =====================================================
+   MOBILE CONTROLS
+===================================================== */
+
+function holdButton(
+ id,
+ code
+){
+
+ const button=
+  document.getElementById(id);
+
+ const start=e=>{
+  e.preventDefault();
+  keys[code]=true;
+ };
+
+ const end=e=>{
+  e.preventDefault();
+  keys[code]=false;
+ };
+
+ button.addEventListener(
+  "touchstart",
+  start,
+  {passive:false}
+ );
+
+ button.addEventListener(
+  "touchend",
+  end,
+  {passive:false}
+ );
+
+ button.addEventListener(
+  "touchcancel",
+  end,
+  {passive:false}
+ );
+}
+
+holdButton("up","KeyW");
+holdButton("down","KeyS");
+holdButton("left","KeyA");
+holdButton("right","KeyD");
+
+
+function tapButton(
+ id,
+ action
+){
+
+ document
+  .getElementById(id)
+  .addEventListener(
+   "touchstart",
+   e=>{
+    e.preventDefault();
+    action();
+   },
+   {passive:false}
+  );
+}
+
+tapButton("jump",jump);
+tapButton("swing",toggleSwing);
+tapButton("punch",punch);
+tapButton("shot",webShot);
+tapButton("burst",burst);
+
+tapButton(
+ "talk",
+ ()=>{
+  showDialogue(
+   "Mission control: Keep moving."
+  );
+ }
+);
+
+
+/* =====================================================
+   GAME LOOP
+===================================================== */
+
+const clock=
+ new THREE.Clock();
+
+function loop(){
+
+ requestAnimationFrame(
+  loop
+ );
+
+ const dt=
+  Math.min(
+   clock.getDelta(),
+   .033
+  );
+
+ updateMovement(dt);
+ updateEnemies(dt);
+ updateQuest();
+
+ energy=
+  Math.min(
+   100,
+   energy+dt*5
+  );
+
+ if(
+  health<=0
+ )
+  resetCheckpoint();
+
+ updateHUD();
+ updateRadar();
+
+ camera.position.lerp(
+  new THREE.Vector3(
+   player.position.x,
+   player.position.y+5.5,
+   player.position.z+12
+  ),
+  .075
+ );
+
+ camera.lookAt(
+  player.position.x,
+  player.position.y+2,
+  player.position.z
+ );
+
+ renderer.render(
+  scene,
+  camera
+ );
+}
+
+loop();
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+addEventListener(
+ "resize",
+ ()=>{
+
+  camera.aspect=
+   innerWidth/
+   innerHeight;
+
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(
+   innerWidth,
+   innerHeight
+  );
+ }
+);
+
+</script>
+
+</body>
+</html>
