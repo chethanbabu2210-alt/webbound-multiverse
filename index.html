@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Web Hero - Open World Prototype</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+    margin:0;
+    overflow:hidden;
+    background:#050505;
+    font-family:Arial,sans-serif;
+}
+canvas{
+    display:block;
+    width:100vw;
+    height:100vh;
+}
+#hud{
+    position:fixed;
+    top:15px;
+    left:15px;
+    color:white;
+    z-index:5;
+    text-shadow:0 2px 5px #000;
+}
+#mission{
+    margin-top:8px;
+    padding:8px 12px;
+    background:#0009;
+    border-radius:8px;
+}
+#controls{
+    position:fixed;
+    bottom:15px;
+    left:15px;
+    color:white;
+    background:#0009;
+    padding:10px;
+    border-radius:10px;
+    z-index:5;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+    ❤️ Health: <span id="health">100</span>
+    <br>
+    ⭐ Score: <span id="score">0</span>
+    <div id="mission">
+        Mission: Stop the criminals
+    </div>
+</div>
+
+<div id="controls">
+    A / D = Move |
+    W = Jump |
+    SPACE = Web Swing |
+    Mouse = Aim
+</div>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+}
+resize();
+addEventListener("resize",resize);
+
+const keys={};
+let mouse={x:0,y:0};
+
+addEventListener("keydown",e=>{
+    keys[e.code]=true;
+
+    if(e.code==="Space"){
+        shootWeb();
+    }
+});
+
+addEventListener("keyup",e=>{
+    keys[e.code]=false;
+
+    if(e.code==="Space"){
+        releaseWeb();
+    }
+});
+
+addEventListener("mousemove",e=>{
+    mouse.x=e.clientX;
+    mouse.y=e.clientY;
+});
+
+
+/* =========================
+   WORLD
+========================= */
+
+const buildings=[];
+
+for(let i=0;i<35;i++){
+
+    buildings.push({
+        x:i*260,
+        width:180,
+        height:180+Math.random()*300
+    });
+
+}
+
+
+/* =========================
+   PLAYER
+========================= */
+
+const player={
+
+    x:300,
+    y:300,
+
+    vx:0,
+    vy:0,
+
+    width:32,
+    height:55,
+
+    speed:0.7,
+    jump:-13,
+
+    grounded:false,
+
+    health:100,
+    score:0,
+
+    web:null
+
+};
+
+
+/* =========================
+   ENEMIES
+========================= */
+
+const enemies=[];
+
+for(let i=0;i<15;i++){
+
+    enemies.push({
+
+        x:700+i*450,
+        y:400,
+
+        vx:0,
+        alive:true,
+
+        health:30
+
+    });
+
+}
+
+
+/* =========================
+   CAMERA
+========================= */
+
+let cameraX=0;
+
+
+/* =========================
+   WEB SYSTEM
+========================= */
+
+function shootWeb(){
+
+    if(player.web) return;
+
+    let best=null;
+    let bestDistance=700;
+
+    for(const b of buildings){
+
+        const anchorX=b.x+b.width/2;
+        const anchorY=canvas.height-b.height;
+
+        const dx=anchorX-player.x;
+        const dy=anchorY-player.y;
+
+        const distance=Math.sqrt(dx*dx+dy*dy);
+
+        if(
+            distance<bestDistance &&
+            anchorY<player.y
+        ){
+
+            bestDistance=distance;
+
+            best={
+                x:anchorX,
+                y:anchorY
+            };
+
+        }
+
+    }
+
+    if(best){
+
+        player.web={
+            x:best.x,
+            y:best.y,
+
+            length:bestDistance
+        };
+
+    }
+
+}
+
+
+function releaseWeb(){
+
+    if(!player.web) return;
+
+    player.web=null;
+
+}
+
+
+/* =========================
+   PHYSICS
+========================= */
+
+function updatePlayer(){
+
+    /* movement */
+
+    if(keys["KeyA"])
+        player.vx-=player.speed;
+
+    if(keys["KeyD"])
+        player.vx+=player.speed;
+
+    player.vx*=0.88;
+
+    /* jump */
+
+    if(keys["KeyW"] && player.grounded){
+
+        player.vy=player.jump;
+
+        player.grounded=false;
+
+    }
+
+    /* gravity */
+
+    player.vy+=0.6;
+
+
+    /* web swing */
+
+    if(player.web){
+
+        const dx=
+            player.web.x-player.x;
+
+        const dy=
+            player.web.y-player.y;
+
+        const distance=
+            Math.sqrt(dx*dx+dy*dy);
+
+        const nx=dx/distance;
+        const ny=dy/distance;
+
+        /* rope constraint */
+
+        if(distance>player.web.length){
+
+            const difference=
+                distance-player.web.length;
+
+            player.x+=nx*difference;
+            player.y+=ny*difference;
+
+            const radialVelocity=
+                player.vx*nx+
+                player.vy*ny;
+
+            player.vx-=radialVelocity*nx;
+            player.vy-=radialVelocity*ny;
+
+        }
+
+        /* swing acceleration */
+
+        player.vx+=
+            -ny*0.8;
+
+        player.vy+=
+            nx*0.8;
+
+    }
+
+
+    player.x+=player.vx;
+    player.y+=player.vy;
+
+
+    /* ground */
+
+    const ground=
+        canvas.height-40;
+
+    if(player.y+player.height/2>=ground){
+
+        player.y=
+            ground-player.height/2;
+
+        player.vy=0;
+
+        player.grounded=true;
+
+    }
+
+
+    /* buildings */
+
+    for(const b of buildings){
+
+        const top=
+            canvas.height-b.height;
+
+        if(
+
+            player.x+player.width/2>b.x &&
+            player.x-player.width/2<b.x+b.width &&
+            player.y+player.height/2>=top &&
+            player.y+player.height/2<=top+30 &&
+            player.vy>=0
+
+        ){
+
+            player.y=
+                top-player.height/2;
+
+            player.vy=0;
+
+            player.grounded=true;
+
+        }
+
+    }
+
+
+    /* camera */
+
+    cameraX=
+        player.x-canvas.width/2;
+
+}
+
+
+/* =========================
+   ENEMIES
+========================= */
+
+function updateEnemies(){
+
+    for(const e of enemies){
+
+        if(!e.alive) continue;
+
+        const distance=
+            player.x-e.x;
+
+        if(Math.abs(distance)<500){
+
+            e.vx=
+                distance>0 ? 0.5:-0.5;
+
+            e.x+=e.vx;
+
+        }
+
+        if(Math.abs(distance)<50){
+
+            player.health-=0.05;
+
+        }
+
+    }
+
+}
+
+
+/* =========================
+   ATTACK
+========================= */
+
+addEventListener("keydown",e=>{
+
+    if(e.code==="KeyF"){
+
+        for(const enemy of enemies){
+
+            if(
+                enemy.alive &&
+                Math.abs(enemy.x-player.x)<100
+            ){
+
+                enemy.health-=10;
+
+                if(enemy.health<=0){
+
+                    enemy.alive=false;
+
+                    player.score+=100;
+
+                }
+
+            }
+
+        }
+
+    }
+
+});
+
+
+/* =========================
+   DRAW SKY
+========================= */
+
+function drawSky(){
+
+    const gradient=
+        ctx.createLinearGradient(
+            0,0,0,canvas.height
+        );
+
+    gradient.addColorStop(0,"#08152f");
+    gradient.addColorStop(1,"#3b506d");
+
+    ctx.fillStyle=gradient;
+
+    ctx.fillRect(
+        0,0,
+        canvas.width,
+        canvas.height
+    );
+
+}
+
+
+/* =========================
+   DRAW CITY
+========================= */
+
+function drawCity(){
+
+    for(const b of buildings){
+
+        const x=
+            b.x-cameraX;
+
+        const y=
+            canvas.height-b.height;
+
+        ctx.fillStyle="#252936";
+
+        ctx.fillRect(
+            x,
+            y,
+            b.width,
+            b.height
+        );
+
+
+        /* windows */
+
+        ctx.fillStyle="#ffd75a";
+
+        for(
+            let wx=x+20;
+            wx<x+b.width-10;
+            wx+=35
+        ){
+
+            for(
+                let wy=y+25;
+                wy<canvas.height-60;
+                wy+=45
+            ){
+
+                ctx.fillRect(
+                    wx,
+                    wy,
+                    10,
+                    15
+                );
+
+            }
+
+        }
+
+    }
+
+
+    /* ground */
+
+    ctx.fillStyle="#111";
+
+    ctx.fillRect(
+        0,
+        canvas.height-40,
+        canvas.width,
+        40
+    );
+
+}
+
+
+/* =========================
+   DRAW PLAYER
+========================= */
+
+function drawPlayer(){
+
+    const x=
+        player.x-cameraX;
+
+    const y=
+        player.y;
+
+    ctx.save();
+
+    /* shadow */
+
+    ctx.fillStyle="#0008";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x,
+        y+30,
+        25,
+        8,
+        0,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* body */
+
+    ctx.fillStyle="#202030";
+
+    ctx.fillRect(
+        x-15,
+        y-5,
+        30,
+        35
+    );
+
+
+    /* head */
+
+    ctx.fillStyle="#b92828";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x,
+        y-20,
+        16,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* eyes */
+
+    ctx.fillStyle="white";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x-6,
+        y-22,
+        5,
+        8,
+        -0.3,
+        0,
+        Math.PI*2
+    );
+
+    ctx.ellipse(
+        x+6,
+        y-22,
+        5,
+        8,
+        0.3,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    ctx.restore();
+
+}
+
+
+/* =========================
+   DRAW WEB
+========================= */
+
+function drawWeb(){
+
+    if(!player.web) return;
+
+    ctx.strokeStyle="white";
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        player.x-cameraX,
+        player.y
+    );
+
+    ctx.lineTo(
+        player.web.x-cameraX,
+        player.web.y
+    );
+
+    ctx.stroke();
+
+}
+
+
+/* =========================
+   DRAW ENEMIES
+========================= */
+
+function drawEnemies(){
+
+    for(const e of enemies){
+
+        if(!e.alive) continue;
+
+        const x=e.x-cameraX;
+
+        ctx.fillStyle="#7b2020";
+
+        ctx.fillRect(
+            x-15,
+            e.y-30,
+            30,
+            50
+        );
+
+        ctx.fillStyle="#fff";
+
+        ctx.fillRect(
+            x-8,
+            e.y-20,
+            5,
+            5
+        );
+
+        ctx.fillRect(
+            x+3,
+            e.y-20,
+            5,
+            5
+        );
+
+    }
+
+}
+
+
+/* =========================
+   MAIN LOOP
+========================= */
+
+function gameLoop(){
+
+    updatePlayer();
+
+    updateEnemies();
+
+    drawSky();
+
+    drawCity();
+
+    drawEnemies();
+
+    drawWeb();
+
+    drawPlayer();
+
+
+    document.getElementById("health")
+        .textContent=
+        Math.max(0,
+            Math.floor(player.health)
+        );
+
+    document.getElementById("score")
+        .textContent=
+        player.score;
+
+
+    if(player.health<=0){
+
+        document.getElementById("mission")
+            .textContent=
+            "Mission Failed";
+
+    }
+
+
+    requestAnimationFrame(gameLoop);
+
+}
+
+gameLoop();
+
+</script>
+
+</body>
+</html>
