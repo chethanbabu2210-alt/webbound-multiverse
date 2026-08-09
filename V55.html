@@ -1,0 +1,927 @@
+<!-- =========================================================
+ WEBBOUND V55
+ SKILL TREE + ABILITIES + COMBAT UPGRADES
+ ========================================================= -->
+
+<style>
+#v55Panel{
+position:fixed;
+z-index:90;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%);
+width:min(460px,92%);
+max-height:82vh;
+overflow:auto;
+display:none;
+padding:18px;
+background:#05070ef5;
+color:white;
+border:1px solid #ffffff35;
+border-radius:18px;
+font-family:Arial;
+}
+
+.v55Skill{
+padding:12px;
+margin:8px 0;
+background:#111722;
+border:1px solid #ffffff20;
+border-radius:12px;
+}
+
+.v55Skill button{
+float:right;
+padding:7px 10px;
+color:white;
+background:#182536;
+border:1px solid #ffffff35;
+border-radius:8px;
+}
+
+.v55Level{
+color:#63dcff;
+font-size:11px;
+}
+</style>
+
+<div id="v55Panel">
+
+<h2>🕷️ ABILITY SYSTEM</h2>
+
+<div>
+Upgrade Points:
+<b id="v55Points">0</b>
+</div>
+
+<hr>
+
+<div class="v55Skill">
+<b>👊 SUPER PUNCH</b>
+<div class="v55Level">
+Level: <span id="punchLevel">1</span>
+</div>
+<button onclick="v55Upgrade('punch')">
+UPGRADE
+</button>
+</div>
+
+<div class="v55Skill">
+<b>🕸️ WEB SHOT</b>
+<div class="v55Level">
+Level: <span id="webLevel">1</span>
+</div>
+<button onclick="v55Upgrade('web')">
+UPGRADE
+</button>
+</div>
+
+<div class="v55Skill">
+<b>⚡ SPEED</b>
+<div class="v55Level">
+Level: <span id="speedLevel">1</span>
+</div>
+<button onclick="v55Upgrade('speed')">
+UPGRADE
+</button>
+</div>
+
+<div class="v55Skill">
+<b>🛡️ DURABILITY</b>
+<div class="v55Level">
+Level: <span id="healthLevel">1</span>
+</div>
+<button onclick="v55Upgrade('health')">
+UPGRADE
+</button>
+</div>
+
+<div class="v55Skill">
+<b>🧬 WEB ENERGY</b>
+<div class="v55Level">
+Level: <span id="energyLevel">1</span>
+</div>
+<button onclick="v55Upgrade('energy')">
+UPGRADE
+</button>
+</div>
+
+<br>
+
+<button
+onclick="v55Close()"
+style="
+width:100%;
+padding:12px;
+color:white;
+background:#111;
+border:1px solid #ffffff30;
+border-radius:10px;
+">
+CLOSE
+</button>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+ V55 STATE
+ ========================================================= */
+
+const V55={
+
+points:0,
+
+punch:1,
+
+web:1,
+
+speed:1,
+
+health:1,
+
+energy:1
+
+};
+
+
+/* =========================================================
+ OPEN MENU
+ ========================================================= */
+
+function v55Open(){
+
+v55UpdateUI();
+
+document.getElementById(
+"v55Panel"
+).style.display="block";
+
+}
+
+
+/* =========================================================
+ CLOSE MENU
+ ========================================================= */
+
+function v55Close(){
+
+document.getElementById(
+"v55Panel"
+).style.display="none";
+
+}
+
+
+/* =========================================================
+ UPGRADE
+ ========================================================= */
+
+function v55Upgrade(type){
+
+if(V55.points<=0){
+
+showMessage(
+"⭐ NO UPGRADE POINTS"
+);
+
+return;
+
+}
+
+if(V55[type]>=10){
+
+showMessage(
+"MAX LEVEL"
+);
+
+return;
+
+}
+
+V55[type]++;
+
+V55.points--;
+
+v55ApplyStats();
+
+v55UpdateUI();
+
+showMessage(
+"⬆️ "+type.toUpperCase()+" UPGRADED"
+);
+
+}
+
+
+/* =========================================================
+ APPLY STATS
+ ========================================================= */
+
+function v55ApplyStats(){
+
+/*
+Attack power
+*/
+
+window.v55PunchDamage=
+35+
+(V55.punch-1)*12;
+
+
+/*
+Web damage
+*/
+
+window.v55WebDamage=
+50+
+(V55.web-1)*15;
+
+
+/*
+Movement speed
+*/
+
+window.v55MoveMultiplier=
+1+
+(V55.speed-1)*.08;
+
+
+/*
+Maximum health
+*/
+
+window.v55MaxHealth=
+100+
+(V55.health-1)*20;
+
+
+/*
+Maximum energy
+*/
+
+window.v55MaxEnergy=
+100+
+(V55.energy-1)*20;
+
+
+/* prevent values exceeding new max */
+
+if(
+typeof health!=="undefined"
+){
+
+health=Math.min(
+health,
+v55MaxHealth
+);
+
+}
+
+if(
+typeof energy!=="undefined"
+){
+
+energy=Math.min(
+energy,
+v55MaxEnergy
+);
+
+}
+
+}
+
+
+/* =========================================================
+ UPDATE UI
+ ========================================================= */
+
+function v55UpdateUI(){
+
+document.getElementById(
+"v55Points"
+).textContent=
+V55.points;
+
+document.getElementById(
+"punchLevel"
+).textContent=
+V55.punch;
+
+document.getElementById(
+"webLevel"
+).textContent=
+V55.web;
+
+document.getElementById(
+"speedLevel"
+).textContent=
+V55.speed;
+
+document.getElementById(
+"healthLevel"
+).textContent=
+V55.health;
+
+document.getElementById(
+"energyLevel"
+).textContent=
+V55.energy;
+
+}
+
+
+/* =========================================================
+ LEVEL REWARD
+ ========================================================= */
+
+let v55LastLevel=1;
+
+
+/*
+Give one skill point whenever
+the player reaches a new level.
+*/
+
+setInterval(()=>{
+
+if(
+typeof level==="undefined"
+)
+return;
+
+if(
+level>v55LastLevel
+){
+
+const difference=
+level-v55LastLevel;
+
+V55.points+=difference;
+
+v55LastLevel=level;
+
+showMessage(
+"⭐ +"+difference+
+" SKILL POINT"
+);
+
+v55UpdateUI();
+
+}
+
+},500);
+
+
+/* =========================================================
+ OVERRIDE PLAYER MOVEMENT
+ ========================================================= */
+
+function v55GetMoveSpeed(){
+
+return 9*
+V55.speed*
+V55MoveMultiplierSafe();
+
+}
+
+function V55MoveMultiplierSafe(){
+
+return window.v55MoveMultiplier||1;
+
+}
+
+
+/* =========================================================
+ COMBAT DAMAGE
+ ========================================================= */
+
+function v55PunchDamage(){
+
+return window.v55PunchDamage||35;
+
+}
+
+function v55WebDamage(){
+
+return window.v55WebDamage||50;
+
+}
+
+
+/* =========================================================
+ UPGRADED PUNCH
+ ========================================================= */
+
+const v55Punch=function(){
+
+if(
+typeof attackCooldown!=="undefined" &&
+attackCooldown>0
+)
+return;
+
+if(
+typeof attackCooldown!=="undefined"
+)
+attackCooldown=.42;
+
+let enemy=null;
+
+
+/* boss */
+
+if(
+typeof bossActive!=="undefined" &&
+bossActive &&
+typeof bosses!=="undefined" &&
+bosses.length
+){
+
+const boss=bosses[0];
+
+if(
+boss.position.distanceTo(
+player.position
+)<7
+){
+
+damageBoss(
+v55PunchDamage()
+);
+
+return;
+
+}
+
+}
+
+
+/* normal enemy */
+
+if(
+typeof nearestEnemy==="function"
+)
+enemy=nearestEnemy();
+
+if(!enemy){
+
+showMessage(
+"👊 NO TARGET"
+);
+
+return;
+
+}
+
+if(
+enemy.position.distanceTo(
+player.position
+)>7
+){
+
+showMessage(
+"👊 TOO FAR"
+);
+
+return;
+
+}
+
+enemy.userData.hp-=
+v55PunchDamage();
+
+addWanted(1);
+
+showMessage(
+"👊 SUPER PUNCH!"
+);
+
+if(
+enemy.userData.hp<=0
+){
+
+defeatEnemy(enemy);
+
+}
+
+};
+
+
+/* =========================================================
+ UPGRADED WEB SHOT
+ ========================================================= */
+
+const v55WebShot=function(){
+
+const maxEnergy=
+window.v55MaxEnergy||100;
+
+if(
+energy<20
+){
+
+showMessage(
+"🕸️ NOT ENOUGH ENERGY"
+);
+
+return;
+
+}
+
+
+/* boss */
+
+if(
+typeof bossActive!=="undefined" &&
+bossActive &&
+typeof bosses!=="undefined" &&
+bosses.length
+){
+
+const boss=bosses[0];
+
+if(
+boss.position.distanceTo(
+player.position
+)<45
+){
+
+energy-=20;
+
+damageBoss(
+v55WebDamage()
+);
+
+showMessage(
+"🕸️ POWER WEB!"
+);
+
+return;
+
+}
+
+}
+
+
+/* normal enemy */
+
+const enemy=
+nearestEnemy();
+
+if(!enemy){
+
+showMessage(
+"🕸️ NO TARGET"
+);
+
+return;
+
+}
+
+if(
+enemy.position.distanceTo(
+player.position
+)>40
+){
+
+showMessage(
+"🕸️ TARGET TOO FAR"
+);
+
+return;
+
+}
+
+energy-=20;
+
+enemy.userData.hp-=
+v55WebDamage();
+
+enemy.userData.speed*=.45;
+
+showMessage(
+"🕸️ POWER WEB!"
+);
+
+if(
+enemy.userData.hp<=0
+){
+
+defeatEnemy(enemy);
+
+}
+
+};
+
+
+/* =========================================================
+ REPLACE COMBAT FUNCTIONS
+ ========================================================= */
+
+window.punch=v55Punch;
+
+window.webShot=v55WebShot;
+
+
+/* =========================================================
+ SPECIAL ABILITY: WEB BURST
+ ========================================================= */
+
+let v55BurstCooldown=0;
+
+function v55WebBurst(){
+
+if(
+v55BurstCooldown>0
+){
+
+showMessage(
+"🕸️ ABILITY COOLDOWN"
+);
+
+return;
+
+}
+
+if(
+energy<40
+){
+
+showMessage(
+"🕸️ NOT ENOUGH ENERGY"
+);
+
+return;
+
+}
+
+energy-=40;
+
+v55BurstCooldown=8;
+
+const radius=
+12+
+V55.web*1.5;
+
+let defeated=0;
+
+if(
+typeof enemies!=="undefined"
+){
+
+for(
+let i=enemies.length-1;
+i>=0;
+i--
+){
+
+const enemy=
+enemies[i];
+
+const d=
+enemy.position.distanceTo(
+player.position
+);
+
+if(d<=radius){
+
+enemy.userData.hp-=
+v55WebDamage()*1.5;
+
+enemy.userData.speed*=.25;
+
+if(
+enemy.userData.hp<=0
+){
+
+defeatEnemy(enemy);
+defeated++;
+
+}
+
+}
+
+}
+
+}
+
+showMessage(
+"🕸️ WEB BURST! "+
+defeated+
+" DEFEATED"
+);
+
+}
+
+
+/* cooldown */
+
+setInterval(()=>{
+
+if(v55BurstCooldown>0){
+
+v55BurstCooldown-=.1;
+
+}
+
+},100);
+
+
+/* =========================================================
+ SPEED / HEALTH / ENERGY
+ ========================================================= */
+
+setInterval(()=>{
+
+v55ApplyStats();
+
+const maxHealth=
+window.v55MaxHealth||100;
+
+const maxEnergy=
+window.v55MaxEnergy||100;
+
+if(
+typeof health!=="undefined"
+){
+
+health=Math.min(
+maxHealth,
+health
+);
+
+}
+
+if(
+typeof energy!=="undefined"
+){
+
+energy=Math.min(
+maxEnergy,
+energy
+);
+
+}
+
+},300);
+
+
+/* =========================================================
+ MOBILE ABILITY BUTTON
+ ========================================================= */
+
+const abilityButton=
+document.createElement("button");
+
+abilityButton.textContent=
+"🕸️ BURST";
+
+abilityButton.style.position="fixed";
+abilityButton.style.right="10px";
+abilityButton.style.bottom="180px";
+abilityButton.style.zIndex="80";
+abilityButton.style.padding="12px";
+abilityButton.style.color="white";
+abilityButton.style.background="#000d";
+abilityButton.style.border="1px solid #ffffff40";
+abilityButton.style.borderRadius="12px";
+
+document.body.appendChild(
+abilityButton
+);
+
+abilityButton.onclick=
+v55WebBurst;
+
+abilityButton.addEventListener(
+"touchstart",
+e=>{
+
+e.preventDefault();
+
+v55WebBurst();
+
+},
+{passive:false}
+);
+
+
+/* =========================================================
+ SKILL MENU BUTTON
+ ========================================================= */
+
+const skillButton=
+document.createElement("button");
+
+skillButton.textContent=
+"🧬 SKILLS";
+
+skillButton.style.position="fixed";
+skillButton.style.right="10px";
+skillButton.style.bottom="125px";
+skillButton.style.zIndex="80";
+skillButton.style.padding="12px";
+skillButton.style.color="white";
+skillButton.style.background="#000d";
+skillButton.style.border="1px solid #ffffff40";
+skillButton.style.borderRadius="12px";
+
+document.body.appendChild(
+skillButton
+);
+
+skillButton.onclick=v55Open;
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+addEventListener(
+"keydown",
+e=>{
+
+if(e.code==="KeyK")
+v55Open();
+
+if(e.code==="KeyF")
+v55WebBurst();
+
+});
+
+
+/* =========================================================
+ SAVE
+ ========================================================= */
+
+setInterval(()=>{
+
+try{
+
+localStorage.setItem(
+"WEBBOUND_V55",
+JSON.stringify(V55)
+);
+
+}catch(e){}
+
+},10000);
+
+
+/* =========================================================
+ LOAD
+ ========================================================= */
+
+try{
+
+const save=
+localStorage.getItem(
+"WEBBOUND_V55"
+);
+
+if(save){
+
+const data=
+JSON.parse(save);
+
+for(
+const key of [
+"points",
+"punch",
+"web",
+"speed",
+"health",
+"energy"
+]
+){
+
+if(
+typeof data[key]==="number"
+){
+
+V55[key]=data[key];
+
+}
+
+}
+
+}
+
+}catch(e){}
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+v55ApplyStats();
+v55UpdateUI();
+
+console.log(
+"WEBBOUND V55 SKILL SYSTEM READY"
+);
+
+</script>
