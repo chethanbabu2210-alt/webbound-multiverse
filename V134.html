@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V134</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  overflow:hidden;
+  background:#091019;
+  color:white;
+  font-family:Arial,sans-serif;
+}
+
+#world{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:
+    linear-gradient(#182735,#0d151e);
+}
+
+#city{
+  position:absolute;
+  inset:0;
+}
+
+.building{
+  position:absolute;
+  border:1px solid #ffffff18;
+  border-radius:8px;
+  background:#1b2835;
+  box-shadow:0 5px 15px #0006;
+}
+
+.buildingLabel{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  font-size:9px;
+  white-space:nowrap;
+  opacity:.75;
+}
+
+#player{
+  position:absolute;
+  width:22px;
+  height:30px;
+  background:#2384dc;
+  border-radius:9px 9px 4px 4px;
+  box-shadow:0 3px 12px #000;
+  z-index:3000;
+  transform:translate(-50%,-50%);
+}
+
+#playerHead{
+  position:absolute;
+  width:13px;
+  height:13px;
+  left:4.5px;
+  top:-9px;
+  border-radius:50%;
+  background:#c89470;
+}
+
+.npc{
+  position:absolute;
+  width:17px;
+  height:25px;
+  border-radius:8px 8px 4px 4px;
+  box-shadow:0 2px 8px #000;
+  z-index:2000;
+}
+
+.npcHead{
+  position:absolute;
+  width:10px;
+  height:10px;
+  left:3.5px;
+  top:-8px;
+  border-radius:50%;
+  background:#c89470;
+}
+
+.npcName{
+  position:absolute;
+  left:50%;
+  bottom:29px;
+  transform:translateX(-50%);
+  font-size:7px;
+  white-space:nowrap;
+  text-shadow:0 1px 3px #000;
+}
+
+.npcStatus{
+  position:absolute;
+  left:50%;
+  bottom:39px;
+  transform:translateX(-50%);
+  font-size:7px;
+}
+
+#hud{
+  position:fixed;
+  left:10px;
+  bottom:10px;
+  width:min(390px,88vw);
+  padding:13px;
+  background:#04070cf2;
+  border:1px solid #ffffff25;
+  border-radius:14px;
+  z-index:5000;
+}
+
+#title{
+  font-size:14px;
+  font-weight:bold;
+}
+
+#stats{
+  margin-top:8px;
+  font-size:10px;
+  line-height:1.65;
+}
+
+.buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:9px;
+}
+
+button{
+  border:1px solid #ffffff18;
+  background:#182434;
+  color:white;
+  border-radius:8px;
+  padding:8px;
+  font-size:9px;
+}
+
+.buttons button{
+  flex:1;
+  min-width:82px;
+}
+
+#clock{
+  position:fixed;
+  right:10px;
+  top:10px;
+  padding:9px 12px;
+  background:#04070cf2;
+  border:1px solid #ffffff25;
+  border-radius:10px;
+  z-index:5000;
+  font-size:11px;
+}
+
+#panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(420px,90vw);
+  max-height:78vh;
+  overflow:auto;
+  padding:15px;
+  background:#04070cf9;
+  border:1px solid #ffffff30;
+  border-radius:16px;
+  z-index:8000;
+  display:none;
+}
+
+#panelTitle{
+  font-size:14px;
+  font-weight:bold;
+}
+
+.row{
+  margin-top:8px;
+  padding:9px;
+  background:#111c28;
+  border-radius:9px;
+  font-size:10px;
+}
+
+.row button{
+  margin:4px 2px 0 0;
+}
+
+.close{
+  width:100%;
+  margin-top:10px;
+}
+
+#message{
+  position:fixed;
+  left:50%;
+  top:19%;
+  transform:translateX(-50%);
+  padding:10px 15px;
+  background:#04070cf5;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+  z-index:9000;
+  display:none;
+  font-size:11px;
+  font-weight:bold;
+  text-align:center;
+}
+
+#event{
+  position:fixed;
+  left:50%;
+  top:8%;
+  transform:translateX(-50%);
+  padding:8px 13px;
+  background:#172535ee;
+  border:1px solid #ffffff25;
+  border-radius:10px;
+  z-index:7000;
+  font-size:10px;
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="world">
+
+  <div id="city"></div>
+
+  <div id="player">
+    <div id="playerHead"></div>
+  </div>
+
+</div>
+
+<div id="clock">🕐 08:00</div>
+
+<div id="event"></div>
+
+<div id="hud">
+
+  <div id="title">
+    🌆 WEBBOUND V134 — LIVING CITY
+  </div>
+
+  <div id="stats"></div>
+
+  <div class="buttons">
+
+    <button onclick="V134.interact()">
+      🤝 TALK
+    </button>
+
+    <button onclick="V134.cityPanel()">
+      🏙️ CITY
+    </button>
+
+    <button onclick="V134.peoplePanel()">
+      👥 PEOPLE
+    </button>
+
+    <button onclick="V134.jobsPanel()">
+      💼 JOBS
+    </button>
+
+    <button onclick="V134.advanceHour()">
+      ⏩ +1 HOUR
+    </button>
+
+    <button onclick="V134.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+  </div>
+
+</div>
+
+<div id="panel">
+
+  <div id="panelTitle">
+    WEBBOUND
+  </div>
+
+  <div id="panelContent"></div>
+
+  <button class="close" onclick="V134.closePanel()">
+    CLOSE
+  </button>
+
+</div>
+
+<div id="message"></div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V134
+   LIVING CITY + NPC DAILY ROUTINES
+   ========================================================= */
+
+const V134={
+
+  version:"V134",
+
+  saveKey:"WEBBOUND_V134",
+
+  running:true,
+
+  hour:8,
+
+  day:1,
+
+  nextId:1,
+
+  selectedNPC:null,
+
+  eventTimer:null,
+
+  messageTimer:null,
+
+  keys:{},
+
+  npcs:[],
+
+  buildings:[],
+
+  cityStats:{
+    population:0,
+    jobs:0,
+    completedWork:0,
+    socialEvents:0
+  },
+
+  player:{
+    x:window.innerWidth/2,
+    y:window.innerHeight/2,
+    money:1000,
+    reputation:0,
+    job:null
+  },
+
+  types:[
+
+    {
+      name:"Student",
+      color:"#3973a8",
+      speed:.55,
+      job:"Student"
+    },
+
+    {
+      name:"Worker",
+      color:"#79563e",
+      speed:.48,
+      job:"Factory Worker"
+    },
+
+    {
+      name:"Shopkeeper",
+      color:"#70477d",
+      speed:.38,
+      job:"Shopkeeper"
+    },
+
+    {
+      name:"Doctor",
+      color:"#427b78",
+      speed:.42,
+      job:"Doctor"
+    },
+
+    {
+      name:"Engineer",
+      color:"#4c6179",
+      speed:.45,
+      job:"Engineer"
+    },
+
+    {
+      name:"Teacher",
+      color:"#79653f",
+      speed:.40,
+      job:"Teacher"
+    },
+
+    {
+      name:"Tourist",
+      color:"#92763f",
+      speed:.50,
+      job:"Tourist"
+    }
+
+  ],
+
+  names:[
+    "Alex","Sam","Ryan","Maya",
+    "Arun","Riya","Dev","Asha",
+    "Noah","Leo","Avi","Zara",
+    "Kiran","Nikhil","Anu",
+    "Rahul","Meera","Vikram",
+    "Isha","Aditya","Neha"
+  ],
+
+  locations:{
+
+    home:{
+      x:.12,
+      y:.62
+    },
+
+    school:{
+      x:.34,
+      y:.32
+    },
+
+    hospital:{
+      x:.60,
+      y:.30
+    },
+
+    office:{
+      x:.78,
+      y:.30
+    },
+
+    shop:{
+      x:.78,
+      y:.60
+    },
+
+    park:{
+      x:.45,
+      y:.73
+    },
+
+    restaurant:{
+      x:.58,
+      y:.60
+    }
+
+  },
+
+  /* =======================================================
+     INIT
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.createCity();
+
+    this.keyboard();
+
+    if(this.npcs.length===0){
+
+      this.spawnNPCs(15);
+
+    }
+
+    this.renderAll();
+
+    this.updateHUD();
+
+    setInterval(
+      ()=>{
+        if(this.running){
+          this.update();
+        }
+      },
+      50
+    );
+
+    setInterval(
+      ()=>{
+        this.save();
+      },
+      30000
+    );
+
+    this.message(
+      "🌆 V134 living city started"
+    );
+
+  },
+
+  /* =======================================================
+     CITY
+     ======================================================= */
+
+  createCity(){
+
+    const city=
+      document.getElementById(
+        "city"
+      );
+
+    city.innerHTML="";
+
+    const list=[
+
+      ["home","🏠 Homes",8,42,16,18],
+
+      ["school","🏫 School",27,20,14,16],
+
+      ["hospital","🏥 Hospital",51,18,15,17],
+
+      ["office","🏢 Offices",70,18,18,17],
+
+      ["shop","🏪 Shops",70,52,18,17],
+
+      ["park","🌳 Park",35,67,20,17],
+
+      ["restaurant","🍽️ Restaurant",50,52,15,14]
+
+    ];
+
+    list.forEach(
+      data=>{
+
+        const el=
+          document.createElement(
+            "div"
+          );
+
+        el.className="building";
+
+        el.style.left=
+          data[2]+"%";
+
+        el.style.top=
+          data[3]+"%";
+
+        el.style.width=
+          data[4]+"%";
+
+        el.style.height=
+          data[5]+"%";
+
+        const label=
+          document.createElement(
+            "div"
+          );
+
+        label.className=
+          "buildingLabel";
+
+        label.textContent=
+          data[1];
+
+        el.appendChild(label);
+
+        city.appendChild(el);
+
+        this.buildings.push({
+          id:data[0]
+        });
+
+      }
+    );
+
+  },
+
+  /* =======================================================
+     SPAWN NPC
+     ======================================================= */
+
+  spawnNPC(){
+
+    if(this.npcs.length>=50){
+
+      this.message(
+        "⚠️ Population limit reached"
+      );
+
+      return;
+
+    }
+
+    const type=
+      this.types[
+        Math.floor(
+          Math.random()*this.types.length
+        )
+      ];
+
+    const npc={
+
+      id:this.nextId++,
+
+      name:
+        this.names[
+          Math.floor(
+            Math.random()*this.names.length
+          )
+        ],
+
+      type:type.name,
+
+      job:type.job,
+
+      color:type.color,
+
+      speed:type.speed,
+
+      money:
+        700+
+        Math.floor(
+          Math.random()*4500
+        ),
+
+      salary:
+        100+
+        Math.floor(
+          Math.random()*400
+        ),
+
+      x:
+        80+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerWidth-160
+        ),
+
+      y:
+        190+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerHeight-270
+        ),
+
+      targetX:0,
+
+      targetY:0,
+
+      location:"home",
+
+      state:"walking",
+
+      happiness:
+        50+
+        Math.floor(
+          Math.random()*40
+        ),
+
+      energy:
+        60+
+        Math.floor(
+          Math.random()*40
+        ),
+
+      relationship:0,
+
+      friendship:"Stranger",
+
+      age:
+        18+
+        Math.floor(
+          Math.random()*50
+        ),
+
+      workDone:0,
+
+      element:null
+
+    };
+
+    this.chooseRoutine(npc);
+
+    this.npcs.push(npc);
+
+    this.createNPC(npc);
+
+    this.cityStats.population=
+      this.npcs.length;
+
+    this.cityStats.jobs=
+      this.npcs.filter(
+        n=>n.job!=="Tourist"
+      ).length;
+
+    this.save();
+
+    return npc;
+
+  },
+
+  spawnNPCs(n){
+
+    for(
+      let i=0;
+      i<n;
+      i++
+    ){
+
+      this.spawnNPC();
+
+    }
+
+  },
+
+  /* =======================================================
+     ROUTINES
+     ======================================================= */
+
+  chooseRoutine(npc){
+
+    let place="home";
+
+    const h=this.hour;
+
+    if(
+      npc.type==="Student"
+    ){
+
+      if(h>=8&&h<15){
+        place="school";
+      }
+      else if(h>=15&&h<19){
+        place="park";
+      }
+
+    }
+
+    else if(
+      npc.type==="Doctor"
+    ){
+
+      if(h>=8&&h<18){
+        place="hospital";
+      }
+      else if(h>=18&&h<21){
+        place="restaurant";
+      }
+
+    }
+
+    else if(
+      npc.type==="Engineer"
+    ){
+
+      if(h>=9&&h<18){
+        place="office";
+      }
+      else if(h>=18&&h<21){
+        place="park";
+      }
+
+    }
+
+    else if(
+      npc.type==="Teacher"
+    ){
+
+      if(h>=8&&h<16){
+        place="school";
+      }
+      else if(h>=16&&h<19){
+        place="shop";
+      }
+
+    }
+
+    else if(
+      npc.type==="Shopkeeper"
+    ){
+
+      if(h>=9&&h<20){
+        place="shop";
+      }
+
+    }
+
+    else if(
+      npc.type==="Worker"
+    ){
+
+      if(h>=8&&h<17){
+        place="office";
+      }
+      else if(h>=17&&h<20){
+        place="shop";
+      }
+
+    }
+
+    else if(
+      npc.type==="Tourist"
+    ){
+
+      if(h>=9&&h<18){
+        place="park";
+      }
+      else if(h>=18&&h<22){
+        place="restaurant";
+      }
+
+    }
+
+    this.goTo(npc,place);
+
+  },
+
+  /* =======================================================
+     GO TO LOCATION
+     ======================================================= */
+
+  goTo(npc,place){
+
+    const p=
+      this.locations[place];
+
+    if(!p)return;
+
+    npc.location=place;
+
+    npc.targetX=
+      window.innerWidth*
+      p.x+
+      Math.random()*50-
+      25;
+
+    npc.targetY=
+      window.innerHeight*
+      p.y+
+      Math.random()*45-
+      22;
+
+    npc.state="walking";
+
+  },
+
+  /* =======================================================
+     CREATE NPC
+     ======================================================= */
+
+  createNPC(npc){
+
+    const el=
+      document.createElement(
+        "div"
+      );
+
+    el.className="npc";
+
+    el.style.background=
+      npc.color;
+
+    el.innerHTML=
+      `
+      <div class="npcHead"></div>
+      <div class="npcName">
+        ${npc.name}
+      </div>
+      <div class="npcStatus"></div>
+      `;
+
+    npc.element=el;
+
+    document
+      .getElementById("world")
+      .appendChild(el);
+
+    this.renderNPC(npc);
+
+  },
+
+  renderNPC(npc){
+
+    if(!npc.element)return;
+
+    npc.element.style.left=
+      npc.x+"px";
+
+    npc.element.style.top=
+      npc.y+"px";
+
+    const status=
+      npc.element.querySelector(
+        ".npcStatus"
+      );
+
+    if(status){
+
+      if(
+        npc.state==="talking"
+      ){
+        status.textContent="💬";
+      }
+      else if(
+        npc.state==="working"
+      ){
+        status.textContent="💼";
+      }
+      else if(
+        npc.state==="social"
+      ){
+        status.textContent="❤️";
+      }
+      else{
+        status.textContent="";
+      }
+
+    }
+
+  },
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    this.movePlayer();
+
+    this.npcs.forEach(
+      npc=>{
+        this.updateNPC(npc);
+      }
+    );
+
+    this.updateTime();
+
+    this.randomEvents();
+
+    this.updateHUD();
+
+  },
+
+  /* =======================================================
+     NPC UPDATE
+     ======================================================= */
+
+  updateNPC(npc){
+
+    if(
+      npc.state==="talking"||
+      npc.state==="social"
+    ){
+
+      this.renderNPC(npc);
+
+      return;
+
+    }
+
+    const targetX=
+      npc.targetX;
+
+    const targetY=
+      npc.targetY;
+
+    const dx=
+      targetX-npc.x;
+
+    const dy=
+      targetY-npc.y;
+
+    const distance=
+      Math.sqrt(
+        dx*dx+
+        dy*dy
+      );
+
+    if(distance<8){
+
+      if(
+        npc.location==="office"||
+        npc.location==="hospital"||
+        npc.location==="school"||
+        npc.location==="shop"
+      ){
+
+        npc.state="working";
+
+      }
+      else{
+
+        npc.state="idle";
+
+      }
+
+      this.renderNPC(npc);
+
+      return;
+
+    }
+
+    npc.state="walking";
+
+    npc.x+=
+      dx/distance*npc.speed;
+
+    npc.y+=
+      dy/distance*npc.speed;
+
+    this.renderNPC(npc);
+
+  },
+
+  /* =======================================================
+     TIME
+     ======================================================= */
+
+  updateTime(){
+
+    this.hour+=.025;
+
+    if(this.hour>=24){
+
+      this.hour-=24;
+
+      this.day++;
+
+      this.dailyUpdate();
+
+    }
+
+    const h=
+      Math.floor(this.hour);
+
+    const m=
+      Math.floor(
+        (this.hour-h)*60
+      );
+
+    document.getElementById(
+      "clock"
+    ).textContent=
+      "📅 Day "+
+      this.day+
+      " • 🕐 "+
+      String(h).padStart(2,"0")+
+      ":"+
+      String(m).padStart(2,"0");
+
+    if(
+      Math.floor(
+        this.hour
+      )!==Math.floor(
+        this.hour-.025
+      )
+    ){
+
+      this.npcs.forEach(
+        npc=>{
+          this.chooseRoutine(npc);
+        }
+      );
+
+    }
+
+  },
+
+  /* =======================================================
+     DAILY UPDATE
+     ======================================================= */
+
+  dailyUpdate(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.job!=="Tourist"
+        ){
+
+          npc.money+=
+            npc.salary;
+
+          npc.workDone++;
+
+        }
+
+        npc.energy=
+          60+
+          Math.floor(
+            Math.random()*40
+          );
+
+        npc.happiness=
+          Math.max(
+            10,
+            Math.min(
+              100,
+              npc.happiness+
+              Math.floor(
+                Math.random()*11
+              )-5
+            )
+          );
+
+      }
+    );
+
+    this.message(
+      "🌅 A new day has started"
+    );
+
+    this.save();
+
+  },
+
+  /* =======================================================
+     RANDOM CITY EVENTS
+     ======================================================= */
+
+  randomEvents(){
+
+    if(
+      Math.random()>0.0007
+    ){
+
+      return;
+
+    }
+
+    const events=[
+
+      "🎉 A street festival started!",
+      "🌧️ Light rain began across the city.",
+      "🛍️ Shops are having a busy day.",
+      "⚽ People gathered at the park.",
+      "🍽️ Restaurants became crowded.",
+      "🚦 Traffic increased near the offices.",
+      "🎵 A music event started downtown."
+
+    ];
+
+    const text=
+      events[
+        Math.floor(
+          Math.random()*events.length
+        )
+      ];
+
+    this.cityStats.socialEvents++;
+
+    this.showEvent(text);
+
+  },
+
+  showEvent(text){
+
+    const el=
+      document.getElementById(
+        "event"
+      );
+
+    el.textContent=text;
+
+    el.style.display="block";
+
+    clearTimeout(
+      this.eventTimer
+    );
+
+    this.eventTimer=
+      setTimeout(
+        ()=>{
+          el.style.display=
+            "none";
+        },
+        3000
+      );
+
+  },
+
+  /* =======================================================
+     PLAYER MOVEMENT
+     ======================================================= */
+
+  movePlayer(){
+
+    const speed=3;
+
+    if(
+      this.keys.ArrowUp||
+      this.keys.KeyW
+    ){
+      this.player.y-=speed;
+    }
+
+    if(
+      this.keys.ArrowDown||
+      this.keys.KeyS
+    ){
+      this.player.y+=speed;
+    }
+
+    if(
+      this.keys.ArrowLeft||
+      this.keys.KeyA
+    ){
+      this.player.x-=speed;
+    }
+
+    if(
+      this.keys.ArrowRight||
+      this.keys.KeyD
+    ){
+      this.player.x+=speed;
+    }
+
+    this.player.x=
+      Math.max(
+        15,
+        Math.min(
+          window.innerWidth-15,
+          this.player.x
+        )
+      );
+
+    this.player.y=
+      Math.max(
+        160,
+        Math.min(
+          window.innerHeight-30,
+          this.player.y
+        )
+      );
+
+    const el=
+      document.getElementById(
+        "player"
+      );
+
+    el.style.left=
+      this.player.x+"px";
+
+    el.style.top=
+      this.player.y+"px";
+
+  },
+
+  /* =======================================================
+     NEAREST NPC
+     ======================================================= */
+
+  nearestNPC(){
+
+    let best=null;
+
+    let distance=80;
+
+    this.npcs.forEach(
+      npc=>{
+
+        const dx=
+          npc.x-
+          this.player.x;
+
+        const dy=
+          npc.y-
+          this.player.y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+        if(d<distance){
+
+          distance=d;
+
+          best=npc;
+
+        }
+
+      }
+    );
+
+    return best;
+
+  },
+
+  /* =======================================================
+     INTERACT
+     ======================================================= */
+
+  interact(){
+
+    const npc=
+      this.nearestNPC();
+
+    if(!npc){
+
+      this.message(
+        "🚶 Move closer to someone"
+      );
+
+      return;
+
+    }
+
+    this.selectedNPC=npc;
+
+    npc.state="talking";
+
+    this.showNPCPanel(npc);
+
+  },
+
+  /* =======================================================
+     NPC PANEL
+     ======================================================= */
+
+  showNPCPanel(npc){
+
+    const panel=
+      document.getElementById(
+        "panel"
+      );
+
+    const title=
+      document.getElementById(
+        "panelTitle"
+      );
+
+    const content=
+      document.getElementById(
+        "panelContent"
+      );
+
+    title.textContent=
+      "👤 "+
+      npc.name;
+
+    content.innerHTML="";
+
+    const info=
+      document.createElement(
+        "div"
+      );
+
+    info.className="row";
+
+    info.innerHTML=
+      `
+      <b>${npc.type}</b>
+      <br>
+      💼 Job: ${npc.job}
+      <br>
+      🎂 Age: ${npc.age}
+      <br>
+      📍 Location: ${npc.location}
+      <br>
+      💰 Money: ₹${Math.floor(npc.money)}
+      <br>
+      😊 Happiness: ${npc.happiness}%
+      <br>
+      ⚡ Energy: ${npc.energy}%
+      <br>
+      ❤️ Relationship: ${npc.relationship}
+      `;
+
+    content.appendChild(info);
+
+    const actions=
+      document.createElement(
+        "div"
+      );
+
+    actions.className="row";
+
+    actions.innerHTML=
+      `
+      <b>Social Actions</b><br>
+
+    
