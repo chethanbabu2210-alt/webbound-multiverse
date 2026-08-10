@@ -1,0 +1,1057 @@
+<!-- =====================================================
+ V210 — POLICE & CRIME SYSTEM
+ Add after V209
+ ===================================================== -->
+
+<style>
+
+/* ================= POLICE HUD ================= */
+
+#policeHud{
+    position:fixed;
+
+    right:12px;
+    top:120px;
+
+    width:min(230px,50vw);
+
+    padding:10px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff25;
+
+    border-radius:11px;
+
+    z-index:1100;
+}
+
+.policeTitle{
+    font-size:11px;
+    font-weight:bold;
+}
+
+.wantedStars{
+    margin-top:5px;
+
+    font-size:15px;
+
+    letter-spacing:2px;
+}
+
+#crimeMission{
+    margin-top:6px;
+
+    font-size:9px;
+
+    line-height:1.5;
+}
+
+#policeStatus{
+    margin-top:5px;
+
+    font-size:9px;
+
+    opacity:.8;
+}
+
+
+/* ================= CRIME EVENT ================= */
+
+.crimeEvent{
+    position:absolute;
+
+    width:45px;
+    height:45px;
+
+    border:
+        3px solid #ffffff;
+
+    border-radius:50%;
+
+    z-index:250;
+
+    animation:
+        crimePulse .7s infinite alternate;
+
+    cursor:pointer;
+}
+
+@keyframes crimePulse{
+
+    from{
+        transform:scale(.8);
+        opacity:.6;
+    }
+
+    to{
+        transform:scale(1.15);
+        opacity:1;
+    }
+
+}
+
+.crimeEvent.resolved{
+    opacity:.2;
+    animation:none;
+}
+
+
+/* ================= CIVILIANS ================= */
+
+.civilian{
+    position:absolute;
+
+    width:12px;
+    height:25px;
+
+    background:#56636a;
+
+    border-radius:7px;
+
+    z-index:25;
+}
+
+.civilian:before{
+    content:"";
+
+    position:absolute;
+
+    width:10px;
+    height:10px;
+
+    left:1px;
+    top:-7px;
+
+    background:#777;
+
+    border-radius:50%;
+}
+
+
+/* ================= POLICE ================= */
+
+.policeUnit{
+    position:absolute;
+
+    width:18px;
+    height:30px;
+
+    background:#1d2730;
+
+    border-radius:5px;
+
+    z-index:280;
+
+    box-shadow:
+        0 0 10px #ffffff44;
+
+    transition:
+        left .25s,
+        top .25s;
+}
+
+.policeUnit:before{
+    content:"";
+
+    position:absolute;
+
+    width:10px;
+    height:10px;
+
+    left:4px;
+    top:-8px;
+
+    background:#7c858a;
+
+    border-radius:50%;
+}
+
+.policeLight{
+    position:absolute;
+
+    left:4px;
+    top:0;
+
+    width:10px;
+    height:4px;
+
+    background:#d8e0e4;
+
+    border-radius:3px;
+}
+
+
+/* ================= SIREN ================= */
+
+#policeSiren{
+    position:fixed;
+
+    inset:0;
+
+    pointer-events:none;
+
+    z-index:1050;
+
+    opacity:0;
+}
+
+#policeSiren.active{
+    opacity:1;
+
+    animation:
+        sirenFlash .5s infinite alternate;
+}
+
+@keyframes sirenFlash{
+
+    from{
+        box-shadow:
+            inset 0 0 40px #ffffff18;
+    }
+
+    to{
+        box-shadow:
+            inset 0 0 80px #ffffff28;
+    }
+
+}
+
+
+/* ================= CRIME CONTROLS ================= */
+
+#crimeControls{
+    position:fixed;
+
+    left:50%;
+    bottom:72px;
+
+    transform:translateX(-50%);
+
+    width:min(550px,90vw);
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:6px;
+
+    z-index:1100;
+}
+
+#crimeControls button{
+
+    padding:8px 3px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:8px;
+
+    font-size:8px;
+
+    cursor:pointer;
+}
+
+#crimeControls button:active{
+    transform:scale(.94);
+}
+
+.rescue{
+    background:#183b3b !important;
+}
+
+.hide{
+    background:#2d3136 !important;
+}
+
+.stop{
+    background:#392528 !important;
+}
+
+</style>
+
+
+<!-- =====================================================
+ POLICE HUD
+ ===================================================== -->
+
+<div id="policeHud">
+
+    <div class="policeTitle">
+        🚨 CITY EMERGENCY — V210
+    </div>
+
+    <div
+        id="wantedStars"
+        class="wantedStars">
+        ☆☆☆☆☆
+    </div>
+
+    <div id="crimeMission">
+        No active emergency.
+    </div>
+
+    <div id="policeStatus">
+        Police status: PATROL
+    </div>
+
+</div>
+
+
+<div id="policeSiren"></div>
+
+
+<!-- =====================================================
+ CRIME EVENTS
+ ===================================================== -->
+
+<div
+    id="crime1"
+    class="crimeEvent"
+    style="left:12%;top:52%"
+    onclick="SpiderCrime.resolve(1)">
+</div>
+
+<div
+    id="crime2"
+    class="crimeEvent"
+    style="left:42%;top:48%;display:none"
+    onclick="SpiderCrime.resolve(2)">
+</div>
+
+<div
+    id="crime3"
+    class="crimeEvent"
+    style="left:76%;top:55%;display:none"
+    onclick="SpiderCrime.resolve(3)">
+</div>
+
+
+<!-- =====================================================
+ CIVILIANS
+ ===================================================== -->
+
+<div
+    class="civilian"
+    style="left:20%;top:72%">
+</div>
+
+<div
+    class="civilian"
+    style="left:36%;top:75%">
+</div>
+
+<div
+    class="civilian"
+    style="left:61%;top:71%">
+</div>
+
+<div
+    class="civilian"
+    style="left:87%;top:76%">
+</div>
+
+
+<!-- =====================================================
+ POLICE UNITS
+ ===================================================== -->
+
+<div
+    id="police1"
+    class="policeUnit"
+    style="left:-5%;top:72%">
+
+    <div class="policeLight"></div>
+
+</div>
+
+<div
+    id="police2"
+    class="policeUnit"
+    style="left:105%;top:70%;display:none">
+
+    <div class="policeLight"></div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="crimeControls">
+
+    <button
+        class="rescue"
+        onclick="SpiderCrime.scan()">
+        🔎 SCAN
+    </button>
+
+    <button
+        class="rescue"
+        onclick="SpiderCrime.resolveCurrent()">
+        🕷️ RESOLVE
+    </button>
+
+    <button
+        class="stop"
+        onclick="SpiderCrime.stopPolice()">
+        🚨 STOP
+    </button>
+
+    <button
+        class="hide"
+        onclick="SpiderCrime.hide()">
+        🫥 HIDE
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V210 CRIME ENGINE
+ ===================================================== */
+
+const SpiderCrime={
+
+    wanted:0,
+
+    maxWanted:5,
+
+    crimes:0,
+
+    resolved:0,
+
+    activeCrime:null,
+
+    policeActive:false,
+
+    hidden:false,
+
+    xp:0,
+
+    crimeTimer:null,
+
+    policeTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.update();
+
+        this.startCrimeSpawner();
+
+        this.message(
+            "🚨 City crime system online."
+        );
+
+    },
+
+
+    /* =========================
+       SPAWN CRIMES
+    ========================= */
+
+    startCrimeSpawner(){
+
+        this.crimeTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        this.activeCrime
+                    )
+                        return;
+
+                    this.spawnCrime();
+
+                },
+                10000
+            );
+
+    },
+
+
+    /* =========================
+       SPAWN
+    ========================= */
+
+    spawnCrime(){
+
+        const ids=[
+            1,
+            2,
+            3
+        ];
+
+        const id=
+            ids[
+                Math.floor(
+                    Math.random()*
+                    ids.length
+                )
+            ];
+
+        const crime=
+            document.getElementById(
+                "crime"+id
+            );
+
+        if(!crime)
+            return;
+
+        crime.style.display=
+            "block";
+
+        crime.classList.remove(
+            "resolved"
+        );
+
+        this.activeCrime=id;
+
+        this.crimes++;
+
+        document.getElementById(
+            "crimeMission"
+        ).textContent=
+            "🚨 Emergency: reach the crime location!";
+
+        document.getElementById(
+            "policeStatus"
+        ).textContent=
+            "Police status: RESPONDING";
+
+        this.message(
+            "🚨 CRIME DETECTED!"
+        );
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       SCAN
+    ========================= */
+
+    scan(){
+
+        if(!this.activeCrime){
+
+            this.message(
+                "🔎 No active crime nearby."
+            );
+
+            return;
+
+        }
+
+        const crime=
+            document.getElementById(
+                "crime"+
+                this.activeCrime
+            );
+
+        const rect=
+            crime.getBoundingClientRect();
+
+        this.message(
+            "📍 Crime located!"
+        );
+
+        crime.style.transform=
+            "scale(1.5)";
+
+        setTimeout(
+            ()=>{
+                crime.style.transform="";
+            },
+            500
+        );
+
+    },
+
+
+    /* =========================
+       RESOLVE CURRENT
+    ========================= */
+
+    resolveCurrent(){
+
+        if(!this.activeCrime){
+
+            this.message(
+                "No active emergency."
+            );
+
+            return;
+
+        }
+
+        this.resolve(
+            this.activeCrime
+        );
+
+    },
+
+
+    /* =========================
+       RESOLVE
+    ========================= */
+
+    resolve(id){
+
+        const crime=
+            document.getElementById(
+                "crime"+id
+            );
+
+        if(!crime)
+            return;
+
+        if(
+            crime.classList.contains(
+                "resolved"
+            )
+        )
+            return;
+
+        crime.classList.add(
+            "resolved"
+        );
+
+        this.resolved++;
+
+        this.xp+=30;
+
+        this.wanted=
+            Math.max(
+                0,
+                this.wanted-1
+            );
+
+        this.activeCrime=null;
+
+        this.stopPolice();
+
+        document.getElementById(
+            "crimeMission"
+        ).textContent=
+            "✅ Emergency resolved. +30 XP";
+
+        document.getElementById(
+            "policeStatus"
+        ).textContent=
+            "Police status: PATROL";
+
+        this.message(
+            "🕷️ CIVILIANS SAFE! +30 XP"
+        );
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       POLICE RESPONSE
+    ========================= */
+
+    callPolice(){
+
+        if(this.policeActive)
+            return;
+
+        this.policeActive=true;
+
+        const p1=
+            document.getElementById(
+                "police1"
+            );
+
+        const p2=
+            document.getElementById(
+                "police2"
+            );
+
+        p1.style.left=
+            "25%";
+
+        p2.style.display=
+            "block";
+
+        p2.style.left=
+            "70%";
+
+        document.getElementById(
+            "policeSiren"
+        ).classList.add(
+            "active"
+        );
+
+        document.getElementById(
+            "policeStatus"
+        ).textContent=
+            "Police status: SEARCHING";
+
+        this.policeTimer=
+            setInterval(
+                ()=>{
+                    this.policeAI();
+                },
+                900
+            );
+
+    },
+
+
+    /* =========================
+       POLICE AI
+    ========================= */
+
+    policeAI(){
+
+        if(this.hidden){
+
+            document.getElementById(
+                "policeStatus"
+            ).textContent=
+                "Police status: SEARCHING";
+
+            return;
+
+        }
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+        const rect=
+            player.getBoundingClientRect();
+
+        const targetX=
+            rect.left/
+            window.innerWidth*
+            100;
+
+        const targetY=
+            rect.top/
+            window.innerHeight*
+            100;
+
+        const p1=
+            document.getElementById(
+                "police1"
+            );
+
+        const current=
+            parseFloat(
+                p1.style.left
+            )||25;
+
+        if(
+            Math.abs(
+                current-targetX
+            )>2
+        ){
+
+            p1.style.left=
+                (
+                    current+
+                    (
+                        targetX>current
+                        ? 1
+                        : -1
+                    )*
+                    2
+                )+"%";
+
+        }
+
+        if(
+            Math.abs(
+                current-targetX
+            )<5
+        ){
+
+            this.message(
+                "🚨 Police are nearby!"
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       STOP POLICE
+    ========================= */
+
+    stopPolice(){
+
+        clearInterval(
+            this.policeTimer
+        );
+
+        this.policeActive=false;
+
+        const p1=
+            document.getElementById(
+                "police1"
+            );
+
+        const p2=
+            document.getElementById(
+                "police2"
+            );
+
+        p1.style.left=
+            "-5%";
+
+        p2.style.left=
+            "105%";
+
+        p2.style.display=
+            "none";
+
+        document.getElementById(
+            "policeSiren"
+        ).classList.remove(
+            "active"
+        );
+
+        document.getElementById(
+            "policeStatus"
+        ).textContent=
+            "Police status: PATROL";
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       WANTED LEVEL
+    ========================= */
+
+    increaseWanted(){
+
+        this.wanted=
+            Math.min(
+                this.maxWanted,
+                this.wanted+1
+            );
+
+        if(
+            this.wanted>=2
+        ){
+
+            this.callPolice();
+
+        }
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       HIDE
+    ========================= */
+
+    hide(){
+
+        this.hidden=true;
+
+        this.message(
+            "🫥 Spider-Man is hiding..."
+        );
+
+        document.getElementById(
+            "policeStatus"
+        ).textContent=
+            "Police status: LOST TARGET";
+
+        setTimeout(
+            ()=>{
+
+                this.hidden=false;
+
+                if(this.policeActive){
+
+                    document.getElementById(
+                        "policeStatus"
+                    ).textContent=
+                        "Police status: SEARCHING";
+
+                }
+
+            },
+            3500
+        );
+
+    },
+
+
+    /* =========================
+       UPDATE
+    ========================= */
+
+    update(){
+
+        let stars="";
+
+        for(
+            let i=0;
+            i<this.maxWanted;
+            i++
+        ){
+
+            stars+=
+                i<this.wanted
+                ? "★"
+                : "☆";
+
+        }
+
+        document.getElementById(
+            "wantedStars"
+        ).textContent=
+            stars;
+
+        if(
+            this.activeCrime===null
+        ){
+
+            document.getElementById(
+                "crimeMission"
+            ).textContent=
+                "No active emergency.";
+
+        }
+
+        if(
+            typeof SpiderCity!==
+            "undefined"
+        ){
+
+            SpiderCity.xp+=
+                this.xp;
+
+            this.xp=0;
+
+            SpiderCity.update();
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "message"
+            );
+
+        if(!box)
+            return;
+
+        box.textContent=
+            text;
+
+        box.style.display=
+            "block";
+
+        clearTimeout(
+            this.messageTimer
+        );
+
+        this.messageTimer=
+            setTimeout(
+                ()=>{
+                    box.style.display=
+                        "none";
+                },
+                1800
+            );
+
+    }
+
+};
+
+
+/* =====================================================
+ START V210
+ ===================================================== */
+
+SpiderCrime.init();
+
+
+/* =====================================================
+ KEYBOARD CONTROLS
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="n")
+            SpiderCrime.scan();
+
+        if(key==="m")
+            SpiderCrime.resolveCurrent();
+
+        if(key==="p")
+            SpiderCrime.stopPolice();
+
+        if(key==="h")
+            SpiderCrime.hide();
+
+    }
+);
+
+
+/* =====================================================
+ DEMO EVENT
+ ===================================================== */
+
+setTimeout(
+    ()=>{
+
+        if(
+            !SpiderCrime.activeCrime
+        ){
+
+            SpiderCrime.spawnCrime();
+
+        }
+
+    },
+    2500
+);
+
+</script>
