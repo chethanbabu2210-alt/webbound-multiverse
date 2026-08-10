@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V152 — VEHICLE SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+ transition:background 1s;
+}
+
+#world{
+ position:absolute;
+ inset:0;
+ overflow:hidden;
+}
+
+.road{
+ position:absolute;
+ background:#242c31;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:64px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:64px;
+}
+
+.lane{
+ position:absolute;
+ background:#d6c36b;
+ opacity:.5;
+}
+
+.laneH{
+ left:0;
+ right:0;
+ top:calc(57% + 30px);
+ height:2px;
+}
+
+.laneV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 30px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+/* PLAYER */
+
+#player{
+ position:absolute;
+ left:50%;
+ top:57%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:30;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ width:18px;
+ height:18px;
+ left:5.5px;
+ top:-14px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+/* VEHICLE */
+
+#vehicle{
+ position:absolute;
+ left:50%;
+ top:54%;
+ width:82px;
+ height:42px;
+ display:none;
+ z-index:40;
+}
+
+.carBody{
+ position:absolute;
+ left:8px;
+ top:8px;
+ width:66px;
+ height:27px;
+ border-radius:10px 14px 8px 8px;
+ background:#b64d63;
+ border:2px solid #e8a0b0;
+}
+
+.carWindow{
+ position:absolute;
+ left:24px;
+ top:11px;
+ width:31px;
+ height:12px;
+ border-radius:5px;
+ background:#17252c;
+ border:1px solid #ffffff33;
+}
+
+.wheel{
+ position:absolute;
+ width:14px;
+ height:14px;
+ bottom:0;
+ border-radius:50%;
+ background:#080b0d;
+ border:2px solid #60686d;
+}
+
+.w1{left:12px}
+.w2{right:12px}
+
+.vehicleLabel{
+ position:absolute;
+ left:50%;
+ top:-17px;
+ transform:translateX(-50%);
+ font-size:8px;
+ color:#fff;
+ white-space:nowrap;
+}
+
+/* HUD */
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(440px,78vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:flex;
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ flex:1;
+ padding:7px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#vehicleInfo{
+ margin-top:8px;
+ padding:8px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+#fuelBar{
+ height:7px;
+ background:#ffffff15;
+ border-radius:5px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+#fuelProgress{
+ height:100%;
+ width:100%;
+ background:#b68be8;
+ transition:.3s;
+}
+
+/* CONTROLS */
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(800px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+/* PANEL */
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(650px,92vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:
+ repeat(auto-fit,minmax(145px,1fr));
+ gap:7px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ min-height:125px;
+ font-size:10px;
+ line-height:1.5;
+}
+
+.card b{
+ display:block;
+ margin-bottom:6px;
+}
+
+.card button{
+ width:100%;
+ margin-top:7px;
+}
+
+.selected{
+ border:1px solid #c58be9;
+}
+
+/* NOTIFICATION */
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+}
+
+/* GARAGE */
+
+#garageMarker{
+ position:absolute;
+ left:15%;
+ top:61%;
+ padding:7px 10px;
+ background:#060b0fdd;
+ border:1px solid #ffffff20;
+ border-radius:7px;
+ color:#d6a5f2;
+ font-size:9px;
+ z-index:60;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="lane laneH"></div>
+  <div class="lane laneV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🌳 PARK</div>
+
+  <div id="garageMarker">
+   🚗 GARAGE
+  </div>
+
+  <div id="player"></div>
+
+  <div id="vehicle">
+
+   <div class="vehicleLabel">
+    <span id="vehicleName">CITY RUNNER</span>
+   </div>
+
+   <div class="carBody"></div>
+   <div class="carWindow"></div>
+   <div class="wheel w1"></div>
+   <div class="wheel w2"></div>
+
+  </div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🚗 WEBBOUND V152
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    🚘 SPEED<br>
+    <span id="speed">0</span> km/h
+   </div>
+
+   <div class="stat">
+    ⛽ FUEL<br>
+    <span id="fuel">100</span>%
+   </div>
+
+   <div class="stat">
+    🛞 MODE<br>
+    <span id="mode">ON FOOT</span>
+   </div>
+
+   <div class="stat">
+    🚗 CARS<br>
+    <span id="cars">1</span>
+   </div>
+
+  </div>
+
+  <div id="vehicleInfo">
+
+   Vehicle:
+   <b id="vehicleDisplay">
+    On Foot
+   </b>
+
+   <div id="fuelBar">
+    <div id="fuelProgress"></div>
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V152.garage()">
+   🚗 GARAGE
+  </button>
+
+  <button onclick="V152.enterExit()">
+   🚪 ENTER / EXIT
+  </button>
+
+  <button onclick="V152.accelerate()">
+   ⚡ ACCELERATE
+  </button>
+
+  <button onclick="V152.brake()">
+   🛑 BRAKE
+  </button>
+
+  <button onclick="V152.refuel()">
+   ⛽ REFUEL
+  </button>
+
+  <button onclick="V152.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V152.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V152={
+
+ saveKey:"WEBBOUND_V152",
+
+ driving:false,
+
+ speed:0,
+
+ fuel:100,
+
+ selected:"runner",
+
+ owned:["runner"],
+
+ vehicles:[
+
+  {
+   id:"runner",
+   name:"City Runner",
+   icon:"🚗",
+   price:0,
+   maxSpeed:120,
+   fuelUse:1,
+   description:
+    "Reliable starter vehicle for city travel."
+  },
+
+  {
+   id:"interceptor",
+   name:"Street Interceptor",
+   icon:"🏎️",
+   price:2500,
+   maxSpeed:180,
+   fuelUse:2,
+   description:
+    "Fast vehicle designed for high-speed travel."
+  },
+
+  {
+   id:"guardian",
+   name:"Urban Guardian",
+   icon:"🚙",
+   price:3500,
+   maxSpeed:145,
+   fuelUse:1,
+   description:
+    "Heavy-duty vehicle with excellent fuel efficiency."
+  },
+
+  {
+   id:"shadow",
+   name:"Shadow GT",
+   icon:"🏎️",
+   price:5000,
+   maxSpeed:210,
+   fuelUse:3,
+   description:
+    "Premium performance vehicle."
+  },
+
+  {
+   id:"van",
+   name:"Investigation Van",
+   icon:"🚐",
+   price:4200,
+   maxSpeed:130,
+   fuelUse:1,
+   description:
+    "Large vehicle built for investigation equipment."
+  }
+
+ ],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  setInterval(
+   ()=>{
+    this.driveTick();
+   },
+   1000
+  );
+
+  this.notify(
+   "🚗 V152 vehicle system ready"
+  );
+
+ },
+
+ /* =========================
+    CURRENT VEHICLE
+ ========================= */
+
+ current(){
+
+  return this.vehicles.find(
+   v=>v.id===this.selected
+  ) || this.vehicles[0];
+
+ },
+
+ /* =========================
+    GARAGE
+ ========================= */
+
+ garage(){
+
+  let html="";
+
+  html+=`
+
+   <div class="card">
+
+    💰 Vehicle garage
+
+    <br>
+
+    Owned vehicles:
+    <b>${this.owned.length}</b>
+
+   </div>
+
+   <div class="grid">
+
+  `;
+
+  this.vehicles.forEach(
+   vehicle=>{
+
+    const owned=
+     this.owned.includes(
+      vehicle.id
+     );
+
+    const selected=
+     this.selected===
+     vehicle.id;
+
+    html+=`
+
+     <div class="card ${
+      selected?"selected":""
+     }">
+
+      <b>
+       ${vehicle.icon}
+       ${vehicle.name}
+      </b>
+
+      Max speed:
+      ${vehicle.maxSpeed} km/h
+
+      <br>
+
+      Fuel use:
+      ${vehicle.fuelUse}/min
+
+      <br>
+
+      ${
+       vehicle.price===0
+       ?"FREE"
+       :"₹"+vehicle.price
+      }
+
+      <br><br>
+
+      ${vehicle.description}
+
+      ${
+       owned
+       ?`
+        <button
+         onclick="V152.selectVehicle('${vehicle.id}')">
+         ${
+          selected
+          ?"✅ SELECTED"
+          :"SELECT"
+         }
+        </button>
+       `
+       :`
+        <button
+         onclick="V152.buyVehicle('${vehicle.id}')">
+         BUY ₹${vehicle.price}
+        </button>
+       `
+      }
+
+     </div>
+
+    `;
+
+   }
+  );
+
+  html+=`</div>`;
+
+  this.open(
+   "🚗 VEHICLE GARAGE",
+   html
+  );
+
+ },
+
+ /* =========================
+    BUY VEHICLE
+ ========================= */
+
+ buyVehicle(id){
+
+  const vehicle=
+   this.vehicles.find(
+    v=>v.id===id
+   );
+
+  if(!vehicle)
+   return;
+
+  if(
+   this.owned.includes(id)
+  ){
+
+   this.notify(
+    "Vehicle already owned."
+   );
+
+   return;
+
+  }
+
+  const cash=
+   Number(
+    localStorage.getItem(
+     "WEBBOUND_V150_CASH"
+    )
+   ) || 0;
+
+  /*
+   V150 normally stores its own
+   economy state. We keep a
+   compatible local cash bridge
+   so V152 can run independently.
+  */
+
+  if(cash<vehicle.price){
+
+   this.notify(
+    "❌ Not enough cash. Need ₹"+
+    vehicle.price
+   );
+
+   return;
+
+  }
+
+  const remaining=
+   cash-vehicle.price;
+
+  localStorage.setItem(
+   "WEBBOUND_V150_CASH",
+   remaining
+  );
+
+  this.owned.push(id);
+
+  this.selected=id;
+
+  this.save();
+
+  this.garage();
+
+  this.notify(
+   "🚗 Purchased "+
+   vehicle.name
+  );
+
+ },
+
+ /* =========================
+    SELECT
+ ========================= */
+
+ selectVehicle(id){
+
+  if(
+   !this.owned.includes(id)
+  )
+   return;
+
+  this.selected=id;
+
+  this.speed=0;
+
+  this.update();
+
+  this.save();
+
+  this.garage();
+
+  this.notify(
+   "🚗 Selected "+
+   this.current().name
+  );
+
+ },
+
+ /* =========================
+    ENTER / EXIT
+ ========================= */
+
+ enterExit(){
+
+  if(this.fuel<=0){
+
+   this.notify(
+    "⛽ No fuel."
+   );
+
+   return;
+
+  }
+
+  this.driving=
+   !this.driving;
+
+  this.speed=0;
+
+  const vehicle=
+   document.getElementById(
+    "vehicle"
+   );
+
+  const player=
+   document.getElementById(
+    "player"
+   );
+
+  if(this.driving){
+
+   vehicle.style.display=
+    "block";
+
+   player.style.display=
+    "none";
+
+   this.notify(
+    "🚗 Entered "+
+    this.current().name
+   );
+
+  }
+  else{
+
+   vehicle.style.display=
+    "none";
+
+   player.style.display=
+    "block";
+
+   this.notify(
+    "🚶 Exited vehicle"
+   );
+
+  }
+
+  this.update();
+
+ },
+
+ /* =========================
+    ACCELERATE
+ ========================= */
+
+ accelerate(){
+
+  if(!this.driving){
+
+   this.notify(
+    "🚪 Enter a vehicle first."
+   );
+
+   return;
+
+  }
+
+  if(this.fuel<=0){
+
+   this.notify(
+    "⛽ Fuel empty."
+   );
+
+   return;
+
+  }
+
+  const vehicle=
+   this.current();
+
+  this.speed+=15;
+
+  if(
+   this.speed>
+   vehicle.maxSpeed
+  )
+   this.speed=
+    vehicle.maxSpeed;
+
+  this.consumeFuel(
+   vehicle.fuelUse
+  );
+
+  this.moveVehicle();
+
+  this.update();
+
+ },
+
+ /* =========================
+    BRAKE
+ ========================= */
+
+ brake(){
+
+  this.speed=
+   Math.max(
+    0,
+    this.speed-25
+   );
+
+  this.update();
+
+ },
+
+ /* =========================
+    FUEL
+ ========================= */
+
+ consumeFuel(amount){
+
+  this.fuel=
+   Math.max(
+    0,
+    this.fuel-amount
+   );
+
+  if(this.fuel===0){
+
+   this.speed=0;
+
+   this.notify(
+    "⛽ Vehicle out of fuel."
+   );
+
+  }
+
+ },
+
+ refuel(){
+
+  const cost=150;
+
+  let cash=
+   Number(
+    localStorage.getItem(
+     "WEBBOUND_V150_CASH"
+    )
+   ) || 0;
+
+  if(this.fuel>=100){
+
+   this.notify(
+    "⛽ Fuel tank already full."
+   );
+
+   return;
+
+  }
+
+  if(cash<cost){
+
+   this.notify(
+    "❌ Refueling costs ₹150."
+   );
+
+   return;
+
+  }
+
+  cash-=cost;
+
+  localStorage.setItem(
+   "WEBBOUND_V150_CASH",
+   cash
+  );
+
+  this.fuel=100;
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "⛽ Fuel refilled."
+  );
+
+ },
+
+ /* =========================
+    DRIVING
+ ========================= */
+
+ driveTick(){
+
+  if(!this.driving)
+   return;
+
+  if(this.speed<=0)
+   return;
+
+  const vehicle=
+   this.current();
+
+  this.consumeFuel(
+   Math.max(
+    1,
+    Math.ceil(
+     vehicle.fuelUse/2
+    )
+   )
+  );
+
+  this.moveVehicle();
+
+  this.update();
+
+ },
+
+ moveVehicle(){
+
+  const car=
+   document.getElementById(
+    "vehicle"
+   );
+
+  const currentLeft=
+   parseFloat(
+    car.style.left ||
+    "50"
+   );
+
+  let next=
+   currentLeft+
+   this.speed/500;
+
+  if(next>95)
+   next=5;
+
+  car.style.left=
+   next+"%";
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const vehicle=
+   this.current();
+
+  document.getElementById(
+   "speed"
+  ).textContent=
+   Math.round(this.speed);
+
+  document.getElementById(
+   "fuel"
+  ).textContent=
+   Math.round(this.fuel);
+
+  document.getElementById(
+   "cars"
+  ).textContent=
+   this.owned.length;
+
+  document.getElementById(
+   "mode"
+  ).textContent=
+   this.driving
+   ?"DRIVING"
+   :"ON FOOT";
+
+  document.getElementById(
+   "vehicleDisplay"
+  ).textContent=
+   this.driving
+   ?vehicle.name
+   :"On Foot";
+
+  document.getElementById(
+   "vehicleName"
+  ).textContent=
+   vehicle.name;
+
+  document.getElementById(
+   "fuelProgress"
+  ).style.width=
+   this.fuel+"%";
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    driving:false,
+
+    speed:0,
+
+    fuel:this.fuel,
+
+    selected:this.selected,
+
+    owned:this.owned
+
+   })
+  );
+
+  this.notify(
+   "💾 V152 saved"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   this.fuel=
+    Number.isFinite(data.fuel)
+    ?data.fuel
+    :100;
+
+   this.selected=
+    data.selected ||
+    "runner";
+
+   this.owned=
+    Array.isArray(data.owned)
+    ?data.owned
+    :["runner"];
+
+   if(
+    !this.owned.includes("runner")
+   )
+    this.owned.unshift("runner");
+
+  }
+  catch(e){
+
+   console.log(
+    "V152 load error",
+    e
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2200
+   );
+
+ }
+
+};
+
+V152.init();
+
+console.log(
+ "WEBBOUND V152 VEHICLE SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
