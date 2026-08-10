@@ -1,0 +1,988 @@
+<!-- =====================================================
+ V217 — NPC / CIVILIAN AI SYSTEM
+ Add after V216
+ ===================================================== -->
+
+<style>
+
+/* ================= NPC WORLD ================= */
+
+#npcWorld217{
+    position:fixed;
+
+    inset:0;
+
+    z-index:30;
+
+    pointer-events:none;
+
+    overflow:hidden;
+}
+
+
+/* ================= NPC ================= */
+
+.npc217{
+
+    position:absolute;
+
+    width:11px;
+    height:20px;
+
+    background:#68747a;
+
+    border-radius:5px;
+
+    z-index:40;
+
+    pointer-events:auto;
+
+    cursor:pointer;
+
+    transition:
+        left .4s linear,
+        top .4s linear,
+        transform .2s;
+
+}
+
+.npc217:before{
+
+    content:"";
+
+    position:absolute;
+
+    width:9px;
+    height:9px;
+
+    left:1px;
+    top:-7px;
+
+    background:#8a9498;
+
+    border-radius:50%;
+
+}
+
+
+/* ================= NPC STATES ================= */
+
+.npc217.calm{
+
+    opacity:.8;
+
+}
+
+.npc217.alert{
+
+    transform:
+        scale(1.15);
+
+    outline:
+        2px solid #ffffff55;
+
+}
+
+.npc217.panic{
+
+    animation:
+        panic217 .25s infinite alternate;
+
+}
+
+@keyframes panic217{
+
+    from{
+        transform:
+            translateX(-3px);
+    }
+
+    to{
+        transform:
+            translateX(3px);
+    }
+
+}
+
+.npc217.help{
+
+    box-shadow:
+        0 0 0 2px #ffffff66;
+
+}
+
+
+/* ================= NPC ICON ================= */
+
+.npcIcon217{
+
+    position:absolute;
+
+    left:50%;
+
+    top:-18px;
+
+    transform:
+        translateX(-50%);
+
+    font-size:9px;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+.npc217.alert
+.npcIcon217{
+
+    opacity:1;
+
+}
+
+
+/* ================= NPC HUD ================= */
+
+#npcHud217{
+
+    position:fixed;
+
+    left:12px;
+    top:250px;
+
+    width:min(220px,48vw);
+
+    padding:9px;
+
+    background:#03070de8;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:2900;
+
+}
+
+.npcHudTitle{
+
+    font-size:10px;
+
+    font-weight:bold;
+
+}
+
+#npcCount217,
+#npcState217{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= EVENT BANNER ================= */
+
+#npcEvent217{
+
+    position:fixed;
+
+    left:50%;
+    top:38%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 18px;
+
+    background:#03070df2;
+
+    border:
+        1px solid #ffffff30;
+
+    border-radius:10px;
+
+    z-index:3500;
+
+    display:none;
+
+    font-size:10px;
+
+    text-align:center;
+
+}
+
+#npcEvent217.active{
+
+    display:block;
+
+    animation:
+        npcEventIn217 .25s;
+
+}
+
+@keyframes npcEventIn217{
+
+    from{
+
+        opacity:0;
+
+        transform:
+            translateX(-50%)
+            scale(.7);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:
+            translateX(-50%)
+            scale(1);
+
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#npcControls217{
+
+    position:fixed;
+
+    left:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:3000;
+
+}
+
+#npcControls217 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ NPC WORLD
+ ===================================================== -->
+
+<div id="npcWorld217">
+
+
+    <div
+        id="npc217_1"
+        class="npc217 calm"
+        style="left:18%;top:48%"
+        onclick="SpiderNPC217.interact(1)">
+
+        <span class="npcIcon217">
+            !
+        </span>
+
+    </div>
+
+
+    <div
+        id="npc217_2"
+        class="npc217 calm"
+        style="left:28%;top:55%"
+        onclick="SpiderNPC217.interact(2)">
+
+        <span class="npcIcon217">
+            !
+        </span>
+
+    </div>
+
+
+    <div
+        id="npc217_3"
+        class="npc217 calm"
+        style="left:43%;top:46%"
+        onclick="SpiderNPC217.interact(3)">
+
+        <span class="npcIcon217">
+            !
+        </span>
+
+    </div>
+
+
+    <div
+        id="npc217_4"
+        class="npc217 calm"
+        style="left:60%;top:52%"
+        onclick="SpiderNPC217.interact(4)">
+
+        <span class="npcIcon217">
+            !
+        </span>
+
+    </div>
+
+
+    <div
+        id="npc217_5"
+        class="npc217 calm"
+        style="left:74%;top:44%"
+        onclick="SpiderNPC217.interact(5)">
+
+        <span class="npcIcon217">
+            !
+        </span>
+
+    </div>
+
+
+    <div
+        id="npc217_6"
+        class="npc217 calm"
+        style="left:85%;top:58%"
+        onclick="SpiderNPC217.interact(6)">
+
+        <span class="npcIcon217">
+            !
+        </span>
+
+    </div>
+
+
+    <div
+        id="npc217_7"
+        class="npc217 calm"
+        style="left:52%;top:76%"
+        onclick="SpiderNPC217.interact(7)">
+
+        <span class="npcIcon217">
+            !
+        </span>
+
+    </div>
+
+
+    <div
+        id="npc217_8"
+        class="npc217 calm"
+        style="left:31%;top:73%"
+        onclick="SpiderNPC217.interact(8)">
+
+        <span class="npcIcon217">
+            !
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ NPC HUD
+ ===================================================== -->
+
+<div id="npcHud217">
+
+    <div class="npcHudTitle">
+        👥 CIVILIAN AI — V217
+    </div>
+
+    <div id="npcCount217">
+        Civilians: 8
+    </div>
+
+    <div id="npcState217">
+        State: CALM
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ EVENT
+ ===================================================== -->
+
+<div id="npcEvent217">
+    👥 CIVILIAN EVENT
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="npcControls217">
+
+    <button
+        onclick="SpiderNPC217.triggerPanic()">
+        ⚠️ PANIC
+    </button>
+
+    <button
+        onclick="SpiderNPC217.startEmergency()">
+        🚨 EMERGENCY
+    </button>
+
+    <button
+        onclick="SpiderNPC217.calmAll()">
+        🙂 CALM
+    </button>
+
+    <button
+        onclick="SpiderNPC217.reset()">
+        🔄 RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V217 NPC ENGINE
+ ===================================================== */
+
+const SpiderNPC217={
+
+    running:true,
+
+    state:"CALM",
+
+    moveTimer:null,
+
+    npcCount:8,
+
+    emergency:false,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.startMovement();
+
+        this.message(
+            "👥 Civilian AI activated."
+        );
+
+    },
+
+
+    /* =========================
+       NPC MOVEMENT
+    ========================= */
+
+    startMovement(){
+
+        clearInterval(
+            this.moveTimer
+        );
+
+        this.moveTimer=
+            setInterval(
+                ()=>{
+
+                    if(!this.running)
+                        return;
+
+                    for(
+                        let i=1;
+                        i<=this.npcCount;
+                        i++
+                    ){
+
+                        this.moveNPC(i);
+
+                    }
+
+                },
+                1800
+            );
+
+    },
+
+
+    /* =========================
+       MOVE NPC
+    ========================= */
+
+    moveNPC(id){
+
+        const npc=
+            document.getElementById(
+                "npc217_"+id
+            );
+
+        if(!npc)
+            return;
+
+        const currentLeft=
+            parseFloat(
+                npc.style.left
+            )||50;
+
+        const currentTop=
+            parseFloat(
+                npc.style.top
+            )||50;
+
+
+        let moveX=
+            (
+                Math.random()-
+                .5
+            )*8;
+
+        let moveY=
+            (
+                Math.random()-
+                .5
+            )*5;
+
+
+        if(
+            this.state==="PANIC"
+        ){
+
+            moveX*=2.5;
+
+            moveY*=2.5;
+
+        }
+
+
+        npc.style.left=
+            Math.max(
+                5,
+                Math.min(
+                    95,
+                    currentLeft+
+                    moveX
+                )
+            )+"%";
+
+
+        npc.style.top=
+            Math.max(
+                30,
+                Math.min(
+                    90,
+                    currentTop+
+                    moveY
+                )
+            )+"%";
+
+    },
+
+
+    /* =========================
+       INTERACTION
+    ========================= */
+
+    interact(id){
+
+        const npc=
+            document.getElementById(
+                "npc217_"+id
+            );
+
+        if(!npc)
+            return;
+
+
+        if(
+            this.state==="PANIC"
+        ){
+
+            this.message(
+                "😨 Civilian "+id+
+                ": Help!"
+            );
+
+            return;
+
+        }
+
+
+        this.message(
+            "👋 Civilian "+id+
+            " noticed Spider-Man."
+        );
+
+
+        if(
+            typeof SpiderMissions!==
+            "undefined"
+        ){
+
+            SpiderMissions.progress=
+                Math.min(
+                    SpiderMissions.total,
+                    SpiderMissions.progress+
+                    .1
+                );
+
+            SpiderMissions.update();
+
+        }
+
+    },
+
+
+    /* =========================
+       PANIC
+    ========================= */
+
+    triggerPanic(){
+
+        this.state=
+            "PANIC";
+
+        this.emergency=false;
+
+        for(
+            let i=1;
+            i<=this.npcCount;
+            i++
+        ){
+
+            const npc=
+                document.getElementById(
+                    "npc217_"+i
+                );
+
+            if(npc){
+
+                npc.classList.remove(
+                    "calm"
+                );
+
+                npc.classList.add(
+                    "panic"
+                );
+
+            }
+
+        }
+
+        this.showEvent(
+            "⚠️ CIVILIANS PANIC!"
+        );
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       EMERGENCY
+    ========================= */
+
+    startEmergency(){
+
+        this.emergency=true;
+
+        this.state=
+            "EMERGENCY";
+
+        for(
+            let i=1;
+            i<=this.npcCount;
+            i++
+        ){
+
+            const npc=
+                document.getElementById(
+                    "npc217_"+i
+                );
+
+            if(npc){
+
+                npc.classList.remove(
+                    "calm"
+                );
+
+                npc.classList.add(
+                    "alert"
+                );
+
+                if(
+                    i%3===0
+                ){
+
+                    npc.classList.add(
+                        "help"
+                    );
+
+                }
+
+            }
+
+        }
+
+        this.showEvent(
+            "🚨 CITY EMERGENCY!"
+        );
+
+        this.updateHUD();
+
+        this.message(
+            "🚨 Civilians need help!"
+        );
+
+    },
+
+
+    /* =========================
+       CALM
+    ========================= */
+
+    calmAll(){
+
+        this.state=
+            "CALM";
+
+        this.emergency=false;
+
+        for(
+            let i=1;
+            i<=this.npcCount;
+            i++
+        ){
+
+            const npc=
+                document.getElementById(
+                    "npc217_"+i
+                );
+
+            if(npc){
+
+                npc.className=
+                    "npc217 calm";
+
+            }
+
+        }
+
+        this.updateHUD();
+
+        this.message(
+            "🙂 Civilians are calm."
+        );
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    reset(){
+
+        this.state=
+            "CALM";
+
+        this.emergency=false;
+
+        const positions=[
+
+            [18,48],
+            [28,55],
+            [43,46],
+            [60,52],
+            [74,44],
+            [85,58],
+            [52,76],
+            [31,73]
+
+        ];
+
+
+        for(
+            let i=1;
+            i<=this.npcCount;
+            i++
+        ){
+
+            const npc=
+                document.getElementById(
+                    "npc217_"+i
+                );
+
+            if(!npc)
+                continue;
+
+            npc.className=
+                "npc217 calm";
+
+            npc.style.left=
+                positions[i-1][0]+
+                "%";
+
+            npc.style.top=
+                positions[i-1][1]+
+                "%";
+
+        }
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const count=
+            document.getElementById(
+                "npcCount217"
+            );
+
+        const state=
+            document.getElementById(
+                "npcState217"
+            );
+
+        if(count){
+
+            count.textContent=
+                "Civilians: "+
+                this.npcCount;
+
+        }
+
+        if(state){
+
+            state.textContent=
+                "State: "+
+                this.state;
+
+        }
+
+    },
+
+
+    /* =========================
+       EVENT
+    ========================= */
+
+    showEvent(text){
+
+        const event=
+            document.getElementById(
+                "npcEvent217"
+            );
+
+        if(!event)
+            return;
+
+        event.textContent=
+            text;
+
+        event.classList.add(
+            "active"
+        );
+
+        clearTimeout(
+            this.eventTimer
+        );
+
+        this.eventTimer=
+            setTimeout(
+                ()=>{
+
+                    event.classList.remove(
+                        "active"
+                    );
+
+                },
+                1800
+            );
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V217
+ ===================================================== */
+
+SpiderNPC217.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="p")
+            SpiderNPC217.triggerPanic();
+
+        if(key==="n")
+            SpiderNPC217.startEmergency();
+
+        if(key==="c")
+            SpiderNPC217.calmAll();
+
+    }
+);
