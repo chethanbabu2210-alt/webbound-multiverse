@@ -1,0 +1,743 @@
+<!-- =========================================================
+ WEBBOUND V68
+ SAFEHOUSE / PETER HOME SYSTEM
+ BUILDS ON V60 - V67
+ ========================================================= -->
+
+<style>
+
+#v68HomeHUD{
+  position:fixed;
+  left:15px;
+  bottom:70px;
+  z-index:8300;
+  width:min(300px,85%);
+  padding:14px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:15px;
+  font-family:Arial,sans-serif;
+  display:none;
+}
+
+#v68HomeHUD h3{
+  margin:0 0 8px;
+}
+
+#v68HomeLocation{
+  font-size:12px;
+  color:#cbd5e1;
+  margin-bottom:10px;
+}
+
+#v68HomeHUD button{
+  width:100%;
+  margin:4px 0;
+  padding:10px;
+  border:1px solid #ffffff30;
+  border-radius:9px;
+  background:#111827;
+  color:white;
+}
+
+#v68HomeMessage{
+  position:fixed;
+  left:50%;
+  bottom:125px;
+  transform:translateX(-50%);
+  z-index:9996;
+  padding:11px 16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:11px;
+  font:13px Arial,sans-serif;
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+}
+
+</style>
+
+
+<!-- =========================================================
+ SAFEHOUSE HUD
+ ========================================================= -->
+
+<div id="v68HomeHUD">
+
+  <h3>🏠 SAFEHOUSE</h3>
+
+  <div id="v68HomeLocation">
+    Original Peter-style home
+  </div>
+
+  <button onclick="V68.enterHome()">
+    🚪 ENTER HOME
+  </button>
+
+  <button onclick="V68.openWardrobe()">
+    👕 WARDROBE
+  </button>
+
+  <button onclick="V68.openSuitArea()">
+    🕷️ SUIT AREA
+  </button>
+
+  <button onclick="V68.openDesk()">
+    💻 DESK
+  </button>
+
+  <button onclick="V68.openWorkbench()">
+    🧪 WORKBENCH
+  </button>
+
+  <button onclick="V68.createSafeCheckpoint()">
+    📍 SAFE CHECKPOINT
+  </button>
+
+  <button onclick="V68.exitHome()">
+    🚪 EXIT HOME
+  </button>
+
+</div>
+
+
+<div id="v68HomeMessage"></div>
+
+
+<script>
+
+const V68 = {
+
+  version:"V68",
+
+  inside:false,
+
+  location:"outside",
+
+  wardrobeOpen:false,
+
+  suitAreaOpen:false,
+
+  deskOpen:false,
+
+  workbenchOpen:false,
+
+
+  /* =======================================================
+     SHOW MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v68HomeMessage"
+      );
+
+    if(!box){
+      return;
+    }
+
+    box.textContent=
+      text;
+
+    box.style.opacity=
+      "1";
+
+    setTimeout(
+      ()=>{
+
+        box.style.opacity=
+          "0";
+
+      },
+      2200
+    );
+
+  },
+
+
+  /* =======================================================
+     SHOW HUD
+     ======================================================= */
+
+  showHUD(){
+
+    const hud=
+      document.getElementById(
+        "v68HomeHUD"
+      );
+
+    if(hud){
+
+      hud.style.display=
+        this.inside
+        ? "block"
+        : "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ENTER HOME
+     ======================================================= */
+
+  enterHome(){
+
+    if(this.inside){
+
+      this.message(
+        "🏠 You are already inside."
+      );
+
+      return;
+
+    }
+
+
+    /*
+      If a game position exists,
+      move the player to an original
+      safehouse interior position.
+    */
+
+    if(
+      typeof player !== "undefined" &&
+      player &&
+      player.position
+    ){
+
+      player.position.set(
+        0,
+        1.1,
+        0
+      );
+
+    }
+
+
+    this.inside=true;
+
+    this.location=
+      "home";
+
+    this.showHUD();
+
+
+    this.message(
+      "🏠 Welcome home."
+    );
+
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.createCheckpoint==="function"
+    ){
+
+      V60.createCheckpoint();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     EXIT HOME
+     ======================================================= */
+
+  exitHome(){
+
+    if(!this.inside){
+
+      this.message(
+        "🚪 You are outside."
+      );
+
+      return;
+
+    }
+
+
+    /*
+      Original outdoor spawn position.
+    */
+
+    if(
+      typeof player !== "undefined" &&
+      player &&
+      player.position
+    ){
+
+      player.position.set(
+        12,
+        1.1,
+        12
+      );
+
+    }
+
+
+    this.inside=false;
+
+    this.location=
+      "outside";
+
+
+    this.wardrobeOpen=false;
+
+    this.suitAreaOpen=false;
+
+    this.deskOpen=false;
+
+    this.workbenchOpen=false;
+
+
+    this.showHUD();
+
+
+    this.message(
+      "🚪 Leaving safehouse."
+    );
+
+  },
+
+
+  /* =======================================================
+     WARDROBE
+     ======================================================= */
+
+  openWardrobe(){
+
+    if(!this.inside){
+
+      this.message(
+        "👕 Enter the home first."
+      );
+
+      return;
+
+    }
+
+
+    this.wardrobeOpen=true;
+
+    this.suitAreaOpen=false;
+
+    this.deskOpen=false;
+
+    this.workbenchOpen=false;
+
+
+    this.message(
+      "👕 Wardrobe opened."
+    );
+
+
+    /*
+      Connect to a future outfit system
+      if one exists.
+    */
+
+    if(
+      typeof V65 !== "undefined"
+    ){
+
+      console.log(
+        "V68 wardrobe ready for outfit integration."
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SUIT AREA
+     ======================================================= */
+
+  openSuitArea(){
+
+    if(!this.inside){
+
+      this.message(
+        "🕷️ Enter the home first."
+      );
+
+      return;
+
+    }
+
+
+    this.suitAreaOpen=true;
+
+    this.wardrobeOpen=false;
+
+    this.deskOpen=false;
+
+    this.workbenchOpen=false;
+
+
+    this.message(
+      "🕷️ Suit area opened."
+    );
+
+
+    /*
+      Future suit system can connect here.
+    */
+
+  },
+
+
+  /* =======================================================
+     DESK
+     ======================================================= */
+
+  openDesk(){
+
+    if(!this.inside){
+
+      this.message(
+        "💻 Enter the home first."
+      );
+
+      return;
+
+    }
+
+
+    this.deskOpen=true;
+
+    this.wardrobeOpen=false;
+
+    this.suitAreaOpen=false;
+
+    this.workbenchOpen=false;
+
+
+    this.message(
+      "💻 Mission planning desk opened."
+    );
+
+
+    /*
+      V65 mission system integration.
+    */
+
+    if(
+      typeof V65 !== "undefined" &&
+      typeof V65.toggleMissionList==="function"
+    ){
+
+      V65.toggleMissionList();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     WORKBENCH
+     ======================================================= */
+
+  openWorkbench(){
+
+    if(!this.inside){
+
+      this.message(
+        "🧪 Enter the home first."
+      );
+
+      return;
+
+    }
+
+
+    this.workbenchOpen=true;
+
+    this.wardrobeOpen=false;
+
+    this.suitAreaOpen=false;
+
+    this.deskOpen=false;
+
+
+    this.message(
+      "🧪 Gadget workbench opened."
+    );
+
+
+    /*
+      Existing skill system remains untouched.
+    */
+
+    if(
+      typeof V55 !== "undefined"
+    ){
+
+      console.log(
+        "V68 workbench connected to V55 skill system."
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAFE CHECKPOINT
+     ======================================================= */
+
+  createSafeCheckpoint(){
+
+    if(!this.inside){
+
+      this.message(
+        "📍 Enter the home first."
+      );
+
+      return;
+
+    }
+
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.createCheckpoint==="function"
+    ){
+
+      V60.createCheckpoint();
+
+      this.message(
+        "📍 Safehouse checkpoint created."
+      );
+
+    }
+    else{
+
+      this.message(
+        "❌ Save system unavailable."
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE DATA
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      inside:
+        this.inside,
+
+      location:
+        this.location,
+
+      wardrobeOpen:
+        this.wardrobeOpen,
+
+      suitAreaOpen:
+        this.suitAreaOpen,
+
+      deskOpen:
+        this.deskOpen,
+
+      workbenchOpen:
+        this.workbenchOpen
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+      return;
+    }
+
+
+    this.inside=
+      Boolean(
+        data.inside
+      );
+
+
+    this.location=
+      data.location ||
+      "outside";
+
+
+    this.wardrobeOpen=
+      Boolean(
+        data.wardrobeOpen
+      );
+
+
+    this.suitAreaOpen=
+      Boolean(
+        data.suitAreaOpen
+      );
+
+
+    this.deskOpen=
+      Boolean(
+        data.deskOpen
+      );
+
+
+    this.workbenchOpen=
+      Boolean(
+        data.workbenchOpen
+      );
+
+
+    this.showHUD();
+
+  }
+
+};
+
+
+/* =========================================================
+ V60 SAVE / LOAD INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const v68OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v68OriginalCollect();
+
+    data.v68=
+      V68.collect();
+
+    return data;
+
+  };
+
+
+  const v68OriginalApply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    v68OriginalApply(data);
+
+
+    if(
+      data &&
+      data.v68
+    ){
+
+      V68.apply(
+        data.v68
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      H = Home
+    */
+
+    if(
+      event.code==="KeyH"
+    ){
+
+      event.preventDefault();
+
+      if(V68.inside){
+
+        V68.exitHome();
+
+      }
+      else{
+
+        V68.enterHome();
+
+      }
+
+    }
+
+
+    /*
+      W = Wardrobe
+    */
+
+    if(
+      event.code==="KeyW" &&
+      V68.inside
+    ){
+
+      event.preventDefault();
+
+      V68.openWardrobe();
+
+    }
+
+
+    /*
+      B = Workbench
+    */
+
+    if(
+      event.code==="KeyB" &&
+      V68.inside
+    ){
+
+      event.preventDefault();
+
+      V68.openWorkbench();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V68.showHUD();
+
+console.log(
+  "WEBBOUND V68 SAFEHOUSE SYSTEM READY"
+);
+
+</script>
