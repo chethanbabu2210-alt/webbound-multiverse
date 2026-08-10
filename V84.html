@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V84</title>
+
+<style>
+
+#v84HUD{
+  position:fixed;
+  right:15px;
+  bottom:15px;
+  z-index:9000;
+
+  padding:11px 14px;
+
+  background:#05070ee8;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:12px;
+
+  font:12px Arial,sans-serif;
+}
+
+#v84Menu{
+  position:fixed;
+
+  left:50%;
+  top:50%;
+
+  transform:translate(-50%,-50%);
+
+  width:min(430px,90%);
+
+  max-height:80vh;
+  overflow:auto;
+
+  z-index:9500;
+
+  padding:20px;
+
+  background:#05070ef7;
+  color:white;
+
+  border:1px solid #ffffff35;
+  border-radius:18px;
+
+  font-family:Arial,sans-serif;
+
+  display:none;
+
+  box-shadow:0 20px 70px #000b;
+}
+
+.v84Location{
+  padding:12px;
+
+  margin:8px 0;
+
+  background:#111827;
+
+  border:1px solid #ffffff20;
+
+  border-radius:11px;
+}
+
+.v84Location strong{
+  display:block;
+  margin-bottom:5px;
+}
+
+.v84Location small{
+  opacity:.7;
+}
+
+#v84Menu button{
+  width:100%;
+
+  padding:11px;
+
+  margin-top:7px;
+
+  background:#111827;
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:9px;
+}
+
+#v84Message{
+  position:fixed;
+
+  left:50%;
+  top:20%;
+
+  transform:translateX(-50%);
+
+  z-index:9800;
+
+  padding:12px 18px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:11px;
+
+  font:bold 13px Arial,sans-serif;
+
+  display:none;
+}
+
+#v84Travel{
+  position:fixed;
+
+  inset:0;
+
+  z-index:9900;
+
+  background:#000;
+
+  color:white;
+
+  display:none;
+
+  align-items:center;
+  justify-content:center;
+
+  flex-direction:column;
+
+  font-family:Arial,sans-serif;
+}
+
+#v84TravelText{
+  font-size:20px;
+  font-weight:bold;
+}
+
+#v84TravelBar{
+  width:min(350px,75%);
+
+  height:6px;
+
+  margin-top:18px;
+
+  background:#ffffff20;
+
+  border-radius:10px;
+
+  overflow:hidden;
+}
+
+#v84TravelProgress{
+  width:0%;
+  height:100%;
+
+  background:white;
+
+  transition:width .1s linear;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     HUD
+     ========================================================= -->
+
+<div id="v84HUD">
+
+  📍 Location:
+  <span id="v84CurrentLocation">
+    Downtown
+  </span>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v84Message">
+  Fast Travel
+</div>
+
+
+<!-- =========================================================
+     FAST TRAVEL MENU
+     ========================================================= -->
+
+<div id="v84Menu">
+
+  <h2>🗺️ FAST TRAVEL</h2>
+
+  <p>
+    Select an unlocked location.
+  </p>
+
+  <div id="v84LocationList"></div>
+
+  <button onclick="V84.closeMenu()">
+    ❌ CLOSE
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     TRAVEL SCREEN
+     ========================================================= -->
+
+<div id="v84Travel">
+
+  <div id="v84TravelText">
+    🕷️ TRAVELLING...
+  </div>
+
+  <div id="v84TravelBar">
+    <div id="v84TravelProgress"></div>
+  </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V84
+   FAST TRAVEL SYSTEM
+   ========================================================= */
+
+const V84 = {
+
+  version:"V84",
+
+  saveKey:"WEBBOUND_V84_TRAVEL",
+
+  currentLocation:"downtown",
+
+  travelling:false,
+
+  locations:{
+
+    downtown:{
+      name:"Downtown",
+      description:"Central city district",
+      unlocked:true
+    },
+
+    park:{
+      name:"City Park",
+      description:"Large public park",
+      unlocked:true
+    },
+
+    harbor:{
+      name:"Harbor",
+      description:"Waterfront district",
+      unlocked:false
+    },
+
+    university:{
+      name:"University",
+      description:"University and surrounding streets",
+      unlocked:false
+    },
+
+    industrial:{
+      name:"Industrial District",
+      description:"Factories and warehouses",
+      unlocked:false
+    },
+
+    uptown:{
+      name:"Uptown",
+      description:"High-rise residential district",
+      unlocked:false
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.renderLocations();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V84 FAST TRAVEL READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     OPEN MENU
+     ======================================================= */
+
+  openMenu(){
+
+    if(this.travelling){
+
+      return;
+
+    }
+
+    const menu=
+      document.getElementById(
+        "v84Menu"
+      );
+
+    if(menu){
+
+      menu.style.display=
+        "block";
+
+    }
+
+    this.renderLocations();
+
+  },
+
+
+  /* =======================================================
+     CLOSE MENU
+     ======================================================= */
+
+  closeMenu(){
+
+    const menu=
+      document.getElementById(
+        "v84Menu"
+      );
+
+    if(menu){
+
+      menu.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     RENDER LOCATIONS
+     ======================================================= */
+
+  renderLocations(){
+
+    const list=
+      document.getElementById(
+        "v84LocationList"
+      );
+
+    if(!list){
+
+      return;
+
+    }
+
+    list.innerHTML="";
+
+
+    Object.entries(
+      this.locations
+    ).forEach(
+      ([id,location])=>{
+
+        const item=
+          document.createElement(
+            "div"
+          );
+
+        item.className=
+          "v84Location";
+
+
+        const title=
+          document.createElement(
+            "strong"
+          );
+
+        title.textContent=
+          location.unlocked
+          ? "📍 "+location.name
+          : "🔒 "+location.name;
+
+
+        const description=
+          document.createElement(
+            "small"
+          );
+
+        description.textContent=
+          location.description;
+
+
+        item.appendChild(title);
+
+        item.appendChild(description);
+
+
+        const button=
+          document.createElement(
+            "button"
+          );
+
+
+        if(!location.unlocked){
+
+          button.textContent=
+            "🔒 LOCKED";
+
+          button.disabled=true;
+
+        }
+
+        else if(
+          id===this.currentLocation
+        ){
+
+          button.textContent=
+            "📍 CURRENT LOCATION";
+
+          button.disabled=true;
+
+        }
+
+        else{
+
+          button.textContent=
+            "🚀 TRAVEL HERE";
+
+          button.onclick=
+            ()=>{
+              this.travelTo(id);
+            };
+
+        }
+
+
+        item.appendChild(
+          button
+        );
+
+        list.appendChild(
+          item
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     UNLOCK LOCATION
+     ======================================================= */
+
+  unlock(id){
+
+    if(
+      !this.locations[id]
+    ){
+
+      return false;
+
+    }
+
+
+    this.locations[id].unlocked=
+      true;
+
+
+    this.renderLocations();
+
+    this.save();
+
+
+    this.message(
+      "🗺️ Unlocked: "+
+      this.locations[id].name
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     TRAVEL
+     ======================================================= */
+
+  travelTo(id){
+
+    if(this.travelling){
+
+      return;
+
+    }
+
+
+    const destination=
+      this.locations[id];
+
+
+    if(!destination){
+
+      return;
+
+    }
+
+
+    if(!destination.unlocked){
+
+      this.message(
+        "🔒 Location is locked."
+      );
+
+      return;
+
+    }
+
+
+    if(
+      id===this.currentLocation
+    ){
+
+      this.message(
+        "📍 You are already here."
+      );
+
+      return;
+
+    }
+
+
+    this.closeMenu();
+
+    this.travelling=true;
+
+
+    const screen=
+      document.getElementById(
+        "v84Travel"
+      );
+
+    const bar=
+      document.getElementById(
+        "v84TravelProgress"
+      );
+
+
+    if(screen){
+
+      screen.style.display=
+        "flex";
+
+    }
+
+
+    if(bar){
+
+      bar.style.width=
+        "0%";
+
+    }
+
+
+    let progress=0;
+
+
+    const timer=
+      setInterval(
+        ()=>{
+
+          progress+=5;
+
+
+          if(bar){
+
+            bar.style.width=
+              progress+
+              "%";
+
+          }
+
+
+          if(progress>=100){
+
+            clearInterval(timer);
+
+            this.currentLocation=
+              id;
+
+            this.travelling=false;
+
+
+            if(screen){
+
+              screen.style.display=
+                "none";
+
+            }
+
+
+            this.updateHUD();
+
+            this.save();
+
+
+            this.message(
+              "📍 Arrived at "+
+              destination.name
+            );
+
+          }
+
+        },
+        70
+      );
+
+  },
+
+
+  /* =======================================================
+     SET LOCATION
+     ======================================================= */
+
+  setLocation(id){
+
+    if(
+      !this.locations[id]
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      !this.locations[id].unlocked
+    ){
+
+      return;
+
+    }
+
+
+    this.currentLocation=
+      id;
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const current=
+      document.getElementById(
+        "v84CurrentLocation"
+      );
+
+
+    if(
+      current &&
+      this.locations[
+        this.currentLocation
+      ]
+    ){
+
+      current.textContent=
+        this.locations[
+          this.currentLocation
+        ].name;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v84Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          2200
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE DATA
+     ======================================================= */
+
+  collect(){
+
+    const unlocked={};
+
+
+    Object.entries(
+      this.locations
+    ).forEach(
+      ([id,location])=>{
+
+        unlocked[id]=
+          location.unlocked;
+
+      }
+    );
+
+
+    return{
+
+      currentLocation:
+        this.currentLocation,
+
+      unlocked:
+        unlocked
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V84 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        data &&
+        this.locations[
+          data.currentLocation
+        ] &&
+        this.locations[
+          data.currentLocation
+        ].unlocked
+      ){
+
+        this.currentLocation=
+          data.currentLocation;
+
+      }
+
+
+      if(
+        data &&
+        data.unlocked
+      ){
+
+        Object.keys(
+          this.locations
+        ).forEach(
+          id=>{
+
+            if(
+              typeof data.unlocked[id]
+              ==="boolean"
+            ){
+
+              this.locations[id].unlocked=
+                data.unlocked[id];
+
+            }
+
+          }
+        );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V84 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY V84 DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      data.unlocked
+    ){
+
+      Object.keys(
+        this.locations
+      ).forEach(
+        id=>{
+
+          if(
+            typeof data.unlocked[id]
+            ==="boolean"
+          ){
+
+            this.locations[id].unlocked=
+              data.unlocked[id];
+
+          }
+
+        }
+      );
+
+    }
+
+
+    if(
+      data.currentLocation &&
+      this.locations[
+        data.currentLocation
+      ] &&
+      this.locations[
+        data.currentLocation
+      ].unlocked
+    ){
+
+      this.currentLocation=
+        data.currentLocation;
+
+    }
+
+
+    this.updateHUD();
+
+    this.renderLocations();
+
+  }
+
+};
+
+
+/* =========================================================
+   V60 SAVE COMPATIBILITY
+   ========================================================= */
+
+if(
+  typeof V60!=="undefined" &&
+  typeof V60.collect==="function"
+){
+
+  const originalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      originalCollect();
+
+    data.v84=
+      V84.collect();
+
+    return data;
+
+  };
+
+
+  if(
+    typeof V60.apply==="function"
+  ){
+
+    const originalApply=
+      V60.apply.bind(V60);
+
+
+    V60.apply=function(data){
+
+      originalApply(data);
+
+
+      if(
+        data &&
+        data.v84
+      ){
+
+        V84.apply(
+          data.v84
+        );
+
+      }
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      F = Fast Travel
+    */
+
+    if(
+      event.code==="KeyF"
+    ){
+
+      event.preventDefault();
+
+      V84.openMenu();
+
+    }
+
+
+    /*
+      Escape = Close
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V84.closeMenu();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V84.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V84.init();
+
+</script>
+
+</body>
+</html>
