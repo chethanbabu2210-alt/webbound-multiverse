@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V81</title>
+
+<style>
+
+#v81HUD{
+  position:fixed;
+  left:15px;
+  bottom:15px;
+  z-index:9000;
+
+  padding:10px 13px;
+
+  background:#05070ed9;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:11px;
+
+  font:12px Arial,sans-serif;
+}
+
+#v81Prompt{
+  position:fixed;
+  left:50%;
+  bottom:110px;
+
+  transform:translateX(-50%);
+
+  z-index:9000;
+
+  padding:12px 18px;
+
+  background:#05070ef0;
+  color:white;
+
+  border:1px solid #ffffff40;
+  border-radius:12px;
+
+  font:bold 13px Arial,sans-serif;
+
+  display:none;
+
+  text-align:center;
+}
+
+#v81Dialogue{
+  position:fixed;
+
+  left:50%;
+  bottom:25px;
+
+  transform:translateX(-50%);
+
+  width:min(650px,90%);
+
+  z-index:9500;
+
+  padding:18px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:16px;
+
+  display:none;
+
+  font-family:Arial,sans-serif;
+
+  box-shadow:0 15px 60px #000b;
+}
+
+#v81Name{
+  font-size:16px;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+#v81Text{
+  font-size:14px;
+  line-height:1.5;
+  min-height:45px;
+}
+
+#v81Next{
+  margin-top:12px;
+
+  width:100%;
+
+  padding:10px;
+
+  background:#111827;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:9px;
+}
+
+#v81NPC{
+  position:fixed;
+
+  left:50%;
+  top:45%;
+
+  transform:translate(-50%,-50%);
+
+  width:35px;
+  height:55px;
+
+  background:#777;
+
+  border-radius:14px 14px 8px 8px;
+
+  z-index:4000;
+
+  display:block;
+}
+
+#v81NPC::before{
+  content:"";
+
+  position:absolute;
+
+  width:25px;
+  height:25px;
+
+  left:5px;
+  top:-22px;
+
+  border-radius:50%;
+
+  background:#aaa;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     DEMO NPC
+     ========================================================= -->
+
+<div id="v81NPC"></div>
+
+
+<!-- =========================================================
+     HUD
+     ========================================================= -->
+
+<div id="v81HUD">
+
+  👤 NPC:
+  <span id="v81NPCState">Nearby</span>
+
+</div>
+
+
+<!-- =========================================================
+     INTERACTION PROMPT
+     ========================================================= -->
+
+<div id="v81Prompt">
+
+  💬 Press <b>E</b> to talk
+
+</div>
+
+
+<!-- =========================================================
+     DIALOGUE
+     ========================================================= -->
+
+<div id="v81Dialogue">
+
+  <div id="v81Name">
+    City Resident
+  </div>
+
+  <div id="v81Text">
+    Hello.
+  </div>
+
+  <button id="v81Next">
+    NEXT
+  </button>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V81
+   NPC INTERACTION + DIALOGUE SYSTEM
+   ========================================================= */
+
+const V81 = {
+
+  version:"V81",
+
+  enabled:true,
+
+  dialogueOpen:false,
+
+  currentLine:0,
+
+  currentNPC:null,
+
+  interactionRange:5,
+
+
+  /* =======================================================
+     NPC DATABASE
+     ======================================================= */
+
+  npcs:{
+
+    citizen:{
+      name:"City Resident",
+
+      dialogue:[
+        "Hey! Have you seen what is happening around the city?",
+        "There have been some strange incidents lately.",
+        "You should be careful while travelling at night.",
+        "Anyway, stay safe out there."
+      ]
+
+    },
+
+    police:{
+      name:"Police Officer",
+
+      dialogue:[
+        "Keep your eyes open tonight.",
+        "We have received reports of trouble in several areas.",
+        "If you see something suspicious, stay away from danger.",
+        "Thanks for cooperating."
+      ]
+
+    },
+
+    shopkeeper:{
+      name:"Shopkeeper",
+
+      dialogue:[
+        "Welcome to my shop.",
+        "I get all kinds of people coming through here.",
+        "Business has been interesting lately.",
+        "Come back whenever you need something."
+      ]
+
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.currentNPC=
+      this.npcs.citizen;
+
+    this.updateHUD();
+
+    this.showPrompt();
+
+    console.log(
+      "WEBBOUND V81 NPC SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     FIND NPC
+     ======================================================= */
+
+  setNPC(type){
+
+    if(
+      !this.npcs[type]
+    ){
+
+      return;
+
+    }
+
+    this.currentNPC=
+      this.npcs[type];
+
+    this.currentLine=0;
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     SHOW PROMPT
+     ======================================================= */
+
+  showPrompt(){
+
+    if(
+      !this.enabled ||
+      this.dialogueOpen
+    ){
+
+      return;
+
+    }
+
+    const prompt=
+      document.getElementById(
+        "v81Prompt"
+      );
+
+    if(prompt){
+
+      prompt.style.display=
+        "block";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     HIDE PROMPT
+     ======================================================= */
+
+  hidePrompt(){
+
+    const prompt=
+      document.getElementById(
+        "v81Prompt"
+      );
+
+    if(prompt){
+
+      prompt.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     START DIALOGUE
+     ======================================================= */
+
+  talk(){
+
+    if(!this.enabled){
+
+      return;
+
+    }
+
+    if(!this.currentNPC){
+
+      return;
+
+    }
+
+    this.dialogueOpen=true;
+
+    this.currentLine=0;
+
+    this.hidePrompt();
+
+    this.updateDialogue();
+
+    const box=
+      document.getElementById(
+        "v81Dialogue"
+      );
+
+    if(box){
+
+      box.style.display=
+        "block";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     NEXT LINE
+     ======================================================= */
+
+  next(){
+
+    if(!this.dialogueOpen){
+
+      return;
+
+    }
+
+    const lines=
+      this.currentNPC.dialogue;
+
+
+    this.currentLine++;
+
+
+    if(
+      this.currentLine>=
+      lines.length
+    ){
+
+      this.closeDialogue();
+
+      return;
+
+    }
+
+
+    this.updateDialogue();
+
+  },
+
+
+  /* =======================================================
+     UPDATE DIALOGUE
+     ======================================================= */
+
+  updateDialogue(){
+
+    if(!this.currentNPC){
+
+      return;
+
+    }
+
+    const name=
+      document.getElementById(
+        "v81Name"
+      );
+
+    const text=
+      document.getElementById(
+        "v81Text"
+      );
+
+
+    if(name){
+
+      name.textContent=
+        this.currentNPC.name;
+
+    }
+
+
+    if(text){
+
+      text.textContent=
+        this.currentNPC.dialogue[
+          this.currentLine
+        ];
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CLOSE DIALOGUE
+     ======================================================= */
+
+  closeDialogue(){
+
+    this.dialogueOpen=false;
+
+    this.currentLine=0;
+
+    const box=
+      document.getElementById(
+        "v81Dialogue"
+      );
+
+    if(box){
+
+      box.style.display=
+        "none";
+
+    }
+
+    this.showPrompt();
+
+  },
+
+
+  /* =======================================================
+     TOGGLE SYSTEM
+     ======================================================= */
+
+  toggle(){
+
+    this.enabled=
+      !this.enabled;
+
+
+    if(!this.enabled){
+
+      this.closeDialogue();
+
+      this.hidePrompt();
+
+    }
+    else{
+
+      this.showPrompt();
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const state=
+      document.getElementById(
+        "v81NPCState"
+      );
+
+    if(!state){
+
+      return;
+
+    }
+
+
+    if(!this.enabled){
+
+      state.textContent=
+        "OFF";
+
+      return;
+
+    }
+
+
+    if(this.dialogueOpen){
+
+      state.textContent=
+        "Talking";
+
+      return;
+
+    }
+
+
+    state.textContent=
+      this.currentNPC
+      ? this.currentNPC.name
+      : "None";
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+    else{
+
+      console.log(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      enabled:
+        this.enabled,
+
+      currentNPC:
+        this.currentNPC
+        ? this.getNPCType()
+        : "citizen"
+
+    };
+
+  },
+
+
+  getNPCType(){
+
+    for(
+      const key in this.npcs
+    ){
+
+      if(
+        this.npcs[key]===
+        this.currentNPC
+      ){
+
+        return key;
+
+      }
+
+    }
+
+    return "citizen";
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.enabled===
+      "boolean"
+    ){
+
+      this.enabled=
+        data.enabled;
+
+    }
+
+
+    if(
+      data.currentNPC &&
+      this.npcs[data.currentNPC]
+    ){
+
+      this.currentNPC=
+        this.npcs[
+          data.currentNPC
+        ];
+
+    }
+
+
+    this.updateHUD();
+
+    if(this.enabled){
+
+      this.showPrompt();
+
+    }
+    else{
+
+      this.hidePrompt();
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   NEXT BUTTON
+   ========================================================= */
+
+document
+  .getElementById("v81Next")
+  .addEventListener(
+    "click",
+    ()=>{
+      V81.next();
+    }
+  );
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      E = interact
+    */
+
+    if(
+      event.code==="KeyE"
+    ){
+
+      event.preventDefault();
+
+      if(V81.dialogueOpen){
+
+        V81.next();
+
+      }
+      else{
+
+        V81.talk();
+
+      }
+
+    }
+
+
+    /*
+      Escape = close dialogue
+    */
+
+    if(
+      event.code==="Escape" &&
+      V81.dialogueOpen
+    ){
+
+      V81.closeDialogue();
+
+    }
+
+
+    /*
+      N = switch NPC
+      Useful for testing the system.
+    */
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      const types=
+        Object.keys(
+          V81.npcs
+        );
+
+      const current=
+        V81.getNPCType();
+
+      const index=
+        types.indexOf(current);
+
+      const next=
+        (index+1)%
+        types.length;
+
+      V81.setNPC(
+        types[next]
+      );
+
+    }
+
+
+    /*
+      B = enable / disable
+    */
+
+    if(
+      event.code==="KeyB"
+    ){
+
+      V81.toggle();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   V60 SAVE COMPATIBILITY
+   ========================================================= */
+
+if(
+  typeof V60!=="undefined" &&
+  typeof V60.collect==="function"
+){
+
+  const originalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      originalCollect();
+
+    data.v81=
+      V81.collect();
+
+    return data;
+
+  };
+
+
+  if(
+    typeof V60.apply==="function"
+  ){
+
+    const originalApply=
+      V60.apply.bind(V60);
+
+
+    V60.apply=function(data){
+
+      originalApply(data);
+
+
+      if(
+        data &&
+        data.v81
+      ){
+
+        V81.apply(
+          data.v81
+        );
+
+      }
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V81.init();
+
+
+console.log(
+  "WEBBOUND V81 NPC INTERACTION READY"
+);
+
+</script>
+
+</body>
+</html>
