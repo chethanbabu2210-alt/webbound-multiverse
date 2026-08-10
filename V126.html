@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V126</title>
+
+<style>
+
+#v126HUD{
+  position:fixed;
+  left:12px;
+  bottom:14px;
+  z-index:18000;
+  width:min(285px,72vw);
+  padding:14px;
+  background:#05070eeb;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v126Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v126Info{
+  margin-top:9px;
+  font-size:10px;
+  line-height:1.7;
+  opacity:.8;
+}
+
+#v126Controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:10px;
+}
+
+#v126Controls button{
+  flex:1;
+  min-width:75px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v126NPCs{
+  position:fixed;
+  inset:0;
+  z-index:15100;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.v126NPC{
+  position:absolute;
+  width:14px;
+  height:22px;
+  border-radius:7px 7px 4px 4px;
+  background:#777;
+  box-shadow:0 2px 5px #0008;
+  transform-origin:center bottom;
+}
+
+.v126Head{
+  position:absolute;
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  left:2px;
+  top:-8px;
+  background:#c49a78;
+}
+
+.v126Name{
+  position:absolute;
+  left:50%;
+  bottom:25px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font:7px Arial,sans-serif;
+  color:white;
+  text-shadow:0 1px 3px black;
+  opacity:.7;
+}
+
+#v126Message{
+  position:fixed;
+  left:50%;
+  top:24%;
+  transform:translateX(-50%);
+  z-index:18500;
+  display:none;
+  max-width:88%;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 11px Arial,sans-serif;
+  text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V126
+     PEDESTRIAN / NPC SYSTEM
+     ========================================================= -->
+
+<div id="v126NPCs"></div>
+
+<div id="v126HUD">
+
+  <div id="v126Title">
+    🚶 NPC / PEDESTRIAN SYSTEM
+  </div>
+
+  <div id="v126Info">
+    NPCs: 0<br>
+    Status: Walking<br>
+    Density: Medium
+  </div>
+
+  <div id="v126Controls">
+
+    <button onclick="V126.spawnNPC()">
+      🚶 SPAWN
+    </button>
+
+    <button onclick="V126.spawnNPCs(5)">
+      👥 +5 NPCs
+    </button>
+
+    <button onclick="V126.clearNPCs()">
+      🗑️ CLEAR
+    </button>
+
+    <button onclick="V126.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+    <button onclick="V126.setDensity('low')">
+      LOW
+    </button>
+
+    <button onclick="V126.setDensity('high')">
+      HIGH
+    </button>
+
+  </div>
+
+</div>
+
+<div id="v126Message">
+  V126
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V126
+   PEDESTRIAN / NPC SYSTEM
+   ========================================================= */
+
+const V126 = {
+
+  version:"V126",
+
+  saveKey:
+    "WEBBOUND_V126_NPCS",
+
+  npcs:[],
+
+  running:true,
+
+  density:"medium",
+
+  nextId:1,
+
+  timer:null,
+
+  messageTimer:null,
+
+  lastSpawn:0,
+
+  spawnDelay:2500,
+
+  maxNPCs:30,
+
+
+  /* =======================================================
+     NPC DATABASE
+     ======================================================= */
+
+  names:[
+
+    "Alex",
+    "Sam",
+    "Ryan",
+    "Maya",
+    "Arun",
+    "Riya",
+    "Dev",
+    "Asha",
+    "Noah",
+    "Leo",
+    "Avi",
+    "Zara"
+
+  ],
+
+
+  colors:[
+
+    "#555",
+    "#777",
+    "#333",
+    "#888",
+    "#666",
+    "#444"
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.renderAll();
+
+    this.updateHUD();
+
+    this.start();
+
+    if(
+      this.npcs.length===0
+    ){
+
+      this.spawnNPCs(
+        this.getDensityCount()
+      );
+
+    }
+
+    console.log(
+      "WEBBOUND V126 NPC SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          this.update();
+
+        },
+        40
+      );
+
+  },
+
+
+  /* =======================================================
+     DENSITY
+     ======================================================= */
+
+  getDensityCount(){
+
+    if(
+      this.density==="low"
+    ){
+
+      return 5;
+
+    }
+
+    if(
+      this.density==="high"
+    ){
+
+      return 16;
+
+    }
+
+    return 9;
+
+  },
+
+
+  setDensity(level){
+
+    if(
+      level!=="low" &&
+      level!=="medium" &&
+      level!=="high"
+    ){
+
+      return;
+
+    }
+
+    this.density=
+      level;
+
+    const target=
+      this.getDensityCount();
+
+
+    while(
+      this.npcs.length<
+      target
+    ){
+
+      this.spawnNPC(
+        true
+      );
+
+    }
+
+
+    while(
+      this.npcs.length>
+      target+2
+    ){
+
+      this.removeNPC(
+        this.npcs[
+          this.npcs.length-1
+        ].id
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "👥 NPC density: "+
+      level.toUpperCase()
+    );
+
+  },
+
+
+  /* =======================================================
+     RANDOM NAME
+     ======================================================= */
+
+  randomName(){
+
+    return this.names[
+      Math.floor(
+        Math.random()*
+        this.names.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     SPAWN NPC
+     ======================================================= */
+
+  spawnNPC(silent=false){
+
+    if(
+      this.npcs.length>=
+      this.maxNPCs
+    ){
+
+      if(!silent){
+
+        this.message(
+          "⚠️ NPC limit reached"
+        );
+
+      }
+
+      return null;
+
+    }
+
+
+    const direction=
+      Math.random()<.5
+      ? 1
+      : -1;
+
+
+    const npc={
+
+      id:
+        this.nextId++,
+
+      name:
+        this.randomName(),
+
+      x:
+        Math.random()*
+        Math.max(
+          1,
+          window.innerWidth
+        ),
+
+      y:
+        200+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerHeight-260
+        ),
+
+      direction:
+        direction,
+
+      speed:
+        .25+
+        Math.random()*.55,
+
+      color:
+        this.colors[
+          Math.floor(
+            Math.random()*
+            this.colors.length
+          )
+        ],
+
+      state:"walking",
+
+      targetX:null,
+
+      targetY:null,
+
+      element:null
+
+    };
+
+
+    this.chooseTarget(
+      npc
+    );
+
+
+    this.npcs.push(
+      npc
+    );
+
+
+    this.createElement(
+      npc
+    );
+
+
+    this.updateHUD();
+
+
+    if(!silent){
+
+      this.message(
+        "🚶 NPC spawned"
+      );
+
+    }
+
+
+    return npc;
+
+  },
+
+
+  /* =======================================================
+     SPAWN MULTIPLE
+     ======================================================= */
+
+  spawnNPCs(count){
+
+    const amount=
+      Math.max(
+        0,
+        Math.min(
+          this.maxNPCs,
+          Number(count)||0
+        )
+      );
+
+
+    for(
+      let i=0;
+      i<amount;
+      i++
+    ){
+
+      this.spawnNPC(
+        true
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     CHOOSE TARGET
+     ======================================================= */
+
+  chooseTarget(npc){
+
+    npc.targetX=
+      40+
+      Math.random()*
+      Math.max(
+        1,
+        window.innerWidth-80
+      );
+
+
+    npc.targetY=
+      180+
+      Math.random()*
+      Math.max(
+        1,
+        window.innerHeight-250
+      );
+
+  },
+
+
+  /* =======================================================
+     CREATE ELEMENT
+     ======================================================= */
+
+  createElement(npc){
+
+    const layer=
+      document.getElementById(
+        "v126NPCs"
+      );
+
+
+    if(!layer){
+
+      return;
+
+    }
+
+
+    const element=
+      document.createElement(
+        "div"
+      );
+
+
+    element.className=
+      "v126NPC";
+
+
+    element.style.background=
+      npc.color;
+
+
+    const head=
+      document.createElement(
+        "div"
+      );
+
+
+    head.className=
+      "v126Head";
+
+
+    const name=
+      document.createElement(
+        "div"
+      );
+
+
+    name.className=
+      "v126Name";
+
+
+    name.textContent=
+      npc.name;
+
+
+    element.appendChild(
+      head
+    );
+
+
+    element.appendChild(
+      name
+    );
+
+
+    npc.element=
+      element;
+
+
+    layer.appendChild(
+      element
+    );
+
+
+    this.renderNPC(
+      npc
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER NPC
+     ======================================================= */
+
+  renderNPC(npc){
+
+    if(
+      !npc.element
+    ){
+
+      return;
+
+    }
+
+
+    npc.element.style.left=
+      npc.x+
+      "px";
+
+
+    npc.element.style.top=
+      npc.y+
+      "px";
+
+
+    npc.element.style.transform=
+      npc.direction<0
+      ? "scaleX(-1)"
+      : "scaleX(1)";
+
+  },
+
+
+  /* =======================================================
+     UPDATE NPCS
+     ======================================================= */
+
+  update(){
+
+    if(
+      !this.running
+    ){
+
+      return;
+
+    }
+
+
+    const now=
+      Date.now();
+
+
+    /*
+      Automatic spawning.
+    */
+
+    if(
+      this.npcs.length<
+      this.getDensityCount() &&
+      now-this.lastSpawn>
+      this.spawnDelay
+    ){
+
+      this.spawnNPC(
+        true
+      );
+
+      this.lastSpawn=
+        now;
+
+    }
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        this.moveNPC(
+          npc
+        );
+
+      }
+    );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     MOVE NPC
+     ======================================================= */
+
+  moveNPC(npc){
+
+    if(
+      !Number.isFinite(
+        npc.targetX
+      ) ||
+      !Number.isFinite(
+        npc.targetY
+      )
+    ){
+
+      this.chooseTarget(
+        npc
+      );
+
+    }
+
+
+    const dx=
+      npc.targetX-
+      npc.x;
+
+
+    const dy=
+      npc.targetY-
+      npc.y;
+
+
+    const distance=
+      Math.sqrt(
+        dx*dx+
+        dy*dy
+      );
+
+
+    if(
+      distance<8
+    ){
+
+      this.chooseTarget(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    npc.direction=
+      dx>=0
+      ? 1
+      : -1;
+
+
+    const vx=
+      dx/
+      distance;
+
+
+    const vy=
+      dy/
+      distance;
+
+
+    npc.x+=
+      vx*
+      npc.speed;
+
+
+    npc.y+=
+      vy*
+      npc.speed;
+
+
+    /*
+      Keep NPC inside viewport.
+    */
+
+    const minX=20;
+
+    const maxX=
+      Math.max(
+        20,
+        window.innerWidth-30
+      );
+
+
+    const minY=170;
+
+    const maxY=
+      Math.max(
+        180,
+        window.innerHeight-60
+      );
+
+
+    if(
+      npc.x<minX
+    ){
+
+      npc.x=
+        minX;
+
+      this.chooseTarget(
+        npc
+      );
+
+    }
+
+
+    if(
+      npc.x>maxX
+    ){
+
+      npc.x=
+        maxX;
+
+      this.chooseTarget(
+        npc
+      );
+
+    }
+
+
+    if(
+      npc.y<minY
+    ){
+
+      npc.y=
+        minY;
+
+      this.chooseTarget(
+        npc
+      );
+
+    }
+
+
+    if(
+      npc.y>maxY
+    ){
+
+      npc.y=
+        maxY;
+
+      this.chooseTarget(
+        npc
+      );
+
+    }
+
+
+    this.renderNPC(
+      npc
+    );
+
+  },
+
+
+  /* =======================================================
+     REMOVE NPC
+     ======================================================= */
+
+  removeNPC(id){
+
+    const index=
+      this.npcs.findIndex(
+        npc=>
+          npc.id===
+          id
+      );
+
+
+    if(
+      index===-1
+    ){
+
+      return;
+
+    }
+
+
+    const npc=
+      this.npcs[index];
+
+
+    if(
+      npc.element &&
+      npc.element.parentNode
+    ){
+
+      npc.element.parentNode.removeChild(
+        npc.element
+      );
+
+    }
+
+
+    this.npcs.splice(
+      index,
+      1
+    );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  clearNPCs(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.element &&
+          npc.element.parentNode
+        ){
+
+          npc.element.parentNode.removeChild(
+            npc.element
+          );
+
+        }
+
+      }
+    );
+
+
+    this.npcs=[];
+
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🗑️ NPCs cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER ALL
+     ======================================================= */
+
+  renderAll(){
+
+    const layer=
+      document.getElementById(
+        "v126NPCs"
+      );
+
+
+    if(layer){
+
+      layer.innerHTML="";
+
+    }
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        npc.element=
+          null;
+
+        this.createElement(
+          npc
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.running=
+      !this.running;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      this.running
+      ? "▶️ NPC movement resumed"
+      : "⏸️ NPC movement paused"
+    );
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      running:
+        this.running,
+
+      density:
+        this.density,
+
+      nextId:
+        this.nextId,
+
+      npcs:
+        this.npcs.map(
+          npc=>({
+
+            id:
+              npc.id,
+
+            name:
+              npc.name,
+
+            x:
+              npc.x,
+
+            y:
+              npc.y,
+
+            direction:
+              npc.direction,
+
+            speed:
+              npc.speed,
+
+            color:
+              npc.color,
+
+            state:
+              npc.state,
+
+            targetX:
+              npc.targetX,
+
+            targetY:
+              npc.targetY
+
+          })
+        ),
+
+      savedAt:
+        new Date().toISOString()
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V126 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(
+          raw
+        );
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      this.running=
+        typeof data.running===
+        "boolean"
+        ? data.running
+        : true;
+
+
+      if(
+        data.density===
+        "low" ||
+        data.density===
+        "medium" ||
+        data.density===
+        "high"
+      ){
+
+        this.density=
+          data.density;
+
+      }
+
+
+      this.nextId=
+        Number(
+          data.nextId
+        )||
+        1;
+
+
+      if(
+        !Array.isArray(
+          data.npcs
+        )
+      ){
+
+        return;
+
+      }
+
+
+      this.npcs=
+        data.npcs
+          .filter(
+            npc=>
+              npc &&
+              Number.isFinite(
+                Number(npc.x)
+              ) &&
+              Number.isFinite(
+                Number(npc.y)
+              )
+          )
+          .slice(
+            0,
+            this.maxNPCs
+          )
+          .map(
+            npc=>({
+
+              id:
+                Number(
+                  npc.id
+                )||
+                this.nextId++,
+
+              name:
+                typeof npc.name===
+                "string"
+                ? npc.name
+                : this.randomName(),
+
+              x:
+                Number(
+                  npc.x
+                ),
+
+              y:
+                Number(
+                  npc.y
+                ),
+
+              direction:
+                Number(
+                  npc.direction
+                )>=0
+                ? 1
+                : -1,
+
+              speed:
+                Math.max(
+                  .1,
+                  Number(
+                    npc.speed
+                  )||
+                  .5
+                ),
+
+              color:
+                typeof npc.color===
+                "string"
+                ? npc.color
+                : "#666",
+
+              state:
+                typeof npc.state===
+                "string"
+                ? npc.state
+                : "walking",
+
+              targetX:
+                Number(
+                  npc.targetX
+                ),
+
+              targetY:
+                Number(
+                  npc.targetY
+                ),
+
+              element:null
+
+            })
+          );
+
+    }
+    catch(error){
+
+      console.error(
+        "V126 LOAD ERROR:",
+        error
+      );
+
+      this.npcs=[];
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.clearNPCs();
+
+
+    this.running=
+      typeof data.running===
+      "boolean"
+      ? data.running
+      : true;
+
+
+    if(
+      data.density===
+      "low" ||
+      data.density===
+      "medium" ||
+      data.density===
+      "high"
+    ){
+
+      this.density=
+        data.density;
+
+    }
+
+
+    this.nextId=
+      Number(
+        data.nextId
+      )||
+      1;
+
+
+    if(
+      Array.isArray(
+        data.npcs
+      )
+    ){
+
+      data.npcs
+        .slice(
+          0,
+          this.maxNPCs
+        )
+        .forEach(
+          dataNPC=>{
+
+            if(!dataNPC){
+
+              return;
+
+            }
+
+
+            const npc={
+
+              id:
+                Number(
+                  dataNPC.id
+                )||
+                this.nextId++,
+
+              name:
+                typeof dataNPC.name===
+                "string"
+                ? dataNPC.name
+                : this.randomName(),
+
+              x:
+                Number(
+                  dataNPC.x
+                )||
+                100,
+
+              y:
+                Number(
+                  dataNPC.y
+                )||
+                200,
+
+              direction:
+                Number(
+                  dataNPC.direction
+                )>=0
+                ? 1
+                : -1,
+
+              speed:
+                Math.max(
+                  .1,
+                  Number(
+                    dataNPC.speed
+                  )||
+                  .5
+                ),
+
+              color:
+                typeof dataNPC.color===
+                "string"
+                ? dataNPC.color
+                : "#666",
+
+              state:
+                "walking",
+
+              targetX:
+                Number(
+                  dataNPC.targetX
+                ),
+
+              targetY:
+                Number(
+                  dataNPC.targetY
+                ),
+
+              element:null
+
+            };
+
+
+            if(
+              !Number.isFinite(
+                npc.targetX
+              ) ||
+              !Number.isFinite(
+                npc.targetY
+              )
+            ){
+
+              this.chooseTarget(
+                npc
+              );
+
+            }
+
+
+            this.npcs.push(
+              npc
+            );
+
+          }
+        );
+
+    }
+
+
+    this.renderAll();
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const info=
+      document.getElementById(
+        "v126Info"
+      );
+
+
+    if(!info){
+
+      return;
+
+    }
+
+
+    info.innerHTML=
+      "NPCs: "+
+      this.npcs.length+
+      "<br>"+
+      "Status: "+
+      (
+        this.running
+        ? "Walking"
+        : "Pau
