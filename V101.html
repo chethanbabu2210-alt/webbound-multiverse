@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V101</title>
+
+<style>
+
+#v101HUD{
+  position:fixed;
+  left:12px;
+  top:285px;
+  z-index:10100;
+  width:min(280px,75vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+}
+
+#v101Title{
+  font-size:13px;
+  font-weight:bold;
+  margin-bottom:7px;
+}
+
+#v101Mission{
+  font-size:12px;
+  font-weight:bold;
+}
+
+#v101Objective{
+  margin-top:5px;
+  font-size:11px;
+  opacity:.85;
+}
+
+#v101Progress{
+  margin-top:8px;
+  height:6px;
+  background:#ffffff18;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+#v101Bar{
+  width:0%;
+  height:100%;
+  background:white;
+  transition:width .25s ease;
+}
+
+#v101Reward{
+  margin-top:7px;
+  font-size:10px;
+  opacity:.65;
+}
+
+#v101Controls{
+  position:fixed;
+  left:12px;
+  top:430px;
+  z-index:10101;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#v101Controls button{
+  padding:9px 12px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:9px;
+  font-size:10px;
+}
+
+#v101Message{
+  position:fixed;
+  left:50%;
+  top:20%;
+  transform:translateX(-50%);
+  z-index:10200;
+  display:none;
+  padding:11px 16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+  text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V101 MISSION HUD
+     ========================================================= -->
+
+<div id="v101HUD">
+
+  <div id="v101Title">
+    🎯 ACTIVE MISSION
+  </div>
+
+  <div id="v101Mission">
+    No active mission
+  </div>
+
+  <div id="v101Objective">
+    Select a mission
+  </div>
+
+  <div id="v101Progress">
+    <div id="v101Bar"></div>
+  </div>
+
+  <div id="v101Reward">
+    Reward: 0 XP
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v101Controls">
+
+  <button onclick="V101.startNextMission()">
+    ▶️ START / NEXT MISSION
+  </button>
+
+  <button onclick="V101.addProgress(1)">
+    ➕ OBJECTIVE +1
+  </button>
+
+  <button onclick="V101.completeMission()">
+    ✅ COMPLETE
+  </button>
+
+  <button onclick="V101.failMission()">
+    ❌ FAIL
+  </button>
+
+  <button onclick="V101.resetMission()">
+    🔄 RESET
+  </button>
+
+</div>
+
+
+<div id="v101Message">
+  V101
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V101
+   MISSION & OBJECTIVE SYSTEM
+   ========================================================= */
+
+const V101 = {
+
+  version:"V101",
+
+  saveKey:
+    "WEBBOUND_V101_MISSIONS",
+
+  enabled:true,
+
+  currentMission:0,
+
+  progress:0,
+
+  state:"inactive",
+
+  totalXP:0,
+
+  totalMoney:0,
+
+  completedMissions:0,
+
+  missions:[
+
+    {
+      id:"intro_patrol",
+
+      title:"City Patrol",
+
+      objective:
+        "Patrol the area",
+
+      target:5,
+
+      rewardXP:100,
+
+      rewardMoney:50
+
+    },
+
+    {
+      id:"street_help",
+
+      title:"Help the City",
+
+      objective:
+        "Complete assistance tasks",
+
+      target:8,
+
+      rewardXP:175,
+
+      rewardMoney:100
+
+    },
+
+    {
+      id:"web_training",
+
+      title:"Web Training",
+
+      objective:
+        "Complete web challenges",
+
+      target:10,
+
+      rewardXP:250,
+
+      rewardMoney:150
+
+    },
+
+    {
+      id:"night_watch",
+
+      title:"Night Watch",
+
+      objective:
+        "Protect the city at night",
+
+      target:12,
+
+      rewardXP:350,
+
+      rewardMoney:225
+
+    },
+
+    {
+      id:"city_crisis",
+
+      title:"City Crisis",
+
+      objective:
+        "Complete the emergency objectives",
+
+      target:15,
+
+      rewardXP:500,
+
+      rewardMoney:350
+
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V101 MISSION SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET MISSION
+     ======================================================= */
+
+  getMission(){
+
+    return this.missions[
+      this.currentMission
+    ] || null;
+
+  },
+
+
+  /* =======================================================
+     START NEXT MISSION
+     ======================================================= */
+
+  startNextMission(){
+
+    if(
+      this.currentMission >=
+      this.missions.length
+    ){
+
+      this.currentMission=0;
+
+    }
+
+    this.progress=0;
+
+    this.state="active";
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🎯 Mission started"
+    );
+
+  },
+
+
+  /* =======================================================
+     ADD OBJECTIVE PROGRESS
+     ======================================================= */
+
+  addProgress(amount=1){
+
+    const mission=
+      this.getMission();
+
+    if(
+      !mission ||
+      this.state!=="active"
+    ){
+
+      this.message(
+        "⚠️ No active mission"
+      );
+
+      return;
+
+    }
+
+    const value=
+      Number(amount);
+
+
+    if(
+      !Number.isFinite(value) ||
+      value<=0
+    ){
+
+      return;
+
+    }
+
+
+    this.progress+=value;
+
+
+    if(
+      this.progress>=
+      mission.target
+    ){
+
+      this.progress=
+        mission.target;
+
+      this.state="ready";
+
+      this.message(
+        "🎯 Objective complete!"
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     COMPLETE MISSION
+     ======================================================= */
+
+  completeMission(){
+
+    const mission=
+      this.getMission();
+
+    if(
+      !mission
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      this.state!=="ready" &&
+      this.progress<
+      mission.target
+    ){
+
+      this.message(
+        "⚠️ Objective not finished"
+      );
+
+      return;
+
+    }
+
+
+    this.progress=
+      mission.target;
+
+    this.state="completed";
+
+    this.totalXP+=
+      mission.rewardXP;
+
+    this.totalMoney+=
+      mission.rewardMoney;
+
+    this.completedMissions++;
+
+
+    this.message(
+      "✅ Mission complete! +"+
+      mission.rewardXP+
+      " XP"
+    );
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    /*
+      Optional callback for the
+      main game.
+    */
+
+    if(
+      typeof window.onWebboundMissionComplete===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundMissionComplete(
+          mission,
+          {
+            xp:mission.rewardXP,
+            money:mission.rewardMoney
+          }
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V101 MISSION CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     FAIL MISSION
+     ======================================================= */
+
+  failMission(){
+
+    if(
+      this.state!=="active" &&
+      this.state!=="ready"
+    ){
+
+      this.message(
+        "⚠️ No active mission"
+      );
+
+      return;
+
+    }
+
+
+    this.state="failed";
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "❌ Mission failed"
+    );
+
+  },
+
+
+  /* =======================================================
+     RESET MISSION
+     ======================================================= */
+
+  resetMission(){
+
+    this.progress=0;
+
+    this.state="inactive";
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🔄 Mission reset"
+    );
+
+  },
+
+
+  /* =======================================================
+     RETRY
+     ======================================================= */
+
+  retryMission(){
+
+    this.progress=0;
+
+    this.state="active";
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🔁 Mission restarted"
+    );
+
+  },
+
+
+  /* =======================================================
+     NEXT MISSION
+     ======================================================= */
+
+  nextMission(){
+
+    this.currentMission++;
+
+    if(
+      this.currentMission >=
+      this.missions.length
+    ){
+
+      this.currentMission=0;
+
+    }
+
+    this.progress=0;
+
+    this.state="inactive";
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     MISSION STATUS
+     ======================================================= */
+
+  getStatusText(){
+
+    switch(
+      this.state
+    ){
+
+      case "active":
+        return "IN PROGRESS";
+
+      case "ready":
+        return "READY TO COMPLETE";
+
+      case "completed":
+        return "COMPLETED";
+
+      case "failed":
+        return "FAILED";
+
+      default:
+        return "NOT STARTED";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const mission=
+      this.getMission();
+
+    const title=
+      document.getElementById(
+        "v101Mission"
+      );
+
+    const objective=
+      document.getElementById(
+        "v101Objective"
+      );
+
+    const bar=
+      document.getElementById(
+        "v101Bar"
+      );
+
+    const reward=
+      document.getElementById(
+        "v101Reward"
+      );
+
+
+    if(
+      !mission
+    ){
+
+      if(title){
+
+        title.textContent=
+          "All missions completed";
+
+      }
+
+      if(objective){
+
+        objective.textContent=
+          "No mission available";
+
+      }
+
+      return;
+
+    }
+
+
+    if(title){
+
+      title.textContent=
+        mission.title+
+        " • "+
+        this.getStatusText();
+
+    }
+
+
+    if(objective){
+
+      objective.textContent=
+        mission.objective+
+        " ("+
+        this.progress+
+        "/"+
+        mission.target+
+        ")";
+
+    }
+
+
+    const percentage=
+      Math.max(
+        0,
+        Math.min(
+          100,
+          (
+            this.progress/
+            mission.target
+          )*
+          100
+        )
+      );
+
+
+    if(bar){
+
+      bar.style.width=
+        percentage+
+        "%";
+
+    }
+
+
+    if(reward){
+
+      reward.textContent=
+        "Reward: "+
+        mission.rewardXP+
+        " XP • ₹"+
+        mission.rewardMoney+
+        " • Total XP: "+
+        this.totalXP;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v101Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        enabled:this.enabled,
+
+        currentMission:
+          this.currentMission,
+
+        progress:
+          this.progress,
+
+        state:
+          this.state,
+
+        totalXP:
+          this.totalXP,
+
+        totalMoney:
+          this.totalMoney,
+
+        completedMissions:
+          this.completedMissions
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V101 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.currentMission
+          )
+        )
+      ){
+
+        this.currentMission=
+          Math.max(
+            0,
+            Math.min(
+              this.missions.length-1,
+              Number(
+                data.currentMission
+              )
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.progress)
+        )
+      ){
+
+        this.progress=
+          Math.max(
+            0,
+            Number(
+              data.progress
+            )
+          );
+
+      }
+
+
+      if(
+        typeof data.state===
+        "string"
+      ){
+
+        const states=[
+          "inactive",
+          "active",
+          "ready",
+          "completed",
+          "failed"
+        ];
+
+
+        if(
+          states.includes(
+            data.state
+          )
+        ){
+
+          this.state=
+            data.state;
+
+        }
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.totalXP)
+        )
+      ){
+
+        this.totalXP=
+          Math.max(
+            0,
+            Number(
+              data.totalXP
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.totalMoney)
+        )
+      ){
+
+        this.totalMoney=
+          Math.max(
+            0,
+            Number(
+              data.totalMoney
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.completedMissions
+          )
+        )
+      ){
+
+        this.completedMissions=
+          Math.max(
+            0,
+            Number(
+              data.completedMissions
+            )
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V101 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      enabled:this.enabled,
+
+      currentMission:
+        this.currentMission,
+
+      progress:
+        this.progress,
+
+      state:
+        this.state,
+
+      totalXP:
+        this.totalXP,
+
+      totalMoney:
+        this.totalMoney,
+
+      completedMissions:
+        this.completedMissions
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(
+          data.currentMission
+        )
+      )
+    ){
+
+      this.currentMission=
+        Math.max(
+          0,
+          Math.min(
+            this.missions.length-1,
+            Number(
+              data.currentMission
+            )
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.progress)
+      )
+    ){
+
+      this.progress=
+        Math.max(
+          0,
+          Number(
+            data.progress
+          )
+        );
+
+    }
+
+
+    if(
+      typeof data.state===
+      "string"
+    ){
+
+      this.state=
+        data.state;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.totalXP)
+      )
+    ){
+
+      this.totalXP=
+        Math.max(
+          0,
+          Number(
+            data.totalXP
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.totalMoney)
+      )
+    ){
+
+      this.totalMoney=
+        Math.max(
+          0,
+          Number(
+            data.totalMoney
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(
+          data.completedMissions
+        )
+      )
+    ){
+
+      this.completedMissions=
+        Math.max(
+          0,
+          Number(
+            data.completedMissions
+          )
+        );
+
+    }
+
+
+    this.updateHUD();
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      M = start mission
+    */
+
+    if(
+      event.code==="KeyM"
+    ){
+
+      V101.startNextMission();
+
+    }
+
+
+    /*
+      N = add objective progress
+    */
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      V101.addProgress(1);
+
+    }
+
+
+    /*
+      C = complete
+    */
+
+    if(
+      event.code==="KeyC"
+    ){
+
+      V101.completeMission();
+
+    }
+
+
+    /*
+      F = fail
+    */
+
+    if(
+      event.code==="KeyF"
+    ){
+
+      V101.failMission();
+
+    }
+
+
+    /*
+      R = retry
+    */
+
+    if(
+      event.code==="KeyR"
+    ){
+
+      V101.retryMission();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V101.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V101.init();
+
+
+console.log(
+  "WEBBOUND V101 MISSION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
