@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V135</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  overflow:hidden;
+  background:#081018;
+  color:#fff;
+  font-family:Arial,sans-serif;
+}
+
+#world{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:
+    linear-gradient(#172633,#0b141d);
+}
+
+#roads{
+  position:absolute;
+  inset:0;
+}
+
+.road{
+  position:absolute;
+  background:#252b31;
+  box-shadow:0 0 0 1px #ffffff12;
+}
+
+.road.h{
+  height:38px;
+  left:0;
+  right:0;
+}
+
+.road.v{
+  width:38px;
+  top:0;
+  bottom:0;
+}
+
+.line{
+  position:absolute;
+  background:#e6d36b;
+  opacity:.75;
+}
+
+.trafficLight{
+  position:absolute;
+  width:10px;
+  height:25px;
+  background:#111;
+  border-radius:5px;
+  z-index:3000;
+}
+
+.light{
+  width:7px;
+  height:7px;
+  margin:2px auto;
+  border-radius:50%;
+}
+
+.red{background:#e33}
+.yellow{background:#e4c84b}
+.green{background:#43d66c}
+
+#buildings{
+  position:absolute;
+  inset:0;
+}
+
+.building{
+  position:absolute;
+  background:#1b2936;
+  border:1px solid #ffffff18;
+  border-radius:8px;
+  box-shadow:0 5px 14px #0007;
+  z-index:20;
+}
+
+.label{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  font-size:9px;
+  opacity:.8;
+  white-space:nowrap;
+}
+
+#player{
+  position:absolute;
+  width:22px;
+  height:30px;
+  background:#278be5;
+  border-radius:9px 9px 4px 4px;
+  z-index:5000;
+  transform:translate(-50%,-50%);
+}
+
+#player:before{
+  content:"";
+  position:absolute;
+  width:13px;
+  height:13px;
+  left:4.5px;
+  top:-9px;
+  border-radius:50%;
+  background:#c9936c;
+}
+
+.npc{
+  position:absolute;
+  width:17px;
+  height:25px;
+  border-radius:8px 8px 4px 4px;
+  z-index:3500;
+  box-shadow:0 2px 7px #000;
+}
+
+.npc:before{
+  content:"";
+  position:absolute;
+  width:10px;
+  height:10px;
+  left:3.5px;
+  top:-8px;
+  border-radius:50%;
+  background:#c9936c;
+}
+
+.npcName{
+  position:absolute;
+  bottom:28px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:7px;
+  white-space:nowrap;
+  text-shadow:0 1px 3px #000;
+}
+
+.car{
+  position:absolute;
+  width:27px;
+  height:13px;
+  border-radius:4px;
+  z-index:2500;
+  box-shadow:0 2px 8px #000;
+}
+
+.car:after{
+  content:"";
+  position:absolute;
+  left:5px;
+  right:5px;
+  top:2px;
+  height:5px;
+  background:#91b7c9;
+  border-radius:2px;
+}
+
+#hud{
+  position:fixed;
+  left:10px;
+  bottom:10px;
+  width:min(400px,90vw);
+  padding:13px;
+  background:#03070cf2;
+  border:1px solid #ffffff25;
+  border-radius:14px;
+  z-index:8000;
+}
+
+#title{
+  font-size:14px;
+  font-weight:bold;
+}
+
+#stats{
+  margin-top:8px;
+  font-size:10px;
+  line-height:1.6;
+}
+
+.buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:8px;
+}
+
+button{
+  flex:1;
+  min-width:82px;
+  padding:8px;
+  border:1px solid #ffffff18;
+  border-radius:8px;
+  background:#172535;
+  color:white;
+  font-size:9px;
+}
+
+#clock{
+  position:fixed;
+  right:10px;
+  top:10px;
+  z-index:8000;
+  padding:9px 12px;
+  background:#03070cf2;
+  border:1px solid #ffffff25;
+  border-radius:10px;
+  font-size:11px;
+}
+
+#message{
+  position:fixed;
+  left:50%;
+  top:17%;
+  transform:translateX(-50%);
+  z-index:9000;
+  display:none;
+  padding:10px 15px;
+  background:#03070cf5;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+  font-size:11px;
+  text-align:center;
+}
+
+#panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(430px,90vw);
+  max-height:78vh;
+  overflow:auto;
+  display:none;
+  padding:15px;
+  background:#03070cf9;
+  border:1px solid #ffffff30;
+  border-radius:16px;
+  z-index:10000;
+}
+
+#panelTitle{
+  font-weight:bold;
+  font-size:14px;
+}
+
+.row{
+  margin-top:8px;
+  padding:10px;
+  background:#111c28;
+  border-radius:9px;
+  font-size:10px;
+}
+
+.close{
+  width:100%;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="world">
+
+  <div id="roads">
+
+    <div class="road h" style="top:27%"></div>
+    <div class="road h" style="top:67%"></div>
+
+    <div class="road v" style="left:24%"></div>
+    <div class="road v" style="left:56%"></div>
+    <div class="road v" style="left:78%"></div>
+
+  </div>
+
+  <div id="buildings"></div>
+
+  <div id="player"></div>
+
+</div>
+
+<div id="clock">📅 Day 1 • 🕐 08:00</div>
+
+<div id="message"></div>
+
+<div id="hud">
+
+  <div id="title">
+    🚗 WEBBOUND V135 — CITY TRAFFIC
+  </div>
+
+  <div id="stats"></div>
+
+  <div class="buttons">
+
+    <button onclick="V135.people()">
+      👥 PEOPLE
+    </button>
+
+    <button onclick="V135.trafficPanel()">
+      🚦 TRAFFIC
+    </button>
+
+    <button onclick="V135.cityPanel()">
+      🏙️ CITY
+    </button>
+
+    <button onclick="V135.advanceHour()">
+      ⏩ +1 HOUR
+    </button>
+
+    <button onclick="V135.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+  </div>
+
+</div>
+
+<div id="panel">
+
+  <div id="panelTitle">
+    WEBBOUND V135
+  </div>
+
+  <div id="panelContent"></div>
+
+  <button class="close" onclick="V135.closePanel()">
+    CLOSE
+  </button>
+
+</div>
+
+<script>
+
+const V135={
+
+  saveKey:"WEBBOUND_V134",
+
+  running:true,
+
+  hour:8,
+
+  day:1,
+
+  player:{
+    x:window.innerWidth/2,
+    y:window.innerHeight/2,
+    money:1000,
+    reputation:0,
+    job:null
+  },
+
+  npcs:[],
+
+  cars:[],
+
+  trafficLights:[],
+
+  trafficStats:{
+    cars:0,
+    trips:0,
+    accidents:0,
+    trafficLevel:"Low"
+  },
+
+  keys:{},
+
+  lastHour:8,
+
+  /* ==============================
+     INIT
+     ============================== */
+
+  init(){
+
+    this.load();
+
+    this.createBuildings();
+
+    this.createTrafficLights();
+
+    if(this.npcs.length===0){
+
+      this.createNPCs(15);
+
+    }
+
+    this.createCars(12);
+
+    this.keyboard();
+
+    this.render();
+
+    setInterval(
+      ()=>{
+        if(this.running){
+          this.update();
+        }
+      },
+      40
+    );
+
+    this.message(
+      "🚗 V135 traffic system online"
+    );
+
+  },
+
+  /* ==============================
+     BUILDINGS
+     ============================== */
+
+  createBuildings(){
+
+    const data=[
+
+      ["🏠 Homes",5,6,17,18],
+
+      ["🏫 School",29,7,17,15],
+
+      ["🏥 Hospital",60,7,14,15],
+
+      ["🏢 Offices",81,7,15,16],
+
+      ["🏪 Shops",81,45,15,16],
+
+      ["🌳 Park",29,47,18,17],
+
+      ["🍽️ Restaurant",60,46,15,15],
+
+      ["🏭 Factory",5,46,17,16]
+
+    ];
+
+    const root=
+      document.getElementById(
+        "buildings"
+      );
+
+    root.innerHTML="";
+
+    data.forEach(
+      d=>{
+
+        const el=
+          document.createElement("div");
+
+        el.className="building";
+
+        el.style.left=d[1]+"%";
+        el.style.top=d[2]+"%";
+        el.style.width=d[3]+"%";
+        el.style.height=d[4]+"%";
+
+        const label=
+          document.createElement("div");
+
+        label.className="label";
+        label.textContent=d[0];
+
+        el.appendChild(label);
+
+        root.appendChild(el);
+
+      }
+    );
+
+  },
+
+  /* ==============================
+     TRAFFIC LIGHTS
+     ============================== */
+
+  createTrafficLights(){
+
+    const positions=[
+      [24,27],
+      [56,27],
+      [78,27],
+      [24,67],
+      [56,67],
+      [78,67]
+    ];
+
+    positions.forEach(
+      p=>{
+
+        const el=
+          document.createElement(
+            "div"
+          );
+
+        el.className="trafficLight";
+
+        el.style.left=
+          `calc(${p[0]}% + 20px)`;
+
+        el.style.top=
+          `calc(${p[1]}% - 30px)`;
+
+        el.innerHTML=
+          `
+          <div class="light red"></div>
+          <div class="light yellow"></div>
+          <div class="light green"></div>
+          `;
+
+        document
+          .getElementById("world")
+          .appendChild(el);
+
+        this.trafficLights.push({
+          element:el,
+          state:"green"
+        });
+
+      }
+    );
+
+  },
+
+  /* ==============================
+     NPC CREATION
+     ============================== */
+
+  createNPCs(count){
+
+    const names=[
+      "Alex","Sam","Ryan","Maya",
+      "Arun","Riya","Dev","Asha",
+      "Noah","Leo","Avi","Zara",
+      "Kiran","Nikhil","Anu",
+      "Rahul","Meera","Vikram"
+    ];
+
+    const jobs=[
+      "Student",
+      "Engineer",
+      "Doctor",
+      "Teacher",
+      "Shopkeeper",
+      "Worker",
+      "Tourist"
+    ];
+
+    for(
+      let i=0;
+      i<count;
+      i++
+    ){
+
+      const npc={
+
+        id:i+1,
+
+        name:
+          names[
+            i%names.length
+          ],
+
+        job:
+          jobs[
+            Math.floor(
+              Math.random()*jobs.length
+            )
+          ],
+
+        x:
+          Math.random()*
+          window.innerWidth,
+
+        y:
+          170+
+          Math.random()*
+          Math.max(
+            1,
+            window.innerHeight-220
+          ),
+
+        targetX:0,
+
+        targetY:0,
+
+        happiness:
+          50+
+          Math.floor(
+            Math.random()*45
+          ),
+
+        relationship:0,
+
+        friendship:"Stranger",
+
+        money:
+          500+
+          Math.floor(
+            Math.random()*4000
+          ),
+
+        state:"walking",
+
+        element:null
+
+      };
+
+      this.chooseNPCDestination(npc);
+
+      this.npcs.push(npc);
+
+    }
+
+  },
+
+  /* ==============================
+     NPC DESTINATION
+     ============================== */
+
+  chooseNPCDestination(npc){
+
+    const destinations=[
+
+      [24,27],
+      [56,27],
+      [78,27],
+      [24,67],
+      [56,67],
+      [78,67]
+
+    ];
+
+    const p=
+      destinations[
+        Math.floor(
+          Math.random()*
+          destinations.length
+        )
+      ];
+
+    npc.targetX=
+      window.innerWidth*
+      p[0]/100;
+
+    npc.targetY=
+      window.innerHeight*
+      p[1]/100;
+
+  },
+
+  /* ==============================
+     CARS
+     ============================== */
+
+  createCars(count){
+
+    const colors=[
+      "#c84a4a",
+      "#4b82bd",
+      "#d39a3a",
+      "#7c63a7",
+      "#4d9b75",
+      "#777"
+    ];
+
+    for(
+      let i=0;
+      i<count;
+      i++
+    ){
+
+      const horizontal=
+        Math.random()>.5;
+
+      const car={
+
+        id:i,
+
+        horizontal,
+
+        x:
+          horizontal
+          ? -40
+          : this.randomRoadX(),
+
+        y:
+          horizontal
+          ? this.randomRoadY()
+          : -40,
+
+        speed:
+          1.1+
+          Math.random()*1.5,
+
+        direction:
+          Math.random()>.5
+          ? 1
+          : -1,
+
+        color:
+          colors[
+            Math.floor(
+              Math.random()*colors.length
+            )
+          ],
+
+        element:null,
+
+        stopped:false
+
+      };
+
+      if(
+        !horizontal &&
+        car.direction<0
+      ){
+
+        car.y=
+          window.innerHeight+40;
+
+      }
+
+      if(
+        horizontal &&
+        car.direction<0
+      ){
+
+        car.x=
+          window.innerWidth+40;
+
+      }
+
+      this.cars.push(car);
+
+      this.createCarElement(car);
+
+    }
+
+    this.trafficStats.cars=
+      this.cars.length;
+
+  },
+
+  randomRoadX(){
+
+    return (
+      window.innerWidth*.24+
+      10
+    );
+
+  },
+
+  randomRoadY(){
+
+    const roads=[
+      window.innerHeight*.27+12,
+      window.innerHeight*.67+12
+    ];
+
+    return roads[
+      Math.floor(
+        Math.random()*roads.length
+      )
+    ];
+
+  },
+
+  createCarElement(car){
+
+    const el=
+      document.createElement(
+        "div"
+      );
+
+    el.className="car";
+
+    el.style.background=
+      car.color;
+
+    car.element=el;
+
+    document
+      .getElementById("world")
+      .appendChild(el);
+
+    this.renderCar(car);
+
+  },
+
+  /* ==============================
+     UPDATE
+     ============================== */
+
+  update(){
+
+    this.movePlayer();
+
+    this.updateNPCs();
+
+    this.updateCars();
+
+    this.updateTrafficLights();
+
+    this.updateTime();
+
+    this.updateHUD();
+
+  },
+
+  /* ==============================
+     CARS UPDATE
+     ============================== */
+
+  updateCars(){
+
+    this.cars.forEach(
+      car=>{
+
+        const light=
+          this.nearTrafficLight(car);
+
+        car.stopped=false;
+
+        if(light){
+
+          const cycle=
+            Math.floor(
+              this.hour*60
+            )%2;
+
+          if(cycle===0){
+
+            if(
+              car.horizontal &&
+              Math.abs(
+                car.x-
+                light.x
+              )<35
+            ){
+
+              car.stopped=true;
+
+            }
+
+            if(
+              !car.horizontal &&
+              Math.abs(
+                car.y-
+                light.y
+              )<35
+            ){
+
+              car.stopped=true;
+
+            }
+
+          }
+
+        }
+
+        if(!car.stopped){
+
+          if(car.horizontal){
+
+            car.x+=
+              car.speed*
+              car.direction;
+
+          }
+          else{
+
+            car.y+=
+              car.speed*
+              car.direction;
+
+          }
+
+        }
+
+        if(
+          car.x<
+          -60||
+          car.x>
+          window.innerWidth+60||
+          car.y<
+          -60||
+          car.y>
+          window.innerHeight+60
+        ){
+
+          this.resetCar(car);
+
+        }
+
+        this.renderCar(car);
+
+      }
+    );
+
+  },
+
+  resetCar(car){
+
+    if(car.horizontal){
+
+      car.x=
+        car.direction>0
+        ? -50
+        : window.innerWidth+50;
+
+      car.y=
+        this.randomRoadY();
+
+    }
+    else{
+
+      car.y=
+        car.direction>0
+        ? -50
+        : window.innerHeight+50;
+
+      car.x=
+        this.randomRoadX();
+
+    }
+
+    this.trafficStats.trips++;
+
+  },
+
+  renderCar(car){
+
+    if(!car.element)return;
+
+    car.element.style.left=
+      car.x+"px";
+
+    car.element.style.top=
+      car.y+"px";
+
+  },
+
+  /* ==============================
+     TRAFFIC LIGHT
+     ============================== */
+
+  updateTrafficLights(){
+
+    const phase=
+      Math.floor(
+        this.hour*60
+      )%3;
+
+    this.trafficLights.forEach(
+      light=>{
+
+        if(phase===0){
+
+          light.state="green";
+
+        }
+        else if(phase===1){
+
+          light.state="yellow";
+
+        }
+        else{
+
+          light.state="red";
+
+        }
+
+        const lights=
+          light.element
+            .querySelectorAll(
+              ".light"
+            );
+
+        lights.forEach(
+          x=>{
+            x.style.opacity=".25";
+          }
+        );
+
+        if(
+          light.state==="red"
+        ){
+
+          lights[0].style.opacity="1";
+
+        }
+
+        if(
+          light.state==="yellow"
+        ){
+
+          lights[1].style.opacity="1";
+
+        }
+
+        if(
+          light.state==="green"
+        ){
+
+          lights[2].style.opacity="1";
+
+        }
+
+      }
+    );
+
+  },
+
+  nearTrafficLight(car){
+
+    let closest=null;
+    let dist=70;
+
+    this.trafficLights.forEach(
+      light=>{
+
+        const r=
+          light.element
+            .getBoundingClientRect();
+
+        const x=
+          r.left;
+
+        const y=
+          r.top;
+
+        const dx=
+          car.x-x;
+
+        const dy=
+          car.y-y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+dy*dy
+          );
+
+        if(d<dist){
+
+          dist=d;
+
+          closest={
+            x:x,
+            y:y
+          };
+
+        }
+
+      }
+    );
+
+    return closest;
+
+  },
+
+  /* ==============================
+     NPC UPDATE
+     ============================== */
+
+  updateNPCs(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        const dx=
+          npc.targetX-npc.x;
+
+        const dy=
+          npc.targetY-npc.y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+        if(d<8){
+
+          this.chooseNPCDestination(npc);
+
+          return;
+
+        }
+
+        npc.x+=
+          dx/d*.45;
+
+        npc.y+=
+          dy/d*.45;
+
+      }
+    );
+
+  },
+
+  /* ==============================
+     PLAYER
+     ============================== */
+
+  movePlayer(){
+
+    const speed=3;
+
+    if(
+      this.keys.ArrowUp||
+      this.keys.KeyW
+    ){
+
+      this.player.y-=speed;
+
+    }
+
+    if(
+      this.keys.ArrowDown||
+      this.keys.KeyS
+    ){
+
+      this.player.y+=speed;
+
+    }
+
+    if(
+      this.keys.ArrowLeft||
+      this.keys.KeyA
+    ){
+
+      this.player.x-=speed;
+
+    }
+
+    if(
+      this.keys.ArrowRight||
+      this.keys.KeyD
+    ){
+
+      this.player.x+=speed;
+
+    }
+
+    this.player.x=
+      Math.max(
+        10,
+        Math.min(
+          window.innerWidth-10,
+          this.player.x
+        )
+      );
+
+    this.player.y=
+      Math.max(
+        150,
+        Math.min(
+          window.innerHeight-20,
+          this.player.y
+        )
+      );
+
+  },
+
+  /* ==============================
+     TIME
+     ============================== */
+
+  updateTime(){
+
+    this.hour+=.025;
+
+    if(this.hour>=24){
+
+      this.hour=0;
+
+      this.day++;
+
+    }
+
+    const h=
+      Math.floor(this.hour);
+
+    const m=
+      Math.floor(
+        (this.hour-h)*60
+      );
+
+    document.getElementById(
+      "clock"
+    ).textContent=
+      "📅 Day "+
+      this.day+
+      " • 🕐 "+
+      String(h).padStart(2,"0")+
+      ":"+
+      String(m).padStart(2,"0");
+
+  },
+
+  /* ==============================
+     TRAFFIC PANEL
+     ============================== */
+
+  trafficPanel(){
+
+    const level=
+      this.getTrafficLevel();
+
+    this.openPanel(
+      "🚦 TRAFFIC CONTROL",
+      `
+      <div class="row">
+      🚗 Active Vehicles:
+      ${this.cars.length}
+      </div>
+
+      <div class="row">
+      🚦 Traffic Level:
+      ${level}
+      </div>
+
+      <div class="row">
+      🛣️ Road Trips:
+      ${this.trafficStats.trips}
+      </div>
+
+      <div class="row">
+      🚥 Traffic Lights:
+      ${this.trafficLights.length}
+      </div>
+
+      <div class="row">
+      ⚠️ Accidents:
+      ${this.trafficStats.accidents}
+      </div>
+
+      <div class="row">
+      💡 Tip:
+      Traffic changes automatically
+      throughout the day.
+      </div>
+      `
+    );
+
+  },
+
+  getTrafficLevel(){
+
+    const h=
+      Math.floor(this.hour);
+
+    if(
+      h>=7&&h<=10
+    ){
+
+      return "🔴 Heavy";
+
+    }
+
+    if(
+      h>=17&&h<=21
+    ){
+
+      return "🔴 Heavy";
+
+    }
+
+    if(
+      h>=11&&h<=16
+    ){
+
+      return "🟡 Medium";
+
+    }
+
+    return "🟢 Low";
+
+  },
+
+  /* ==============================
+     PEOPLE PANEL
+     ============================== */
+
+  people(){
+
+    let html="";
+
+    this.npcs
+      .slice(0,25)
+      .forEach(
+        npc=>{
+
+          html+=
+            `
+            <div class="row">
+            <b>${npc.name}</b>
+            <br>
+            💼 ${npc.job}
+            <br>
+            😊 Happiness:
+            ${npc.happiness}%
+            <br>
+            ❤️ Relationship:
+            ${npc.relationship}
+            </div>
+            `;
+
+        }
+      );
+
+    this.openPanel(
+      "👥 CITY PEOPLE",
+      html
+    );
+
+  },
+
+  /* ==============================
+     CITY PANEL
+     ============================== */
+
+  cityPanel(){
+
+    const average=
+      Math.round(
+        this.npcs.reduce(
+          (a,n)=>
+            a+n.happiness,
+          0
+        )/
+        Math.max(
+          1,
+          this.npcs.length
+        )
+      );
+
+    this.openPanel(
+      "🏙️ CITY STATUS",
+      `
+      <div class="row">
+      👥 Population:
+      ${this.npcs.length}
+      </div>
+
+      <div class="row">
+      🚗 Vehicles:
+      ${this.cars.length}
+      </div>
+
+      <div class="row">
+      😊 Average Happiness:
+      ${average}%
+      </div>
+
+      <div class="row">
+      🚦 Traffic:
+      ${this.getTrafficLevel()}
+      </div>
+
+      <div class="row">
+      📅 Day:
+      ${this.day}
+      </div>
+
+      <div class="row">
+      💰 Player Money:
+      ₹${Math.floor(this.player.money)}
+      </div>
+      `
+    );
+
+  },
+
+  /* ==============================
+     PANEL
+     ============================== */
+
+  openPanel(title,html){
+
+    document.getElementById(
+      "panelTitle"
+    ).textContent=title;
+
+    document.getElementById(
+      "panelContent"
+    ).innerHTML=html;
+
+    document.getElementById(
+      "panel"
+    ).style.display="block";
+
+  },
+
+  closePanel(){
+
+    document.getElementById(
+      "panel"
+    ).style.display="none";
+
+  },
+
+  /* ==============================
+     PAUSE
+     ==========================
