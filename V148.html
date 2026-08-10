@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V148 — CHARACTER & INVENTORY</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ background:#05090d;
+ color:#fff;
+ font-family:Arial,sans-serif;
+ overflow:hidden
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ background:
+ radial-gradient(circle at 50% 35%,#213946,#071016 65%);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+ overflow:hidden
+}
+
+.building{
+ position:absolute;
+ background:#122029;
+ border:1px solid #ffffff16;
+ border-radius:8px
+}
+
+.b1{left:3%;top:8%;width:18%;height:25%}
+.b2{left:26%;top:7%;width:20%;height:30%}
+.b3{left:52%;top:9%;width:17%;height:23%}
+.b4{right:3%;top:6%;width:22%;height:29%}
+
+.road{
+ position:absolute;
+ background:#222b30
+}
+
+.road1{
+ left:0;
+ right:0;
+ top:55%;
+ height:55px
+}
+
+.road2{
+ top:0;
+ bottom:0;
+ left:72%;
+ width:55px
+}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:55%;
+ width:30px;
+ height:42px;
+ transform:translate(-50%,-50%);
+ background:#2b8edb;
+ border-radius:10px 10px 5px 5px;
+ z-index:20;
+ box-shadow:0 0 14px #2684c866
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ width:18px;
+ height:18px;
+ left:6px;
+ top:-14px;
+ border-radius:50%;
+ background:#bd8967
+}
+
+#hud{
+ position:absolute;
+ top:10px;
+ left:10px;
+ width:min(390px,72vw);
+ padding:12px;
+ background:#03070ceb;
+ border:1px solid #ffffff22;
+ border-radius:13px;
+ z-index:100
+}
+
+#name{
+ font-weight:bold;
+ letter-spacing:1px
+}
+
+#level{
+ margin-top:5px;
+ color:#c995ff;
+ font-size:11px
+}
+
+#xpbar{
+ height:7px;
+ background:#ffffff18;
+ border-radius:5px;
+ margin-top:7px;
+ overflow:hidden
+}
+
+#xp{
+ height:100%;
+ width:0%;
+ background:#a86de0;
+ transition:.3s
+}
+
+.stats{
+ display:flex;
+ gap:5px;
+ margin-top:8px
+}
+
+.stat{
+ flex:1;
+ padding:7px;
+ text-align:center;
+ background:#101b23;
+ border-radius:7px;
+ font-size:9px
+}
+
+#buttons{
+ position:absolute;
+ left:50%;
+ bottom:12px;
+ transform:translateX(-50%);
+ width:min(700px,94vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:100
+}
+
+button{
+ padding:10px;
+ border:1px solid #ffffff20;
+ border-radius:8px;
+ background:#142733;
+ color:#fff;
+ cursor:pointer;
+ flex:1;
+ min-width:110px;
+ font-size:10px
+}
+
+button:hover{
+ background:#203d4d
+}
+
+#panel{
+ position:absolute;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000b;
+ z-index:500
+}
+
+.box{
+ width:min(620px,92vw);
+ max-height:82vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px
+}
+
+.box h2{
+ margin-top:0
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:repeat(
+  auto-fit,
+  minmax(120px,1fr)
+ );
+ gap:7px
+}
+
+.item{
+ min-height:105px;
+ padding:10px;
+ background:#111d25;
+ border:1px solid #ffffff14;
+ border-radius:9px
+}
+
+.item b{
+ display:block;
+ margin-bottom:7px
+}
+
+.item p{
+ margin:0;
+ color:#aebac1;
+ font-size:9px;
+ line-height:1.5
+}
+
+.empty{
+ opacity:.4
+}
+
+#notification{
+ position:absolute;
+ left:50%;
+ top:18%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ font-size:10px;
+ display:none;
+ z-index:1000
+}
+
+#caseProgress{
+ margin-top:10px;
+ padding:9px;
+ background:#111c24;
+ border-radius:8px;
+ font-size:10px
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="building b1"></div>
+  <div class="building b2"></div>
+  <div class="building b3"></div>
+  <div class="building b4"></div>
+
+  <div class="road road1"></div>
+  <div class="road road2"></div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div id="name">
+   🕵️ WEBBOUND INVESTIGATOR
+  </div>
+
+  <div id="level">
+   Level <span id="levelNumber">1</span>
+   •
+   <span id="xpText">0 / 100 XP</span>
+  </div>
+
+  <div id="xpbar">
+   <div id="xp"></div>
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    ❤️
+    <br>
+    <span id="health">100</span>
+   </div>
+
+   <div class="stat">
+    🧠
+    <br>
+    <span id="intelligence">10</span>
+   </div>
+
+   <div class="stat">
+    🔎
+    <br>
+    <span id="investigation">10</span>
+   </div>
+
+   <div class="stat">
+    ⭐
+    <br>
+    <span id="reputation">0</span>
+   </div>
+
+  </div>
+
+  <div id="caseProgress">
+   Case evidence:
+   <span id="evidenceCount">0</span>/8
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="buttons">
+
+  <button onclick="V148.inventory()">
+   🎒 INVENTORY
+  </button>
+
+  <button onclick="V148.evidence()">
+   🔎 EVIDENCE
+  </button>
+
+  <button onclick="V148.character()">
+   👤 CHARACTER
+  </button>
+
+  <button onclick="V148.collectRandom()">
+   🧩 FIND CLUE
+  </button>
+
+  <button onclick="V148.addXP(25)">
+   ⭐ TEST XP
+  </button>
+
+  <button onclick="V148.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V148.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V148={
+
+ saveKey:"WEBBOUND_V148",
+
+ player:{
+
+  level:1,
+
+  xp:0,
+
+  health:100,
+
+  intelligence:10,
+
+  investigation:10,
+
+  reputation:0
+
+ },
+
+ inventory:[],
+
+ evidence:[],
+
+ items:[
+
+  {
+   id:"watch",
+   icon:"⌚",
+   name:"Silver Watch",
+   description:
+    "A damaged silver watch found near the warehouse."
+  },
+
+  {
+   id:"key",
+   icon:"🔑",
+   name:"Old Key",
+   description:
+    "A rusty key with an unknown purpose."
+  },
+
+  {
+   id:"photo",
+   icon:"📷",
+   name:"Photograph",
+   description:
+    "A photograph connected to the missing-person case."
+  },
+
+  {
+   id:"note",
+   icon:"📝",
+   name:"Encrypted Note",
+   description:
+    "A mysterious note containing coded information."
+  },
+
+  {
+   id:"card",
+   icon:"💳",
+   name:"Access Card",
+   description:
+    "An access card belonging to an unknown facility."
+  },
+
+  {
+   id:"phone",
+   icon:"📱",
+   name:"Broken Phone",
+   description:
+    "A damaged phone containing fragments of data."
+  },
+
+  {
+   id:"map",
+   icon:"🗺️",
+   name:"Marked Map",
+   description:
+    "Several locations are circled on this city map."
+  },
+
+  {
+   id:"usb",
+   icon:"💾",
+   name:"USB Drive",
+   description:
+    "A small storage device containing unknown files."
+  }
+
+ ],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.updateHUD();
+
+  this.keyboard();
+
+  this.notify(
+   "V148 Character & Inventory ready"
+  );
+
+ },
+
+ /* =========================
+    INVENTORY
+ ========================= */
+
+ inventory(){
+
+  let html="";
+
+  if(this.inventory.length===0){
+
+   html=`
+    <div class="item empty">
+     <b>Empty</b>
+     Nothing collected yet.
+    </div>
+   `;
+
+  }
+  else{
+
+   html='<div class="grid">';
+
+   this.inventory.forEach(
+    id=>{
+
+     const item=
+      this.items.find(
+       x=>x.id===id
+      );
+
+     if(!item)return;
+
+     html+=`
+
+      <div class="item">
+
+       <b>
+        ${item.icon}
+        ${item.name}
+       </b>
+
+       <p>
+        ${item.description}
+       </p>
+
+      </div>
+
+     `;
+
+    }
+   );
+
+   html+='</div>';
+
+  }
+
+  this.open(
+   "🎒 INVENTORY",
+   html
+  );
+
+ },
+
+ /* =========================
+    EVIDENCE
+ ========================= */
+
+ evidence(){
+
+  let html="";
+
+  if(this.evidence.length===0){
+
+   html=`
+    <div class="item empty">
+     <b>No evidence collected</b>
+     Search the city to find clues.
+    </div>
+   `;
+
+  }
+  else{
+
+   html='<div class="grid">';
+
+   this.evidence.forEach(
+    id=>{
+
+     const item=
+      this.items.find(
+       x=>x.id===id
+      );
+
+     if(!item)return;
+
+     html+=`
+
+      <div class="item">
+
+       <b>
+        ${item.icon}
+        ${item.name}
+       </b>
+
+       <p>
+        Evidence added to case file.
+       </p>
+
+      </div>
+
+     `;
+
+    }
+   );
+
+   html+='</div>';
+
+  }
+
+  this.open(
+   "🔎 CASE EVIDENCE",
+   html
+  );
+
+ },
+
+ /* =========================
+    CHARACTER
+ ========================= */
+
+ character(){
+
+  const nextXP=
+   this.xpRequired();
+
+  const html=`
+
+   <div class="grid">
+
+    <div class="item">
+     <b>❤️ Health</b>
+     <p>${this.player.health}/100</p>
+    </div>
+
+    <div class="item">
+     <b>🧠 Intelligence</b>
+     <p>${this.player.intelligence}</p>
+    </div>
+
+    <div class="item">
+     <b>🔎 Investigation</b>
+     <p>${this.player.investigation}</p>
+    </div>
+
+    <div class="item">
+     <b>⭐ Reputation</b>
+     <p>${this.player.reputation}</p>
+    </div>
+
+   </div>
+
+   <br>
+
+   <div class="item">
+
+    <b>
+     🏆 Level ${this.player.level}
+    </b>
+
+    <p>
+     Current XP:
+     ${this.player.xp}
+     /
+     ${nextXP}
+    </p>
+
+   </div>
+
+  `;
+
+  this.open(
+   "👤 CHARACTER",
+   html
+  );
+
+ },
+
+ /* =========================
+    FIND CLUE
+ ========================= */
+
+ collectRandom(){
+
+  const available=
+   this.items.filter(
+    item=>
+     !this.inventory.includes(
+      item.id
+     )
+   );
+
+  if(available.length===0){
+
+   this.notify(
+    "All available clues collected!"
+   );
+
+   return;
+
+  }
+
+  const item=
+   available[
+    Math.floor(
+     Math.random()*
+     available.length
+    )
+   ];
+
+  this.inventory.push(
+   item.id
+  );
+
+  this.evidence.push(
+   item.id
+  );
+
+  this.player.investigation+=1;
+
+  this.addXP(30);
+
+  this.updateHUD();
+
+  this.notify(
+   "🧩 Found: "+
+   item.icon+
+   " "+
+   item.name
+  );
+
+  this.save();
+
+ },
+
+ /* =========================
+    XP SYSTEM
+ ========================= */
+
+ xpRequired(){
+
+  return 100+
+   (
+    this.player.level-1
+   )*50;
+
+ },
+
+ addXP(amount){
+
+  this.player.xp+=amount;
+
+  let required=
+   this.xpRequired();
+
+  while(
+   this.player.xp>=required
+  ){
+
+   this.player.xp-=required;
+
+   this.player.level++;
+
+   this.player.intelligence+=2;
+
+   this.player.investigation+=2;
+
+   this.player.health=
+    Math.min(
+     100,
+     this.player.health+10
+    );
+
+   this.notify(
+    "🎉 LEVEL UP! Level "+
+    this.player.level
+   );
+
+   required=
+    this.xpRequired();
+
+  }
+
+  this.updateHUD();
+
+ },
+
+ /* =========================
+    HUD
+ ========================= */
+
+ updateHUD(){
+
+  const required=
+   this.xpRequired();
+
+  document.getElementById(
+   "levelNumber"
+  ).textContent=
+   this.player.level;
+
+  document.getElementById(
+   "xpText"
+  ).textContent=
+   this.player.xp+
+   " / "+
+   required+
+   " XP";
+
+  document.getElementById(
+   "xp"
+  ).style.width=
+   (
+    this.player.xp/
+    required*
+    100
+   )+"%";
+
+  document.getElementById(
+   "health"
+  ).textContent=
+   this.player.health;
+
+  document.getElementById(
+   "intelligence"
+  ).textContent=
+   this.player.intelligence;
+
+  document.getElementById(
+   "investigation"
+  ).textContent=
+   this.player.investigation;
+
+  document.getElementById(
+   "reputation"
+  ).textContent=
+   this.player.reputation;
+
+  document.getElementById(
+   "evidenceCount"
+  ).textContent=
+   this.evidence.length;
+
+ },
+
+ /* =========================
+    PANELS
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.notificationTimer
+  );
+
+  this.notificationTimer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2200
+   );
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    player:this.player,
+
+    inventory:this.inventory,
+
+    evidence:this.evidence
+
+   })
+  );
+
+  this.notify(
+   "💾 V148 saved successfully"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(data.player){
+
+    this.player={
+     ...this.player,
+     ...data.player
+    };
+
+   }
+
+   if(
+    Array.isArray(
+     data.inventory
+    )
+   ){
+
+    this.inventory=
+     data.inventory;
+
+   }
+
+   if(
+    Array.isArray(
+     data.evidence
+    )
+   ){
+
+    this.evidence=
+     data.evidence;
+
+   }
+
+  }
+  catch(error){
+
+   console.log(
+    "V148 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    KEYBOARD
+ ========================= */
+
+ keyboard(){
+
+  window.addEventListener(
+   "keydown",
+   e=>{
+
+    if(e.code==="KeyI")
+     this.inventory();
+
+    if(e.code==="KeyE")
+     this.evidence();
+
+    if(e.code==="KeyC")
+     this.character();
+
+    if(e.code==="Escape")
+     this.close();
+
+   }
+  );
+
+ }
+
+};
+
+V148.init();
+
+console.log(
+ "WEBBOUND V148 CHARACTER SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
