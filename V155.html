@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V155 — CITY SHOP</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:64px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:64px;
+}
+
+.lane{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.laneH{
+ left:0;
+ right:0;
+ top:calc(57% + 31px);
+ height:2px;
+}
+
+.laneV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 31px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:57%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:30;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#shopMarker{
+ position:absolute;
+ left:82%;
+ top:52%;
+ padding:9px 11px;
+ background:#050b0fdd;
+ border:1px solid #ffffff25;
+ border-radius:8px;
+ color:#d7a6f1;
+ font-size:10px;
+ z-index:40;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(480px,83vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:flex;
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ flex:1;
+ padding:7px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#shopInfo{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.6;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(850px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(720px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:
+ repeat(auto-fit,minmax(155px,1fr));
+ gap:7px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ min-height:130px;
+ font-size:10px;
+ line-height:1.5;
+}
+
+.card b{
+ display:block;
+ margin-bottom:7px;
+}
+
+.price{
+ color:#d9b4ed;
+ font-size:12px;
+ font-weight:bold;
+}
+
+.badge{
+ display:inline-block;
+ padding:3px 6px;
+ background:#ffffff12;
+ border-radius:5px;
+ font-size:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="lane laneH"></div>
+  <div class="lane laneV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🌳 PARK</div>
+
+  <div id="shopMarker">
+   🛒 CITY SHOP
+  </div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🛒 WEBBOUND V155
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cash">0</span>
+   </div>
+
+   <div class="stat">
+    🎒 ITEMS<br>
+    <span id="items">0</span>
+   </div>
+
+   <div class="stat">
+    📦 SLOTS<br>
+    <span id="slots">20</span>
+   </div>
+
+   <div class="stat">
+    ⭐ LEVEL<br>
+    <span id="level">1</span>
+   </div>
+
+  </div>
+
+  <div id="shopInfo">
+
+   🛒 <b>City Shop</b><br>
+   Purchase useful equipment and investigation supplies.
+   Your purchases are automatically stored in your inventory.
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V155.shop()">
+   🛒 SHOP
+  </button>
+
+  <button onclick="V155.buyQuick('flashlight')">
+   🔦 FLASHLIGHT
+  </button>
+
+  <button onclick="V155.buyQuick('medkit')">
+   🩹 MED KIT
+  </button>
+
+  <button onclick="V155.buyQuick('camera')">
+   📷 CAMERA
+  </button>
+
+  <button onclick="V155.buyQuick('battery')">
+   🔋 BATTERY
+  </button>
+
+  <button onclick="V155.sellInventory()">
+   💰 SELL ITEMS
+  </button>
+
+  <button onclick="V155.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V155.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V155={
+
+ saveKey:"WEBBOUND_V155",
+
+ cash:0,
+
+ level:1,
+
+ maxSlots:20,
+
+ inventory:{},
+
+ shopItems:[
+
+  {
+   id:"flashlight",
+   icon:"🔦",
+   name:"Professional Flashlight",
+   category:"Equipment",
+   price:80,
+   description:
+    "Bright flashlight for investigation work."
+  },
+
+  {
+   id:"medkit",
+   icon:"🩹",
+   name:"Medical Kit",
+   category:"Medical",
+   price:150,
+   description:
+    "Basic emergency medical equipment."
+  },
+
+  {
+   id:"camera",
+   icon:"📷",
+   name:"Investigation Camera",
+   category:"Equipment",
+   price:300,
+   description:
+    "Camera for documenting important evidence."
+  },
+
+  {
+   id:"battery",
+   icon:"🔋",
+   name:"Battery Pack",
+   category:"Equipment",
+   price:100,
+   description:
+    "Portable replacement power pack."
+  },
+
+  {
+   id:"map",
+   icon:"🗺️",
+   name:"Detailed City Map",
+   category:"Information",
+   price:120,
+   description:
+    "Detailed map of the surrounding city."
+  },
+
+  {
+   id:"phone",
+   icon:"📱",
+   name:"Smart Phone",
+   category:"Technology",
+   price:250,
+   description:
+    "Useful communication and investigation device."
+  },
+
+  {
+   id:"badge",
+   icon:"🎫",
+   name:"Temporary Access Badge",
+   category:"Access",
+   price:400,
+   description:
+    "May be useful for future restricted locations."
+  },
+
+  {
+   id:"document",
+   icon:"📄",
+   name:"Research File",
+   category:"Information",
+   price:500,
+   description:
+    "A collection of useful background information."
+  }
+
+ ],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🛒 V155 City Shop ready"
+  );
+
+ },
+
+ /* =========================
+    ITEM COUNT
+ ========================= */
+
+ itemCount(){
+
+  return Object.values(
+   this.inventory
+  ).reduce(
+   (sum,n)=>sum+n,
+   0
+  );
+
+ },
+
+ /* =========================
+    SHOP
+ ========================= */
+
+ shop(){
+
+  let html=`
+
+   <div class="card">
+
+    💰 Current cash:
+    <b>₹${this.cash}</b>
+
+    <br>
+
+    🎒 Inventory:
+    <b>
+     ${this.itemCount()}/${this.maxSlots}
+    </b>
+
+   </div>
+
+   <div class="grid">
+
+  `;
+
+  this.shopItems.forEach(
+   item=>{
+
+    const owned=
+     this.inventory[item.id]||0;
+
+    html+=`
+
+     <div class="card">
+
+      <b>
+       ${item.icon}
+       ${item.name}
+      </b>
+
+      <span class="badge">
+       ${item.category}
+      </span>
+
+      <br><br>
+
+      ${item.description}
+
+      <br><br>
+
+      <span class="price">
+       ₹${item.price}
+      </span>
+
+      <br>
+
+      Owned:
+      ${owned}
+
+      <button
+       onclick="V155.buy('${item.id}')">
+       🛒 BUY
+      </button>
+
+     </div>
+
+    `;
+
+   }
+  );
+
+  html+=`</div>`;
+
+  this.open(
+   "🛒 CITY SHOP",
+   html
+  );
+
+ },
+
+ /* =========================
+    BUY
+ ========================= */
+
+ buy(id){
+
+  const item=
+   this.shopItems.find(
+    x=>x.id===id
+   );
+
+  if(!item)
+   return;
+
+  if(
+   this.cash<
+   item.price
+  ){
+
+   this.notify(
+    "❌ Not enough cash."
+   );
+
+   return;
+
+  }
+
+  if(
+   this.itemCount()+
+   1>
+   this.maxSlots
+  ){
+
+   this.notify(
+    "🎒 Inventory is full."
+   );
+
+   return;
+
+  }
+
+  this.cash-=
+   item.price;
+
+  this.inventory[id]=
+   (this.inventory[id]||0)+1;
+
+  this.notify(
+   "🛒 Purchased "+
+   item.icon+
+   " "+
+   item.name
+  );
+
+  this.update();
+
+  this.save();
+
+  this.shop();
+
+ },
+
+ /* =========================
+    QUICK BUY
+ ========================= */
+
+ buyQuick(id){
+
+  this.buy(id);
+
+ },
+
+ /* =========================
+    SELL INVENTORY
+ ========================= */
+
+ sellInventory(){
+
+  const owned=
+   Object.keys(
+    this.inventory
+   ).filter(
+    id=>
+     this.inventory[id]>0
+   );
+
+  if(owned.length===0){
+
+   this.notify(
+    "🎒 Your inventory is empty."
+   );
+
+   return;
+
+  }
+
+  let total=0;
+
+  owned.forEach(
+   id=>{
+
+    const item=
+     this.shopItems.find(
+      x=>x.id===id
+     );
+
+    if(!item)
+     return;
+
+    const quantity=
+     this.inventory[id];
+
+    const value=
+     Math.floor(
+      item.price*.65
+    );
+
+    total+=
+     value*quantity;
+
+    delete this.inventory[id];
+
+   }
+  );
+
+  this.cash+=total;
+
+  this.notify(
+   "💰 Sold inventory for ₹"+
+   total
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  document.getElementById(
+   "cash"
+  ).textContent=
+   this.cash;
+
+  document.getElementById(
+   "items"
+  ).textContent=
+   this.itemCount();
+
+  document.getElementById(
+   "slots"
+  ).textContent=
+   this.maxSlots;
+
+  document.getElementById(
+   "level"
+  ).textContent=
+   this.level;
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    level:this.level,
+
+    maxSlots:this.maxSlots,
+
+    inventory:this.inventory
+
+   })
+  );
+
+  /*
+   Keep the economy compatible
+   with the previous versions.
+  */
+
+  localStorage.setItem(
+   "WEBBOUND_V150_CASH",
+   this.cash
+  );
+
+  /*
+   Also preserve the V154 inventory
+   under its own save slot.
+  */
+
+  localStorage.setItem(
+   "WEBBOUND_V154",
+   JSON.stringify({
+
+    maxSlots:this.maxSlots,
+
+    cash:this.cash,
+
+    level:this.level,
+
+    inventory:this.inventory
+
+   })
+  );
+
+  this.notify(
+   "💾 V155 saved"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   let raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   /*
+    If V155 has no save yet,
+    attempt to continue from V154.
+   */
+
+   if(!raw){
+
+    raw=
+     localStorage.getItem(
+      "WEBBOUND_V154"
+     );
+
+   }
+
+   if(raw){
+
+    const data=
+     JSON.parse(raw);
+
+    this.cash=
+     Number.isFinite(data.cash)
+     ?data.cash
+     :0;
+
+    this.level=
+     Number.isFinite(data.level)
+     ?data.level
+     :1;
+
+    this.maxSlots=
+     Number.isFinite(data.maxSlots)
+     ?data.maxSlots
+     :20;
+
+    this.inventory=
+     data.inventory||
+     {};
+
+    return;
+
+   }
+
+   /*
+    Final fallback to V150 cash.
+   */
+
+   const oldCash=
+    Number(
+     localStorage.getItem(
+      "WEBBOUND_V150_CASH"
+     )
+    );
+
+   if(Number.isFinite(oldCash))
+    this.cash=oldCash;
+
+  }
+  catch(error){
+
+   console.log(
+    "V155 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2200
+   );
+
+ }
+
+};
+
+V155.init();
+
+console.log(
+ "WEBBOUND V155 CITY SHOP READY"
+);
+
+</script>
+
+</body>
+</html>
