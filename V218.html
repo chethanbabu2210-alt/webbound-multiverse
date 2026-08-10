@@ -1,0 +1,776 @@
+<!-- =====================================================
+ V218 — POLICE & EMERGENCY RESPONSE AI
+ Add after V217
+ ===================================================== -->
+
+<style>
+
+/* ================= POLICE WORLD ================= */
+
+#policeWorld218{
+    position:fixed;
+    inset:0;
+    z-index:900;
+    pointer-events:none;
+    overflow:hidden;
+}
+
+
+/* ================= POLICE OFFICER ================= */
+
+.police218{
+    position:absolute;
+    width:13px;
+    height:22px;
+    background:#26343d;
+    border-radius:5px;
+    z-index:910;
+    pointer-events:auto;
+    transition:
+        left .5s linear,
+        top .5s linear,
+        transform .2s;
+}
+
+.police218:before{
+    content:"";
+    position:absolute;
+    width:10px;
+    height:10px;
+    left:1.5px;
+    top:-7px;
+    background:#8a9498;
+    border-radius:50%;
+}
+
+.police218.alert{
+    transform:scale(1.15);
+    box-shadow:0 0 8px #ffffff55;
+}
+
+
+/* ================= POLICE CAR ================= */
+
+.policeCar218{
+    position:absolute;
+    width:38px;
+    height:17px;
+    background:#20282e;
+    border-radius:5px;
+    z-index:920;
+    transition:
+        left .5s linear,
+        top .5s linear;
+}
+
+.policeCar218:before{
+    content:"POLICE";
+    position:absolute;
+    left:5px;
+    top:4px;
+    color:white;
+    font-size:5px;
+    font-weight:bold;
+}
+
+.policeLight218{
+    position:absolute;
+    width:8px;
+    height:4px;
+    left:15px;
+    top:-4px;
+    background:#ffffff;
+    animation:
+        policeFlash218 .3s infinite alternate;
+}
+
+@keyframes policeFlash218{
+    from{
+        opacity:.2;
+    }
+    to{
+        opacity:1;
+    }
+}
+
+
+/* ================= WANTED HUD ================= */
+
+#wantedHud218{
+    position:fixed;
+    top:150px;
+    right:12px;
+    width:min(220px,45vw);
+    padding:10px;
+    background:#03070de8;
+    border:1px solid #ffffff25;
+    border-radius:10px;
+    z-index:3000;
+}
+
+.wantedTitle218{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#wantedLevel218{
+    margin-top:5px;
+    font-size:16px;
+    letter-spacing:3px;
+}
+
+#wantedText218{
+    margin-top:4px;
+    font-size:8px;
+}
+
+
+/* ================= POLICE STATUS ================= */
+
+#policeStatus218{
+    position:fixed;
+    top:250px;
+    right:12px;
+    width:min(220px,45vw);
+    padding:9px;
+    background:#03070de8;
+    border:1px solid #ffffff25;
+    border-radius:10px;
+    z-index:3000;
+}
+
+.policeTitle218{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#policeState218{
+    margin-top:5px;
+    font-size:8px;
+}
+
+
+/* ================= CONTROLS ================= */
+
+#policeControls218{
+    position:fixed;
+    right:12px;
+    bottom:20px;
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:5px;
+    z-index:3100;
+}
+
+#policeControls218 button{
+    padding:8px;
+    background:#111f2a;
+    color:white;
+    border:1px solid #ffffff25;
+    border-radius:7px;
+    font-size:8px;
+    cursor:pointer;
+}
+
+</style>
+
+
+<!-- =====================================================
+ POLICE WORLD
+ ===================================================== -->
+
+<div id="policeWorld218">
+
+    <div
+        id="policeOfficer218_1"
+        class="police218"
+        style="left:20%;top:42%">
+    </div>
+
+    <div
+        id="policeOfficer218_2"
+        class="police218"
+        style="left:75%;top:55%">
+    </div>
+
+    <div
+        id="policeCar218_1"
+        class="policeCar218"
+        style="left:12%;top:63%">
+
+        <div class="policeLight218"></div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ WANTED HUD
+ ===================================================== -->
+
+<div id="wantedHud218">
+
+    <div class="wantedTitle218">
+        🚨 WANTED LEVEL
+    </div>
+
+    <div id="wantedLevel218">
+        ☆☆☆☆☆
+    </div>
+
+    <div id="wantedText218">
+        Status: CLEAR
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ POLICE STATUS
+ ===================================================== -->
+
+<div id="policeStatus218">
+
+    <div class="policeTitle218">
+        👮 POLICE AI — V218
+    </div>
+
+    <div id="policeState218">
+        State: PATROL
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="policeControls218">
+
+    <button onclick="SpiderPolice218.raiseWanted()">
+        🚨 ALERT
+    </button>
+
+    <button onclick="SpiderPolice218.lowerWanted()">
+        ✅ CLEAR
+    </button>
+
+    <button onclick="SpiderPolice218.startPursuit()">
+        🚔 PURSUIT
+    </button>
+
+    <button onclick="SpiderPolice218.reset()">
+        🔄 RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V218 POLICE AI
+ ===================================================== */
+
+const SpiderPolice218={
+
+    wanted:0,
+
+    maxWanted:5,
+
+    state:"PATROL",
+
+    pursuing:false,
+
+    patrolTimer:null,
+
+    pursuitTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateWanted();
+
+        this.startPatrol();
+
+        this.message(
+            "👮 Police AI activated."
+        );
+
+    },
+
+
+    /* =========================
+       PATROL
+    ========================= */
+
+    startPatrol(){
+
+        clearInterval(
+            this.patrolTimer
+        );
+
+        this.patrolTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        this.pursuing
+                    )
+                        return;
+
+                    this.state=
+                        "PATROL";
+
+                    this.moveOfficers();
+
+                    this.updateState();
+
+                },
+                2200
+            );
+
+    },
+
+
+    /* =========================
+       MOVE OFFICERS
+    ========================= */
+
+    moveOfficers(){
+
+        const officers=[
+            1,
+            2
+        ];
+
+        officers.forEach(
+            id=>{
+
+                const officer=
+                    document.getElementById(
+                        "policeOfficer218_"+
+                        id
+                    );
+
+                if(!officer)
+                    return;
+
+                const left=
+                    parseFloat(
+                        officer.style.left
+                    )||50;
+
+                const top=
+                    parseFloat(
+                        officer.style.top
+                    )||50;
+
+                officer.style.left=
+                    Math.max(
+                        5,
+                        Math.min(
+                            95,
+                            left+
+                            (
+                                Math.random()-
+                                .5
+                            )*8
+                        )
+                    )+"%";
+
+                officer.style.top=
+                    Math.max(
+                        30,
+                        Math.min(
+                            88,
+                            top+
+                            (
+                                Math.random()-
+                                .5
+                            )*5
+                        )
+                    )+"%";
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       RAISE WANTED
+    ========================= */
+
+    raiseWanted(){
+
+        this.wanted=
+            Math.min(
+                this.maxWanted,
+                this.wanted+1
+            );
+
+        this.updateWanted();
+
+        if(
+            this.wanted>=2
+        ){
+
+            this.startPursuit();
+
+        }
+
+        this.message(
+            "🚨 Wanted level increased!"
+        );
+
+    },
+
+
+    /* =========================
+       LOWER WANTED
+    ========================= */
+
+    lowerWanted(){
+
+        this.wanted=
+            Math.max(
+                0,
+                this.wanted-1
+            );
+
+        if(
+            this.wanted===0
+        ){
+
+            this.stopPursuit();
+
+        }
+
+        this.updateWanted();
+
+    },
+
+
+    /* =========================
+       START PURSUIT
+    ========================= */
+
+    startPursuit(){
+
+        this.pursuing=true;
+
+        this.state=
+            "PURSUIT";
+
+        document
+            .querySelectorAll(
+                ".police218"
+            )
+            .forEach(
+                officer=>{
+                    officer.classList.add(
+                        "alert"
+                    );
+                }
+            );
+
+        this.updateState();
+
+        this.message(
+            "🚔 Police pursuit started!"
+        );
+
+        clearInterval(
+            this.pursuitTimer
+        );
+
+        this.pursuitTimer=
+            setInterval(
+                ()=>{
+                    this.pursuePlayer();
+                },
+                700
+            );
+
+    },
+
+
+    /* =========================
+       PURSUE PLAYER
+    ========================= */
+
+    pursuePlayer(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+        const rect=
+            player.getBoundingClientRect();
+
+        const px=
+            rect.left/
+            window.innerWidth*
+            100;
+
+        const py=
+            rect.top/
+            window.innerHeight*
+            100;
+
+
+        [1,2].forEach(
+            id=>{
+
+                const officer=
+                    document.getElementById(
+                        "policeOfficer218_"+
+                        id
+                    );
+
+                if(!officer)
+                    return;
+
+                let ox=
+                    parseFloat(
+                        officer.style.left
+                    )||50;
+
+                let oy=
+                    parseFloat(
+                        officer.style.top
+                    )||50;
+
+
+                ox+=
+                    (px-ox)*.08;
+
+                oy+=
+                    (py-oy)*.08;
+
+
+                officer.style.left=
+                    ox+"%";
+
+                officer.style.top=
+                    oy+"%";
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       STOP PURSUIT
+    ========================= */
+
+    stopPursuit(){
+
+        this.pursuing=false;
+
+        clearInterval(
+            this.pursuitTimer
+        );
+
+        this.state=
+            "PATROL";
+
+        document
+            .querySelectorAll(
+                ".police218"
+            )
+            .forEach(
+                officer=>{
+                    officer.classList.remove(
+                        "alert"
+                    );
+                }
+            );
+
+        this.updateState();
+
+        this.message(
+            "👮 Police returned to patrol."
+        );
+
+    },
+
+
+    /* =========================
+       UPDATE WANTED
+    ========================= */
+
+    updateWanted(){
+
+        const level=
+            document.getElementById(
+                "wantedLevel218"
+            );
+
+        const text=
+            document.getElementById(
+                "wantedText218"
+            );
+
+        if(level){
+
+            let stars="";
+
+            for(
+                let i=0;
+                i<this.maxWanted;
+                i++
+            ){
+
+                stars+=
+                    i<this.wanted
+                    ?"★"
+                    :"☆";
+
+            }
+
+            level.textContent=
+                stars;
+
+        }
+
+        if(text){
+
+            text.textContent=
+                this.wanted===0
+                ?"Status: CLEAR"
+                :"Status: POLICE ALERT";
+
+        }
+
+    },
+
+
+    /* =========================
+       UPDATE STATE
+    ========================= */
+
+    updateState(){
+
+        const state=
+            document.getElementById(
+                "policeState218"
+            );
+
+        if(state){
+
+            state.textContent=
+                "State: "+
+                this.state;
+
+        }
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    reset(){
+
+        this.wanted=0;
+
+        this.stopPursuit();
+
+        this.updateWanted();
+
+        const officer1=
+            document.getElementById(
+                "policeOfficer218_1"
+            );
+
+        const officer2=
+            document.getElementById(
+                "policeOfficer218_2"
+            );
+
+        if(officer1){
+
+            officer1.style.left="20%";
+            officer1.style.top="42%";
+
+        }
+
+        if(officer2){
+
+            officer2.style.left="75%";
+            officer2.style.top="55%";
+
+        }
+
+        this.message(
+            "🔄 Police system reset."
+        );
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V218
+ ===================================================== */
+
+SpiderPolice218.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="q")
+            SpiderPolice218.raiseWanted();
+
+        if(key==="l")
+            SpiderPolice218.lowerWanted();
+
+        if(key==="u")
+            SpiderPolice218.startPursuit();
+
+    }
+);
