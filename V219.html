@@ -1,0 +1,784 @@
+<!-- =====================================================
+ V219 — CRIME & STREET EVENT SYSTEM
+ Add after V218
+ ===================================================== -->
+
+<style>
+
+/* ================= EVENT WORLD ================= */
+
+#crimeWorld219{
+    position:fixed;
+    inset:0;
+    z-index:1000;
+    pointer-events:none;
+}
+
+
+/* ================= CRIME MARKER ================= */
+
+.crimeMarker219{
+    position:absolute;
+
+    width:28px;
+    height:28px;
+
+    border:2px solid #ffffff55;
+    border-radius:50%;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:13px;
+
+    z-index:1010;
+
+    animation:
+        crimePulse219 1s infinite alternate;
+
+    pointer-events:auto;
+    cursor:pointer;
+}
+
+@keyframes crimePulse219{
+
+    from{
+        transform:scale(.9);
+        opacity:.65;
+    }
+
+    to{
+        transform:scale(1.12);
+        opacity:1;
+    }
+
+}
+
+
+/* ================= EVENT HUD ================= */
+
+#crimeHud219{
+
+    position:fixed;
+
+    left:12px;
+    top:370px;
+
+    width:min(230px,48vw);
+
+    padding:10px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:3000;
+
+}
+
+.crimeTitle219{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#crimeStatus219{
+    margin-top:5px;
+    font-size:8px;
+}
+
+#crimeTimer219{
+    margin-top:4px;
+    font-size:8px;
+}
+
+
+/* ================= EVENT BANNER ================= */
+
+#crimeBanner219{
+
+    position:fixed;
+
+    left:50%;
+    top:28%;
+
+    transform:
+        translateX(-50%);
+
+    padding:12px 20px;
+
+    background:#03070df5;
+
+    border:1px solid #ffffff30;
+
+    border-radius:10px;
+
+    z-index:3600;
+
+    display:none;
+
+    font-size:10px;
+
+    text-align:center;
+
+}
+
+#crimeBanner219.active{
+
+    display:block;
+
+    animation:
+        crimeBannerIn219 .25s;
+
+}
+
+@keyframes crimeBannerIn219{
+
+    from{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(.7);
+    }
+
+    to{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1);
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#crimeControls219{
+
+    position:fixed;
+
+    left:12px;
+    bottom:75px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:3100;
+
+}
+
+#crimeControls219 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ CRIME WORLD
+ ===================================================== -->
+
+<div id="crimeWorld219"></div>
+
+
+<!-- =====================================================
+ CRIME HUD
+ ===================================================== -->
+
+<div id="crimeHud219">
+
+    <div class="crimeTitle219">
+        🚨 STREET EVENTS — V219
+    </div>
+
+    <div id="crimeStatus219">
+        Event: NONE
+    </div>
+
+    <div id="crimeTimer219">
+        Active events: 0
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ BANNER
+ ===================================================== -->
+
+<div id="crimeBanner219">
+    🚨 STREET CRIME REPORTED
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="crimeControls219">
+
+    <button
+        onclick="SpiderCrime219.spawnRandom()">
+        🚨 CRIME
+    </button>
+
+    <button
+        onclick="SpiderCrime219.spawnRobbery()">
+        💰 ROBBERY
+    </button>
+
+    <button
+        onclick="SpiderCrime219.spawnChase()">
+        🏃 CHASE
+    </button>
+
+    <button
+        onclick="SpiderCrime219.clearEvents()">
+        ✅ CLEAR
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V219 CRIME ENGINE
+ ===================================================== */
+
+const SpiderCrime219={
+
+    events:[],
+
+    nextId:1,
+
+    eventTypes:[
+
+        "robbery",
+        "chase",
+        "vehicle",
+        "gang"
+
+    ],
+
+    running:true,
+
+    autoTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.startRandomEvents();
+
+        this.message(
+            "🚨 Street event system active."
+        );
+
+    },
+
+
+    /* =========================
+       RANDOM EVENTS
+    ========================= */
+
+    startRandomEvents(){
+
+        clearInterval(
+            this.autoTimer
+        );
+
+        this.autoTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        !this.running
+                    )
+                        return;
+
+                    if(
+                        this.events.length>=3
+                    )
+                        return;
+
+                    if(
+                        Math.random()<.45
+                    ){
+
+                        this.spawnRandom();
+
+                    }
+
+                },
+                12000
+            );
+
+    },
+
+
+    /* =========================
+       RANDOM EVENT
+    ========================= */
+
+    spawnRandom(){
+
+        const type=
+            this.eventTypes[
+                Math.floor(
+                    Math.random()*
+                    this.eventTypes.length
+                )
+            ];
+
+        if(type==="robbery")
+            this.spawnRobbery();
+
+        if(type==="chase")
+            this.spawnChase();
+
+        if(type==="vehicle")
+            this.spawnVehicle();
+
+        if(type==="gang")
+            this.spawnGang();
+
+    },
+
+
+    /* =========================
+       ROBBERY
+    ========================= */
+
+    spawnRobbery(){
+
+        this.createEvent(
+            "💰",
+            "ROBBERY"
+        );
+
+    },
+
+
+    /* =========================
+       CHASE
+    ========================= */
+
+    spawnChase(){
+
+        this.createEvent(
+            "🏃",
+            "CHASE"
+        );
+
+    },
+
+
+    /* =========================
+       VEHICLE
+    ========================= */
+
+    spawnVehicle(){
+
+        this.createEvent(
+            "🚗",
+            "VEHICLE THEFT"
+        );
+
+    },
+
+
+    /* =========================
+       GANG
+    ========================= */
+
+    spawnGang(){
+
+        this.createEvent(
+            "⚠️",
+            "GANG ACTIVITY"
+        );
+
+    },
+
+
+    /* =========================
+       CREATE EVENT
+    ========================= */
+
+    createEvent(icon,type){
+
+        const id=
+            this.nextId++;
+
+        const marker=
+            document.createElement(
+                "div"
+            );
+
+        marker.className=
+            "crimeMarker219";
+
+        marker.textContent=
+            icon;
+
+        const x=
+            10+
+            Math.random()*80;
+
+        const y=
+            35+
+            Math.random()*50;
+
+        marker.style.left=
+            x+"%";
+
+        marker.style.top=
+            y+"%";
+
+        marker.dataset.eventId=
+            id;
+
+        marker.onclick=
+            ()=>{
+                this.respond(id);
+            };
+
+
+        document
+            .getElementById(
+                "crimeWorld219"
+            )
+            .appendChild(
+                marker
+            );
+
+
+        const event={
+
+            id:id,
+
+            type:type,
+
+            x:x,
+
+            y:y,
+
+            marker:marker,
+
+            active:true
+
+        };
+
+
+        this.events.push(
+            event
+        );
+
+
+        this.showBanner(
+            "🚨 "+
+            type+
+            " REPORTED!"
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       RESPOND
+    ========================= */
+
+    respond(id){
+
+        const event=
+            this.events.find(
+                e=>e.id===id
+            );
+
+        if(!event)
+            return;
+
+
+        this.showBanner(
+            "🕷️ SPIDER-MAN RESPONDING"
+        );
+
+
+        this.message(
+            "📍 Respond to "+
+            event.type
+        );
+
+
+        /*
+         * Integrate with V218.
+         */
+
+        if(
+            typeof SpiderPolice218!==
+            "undefined"
+        ){
+
+            SpiderPolice218.wanted=
+                Math.max(
+                    0,
+                    SpiderPolice218.wanted
+                );
+
+        }
+
+
+        /*
+         * Integrate with missions.
+         */
+
+        if(
+            typeof SpiderMissions!==
+            "undefined"
+        ){
+
+            SpiderMissions.progress=
+                Math.min(
+                    SpiderMissions.total,
+                    SpiderMissions.progress+
+                    .35
+                );
+
+            SpiderMissions.update();
+
+        }
+
+
+        this.removeEvent(id);
+
+    },
+
+
+    /* =========================
+       REMOVE EVENT
+    ========================= */
+
+    removeEvent(id){
+
+        const index=
+            this.events.findIndex(
+                e=>e.id===id
+            );
+
+        if(index===-1)
+            return;
+
+
+        const event=
+            this.events[index];
+
+        if(event.marker)
+            event.marker.remove();
+
+
+        this.events.splice(
+            index,
+            1
+        );
+
+
+        this.updateHUD();
+
+        this.message(
+            "✅ Street event resolved."
+        );
+
+    },
+
+
+    /* =========================
+       CLEAR EVENTS
+    ========================= */
+
+    clearEvents(){
+
+        this.events.forEach(
+            event=>{
+
+                if(event.marker)
+                    event.marker.remove();
+
+            }
+        );
+
+        this.events=[];
+
+        this.updateHUD();
+
+        this.message(
+            "✅ All street events cleared."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const status=
+            document.getElementById(
+                "crimeStatus219"
+            );
+
+        const timer=
+            document.getElementById(
+                "crimeTimer219"
+            );
+
+
+        if(status){
+
+            status.textContent=
+                this.events.length
+                ? "Event: "+
+                  this.events[
+                    this.events.length-1
+                  ].type
+                : "Event: NONE";
+
+        }
+
+
+        if(timer){
+
+            timer.textContent=
+                "Active events: "+
+                this.events.length;
+
+        }
+
+    },
+
+
+    /* =========================
+       BANNER
+    ========================= */
+
+    showBanner(text){
+
+        const banner=
+            document.getElementById(
+                "crimeBanner219"
+            );
+
+        if(!banner)
+            return;
+
+
+        banner.textContent=
+            text;
+
+        banner.classList.add(
+            "active"
+        );
+
+
+        clearTimeout(
+            this.bannerTimer
+        );
+
+
+        this.bannerTimer=
+            setTimeout(
+                ()=>{
+
+                    banner.classList.remove(
+                        "active"
+                    );
+
+                },
+                1800
+            );
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V219
+ ===================================================== */
+
+SpiderCrime219.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="e")
+            SpiderCrime219.spawnRandom();
+
+        if(key==="r")
+            SpiderCrime219.spawnRobbery();
+
+        if(key==="x")
+            SpiderCrime219.clearEvents();
+
+    }
+);
