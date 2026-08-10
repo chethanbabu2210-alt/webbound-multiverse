@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spider-Man Game — V60</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: white;
+}
+
+#game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background:
+        linear-gradient(to bottom, #18243d 0%, #435b79 55%, #202020 55%, #111 100%);
+}
+
+/* City */
+.city {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 45%;
+    display: flex;
+    align-items: end;
+    gap: 8px;
+}
+
+.building {
+    width: 10%;
+    background: #20242b;
+    border: 1px solid #343a43;
+    position: relative;
+}
+
+.building:nth-child(1) { height: 55%; }
+.building:nth-child(2) { height: 80%; }
+.building:nth-child(3) { height: 65%; }
+.building:nth-child(4) { height: 95%; }
+.building:nth-child(5) { height: 70%; }
+.building:nth-child(6) { height: 88%; }
+.building:nth-child(7) { height: 60%; }
+.building:nth-child(8) { height: 82%; }
+.building:nth-child(9) { height: 67%; }
+.building:nth-child(10) { height: 92%; }
+
+.windows {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    padding: 10px;
+}
+
+.windows span {
+    height: 12px;
+    background: #d5b95b;
+    opacity: .65;
+}
+
+/* Player */
+#player {
+    position: absolute;
+    width: 42px;
+    height: 65px;
+    left: 50%;
+    bottom: 45%;
+    transform: translateX(-50%);
+    transition: filter .2s, transform .1s;
+    z-index: 10;
+}
+
+.head {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    background: #e7b28a;
+    margin: auto;
+}
+
+.body {
+    width: 32px;
+    height: 38px;
+    margin: auto;
+    border-radius: 10px 10px 5px 5px;
+    background: #b8202a;
+}
+
+.spider {
+    text-align: center;
+    font-size: 20px;
+    margin-top: -28px;
+}
+
+/* UI */
+#hud {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 50;
+}
+
+.panel {
+    background: rgba(0,0,0,.72);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    min-width: 190px;
+}
+
+button {
+    border: 0;
+    padding: 9px 12px;
+    margin: 3px;
+    border-radius: 8px;
+    background: #333;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #555;
+}
+
+#location {
+    font-weight: bold;
+    color: #7dd3fc;
+}
+
+/* Vision */
+.blur {
+    filter: blur(2px);
+}
+
+.spiderSense {
+    filter: brightness(1.35) contrast(1.3);
+}
+
+/* Home */
+#home {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    background:
+        radial-gradient(circle at 50% 20%, #4d4a55, #17171b 65%);
+}
+
+.room {
+    position: absolute;
+    inset: 12%;
+    border: 3px solid #555;
+    background: linear-gradient(#38343a, #19191d);
+    border-radius: 20px;
+    padding: 25px;
+}
+
+.room h1 {
+    margin-bottom: 20px;
+}
+
+.object {
+    display: inline-block;
+    width: 150px;
+    height: 100px;
+    margin: 10px;
+    padding: 15px;
+    border-radius: 15px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid #555;
+    text-align: center;
+}
+
+/* Menus */
+#wardrobe,
+#suits,
+#computer {
+    display: none;
+    position: absolute;
+    inset: 15%;
+    z-index: 120;
+    background: rgba(10,10,15,.96);
+    border: 2px solid #555;
+    border-radius: 20px;
+    padding: 25px;
+}
+
+.close {
+    float: right;
+    background: #922;
+}
+
+/* Notification */
+#message {
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    background: rgba(0,0,0,.8);
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity .3s;
+    z-index: 200;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <div class="city">
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+        <div class="building"><div class="windows"><span></span><span></span><span></span><span></span></div></div>
+    </div>
+
+    <div id="player">
+        <div class="head"></div>
+        <div class="body"></div>
+        <div class="spider">🕷</div>
+    </div>
+
+    <div id="hud">
+
+        <div class="panel">
+            ❤️ Health: <span id="health">100</span><br>
+            ⚡ Energy: <span id="energy">100</span><br>
+            👕 Outfit: <span id="outfit">Casual</span><br>
+            🕷️ Suit: <span id="suit">Classic</span><br>
+            📍 Location: <span id="location">City</span>
+        </div>
+
+        <div class="panel">
+            <button onclick="enterHome()">🏠 Home</button>
+            <button onclick="toggleVision()">👓 Vision</button>
+            <button onclick="spiderSense()">🕷 Sense</button>
+        </div>
+
+        <div class="panel">
+            <small>
+                W A S D / Arrow Keys — Move<br>
+                H — Home<br>
+                V — Vision<br>
+                E — Spider-Sense
+            </small>
+        </div>
+
+    </div>
+
+    <!-- HOME -->
+
+    <div id="home">
+        <div class="room">
+
+            <button class="close" onclick="leaveHome()">Exit</button>
+
+            <h1>🏠 Peter's Home</h1>
+            <p>Your safe location</p>
+
+            <div class="object">
+                🛏️<br>
+                Bedroom
+                <br>
+                <button onclick="showMessage('Resting... Health restored!')">
+                    Rest
+                </button>
+            </div>
+
+            <div class="object">
+                👕<br>
+                Wardrobe
+                <br>
+                <button onclick="openWardrobe()">
+                    Change
+                </button>
+            </div>
+
+            <div class="object">
+                🕷️<br>
+                Suit Area
+                <br>
+                <button onclick="openSuits()">
+                    Suits
+                </button>
+            </div>
+
+            <div class="object">
+                💻<br>
+                Computer
+                <br>
+                <button onclick="openComputer()">
+                    Use
+                </button>
+            </div>
+
+            <div class="object">
+                🧪<br>
+                Workbench
+                <br>
+                <button onclick="upgradeGadget()">
+                    Upgrade
+                </button>
+            </div>
+
+            <div class="object">
+                📸<br>
+                Memories
+                <br>
+                <button onclick="showMessage('Memory collection coming soon.')">
+                    View
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- WARDROBE -->
+
+    <div id="wardrobe">
+
+        <button class="close" onclick="closeMenus()">Close</button>
+
+        <h1>👕 Wardrobe</h1>
+
+        <button onclick="changeOutfit('Casual')">Casual</button>
+        <button onclick="changeOutfit('School')">School</button>
+        <button onclick="changeOutfit('Jacket')">Jacket</button>
+        <button onclick="changeOutfit('Formal')">Formal</button>
+        <button onclick="changeOutfit('Sport')">Sport</button>
+
+    </div>
+
+    <!-- SUITS -->
+
+    <div id="suits">
+
+        <button class="close" onclick="closeMenus()">Close</button>
+
+        <h1>🕷️ Suit Collection</h1>
+
+        <button onclick="changeSuit('Classic')">Classic</button>
+        <button onclick="changeSuit('Stealth')">Stealth</button>
+        <button onclick="changeSuit('Advanced')">Advanced</button>
+        <button onclick="changeSuit('Tech')">Tech</button>
+
+    </div>
+
+    <!-- COMPUTER -->
+
+    <div id="computer">
+
+        <button class="close" onclick="closeMenus()">Close</button>
+
+        <h1>💻 Computer</h1>
+
+        <p>📨 Messages: 3 new messages</p>
+        <br>
+        <p>📋 Mission system: Ready</p>
+        <br>
+        <p>🗺️ City map: Available</p>
+
+    </div>
+
+    <div id="message"></div>
+
+</div>
+
+<script>
+
+const player = document.getElementById("player");
+
+let x = window.innerWidth / 2;
+let y = window.innerHeight * .55;
+
+let speed = 5;
+
+let vision = true;
+let senseActive = false;
+
+let outfit = "Casual";
+let suit = "Classic";
+
+const keys = {};
+
+document.addEventListener("keydown", e => {
+
+    keys[e.key.toLowerCase()] = true;
+
+    if(e.key.toLowerCase() === "h") {
+        enterHome();
+    }
+
+    if(e.key.toLowerCase() === "v") {
+        toggleVision();
+    }
+
+    if(e.key.toLowerCase() === "e") {
+        spiderSense();
+    }
+
+});
+
+document.addEventListener("keyup", e => {
+    keys[e.key.toLowerCase()] = false;
+});
+
+function updatePlayer(){
+
+    if(document.getElementById("home").style.display === "block"){
+        requestAnimationFrame(updatePlayer);
+        return;
+    }
+
+    if(keys["w"] || keys["arrowup"])
+        y -= speed;
+
+    if(keys["s"] || keys["arrowdown"])
+        y += speed;
+
+    if(keys["a"] || keys["arrowleft"])
+        x -= speed;
+
+    if(keys["d"] || keys["arrowright"])
+        x += speed;
+
+    x = Math.max(20, Math.min(window.innerWidth - 60, x));
+    y = Math.max(80, Math.min(window.innerHeight - 100, y));
+
+    player.style.left = x + "px";
+    player.style.top = y + "px";
+
+    requestAnimationFrame(updatePlayer);
+}
+
+updatePlayer();
+
+
+/* HOME */
+
+function enterHome(){
+
+    document.getElementById("home").style.display = "block";
+    document.getElementById("location").textContent = "Home";
+
+    showMessage("Entered Peter's Home");
+}
+
+function leaveHome(){
+
+    document.getElementById("home").style.display = "none";
+    document.getElementById("location").textContent = "City";
+
+    showMessage("Back to the city");
+}
+
+
+/* WARDROBE */
+
+function openWardrobe(){
+
+    document.getElementById("wardrobe").style.display = "block";
+
+}
+
+function changeOutfit(name){
+
+    outfit = name;
+
+    document.getElementById("outfit").textContent = outfit;
+
+    showMessage("Outfit changed to " + name);
+
+}
+
+
+/* SUITS */
+
+function openSuits(){
+
+    document.getElementById("suits").style.display = "block";
+
+}
+
+function changeSuit(name){
+
+    suit = name;
+
+    document.getElementById("suit").textContent = suit;
+
+    showMessage("Suit equipped: " + name);
+
+}
+
+
+/* COMPUTER */
+
+function openComputer(){
+
+    document.getElementById("computer").style.display = "block";
+
+}
+
+
+/* MENUS */
+
+function closeMenus(){
+
+    document.getElementById("wardrobe").style.display = "none";
+    document.getElementById("suits").style.display = "none";
+    document.getElementById("computer").style.display = "none";
+
+}
+
+
+/* VISION SYSTEM */
+
+function toggleVision(){
+
+    vision = !vision;
+
+    if(vision){
+
+        document.body.classList.remove("blur");
+
+        showMessage("👓 Clear vision");
+
+    } else {
+
+        document.body.classList.add("blur");
+
+        showMessage("Vision without glasses");
+
+    }
+
+}
+
+
+/* SPIDER SENSE */
+
+function spiderSense(){
+
+    if(senseActive) return;
+
+    senseActive = true;
+
+    player.classList.add("spiderSense");
+
+    showMessage("🕷️ Spider-Sense activated!");
+
+    setTimeout(() => {
+
+        player.classList.remove("spiderSense");
+
+        senseActive = false;
+
+    }, 3000);
+
+}
+
+
+/* GADGET */
+
+function upgradeGadget(){
+
+    showMessage("🧪 Gadget upgraded!");
+
+}
+
+
+/* MESSAGE */
+
+function showMessage(text){
+
+    const msg = document.getElementById("message");
+
+    msg.textContent = text;
+
+    msg.style.opacity = "1";
+
+    setTimeout(() => {
+
+        msg.style.opacity = "0";
+
+    }, 2200);
+
+}
+
+</script>
+
+</body>
+</html>
