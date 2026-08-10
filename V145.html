@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V145 — CINEMATIC PLAYER</title>
+
+<style>
+*{
+ box-sizing:border-box
+}
+
+body{
+ margin:0;
+ background:#000;
+ color:#fff;
+ font-family:Arial,sans-serif;
+ overflow:hidden
+}
+
+#app{
+ position:fixed;
+ inset:0;
+ background:#05080b
+}
+
+#menu{
+ position:absolute;
+ inset:0;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ background:
+ radial-gradient(
+  circle at center,
+  #203745,
+  #030608 70%
+ );
+ z-index:20
+}
+
+.menuBox{
+ width:min(600px,92vw);
+ padding:25px;
+ background:#05090de8;
+ border:1px solid #ffffff25;
+ border-radius:18px;
+ text-align:center;
+ box-shadow:0 15px 60px #000
+}
+
+.menuBox h1{
+ margin:0 0 8px;
+ font-size:clamp(25px,6vw,50px);
+ letter-spacing:4px
+}
+
+.menuBox p{
+ color:#aebbc4;
+ font-size:12px
+}
+
+.menuButton{
+ width:100%;
+ margin-top:8px;
+ padding:12px;
+ background:#162633;
+ color:#fff;
+ border:1px solid #ffffff20;
+ border-radius:9px;
+ cursor:pointer
+}
+
+.menuButton:hover{
+ background:#233b4c
+}
+
+#player{
+ position:absolute;
+ inset:0;
+ display:none;
+ background:#000
+}
+
+#scene{
+ position:absolute;
+ inset:0;
+ overflow:hidden;
+ background:
+ linear-gradient(
+  180deg,
+  #243d4c 0%,
+  #111b22 45%,
+  #020405 100%
+ );
+}
+
+.skyGlow{
+ position:absolute;
+ width:70vw;
+ height:70vw;
+ max-width:800px;
+ max-height:800px;
+ border-radius:50%;
+ left:50%;
+ top:20%;
+ transform:translate(-50%,-50%);
+ background:#58788a;
+ opacity:.12;
+ filter:blur(60px)
+}
+
+.city{
+ position:absolute;
+ bottom:0;
+ left:0;
+ right:0;
+ height:55%;
+ display:flex;
+ align-items:flex-end;
+ justify-content:center;
+ gap:8px
+}
+
+.building{
+ position:relative;
+ width:9%;
+ min-width:35px;
+ background:#101820;
+ border:1px solid #293841
+}
+
+.building:nth-child(1){height:45%}
+.building:nth-child(2){height:70%}
+.building:nth-child(3){height:55%}
+.building:nth-child(4){height:88%}
+.building:nth-child(5){height:64%}
+.building:nth-child(6){height:78%}
+.building:nth-child(7){height:50%}
+.building:nth-child(8){height:68%}
+
+.light{
+ position:absolute;
+ width:5px;
+ height:5px;
+ background:#d8bf68;
+ opacity:.6
+}
+
+#hero{
+ position:absolute;
+ left:50%;
+ bottom:15%;
+ transform:translateX(-50%);
+ width:45px;
+ height:95px;
+ background:#172632;
+ border-radius:18px 18px 5px 5px;
+ transition:
+  left .8s,
+  transform .8s,
+  opacity .5s
+}
+
+#hero:before{
+ content:"";
+ position:absolute;
+ width:31px;
+ height:31px;
+ left:7px;
+ top:-28px;
+ border-radius:50%;
+ background:#bd8967
+}
+
+#hero:after{
+ content:"";
+ position:absolute;
+ width:65px;
+ height:5px;
+ left:-10px;
+ bottom:5px;
+ background:#05080a;
+ border-radius:50%
+}
+
+#title{
+ position:absolute;
+ top:11%;
+ left:50%;
+ transform:translateX(-50%);
+ text-align:center;
+ font-size:clamp(20px,5vw,42px);
+ font-weight:bold;
+ letter-spacing:4px;
+ opacity:0;
+ transition:opacity .7s;
+ text-shadow:0 3px 10px #000;
+ z-index:5;
+ white-space:nowrap
+}
+
+#subtitle{
+ position:absolute;
+ left:50%;
+ bottom:18%;
+ transform:translateX(-50%);
+ width:min(900px,90vw);
+ padding:12px 18px;
+ text-align:center;
+ font-size:clamp(13px,2.5vw,22px);
+ text-shadow:0 2px 7px #000;
+ z-index:6;
+ transition:opacity .5s
+}
+
+#overlay{
+ position:absolute;
+ inset:0;
+ background:#000;
+ opacity:0;
+ pointer-events:none;
+ transition:opacity .5s;
+ z-index:10
+}
+
+#controls{
+ position:absolute;
+ left:0;
+ right:0;
+ bottom:0;
+ padding:10px 12px;
+ background:linear-gradient(
+  transparent,
+  #000e
+ );
+ z-index:15
+}
+
+#timeline{
+ width:100%;
+ height:6px;
+ background:#ffffff25;
+ border-radius:5px;
+ cursor:pointer;
+ overflow:hidden
+}
+
+#progress{
+ width:0%;
+ height:100%;
+ background:#fff
+}
+
+.controlRow{
+ display:flex;
+ align-items:center;
+ gap:7px;
+ margin-top:8px
+}
+
+.controlRow button{
+ padding:7px 10px;
+ background:#101820dd;
+ color:#fff;
+ border:1px solid #ffffff20;
+ border-radius:7px;
+ cursor:pointer
+}
+
+#time{
+ margin-left:auto;
+ font-size:10px;
+ color:#c9d2d8
+}
+
+#scenes{
+ position:absolute;
+ left:10px;
+ top:10px;
+ display:none;
+ z-index:30;
+ width:min(260px,80vw);
+ max-height:70vh;
+ overflow:auto;
+ background:#030609ee;
+ border:1px solid #ffffff25;
+ border-radius:10px;
+ padding:8px
+}
+
+.sceneButton{
+ width:100%;
+ text-align:left;
+ margin:3px 0;
+ padding:8px;
+ border:0;
+ border-radius:6px;
+ background:#13212b;
+ color:#fff;
+ font-size:10px
+}
+
+.sceneButton.active{
+ background:#2a4353
+}
+
+#volume{
+ width:80px
+}
+
+#hint{
+ position:absolute;
+ top:10px;
+ right:10px;
+ padding:7px 10px;
+ background:#030609cc;
+ border-radius:7px;
+ font-size:9px;
+ z-index:25
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+ <div id="menu">
+
+  <div class="menuBox">
+
+   <h1>WEBBOUND</h1>
+
+   <p>
+    V145 • Cinematic Story Player
+   </p>
+
+   <button
+    class="menuButton"
+    onclick="V145.play('intro')">
+    ▶️ PLAY INTRO
+   </button>
+
+   <button
+    class="menuButton"
+    onclick="V145.play('mission')">
+    🎯 PLAY MISSION
+   </button>
+
+   <button
+    class="menuButton"
+    onclick="V145.play('case')">
+    📁 PLAY CASE REVEAL
+   </button>
+
+   <button
+    class="menuButton"
+    onclick="V145.play('ending')">
+    🏆 PLAY ENDING
+   </button>
+
+  </div>
+
+ </div>
+
+ <div id="player">
+
+  <div id="scene">
+
+   <div class="skyGlow"></div>
+
+   <div class="city">
+
+    <div class="building"></div>
+    <div class="building"></div>
+    <div class="building"></div>
+    <div class="building"></div>
+    <div class="building"></div>
+    <div class="building"></div>
+    <div class="building"></div>
+    <div class="building"></div>
+
+   </div>
+
+   <div id="hero"></div>
+
+   <div id="title"></div>
+
+   <div id="subtitle"></div>
+
+   <div id="overlay"></div>
+
+  </div>
+
+  <div id="scenes"></div>
+
+  <div id="hint">
+   SPACE = Play/Pause • ← → = Scene
+  </div>
+
+  <div id="controls">
+
+   <div id="timeline"
+        onclick="V145.seek(event)">
+
+    <div id="progress"></div>
+
+   </div>
+
+   <div class="controlRow">
+
+    <button onclick="V145.toggle()">
+     ⏯️
+    </button>
+
+    <button onclick="V145.previous()">
+     ⏮️
+    </button>
+
+    <button onclick="V145.next()">
+     ⏭️
+    </button>
+
+    <button onclick="V145.toggleScenes()">
+     🎬
+    </button>
+
+    <button onclick="V145.toggleMute()">
+     🔊
+    </button>
+
+    <input
+     id="volume"
+     type="range"
+     min="0"
+     max="1"
+     step=".05"
+     value=".8"
+     onchange="V145.setVolume(this.value)"
+    >
+
+    <button onclick="V145.fullscreen()">
+     ⛶
+    </button>
+
+    <button onclick="V145.close()">
+     ✖
+    </button>
+
+    <span id="time">
+     00:00 / 00:00
+    </span>
+
+   </div>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V145={
+
+ library:{
+
+  intro:[
+
+   {
+    title:"THE CITY",
+    text:"The city never sleeps.",
+    duration:5
+   },
+
+   {
+    title:"A NEW BEGINNING",
+    text:"Every investigation starts with a single clue.",
+    duration:6
+   },
+
+   {
+    title:"THE INVESTIGATOR",
+    text:"You chose to search for the truth.",
+    duration:6
+   },
+
+   {
+    title:"THE FIRST CLUE",
+    text:"Tonight, someone is watching.",
+    duration:5
+   },
+
+   {
+    title:"WEBBOUND",
+    text:"Your story begins now.",
+    duration:5
+   }
+
+  ],
+
+  mission:[
+
+   {
+    title:"MISSION ACCEPTED",
+    text:"A new case has arrived.",
+    duration:5
+   },
+
+   {
+    title:"SEARCH",
+    text:"Search the city and locate the evidence.",
+    duration:6
+   },
+
+   {
+    title:"CONNECT THE CLUES",
+    text:"Every piece of evidence tells part of the story.",
+    duration:6
+   },
+
+   {
+    title:"THE TRUTH",
+    text:"Follow the clues.",
+    duration:5
+   }
+
+  ],
+
+  case:[
+
+   {
+    title:"CASE FILE",
+    text:"A mysterious case has appeared.",
+    duration:5
+   },
+
+   {
+    title:"THE SUSPECT",
+    text:"Someone in the city may know more than they admit.",
+    duration:6
+   },
+
+   {
+    title:"THE EVIDENCE",
+    text:"The evidence will decide what happens next.",
+    duration:6
+   },
+
+   {
+    title:"THE DECISION",
+    text:"The truth is closer than you think.",
+    duration:5
+   }
+
+  ],
+
+  ending:[
+
+   {
+    title:"THE CASE IS OVER",
+    text:"The evidence has finally been presented.",
+    duration:5
+   },
+
+   {
+    title:"JUSTICE",
+    text:"The city finally has answers.",
+    duration:5
+   },
+
+   {
+    title:"YOUR REPUTATION",
+    text:"Your actions changed the city.",
+    duration:5
+   },
+
+   {
+    title:"THE NEXT STORY",
+    text:"But this is only the beginning...",
+    duration:6
+   },
+
+   {
+    title:"WEBBOUND",
+    text:"TO BE CONTINUED",
+    duration:6
+   }
+
+  ]
+
+ },
+
+ scenes:[],
+ index:0,
+ playing:false,
+ elapsed:0,
+ lastTime:0,
+ volume:.8,
+ muted:false,
+ animation:null,
+
+ /* =========================
+    START
+ ========================= */
+
+ play(type){
+
+  this.scenes=
+   JSON.parse(
+    JSON.stringify(
+     this.library[type]
+    )
+   );
+
+  this.index=0;
+  this.elapsed=0;
+  this.playing=true;
+
+  document.getElementById(
+   "menu"
+  ).style.display="none";
+
+  document.getElementById(
+   "player"
+  ).style.display="block";
+
+  this.buildSceneList();
+
+  this.showScene();
+
+  this.lastTime=
+   performance.now();
+
+  this.loop();
+
+ },
+
+ /* =========================
+    SCENE DISPLAY
+ ========================= */
+
+ showScene(){
+
+  const scene=
+   this.scenes[
+    this.index
+   ];
+
+  if(!scene)
+   return;
+
+  const title=
+   document.getElementById(
+    "title"
+   );
+
+  const subtitle=
+   document.getElementById(
+    "subtitle"
+   );
+
+  const overlay=
+   document.getElementById(
+    "overlay"
+   );
+
+  title.style.opacity="0";
+
+  subtitle.style.opacity="0";
+
+  overlay.style.opacity="1";
+
+  setTimeout(()=>{
+
+   title.textContent=
+    scene.title;
+
+   subtitle.textContent=
+    scene.text;
+
+   title.style.opacity="1";
+
+   subtitle.style.opacity="1";
+
+   overlay.style.opacity="0";
+
+  },250);
+
+  this.elapsed=0;
+
+  this.updateSceneButtons();
+
+ },
+
+ /* =========================
+    GAME LOOP
+ ========================= */
+
+ loop(){
+
+  cancelAnimationFrame(
+   this.animation
+  );
+
+  const now=
+   performance.now();
+
+  let delta=
+   (now-this.lastTime)/1000;
+
+  this.lastTime=now;
+
+  if(this.playing){
+
+   this.elapsed+=delta;
+
+   const scene=
+    this.scenes[
+     this.index
+    ];
+
+   if(
+    this.elapsed>=
+    scene.duration
+   ){
+
+    this.next();
+
+   }
+
+  }
+
+  this.updateUI();
+
+  this.animation=
+   requestAnimationFrame(
+    ()=>this.loop()
+   );
+
+ },
+
+ /* =========================
+    PLAY / PAUSE
+ ========================= */
+
+ toggle(){
+
+  this.playing=
+   !this.playing;
+
+  this.lastTime=
+   performance.now();
+
+ },
+
+ /* =========================
+    NEXT
+ ========================= */
+
+ next(){
+
+  if(
+   this.index<
+   this.scenes.length-1
+  ){
+
+   this.index++;
+
+   this.showScene();
+
+  }
+  else{
+
+   this.playing=false;
+
+  }
+
+ },
+
+ previous(){
+
+  if(this.index>0){
+
+   this.index--;
+
+   this.showScene();
+
+  }
+
+ },
+
+ /* =========================
+    SEEK
+ ========================= */
+
+ seek(event){
+
+  const bar=
+   document.getElementById(
+    "timeline"
+   );
+
+  const rect=
+   bar.getBoundingClientRect();
+
+  const percent=
+   (event.clientX-rect.left)/
+   rect.width;
+
+  const scene=
+   this.scenes[
+    this.index
+   ];
+
+  this.elapsed=
+   Math.max(
+    0,
+    Math.min(
+     scene.duration,
+     percent*scene.duration
+    )
+   );
+
+ },
+
+ /* =========================
+    SCENE LIST
+ ========================= */
+
+ buildSceneList(){
+
+  const box=
+   document.getElementById(
+    "scenes"
+   );
+
+  box.innerHTML="";
+
+  this.scenes.forEach(
+   (scene,i)=>{
+
+    const button=
+     document.createElement(
+      "button"
+     );
+
+    button.className=
+     "sceneButton";
+
+    button.textContent=
+     (i+1)+". "+
+     scene.title;
+
+    button.onclick=()=>{
+
+     this.index=i;
+
+     this.showScene();
+
+    };
+
+    box.appendChild(
+     button
+    );
+
+   }
+  );
+
+ },
+
+ toggleScenes(){
+
+  const box=
+   document.getElementById(
+    "scenes"
+   );
+
+  box.style.display=
+   box.style.display==="block"
+   ?"none"
+   :"block";
+
+ },
+
+ updateSceneButtons(){
+
+  document
+   .querySelectorAll(
+    ".sceneButton"
+   )
+   .forEach(
+    (button,i)=>{
+
+     button.classList.toggle(
+      "active",
+      i===this.index
+     );
+
+    }
+   );
+
+ },
+
+ /* =========================
+    UI
+ ========================= */
+
+ updateUI(){
+
+  if(!this.scenes.length)
+   return;
+
+  const scene=
+   this.scenes[
+    this.index
+   ];
+
+  const percent=
+   this.elapsed/
+   scene.duration*
+   100;
+
+  document.getElementById(
+   "progress"
+  ).style.width=
+   Math.min(
+    100,
+    percent
+   )+"%";
+
+  const current=
+   this.format(
+    this.elapsed
+   );
+
+  const total=
+   this.format(
+    scene.duration
+   );
+
+  document.getElementById(
+   "time"
+  ).textContent=
+   current+
+   " / "+
+   total;
+
+ },
+
+ format(seconds){
+
+  const s=
+   Math.floor(seconds);
+
+  const min=
+   Math.floor(s/60);
+
+  const sec=
+   s%60;
+
+  return String(min)
+   .padStart(2,"0")
+   +":"+
+   String(sec)
+   .padStart(2,"0");
+
+ },
+
+ /* =========================
+    SOUND
+ ========================= */
+
+ toggleMute(){
+
+  this.muted=
+   !this.muted;
+
+  this.message(
+   this.muted
+   ?"🔇 Muted"
+   :"🔊 Sound on"
+  );
+
+ },
+
+ setVolume(value){
+
+  this.volume=
+   Number(value);
+
+  this.muted=
+   this.volume===0;
+
+ },
+
+ /* =========================
+    FULLSCREEN
+ ========================= */
+
+ fullscreen(){
+
+  const player=
+   document.getElementById(
+    "player"
+   );
+
+  if(
+   !document.fullscreenElement
+  ){
+
+   player.requestFullscreen?.();
+
+  }
+  else{
+
+   document.exitFullscreen?.();
+
+  }
+
+ },
+
+ /* =========================
+    CLOSE
+ ========================= */
+
+ close(){
+
+  this.playing=false;
+
+  cancelAnimationFrame(
+   this.animation
+  );
+
+  document.getElementById(
+   "player"
+  ).style.display="none";
+
+  document.getElementById(
+   "menu"
+  ).style.display="flex";
+
+ },
+
+ message(text){
+
+  console.log(
+   "WEBBOUND:",
+   text
+  );
+
+ }
+
+};
+
+document.addEventListener(
+ "keydown",
+ e=>{
+
+  if(
+   e.code==="Space"
+  ){
+
+   e.preventDefault();
+
+   if(
+    document.getElementById(
+     "player"
+    ).style.display==="block"
+   ){
+
+    V145.toggle();
+
+   }
+
+  }
+
+  if(e.code==="ArrowRight")
+   V145.next();
+
+  if(e.code==="ArrowLeft")
+   V145.previous();
+
+  if(e.code==="Escape")
+   V145.close();
+
+ }
+);
+
+console.log(
+ "WEBBOUND V145 CINEMATIC PLAYER READY"
+);
+
+</script>
+
+</body>
+</html>
