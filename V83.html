@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V83</title>
+
+<style>
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#111;
+}
+
+#v83World{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+
+  background:linear-gradient(
+    #4b86b8,
+    #b8d8e8 55%,
+    #555 55%,
+    #292929
+  );
+
+  transition:
+    background 2s ease,
+    filter 2s ease;
+}
+
+#v83Sun{
+  position:absolute;
+
+  width:80px;
+  height:80px;
+
+  border-radius:50%;
+
+  background:#fff4a8;
+
+  box-shadow:
+    0 0 45px #fff4a8;
+
+  left:75%;
+  top:15%;
+
+  transition:
+    left 2s ease,
+    top 2s ease,
+    opacity 2s ease;
+}
+
+#v83Moon{
+  position:absolute;
+
+  width:60px;
+  height:60px;
+
+  border-radius:50%;
+
+  background:#f4f4e8;
+
+  box-shadow:
+    0 0 25px #ffffff80;
+
+  left:15%;
+  top:18%;
+
+  opacity:0;
+
+  transition:
+    opacity 2s ease;
+}
+
+#v83HUD{
+  position:fixed;
+
+  right:15px;
+  top:15px;
+
+  z-index:9000;
+
+  padding:12px 14px;
+
+  min-width:170px;
+
+  background:#05070ed9;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:13px;
+
+  font:12px Arial,sans-serif;
+
+  line-height:1.7;
+}
+
+#v83Menu{
+  position:fixed;
+
+  left:50%;
+  top:50%;
+
+  transform:translate(-50%,-50%);
+
+  z-index:9500;
+
+  width:min(400px,90%);
+
+  padding:20px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:18px;
+
+  font-family:Arial,sans-serif;
+
+  display:none;
+
+  box-shadow:0 20px 70px #000b;
+}
+
+#v83Menu button{
+  width:100%;
+
+  padding:11px;
+
+  margin:5px 0;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:9px;
+}
+
+#v83Rain{
+  position:fixed;
+
+  inset:0;
+
+  z-index:4000;
+
+  pointer-events:none;
+
+  display:none;
+
+  overflow:hidden;
+}
+
+.v83Drop{
+  position:absolute;
+
+  width:2px;
+  height:16px;
+
+  background:#ffffff90;
+
+  transform:rotate(15deg);
+
+  animation:
+    v83RainFall
+    linear infinite;
+}
+
+@keyframes v83RainFall{
+
+  from{
+    transform:
+      translate3d(0,-30px,0)
+      rotate(15deg);
+  }
+
+  to{
+    transform:
+      translate3d(-120px,110vh,0)
+      rotate(15deg);
+  }
+
+}
+
+#v83Clouds{
+  position:absolute;
+
+  inset:0;
+
+  pointer-events:none;
+
+  opacity:.2;
+
+  transition:opacity 2s ease;
+}
+
+.v83Cloud{
+  position:absolute;
+
+  width:180px;
+  height:55px;
+
+  background:#ffffff;
+
+  border-radius:50%;
+
+  filter:blur(3px);
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<div id="v83World">
+
+  <div id="v83Sun"></div>
+
+  <div id="v83Moon"></div>
+
+  <div id="v83Clouds">
+
+    <div class="v83Cloud"
+         style="left:10%;top:12%;">
+    </div>
+
+    <div class="v83Cloud"
+         style="left:55%;top:22%;">
+    </div>
+
+    <div class="v83Cloud"
+         style="left:75%;top:8%;">
+    </div>
+
+  </div>
+
+</div>
+
+
+<div id="v83Rain"></div>
+
+
+<div id="v83HUD">
+
+  🕐 Time:
+  <span id="v83Time">08:00</span>
+
+  <br>
+
+  🌤️ Weather:
+  <span id="v83Weather">CLEAR</span>
+
+  <br>
+
+  🌡️ Cycle:
+  <span id="v83Cycle">DAY</span>
+
+</div>
+
+
+<div id="v83Menu">
+
+  <h2>🌦️ WORLD ENVIRONMENT</h2>
+
+  <p>
+    Control the time and weather.
+  </p>
+
+  <button onclick="V83.setWeather('clear')">
+    ☀️ Clear
+  </button>
+
+  <button onclick="V83.setWeather('cloudy')">
+    ☁️ Cloudy
+  </button>
+
+  <button onclick="V83.setWeather('rain')">
+    🌧️ Rain
+  </button>
+
+  <button onclick="V83.setTime(8)">
+    🌅 Morning
+  </button>
+
+  <button onclick="V83.setTime(14)">
+    ☀️ Afternoon
+  </button>
+
+  <button onclick="V83.setTime(18)">
+    🌇 Evening
+  </button>
+
+  <button onclick="V83.setTime(23)">
+    🌙 Night
+  </button>
+
+  <button onclick="V83.toggleCycle()">
+    ⏯️ Pause / Resume Time
+  </button>
+
+  <button onclick="V83.closeMenu()">
+    ❌ CLOSE
+  </button>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V83
+   DAY / NIGHT + WEATHER SYSTEM
+   ========================================================= */
+
+const V83 = {
+
+  version:"V83",
+
+  saveKey:"WEBBOUND_V83_ENVIRONMENT",
+
+  hour:8,
+
+  minute:0,
+
+  weather:"clear",
+
+  cycleEnabled:true,
+
+  cycleSpeed:1,
+
+  lastTick:0,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.createRain();
+
+    this.applyEnvironment();
+
+    this.lastTick=
+      performance.now();
+
+    this.loop();
+
+    console.log(
+      "WEBBOUND V83 ENVIRONMENT SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     MAIN LOOP
+     ======================================================= */
+
+  loop(){
+
+    const now=
+      performance.now();
+
+    const delta=
+      now-this.lastTick;
+
+    this.lastTick=now;
+
+
+    if(
+      this.cycleEnabled &&
+      delta>0
+    ){
+
+      this.advanceTime(
+        delta
+      );
+
+    }
+
+
+    requestAnimationFrame(
+      ()=>this.loop()
+    );
+
+  },
+
+
+  /* =======================================================
+     ADVANCE TIME
+     ======================================================= */
+
+  advanceTime(delta){
+
+    /*
+      Game time advances smoothly.
+      60000 ms real time =
+      approximately 1 game hour.
+    */
+
+    this.minute+=
+      (delta/1000)*
+      this.cycleSpeed;
+
+
+    while(
+      this.minute>=60
+    ){
+
+      this.minute-=60;
+
+      this.hour++;
+
+    }
+
+
+    while(
+      this.hour>=24
+    ){
+
+      this.hour-=24;
+
+    }
+
+
+    this.applyEnvironment();
+
+  },
+
+
+  /* =======================================================
+     SET TIME
+     ======================================================= */
+
+  setTime(hour){
+
+    const value=
+      Number(hour);
+
+
+    if(
+      !Number.isFinite(value)
+    ){
+
+      return;
+
+    }
+
+
+    this.hour=
+      Math.max(
+        0,
+        Math.min(
+          23,
+          Math.floor(value)
+        )
+      );
+
+
+    this.minute=0;
+
+    this.applyEnvironment();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     SET WEATHER
+     ======================================================= */
+
+  setWeather(weather){
+
+    if(
+      ![
+        "clear",
+        "cloudy",
+        "rain"
+      ].includes(weather)
+    ){
+
+      return;
+
+    }
+
+
+    this.weather=
+      weather;
+
+
+    this.applyEnvironment();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     TOGGLE TIME
+     ======================================================= */
+
+  toggleCycle(){
+
+    this.cycleEnabled=
+      !this.cycleEnabled;
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     DAY / NIGHT
+     ======================================================= */
+
+  getDayState(){
+
+    if(
+      this.hour>=6 &&
+      this.hour<10
+    ){
+
+      return "MORNING";
+
+    }
+
+
+    if(
+      this.hour>=10 &&
+      this.hour<17
+    ){
+
+      return "DAY";
+
+    }
+
+
+    if(
+      this.hour>=17 &&
+      this.hour<20
+    ){
+
+      return "EVENING";
+
+    }
+
+
+    return "NIGHT";
+
+  },
+
+
+  /* =======================================================
+     APPLY ENVIRONMENT
+     ======================================================= */
+
+  applyEnvironment(){
+
+    const world=
+      document.getElementById(
+        "v83World"
+      );
+
+    const sun=
+      document.getElementById(
+        "v83Sun"
+      );
+
+    const moon=
+      document.getElementById(
+        "v83Moon"
+      );
+
+    const clouds=
+      document.getElementById(
+        "v83Clouds"
+      );
+
+
+    if(!world){
+
+      return;
+
+    }
+
+
+    const state=
+      this.getDayState();
+
+
+    /*
+      MORNING
+    */
+
+    if(state==="MORNING"){
+
+      world.style.background=
+        "linear-gradient("+
+        "#789fbe,"+
+        "#d9c9aa 55%,"+
+        "#555 55%,"+
+        "#292929)";
+
+      sun.style.left="25%";
+      sun.style.top="20%";
+      sun.style.opacity="1";
+
+      moon.style.opacity="0";
+
+    }
+
+
+    /*
+      DAY
+    */
+
+    else if(state==="DAY"){
+
+      world.style.background=
+        "linear-gradient("+
+        "#4b86b8,"+
+        "#b8d8e8 55%,"+
+        "#555 55%,"+
+        "#292929)";
+
+      sun.style.left="70%";
+      sun.style.top="13%";
+      sun.style.opacity="1";
+
+      moon.style.opacity="0";
+
+    }
+
+
+    /*
+      EVENING
+    */
+
+    else if(state==="EVENING"){
+
+      world.style.background=
+        "linear-gradient("+
+        "#a65d5d,"+
+        "#e2a36b 55%,"+
+        "#403535 55%,"+
+        "#202020)";
+
+      sun.style.left="85%";
+      sun.style.top="35%";
+      sun.style.opacity=".7";
+
+      moon.style.opacity=".2";
+
+    }
+
+
+    /*
+      NIGHT
+    */
+
+    else{
+
+      world.style.background=
+        "linear-gradient("+
+        "#08132d,"+
+        "#172746 55%,"+
+        "#17191f 55%,"+
+        "#08090c)";
+
+      sun.style.opacity="0";
+
+      moon.style.opacity="1";
+
+    }
+
+
+    /*
+      WEATHER
+    */
+
+    if(
+      this.weather==="cloudy"
+    ){
+
+      clouds.style.opacity=".6";
+
+    }
+    else if(
+      this.weather==="rain"
+    ){
+
+      clouds.style.opacity=".8";
+
+    }
+    else{
+
+      clouds.style.opacity=".2";
+
+    }
+
+
+    if(
+      this.weather==="rain"
+    ){
+
+      this.showRain();
+
+    }
+    else{
+
+      this.hideRain();
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     RAIN
+     ======================================================= */
+
+  createRain(){
+
+    const rain=
+      document.getElementById(
+        "v83Rain"
+      );
+
+
+    if(!rain){
+
+      return;
+
+    }
+
+
+    rain.innerHTML="";
+
+
+    for(
+      let i=0;
+      i<110;
+      i++
+    ){
+
+      const drop=
+        document.createElement(
+          "div"
+        );
+
+
+      drop.className=
+        "v83Drop";
+
+
+      drop.style.left=
+        Math.random()*105+
+        "%";
+
+
+      drop.style.top=
+        Math.random()*100+
+        "%";
+
+
+      drop.style.animationDuration=
+        (
+          .35+
+          Math.random()*.45
+        )+
+        "s";
+
+
+      drop.style.animationDelay=
+        (
+          Math.random()*
+          -.8
+        )+
+        "s";
+
+
+      rain.appendChild(
+        drop
+      );
+
+    }
+
+  },
+
+
+  showRain(){
+
+    const rain=
+      document.getElementById(
+        "v83Rain"
+      );
+
+
+    if(rain){
+
+      rain.style.display=
+        "block";
+
+    }
+
+  },
+
+
+  hideRain(){
+
+    const rain=
+      document.getElementById(
+        "v83Rain"
+      );
+
+
+    if(rain){
+
+      rain.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const time=
+      document.getElementById(
+        "v83Time"
+      );
+
+    const weather=
+      document.getElementById(
+        "v83Weather"
+      );
+
+    const cycle=
+      document.getElementById(
+        "v83Cycle"
+      );
+
+
+    if(time){
+
+      const h=
+        String(
+          Math.floor(
+            this.hour
+          )
+        ).padStart(
+          2,
+          "0"
+        );
+
+
+      const m=
+        String(
+          Math.floor(
+            this.minute
+          )
+        ).padStart(
+          2,
+          "0"
+        );
+
+
+      time.textContent=
+        h+":"+m;
+
+    }
+
+
+    if(weather){
+
+      weather.textContent=
+        this.weather.toUpperCase();
+
+    }
+
+
+    if(cycle){
+
+      cycle.textContent=
+        this.getDayState()+
+        (
+          this.cycleEnabled
+          ? ""
+          : " • PAUSED"
+        );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MENU
+     ======================================================= */
+
+  openMenu(){
+
+    const menu=
+      document.getElementById(
+        "v83Menu"
+      );
+
+
+    if(menu){
+
+      menu.style.display=
+        "block";
+
+    }
+
+  },
+
+
+  closeMenu(){
+
+    const menu=
+      document.getElementById(
+        "v83Menu"
+      );
+
+
+    if(menu){
+
+      menu.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      hour:
+        this.hour,
+
+      minute:
+        this.minute,
+
+      weather:
+        this.weather,
+
+      cycleEnabled:
+        this.cycleEnabled
+
+    };
+
+  },
+
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V83 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        Number.isFinite(
+          Number(data.hour)
+        )
+      ){
+
+        this.hour=
+          Math.max(
+            0,
+            Math.min(
+              23,
+              Number(data.hour)
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.minute)
+        )
+      ){
+
+        this.minute=
+          Math.max(
+            0,
+            Math.min(
+              59,
+              Number(data.minute)
+            )
+          );
+
+      }
+
+
+      if(
+        [
+          "clear",
+          "cloudy",
+          "rain"
+        ].includes(
+          data.weather
+        )
+      ){
+
+        this.weather=
+          data.weather;
+
+      }
+
+
+      if(
+        typeof data.cycleEnabled===
+        "boolean"
+      ){
+
+        this.cycleEnabled=
+          data.cycleEnabled;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V83 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      T = environment menu
+    */
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      event.preventDefault();
+
+      V83.openMenu();
+
+    }
+
+
+    /*
+      Escape = close menu
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V83.closeMenu();
+
+    }
+
+
+    /*
+      Quick weather controls
+    */
+
+    if(
+      event.code==="Digit1"
+    ){
+
+      V83.setWeather(
+        "clear"
+      );
+
+    }
+
+
+    if(
+      event.code==="Digit2"
+    ){
+
+      V83.setWeather(
+        "cloudy"
+      );
+
+    }
+
+
+    if(
+      event.code==="Digit3"
+    ){
+
+      V83.setWeather(
+        "rain"
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V83.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V83.init();
+
+</script>
+
+</body>
+</html>
