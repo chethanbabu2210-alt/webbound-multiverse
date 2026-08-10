@@ -1,0 +1,773 @@
+<!-- =====================================================
+ V211 — STORY MISSION SYSTEM
+ Add after V210
+ ===================================================== -->
+
+<style>
+
+/* ================= MISSION HUD ================= */
+
+#missionHud{
+    position:fixed;
+
+    left:12px;
+    top:125px;
+
+    width:min(270px,58vw);
+
+    padding:11px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff25;
+
+    border-radius:12px;
+
+    z-index:2200;
+}
+
+.missionHeader{
+    font-size:11px;
+    font-weight:bold;
+}
+
+#missionName{
+    margin-top:7px;
+
+    font-size:10px;
+
+    font-weight:bold;
+}
+
+#missionObjective{
+    margin-top:5px;
+
+    font-size:9px;
+
+    line-height:1.5;
+}
+
+.missionProgress{
+    height:5px;
+
+    margin-top:8px;
+
+    background:#18232a;
+
+    border-radius:5px;
+
+    overflow:hidden;
+}
+
+#missionProgressBar{
+    width:0%;
+
+    height:100%;
+
+    background:#d9e1e4;
+
+    transition:
+        width .3s;
+}
+
+#missionReward{
+    margin-top:6px;
+
+    font-size:8px;
+
+    opacity:.7;
+}
+
+
+/* ================= MISSION MARKER ================= */
+
+.missionMarker{
+    position:absolute;
+
+    width:28px;
+    height:28px;
+
+    border:
+        3px solid #ffffff;
+
+    border-radius:50%;
+
+    z-index:400;
+
+    animation:
+        missionPulse .8s infinite alternate;
+
+    cursor:pointer;
+}
+
+@keyframes missionPulse{
+
+    from{
+        transform:
+            translateY(0)
+            scale(.9);
+
+        opacity:.55;
+    }
+
+    to{
+        transform:
+            translateY(-7px)
+            scale(1.15);
+
+        opacity:1;
+    }
+
+}
+
+.missionMarker.complete{
+    display:none;
+}
+
+
+/* ================= MISSION PANEL ================= */
+
+#missionPanel{
+    position:fixed;
+
+    left:50%;
+    top:50%;
+
+    transform:
+        translate(-50%,-50%);
+
+    width:min(350px,82vw);
+
+    padding:22px;
+
+    background:#071018f5;
+
+    border:
+        1px solid #ffffff30;
+
+    border-radius:15px;
+
+    z-index:3500;
+
+    display:none;
+
+    text-align:center;
+}
+
+#missionPanel.active{
+    display:block;
+}
+
+#missionPanel h2{
+    margin:0 0 8px;
+
+    font-size:18px;
+}
+
+#missionPanel p{
+    font-size:10px;
+
+    line-height:1.6;
+}
+
+#missionPanel button{
+
+    margin-top:12px;
+
+    padding:9px 18px;
+
+    background:#162a35;
+
+    color:white;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:8px;
+}
+
+
+/* ================= MISSION NOTIFICATION ================= */
+
+#missionNotification{
+    position:fixed;
+
+    left:50%;
+    top:23%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 20px;
+
+    background:#03070df0;
+
+    border:
+        1px solid #ffffff30;
+
+    border-radius:10px;
+
+    z-index:3600;
+
+    display:none;
+
+    font-size:11px;
+
+    text-align:center;
+}
+
+</style>
+
+
+<!-- =====================================================
+ MISSION HUD
+ ===================================================== -->
+
+<div id="missionHud">
+
+    <div class="missionHeader">
+        🎯 ACTIVE MISSION — V211
+    </div>
+
+    <div id="missionName">
+        No Mission
+    </div>
+
+    <div id="missionObjective">
+        Waiting for mission...
+    </div>
+
+    <div class="missionProgress">
+        <div id="missionProgressBar"></div>
+    </div>
+
+    <div id="missionReward">
+        Reward: —
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ MISSION MARKERS
+ ===================================================== -->
+
+<div
+    id="missionMarker1"
+    class="missionMarker"
+    style="left:20%;top:40%"
+    onclick="SpiderMissions.reachMarker(1)">
+</div>
+
+<div
+    id="missionMarker2"
+    class="missionMarker"
+    style="left:55%;top:30%"
+    onclick="SpiderMissions.reachMarker(2)">
+</div>
+
+<div
+    id="missionMarker3"
+    class="missionMarker"
+    style="left:82%;top:45%"
+    onclick="SpiderMissions.reachMarker(3)">
+</div>
+
+
+<!-- =====================================================
+ MISSION PANEL
+ ===================================================== -->
+
+<div id="missionPanel">
+
+    <h2 id="panelTitle">
+        Mission
+    </h2>
+
+    <p id="panelText">
+        Mission information
+    </p>
+
+    <button
+        onclick="SpiderMissions.closePanel()">
+        CONTINUE
+    </button>
+
+</div>
+
+
+<div id="missionNotification"></div>
+
+
+<script>
+
+/* =====================================================
+ V211 MISSION ENGINE
+ ===================================================== */
+
+const SpiderMissions={
+
+    current:0,
+
+    active:false,
+
+    progress:0,
+
+    total:1,
+
+    completed:0,
+
+    failed:0,
+
+    missions:[
+
+        {
+            id:1,
+
+            name:
+                "A Hero's First Patrol",
+
+            objective:
+                "Reach the marked location and investigate the emergency.",
+
+            reward:
+                100,
+
+            type:
+                "reach"
+
+        },
+
+        {
+            id:2,
+
+            name:
+                "City in Trouble",
+
+            objective:
+                "Reach the second marker and help the civilians.",
+
+            reward:
+                150,
+
+            type:
+                "reach"
+
+        },
+
+        {
+            id:3,
+
+            name:
+                "Protect the City",
+
+            objective:
+                "Reach the final marker and secure the area.",
+
+            reward:
+                250,
+
+            type:
+                "reach"
+
+        }
+
+    ],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.startMission(1);
+
+    },
+
+
+    /* =========================
+       START MISSION
+    ========================= */
+
+    startMission(id){
+
+        const mission=
+            this.missions.find(
+                m=>m.id===id
+            );
+
+        if(!mission)
+            return;
+
+        this.current=id;
+
+        this.active=true;
+
+        this.progress=0;
+
+        this.total=1;
+
+        document
+            .querySelectorAll(
+                ".missionMarker"
+            )
+            .forEach(
+                marker=>{
+                    marker.classList.remove(
+                        "complete"
+                    );
+                }
+            );
+
+        const marker=
+            document.getElementById(
+                "missionMarker"+id
+            );
+
+        if(marker){
+
+            marker.classList.remove(
+                "complete"
+            );
+
+        }
+
+        document.getElementById(
+            "missionName"
+        ).textContent=
+            mission.name;
+
+        document.getElementById(
+            "missionObjective"
+        ).textContent=
+            mission.objective;
+
+        document.getElementById(
+            "missionReward"
+        ).textContent=
+            "Reward: "+
+            mission.reward+
+            " XP";
+
+        this.update();
+
+        this.notify(
+            "🎯 NEW MISSION: "+
+            mission.name
+        );
+
+    },
+
+
+    /* =========================
+       REACH MARKER
+    ========================= */
+
+    reachMarker(id){
+
+        if(
+            !this.active ||
+            id!==this.current
+        ){
+
+            this.notify(
+                "This is not your current objective."
+            );
+
+            return;
+
+        }
+
+        this.progress=1;
+
+        const marker=
+            document.getElementById(
+                "missionMarker"+id
+            );
+
+        if(marker){
+
+            marker.classList.add(
+                "complete"
+            );
+
+        }
+
+        this.complete();
+
+    },
+
+
+    /* =========================
+       COMPLETE
+    ========================= */
+
+    complete(){
+
+        const mission=
+            this.missions.find(
+                m=>m.id===this.current
+            );
+
+        if(!mission)
+            return;
+
+        this.active=false;
+
+        this.completed++;
+
+        this.progress=1;
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.addXP(
+                mission.reward
+            );
+
+        }else if(
+            typeof SpiderCity!==
+            "undefined"
+        ){
+
+            SpiderCity.xp+=
+                mission.reward;
+
+            SpiderCity.update();
+
+        }
+
+        this.update();
+
+        this.showPanel(
+
+            "🏆 MISSION COMPLETE",
+
+            mission.name+
+            "\n\n"+
+            mission.objective+
+            "\n\n"+
+            "Reward: "+
+            mission.reward+
+            " XP"
+
+        );
+
+    },
+
+
+    /* =========================
+       NEXT MISSION
+    ========================= */
+
+    nextMission(){
+
+        const next=
+            this.current+1;
+
+        if(
+            next>
+            this.missions.length
+        ){
+
+            this.showPanel(
+
+                "🏆 STORY COMPLETE",
+
+                "You completed all V211 missions.\n\n"+
+                "More story missions will unlock in later versions."
+
+            );
+
+            return;
+
+        }
+
+        this.closePanel();
+
+        setTimeout(
+            ()=>{
+                this.startMission(
+                    next
+                );
+            },
+            400
+        );
+
+    },
+
+
+    /* =========================
+       FAIL
+    ========================= */
+
+    fail(){
+
+        if(!this.active)
+            return;
+
+        this.active=false;
+
+        this.failed++;
+
+        this.showPanel(
+
+            "❌ MISSION FAILED",
+
+            "The mission objective was not completed."
+
+        );
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       UPDATE
+    ========================= */
+
+    update(){
+
+        const bar=
+            document.getElementById(
+                "missionProgressBar"
+            );
+
+        if(bar){
+
+            bar.style.width=
+                (
+                    this.progress/
+                    this.total*
+                    100
+                )+"%";
+
+        }
+
+    },
+
+
+    /* =========================
+       PANEL
+    ========================= */
+
+    showPanel(title,text){
+
+        document.getElementById(
+            "panelTitle"
+        ).textContent=
+            title;
+
+        document.getElementById(
+            "panelText"
+        ).textContent=
+            text;
+
+        document.getElementById(
+            "missionPanel"
+        ).classList.add(
+            "active"
+        );
+
+    },
+
+
+    closePanel(){
+
+        document.getElementById(
+            "missionPanel"
+        ).classList.remove(
+            "active"
+        );
+
+        if(
+            this.completed===
+            this.current
+        ){
+
+            this.nextMission();
+
+        }
+
+    },
+
+
+    /* =========================
+       NOTIFICATION
+    ========================= */
+
+    notify(text){
+
+        const box=
+            document.getElementById(
+                "missionNotification"
+            );
+
+        box.textContent=
+            text;
+
+        box.style.display=
+            "block";
+
+        clearTimeout(
+            this.notifyTimer
+        );
+
+        this.notifyTimer=
+            setTimeout(
+                ()=>{
+                    box.style.display=
+                        "none";
+                },
+                2200
+            );
+
+    }
+
+};
+
+
+/* =====================================================
+ START V211
+ ===================================================== */
+
+SpiderMissions.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="j"){
+
+            if(
+                SpiderMissions.active
+            ){
+
+                SpiderMissions.reachMarker(
+                    SpiderMissions.current
+                );
+
+            }
+
+        }
+
+        if(key==="escape"){
+
+            SpiderMissions.closePanel();
+
+        }
+
+    }
+);
