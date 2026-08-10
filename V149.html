@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V149 — NPC & MISSION SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ overflow:hidden;
+ background:#05090d;
+ color:#fff;
+ font-family:Arial,sans-serif
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:
+ linear-gradient(#203946,#081116 62%)
+}
+
+#world{
+ position:absolute;
+ inset:0;
+ overflow:hidden
+}
+
+.road{
+ position:absolute;
+ background:#252c31
+}
+
+.r1{
+ left:0;
+ right:0;
+ top:58%;
+ height:60px
+}
+
+.r2{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:60px
+}
+
+.building{
+ position:absolute;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:8px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ color:#81929b;
+ font-size:10px
+}
+
+.b1{left:4%;top:8%;width:19%;height:27%}
+.b2{left:29%;top:7%;width:19%;height:30%}
+.b3{left:54%;top:8%;width:16%;height:26%}
+.b4{right:4%;top:7%;width:20%;height:30%}
+.b5{left:5%;top:68%;width:20%;height:24%}
+.b6{left:31%;top:70%;width:18%;height:21%}
+
+.character{
+ position:absolute;
+ width:28px;
+ height:40px;
+ border-radius:10px 10px 5px 5px;
+ z-index:20
+}
+
+.character:before{
+ content:"";
+ position:absolute;
+ width:17px;
+ height:17px;
+ left:5.5px;
+ top:-13px;
+ border-radius:50%;
+ background:#bd8967
+}
+
+#player{
+ left:50%;
+ top:58%;
+ background:#288bd0
+}
+
+.npc{
+ background:#a44e61;
+ cursor:pointer;
+ box-shadow:0 0 10px #a44e6144
+}
+
+.npc:hover{
+ filter:brightness(1.4)
+}
+
+.marker{
+ position:absolute;
+ width:28px;
+ height:28px;
+ border-radius:50%;
+ border:2px solid #d09aff;
+ color:#fff;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ transform:translate(-50%,-50%);
+ animation:pulse 1.2s infinite;
+ z-index:30;
+ background:#6b3ba0
+}
+
+@keyframes pulse{
+ 50%{
+  transform:
+   translate(-50%,-50%)
+   scale(1.2)
+ }
+}
+
+#hud{
+ position:fixed;
+ top:10px;
+ left:10px;
+ width:min(390px,72vw);
+ padding:12px;
+ background:#03070ced;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:100
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold
+}
+
+#mission{
+ margin-top:7px;
+ color:#d59cff;
+ font-size:11px
+}
+
+#objective{
+ margin-top:5px;
+ font-size:10px;
+ color:#c0cbd1;
+ line-height:1.5
+}
+
+#progressBox{
+ margin-top:7px;
+ height:7px;
+ background:#ffffff16;
+ border-radius:5px;
+ overflow:hidden
+}
+
+#progress{
+ width:0%;
+ height:100%;
+ background:#b46ee8;
+ transition:.3s
+}
+
+#stats{
+ display:flex;
+ gap:5px;
+ margin-top:8px
+}
+
+.stat{
+ flex:1;
+ padding:6px;
+ text-align:center;
+ background:#111d25;
+ border-radius:7px;
+ font-size:9px
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(720px,95vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:100
+}
+
+button{
+ flex:1;
+ min-width:100px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px
+}
+
+button:active{
+ transform:scale(.97)
+}
+
+#dialogue{
+ position:fixed;
+ left:50%;
+ bottom:75px;
+ transform:translateX(-50%);
+ width:min(650px,94vw);
+ padding:15px;
+ background:#03070cf7;
+ border:1px solid #ffffff28;
+ border-radius:14px;
+ z-index:600;
+ display:none
+}
+
+#speaker{
+ font-weight:bold;
+ color:#d39aff;
+ margin-bottom:7px
+}
+
+#dialogueText{
+ min-height:48px;
+ font-size:11px;
+ line-height:1.7;
+ color:#e4eaed
+}
+
+.choice{
+ display:block;
+ width:100%;
+ margin-top:6px;
+ text-align:left
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000b;
+ z-index:1000
+}
+
+.box{
+ width:min(620px,92vw);
+ max-height:82vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px
+}
+
+.row{
+ padding:10px;
+ margin-top:7px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:10px;
+ line-height:1.6
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road r1"></div>
+  <div class="road r2"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🌳 PARK</div>
+
+  <div
+   id="player"
+   class="character">
+  </div>
+
+  <div
+   id="npcMaya"
+   class="character npc"
+   style="left:37%;top:57%"
+   onclick="V149.talk('maya')">
+  </div>
+
+  <div
+   id="npcAlex"
+   class="character npc"
+   style="left:76%;top:57%"
+   onclick="V149.talk('alex')">
+  </div>
+
+  <div
+   id="npcGuard"
+   class="character npc"
+   style="left:68%;top:24%"
+   onclick="V149.talk('guard')">
+  </div>
+
+  <div
+   id="npcDoctor"
+   class="character npc"
+   style="left:61%;top:24%"
+   onclick="V149.talk('doctor')">
+  </div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🕵️ WEBBOUND V149
+  </div>
+
+  <div id="mission">
+   No active mission
+  </div>
+
+  <div id="objective">
+   Talk to characters to discover missions.
+  </div>
+
+  <div id="progressBox">
+   <div id="progress"></div>
+  </div>
+
+  <div id="stats">
+
+   <div class="stat">
+    ⭐ XP<br>
+    <span id="xp">0</span>
+   </div>
+
+   <div class="stat">
+    🏆 Level<br>
+    <span id="level">1</span>
+   </div>
+
+   <div class="stat">
+    🔎 Clues<br>
+    <span id="clues">0</span>
+   </div>
+
+   <div class="stat">
+    💰 Cash<br>
+    ₹<span id="cash">0</span>
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="dialogue">
+
+  <div id="speaker">
+   CHARACTER
+  </div>
+
+  <div id="dialogueText"></div>
+
+  <div id="choices"></div>
+
+  <button
+   id="nextButton"
+   style="display:none"
+   onclick="V149.nextDialogue()">
+   CONTINUE ▶
+  </button>
+
+ </div>
+
+ <div id="controls">
+
+  <button onclick="V149.missions()">
+   🎯 MISSIONS
+  </button>
+
+  <button onclick="V149.talkNearest()">
+   💬 TALK
+  </button>
+
+  <button onclick="V149.evidence()">
+   🔎 EVIDENCE
+  </button>
+
+  <button onclick="V149.save()">
+   💾 SAVE
+  </button>
+
+  <button onclick="V149.reset()">
+   🔄 RESET
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V149.closePanel()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V149={
+
+ saveKey:"WEBBOUND_V149",
+
+ cash:0,
+
+ xp:0,
+
+ level:1,
+
+ clues:[],
+
+ activeMission:null,
+
+ completed:[],
+
+ dialogue:null,
+
+ dialogueIndex:0,
+
+ missionsList:[
+
+  {
+   id:"missing",
+   name:"THE MISSING PACKAGE",
+   objective:"Find the missing package near the warehouse.",
+   reward:300,
+   xp:100,
+   target:"warehouse"
+  },
+
+  {
+   id:"hospital",
+   name:"THE HOSPITAL REPORT",
+   objective:"Speak with the doctor about the missing person.",
+   reward:450,
+   xp:150,
+   target:"doctor"
+  },
+
+  {
+   id:"corporate",
+   name:"THE SECRET FILE",
+   objective:"Question the security guard about the corporate building.",
+   reward:600,
+   xp:200,
+   target:"guard"
+  }
+
+ ],
+
+ dialogueData:{
+
+  maya:[
+
+   {
+    speaker:"Maya",
+    text:
+     "You're still investigating the case, aren't you?",
+    choices:[
+     {
+      text:"Yes. I need your help.",
+      next:1
+     },
+     {
+      text:"I have everything under control.",
+      next:2
+     }
+    ]
+   },
+
+   {
+    speaker:"Maya",
+    text:
+     "Then search the warehouse. Something important was left there.",
+    next:null
+   },
+
+   {
+    speaker:"Maya",
+    text:
+     "Be careful. The warehouse isn't as empty as it looks.",
+    next:null
+   }
+
+  ],
+
+  alex:[
+
+   {
+    speaker:"Alex",
+    text:
+     "I heard you've been asking questions around the city.",
+    choices:[
+     {
+      text:"Tell me what you know.",
+      next:1
+     },
+     {
+      text:"Why are you watching me?",
+      next:2
+     }
+    ]
+   },
+
+   {
+    speaker:"Alex",
+    text:
+     "Someone visited the hospital before the disappearance.",
+    next:null
+   },
+
+   {
+    speaker:"Alex",
+    text:
+     "I'm trying to make sure the wrong person doesn't find the truth first.",
+    next:null
+   }
+
+  ],
+
+  guard:[
+
+   {
+    speaker:"Guard",
+    text:
+     "This building is private property.",
+    choices:[
+     {
+      text:"I'm investigating a case.",
+      next:1
+     },
+     {
+      text:"I just need information.",
+      next:2
+     }
+    ]
+   },
+
+   {
+    speaker:"Guard",
+    text:
+     "Then you should know that someone accessed the building after midnight.",
+    next:null
+   },
+
+   {
+    speaker:"Guard",
+    text:
+     "I can't give you much, but check the security records.",
+    next:null
+   }
+
+  ],
+
+  doctor:[
+
+   {
+    speaker:"Doctor",
+    text:
+     "Are you here about the missing person?",
+    choices:[
+     {
+      text:"Yes. What happened?",
+      next:1
+     },
+     {
+      text:"I need the medical report.",
+      next:2
+     }
+    ]
+   },
+
+   {
+    speaker:"Doctor",
+    text:
+     "Someone brought them here briefly, but they left before we could identify them.",
+     next:null
+   },
+
+   {
+    speaker:"Doctor",
+    text:
+     "The report contains a detail you may find useful.",
+    next:null
+   }
+
+  ]
+
+ },
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.keyboard();
+
+  this.updateHUD();
+
+  this.notify(
+   "V149 NPC & Mission system ready"
+  );
+
+ },
+
+ /* =========================
+    TALK
+ ========================= */
+
+ talk(id){
+
+  this.dialogue=
+   this.dialogueData[id];
+
+  this.dialogueIndex=0;
+
+  this.showDialogue();
+
+ },
+
+ talkNearest(){
+
+  const npcs=[
+   ["maya",37,57],
+   ["alex",76,57],
+   ["guard",68,24],
+   ["doctor",61,24]
+  ];
+
+  let nearest=null;
+  let best=Infinity;
+
+  npcs.forEach(n=>{
+
+   const dx=
+    window.innerWidth*n[1]/100-
+    window.innerWidth/2;
+
+   const dy=
+    window.innerHeight*n[2]/100-
+    window.innerHeight*.58;
+
+   const d=
+    Math.sqrt(
+     dx*dx+dy*dy
+    );
+
+   if(d<best){
+
+    best=d;
+    nearest=n[0];
+
+   }
+
+  });
+
+  if(best<250)
+   this.talk(nearest);
+  else
+   this.notify(
+    "No character nearby."
+   );
+
+ },
+
+ /* =========================
+    DIALOGUE
+ ========================= */
+
+ showDialogue(){
+
+  if(!this.dialogue)
+   return;
+
+  const line=
+   this.dialogue[
+    this.dialogueIndex
+   ];
+
+  if(!line)
+   return;
+
+  document.getElementById(
+   "dialogue"
+  ).style.display="block";
+
+  document.getElementById(
+   "speaker"
+  ).textContent=
+   line.speaker;
+
+  document.getElementById(
+   "dialogueText"
+  ).textContent=
+   line.text;
+
+  const choices=
+   document.getElementById(
+    "choices"
+   );
+
+  choices.innerHTML="";
+
+  document.getElementById(
+   "nextButton"
+  ).style.display=
+   line.choices
+   ?"none"
+   :"block";
+
+  if(line.choices){
+
+   line.choices.forEach(
+    choice=>{
+
+     const b=
+      document.createElement(
+       "button"
+      );
+
+     b.className="choice";
+
+     b.textContent=
+      choice.text;
+
+     b.onclick=()=>{
+
+      this.dialogueIndex=
+       choice.next;
+
+      this.showDialogue();
+
+     };
+
+     choices.appendChild(b);
+
+    }
+   );
+
+  }
+
+ },
+
+ nextDialogue(){
+
+  const line=
+   this.dialogue[
+    this.dialogueIndex
+   ];
+
+  if(
+   !line||
+   line.next===null
+  ){
+
+   this.closeDialogue();
+
+   return;
+
+  }
+
+  this.dialogueIndex=
+   line.next;
+
+  this.showDialogue();
+
+ },
+
+ closeDialogue(){
+
+  document.getElementById(
+   "dialogue"
+  ).style.display="none";
+
+  this.dialogue=null;
+
+ },
+
+ /* =========================
+    MISSION MENU
+ ========================= */
+
+ missions(){
+
+  let html="";
+
+  this.missionsList.forEach(
+   (m,i)=>{
+
+    const done=
+     this.completed.includes(
+      m.id
+     );
+
+    html+=`
+
+     <div class="row">
+
+      <b>🎯 ${m.name}</b>
+
+      <br>
+
+      ${m.objective}
+
+      <br><br>
+
+      💰 Reward:
+      ₹${m.reward}
+
+      <br>
+
+      ⭐ XP:
+      ${m.xp}
+
+      <br><br>
+
+      Status:
+      ${
+       done
+       ?"✅ COMPLETED"
+       :
+       this.activeMission?.id===m.id
+       ?"🟣 ACTIVE"
+       :"⚪ AVAILABLE"
+      }
+
+      <br><br>
+
+      ${
+       !done
+       ?`
+
+        <button
+         onclick="V149.startMission(${i})">
+         SELECT MISSION
+        </button>
+
+       `
+       :""
+      }
+
+     </div>
+
+    `;
+
+   }
+  );
+
+  this.openPanel(
+   "🎯 MISSIONS",
+   html
+  );
+
+ },
+
+ startMission(index){
+
+  const m=
+   this.missionsList[index];
+
+  if(
+   this.completed.includes(
+    m.id
+   )
+  ){
+
+   this.notify(
+    "Mission already completed."
+   );
+
+   return;
+
+  }
+
+  this.activeMission=m;
+
+  this.closePanel();
+
+  this.updateHUD();
+
+  this.notify(
+   "🎯 Mission started: "+
+   m.name
+  );
+
+ },
+
+ /* =========================
+    CHECK MISSION
+ ========================= */
+
+ checkMission(){
+
+  if(!this.activeMission)
+   return;
+
+  const m=
+   this.activeMission;
+
+  const positions={
+
+   warehouse:[15,80],
+
+   doctor:[61,24],
+
+   guard:[68,24]
+
+  };
+
+  const target=
+   positions[m.target];
+
+  if(!target)
+   return;
+
+  const px=
+   window.innerWidth/2;
+
+  const py=
+   window.innerHeight*.58;
+
+  const tx=
+   window.innerWidth*
+   target[0]/100;
+
+  const ty=
+   window.innerHeight*
+   target[1]/100;
+
+  const distance=
+   Math.sqrt(
+    Math.pow(px-tx,2)+
+    Math.pow(py-ty,2)
+   );
+
+  const progress=
+   Math.max(
+    0,
+    Math.min(
+     100,
+     100-distance/500*100
+    )
+   );
+
+  document.getElementById(
+   "progress"
+  ).style.width=
+   progress+"%";
+
+ },
+
+ /* =========================
+    EVIDENCE
+ ========================= */
+
+ evidence(){
+
+  const html=`
+
+   <div class="row">
+    🔎 Evidence collected:
+    <b>${this.clues.length}</b>
+   </div>
+
+   ${
+    this.clues.length
+    ?this.clues.map(
+     clue=>`
+      <div class="row">
+       🧩 ${clue}
+      </div>
+     `
+    ).join("")
+    :
+    `
+     <div class="row">
+      No evidence collected yet.
+     </div>
+    `
+   }
+
+  `;
+
+  this.openPanel(
+   "🔎 CASE EVIDENCE",
+   html
+  );
+
+ },
+
+ /* =========================
+    REWARD
+ ========================= */
+
+ completeMission(){
+
+  if(!this.activeMission)
+   return;
+
+  const m=
+   this.activeMission;
+
+  if(
+   this.completed.includes(
+    m.id
+   )
+  )
+   return;
+
+  this.completed.push(
+   m.id
+  );
+
+  this.cash+=m.reward;
+
+  this.addXP(m.xp);
+
+  this.clues.push(
+   m.name+" evidence"
+  );
+
+  this.activeMission=null;
+
+  this.updateHUD();
+
+  this.save();
+
+  this.notify(
+   "🏆 Mission complete! +₹"+
+   m.reward
+  );
+
+ },
+
+ /* =========================
+    XP
+ ========================= */
+
+ addXP(amount){
+
+  this.xp+=amount;
+
+  const required=
+   this.level*100;
+
+  if(this.xp>=required){
+
+   this.xp-=required;
+
+   this.level++;
+
+   this.notify(
+    "🎉 LEVEL UP! Level "+
+    this.level
+   );
+
+  }
+
+  this.updateHUD();
+
+ },
+
+ /* =========================
+    HUD
+ ========================= */
+
+ updateHUD(){
+
+  document.getElementById(
+   "xp"
+  ).textContent=
+   this.xp;
+
+  document.getElementById(
+   "level"
+  ).textContent=
+   this.level;
+
+  document.getElementById(
+   "clues"
+  ).textContent=
+   this.clues.length;
+
+  document.getElementById(
+   "cash"
+  ).textContent=
+   this.cash;
+
+  if(this.activeMission){
+
+   document.getElementById(
+    "mission"
+   ).textContent=
+    "🎯 "+
+    this.activeMission.name;
+
+   document.getElementById(
+    "objective"
+   ).textContent=
+    this.activeMission.objective;
+
+  }
+  else{
+
+   document.getElementById(
+    "mission"
+   ).textContent=
+    "No active mission";
+
+   document.getElementById(
+    "objective"
+   ).textContent=
+    "Talk to characters to discover missions.";
+
+   document.getElementById(
+    "progress"
+   ).style.width=
+    "0%";
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ openPanel(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=content;
+
+  document.getElementById(
+   "panel"
+  ).style.display="flex";
+
+ },
+
+ closePanel(){
+
+  document.getElementById(
+   "panel"
+  ).style.display="none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=text;
+
+  el.style.display="block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display="none";
+    },
+    2200
+   );
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    xp:this.xp,
+
+    level:this.level,
+
+    clues:this.clues,
+
+    completed:this.completed,
+
+    activeMission:
+     this.activeMission?
+      this.activeMission.id:
+      null
+
+   })
+  );
+
+  this.notify(
+   "💾 V149 saved"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   this.cash=
+    data.cash||0;
+
+   this.xp=
+    data.xp||0;
+
+   this.level=
+    data.level||1;
+
+   this.clues=
+    Array.isArray(data.clues)
+    ?data.clues
+    :[];
+
+   this.completed=
+    Array.isArray(data.completed)
+    ?data.completed
+    :[];
+
+   if(data.activeMission){
+
+    this.activeMission=
+     this.missionsList.find(
+      m=>
+       m.id===
+       data.activeMission
+     )||null;
+
+   }
+
+  }
+  catch(e){
+
+   console.log(
+    "V149 load error",
+    e
+   );
+
+  }
+
+ },
+
+ /* =========================
+    RESET
+ ========================= */
+
+ reset(){
+
+  localStorage.removeItem(
+   this.saveKey
+  );
+
+  this.cash=0;
+  this.xp=0;
+  this.level=1;
+  this.clues=[];
+  this.completed=[];
+  this.activeMission=null;
+
+  this.updateHUD();
+
+  this.notify(
+   "🔄 V149 progress reset"
+  );
+
+ },
+
+ /* =========================
+    KEYBOARD
+ ========================= */
+
+ keyboard(){
+
+  window.addEventListener(
+   "keydown",
+   e=>{
+
+    if(e.code==="KeyM")
+     this.missions();
+
+    if(e.code==="KeyE")
+     this.evidence();
+
+    if(e.code==="Escape"){
+
+     this.closePanel();
+     this.closeDialogue();
+
+    }
+
+   }
+  );
+
+ }
+
+};
+
+V149.init();
+
+setInterval(
+ ()=>{
+  V149.checkMission();
+ },
+ 200
+);
+
+console.log(
+ "WEBBOUND V149 NPC & MISSION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
