@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V132</title>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  overflow:hidden;
+  background:#10141b;
+  font-family:Arial,sans-serif;
+}
+
+#v132World{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+}
+
+#v132NPCs{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+.v132NPC{
+  position:absolute;
+  width:16px;
+  height:24px;
+  border-radius:8px 8px 4px 4px;
+  box-shadow:0 2px 7px #0009;
+  transform-origin:center bottom;
+}
+
+.v132Head{
+  position:absolute;
+  width:10px;
+  height:10px;
+  left:3px;
+  top:-8px;
+  border-radius:50%;
+  background:#c49a78;
+}
+
+.v132Name{
+  position:absolute;
+  left:50%;
+  bottom:27px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  color:white;
+  font-size:7px;
+  text-shadow:0 1px 3px #000;
+}
+
+.v132Money{
+  position:absolute;
+  left:50%;
+  bottom:36px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  color:white;
+  font-size:6px;
+}
+
+.v132Bubble{
+  position:absolute;
+  left:50%;
+  bottom:41px;
+  transform:translateX(-50%);
+  padding:4px 6px;
+  border-radius:6px;
+  background:#05070ef2;
+  color:white;
+  font-size:8px;
+  white-space:nowrap;
+  display:none;
+}
+
+.v132NPC.talking .v132Bubble,
+.v132NPC.trading .v132Bubble{
+  display:block;
+}
+
+#v132Player{
+  position:fixed;
+  width:20px;
+  height:28px;
+  background:#2878d0;
+  border-radius:9px 9px 4px 4px;
+  box-shadow:0 2px 8px #000;
+  z-index:3000;
+  transform:translate(-50%,-50%);
+}
+
+#v132PlayerHead{
+  position:absolute;
+  width:12px;
+  height:12px;
+  left:4px;
+  top:-9px;
+  border-radius:50%;
+  background:#c49a78;
+}
+
+#v132HUD{
+  position:fixed;
+  left:12px;
+  bottom:12px;
+  width:min(370px,84vw);
+  padding:14px;
+  border:1px solid #ffffff25;
+  border-radius:14px;
+  background:#05070eee;
+  color:white;
+  z-index:5000;
+}
+
+#v132Title{
+  font-size:14px;
+  font-weight:bold;
+}
+
+#v132Stats{
+  margin-top:9px;
+  font-size:10px;
+  line-height:1.7;
+}
+
+#v132Buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:10px;
+}
+
+#v132Buttons button{
+  flex:1;
+  min-width:85px;
+  padding:8px;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  background:#151c27;
+  color:white;
+  font-size:9px;
+}
+
+#v132Clock{
+  position:fixed;
+  right:12px;
+  top:12px;
+  padding:9px 12px;
+  border:1px solid #ffffff25;
+  border-radius:10px;
+  background:#05070eee;
+  color:white;
+  z-index:5000;
+  font-size:11px;
+}
+
+#v132Inventory{
+  position:fixed;
+  right:12px;
+  bottom:12px;
+  width:min(300px,72vw);
+  max-height:45vh;
+  overflow:auto;
+  padding:13px;
+  border:1px solid #ffffff25;
+  border-radius:14px;
+  background:#05070eee;
+  color:white;
+  z-index:5000;
+}
+
+#v132InventoryTitle{
+  font-size:13px;
+  font-weight:bold;
+}
+
+.v132Item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:5px;
+  margin-top:7px;
+  padding:8px;
+  border-radius:8px;
+  background:#111923;
+  font-size:10px;
+}
+
+.v132Item button{
+  padding:5px 7px;
+  border:0;
+  border-radius:6px;
+  background:#263447;
+  color:white;
+  font-size:8px;
+}
+
+#v132Panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(390px,88vw);
+  max-height:75vh;
+  overflow:auto;
+  padding:15px;
+  border-radius:15px;
+  background:#05070ef8;
+  border:1px solid #ffffff30;
+  color:white;
+  z-index:8000;
+  display:none;
+}
+
+#v132PanelTitle{
+  font-size:14px;
+  font-weight:bold;
+}
+
+.v132PanelItem{
+  margin-top:8px;
+  padding:9px;
+  border-radius:8px;
+  background:#121b27;
+  font-size:10px;
+}
+
+.v132PanelItem button{
+  margin-left:4px;
+  padding:5px 8px;
+  border:0;
+  border-radius:6px;
+  background:#263447;
+  color:white;
+  font-size:8px;
+}
+
+.v132Close{
+  width:100%;
+  margin-top:10px;
+  padding:8px;
+  border:0;
+  border-radius:8px;
+  background:#263447;
+  color:white;
+}
+
+#v132Message{
+  position:fixed;
+  top:21%;
+  left:50%;
+  transform:translateX(-50%);
+  padding:10px 15px;
+  max-width:88%;
+  border-radius:10px;
+  background:#05070ef5;
+  border:1px solid #ffffff30;
+  color:white;
+  z-index:9000;
+  font-size:11px;
+  font-weight:bold;
+  display:none;
+  text-align:center;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="v132World">
+
+  <div id="v132NPCs"></div>
+
+  <div id="v132Player">
+    <div id="v132PlayerHead"></div>
+  </div>
+
+</div>
+
+<div id="v132Clock">
+  🕐 08:00
+</div>
+
+<div id="v132HUD">
+
+  <div id="v132Title">
+    💱 WEBBOUND V132 — LIVING MARKET
+  </div>
+
+  <div id="v132Stats">
+    Player Money: ₹1000<br>
+    NPCs: 0<br>
+    Player Items: 0<br>
+    NPC Items: 0<br>
+    Transactions: 0
+  </div>
+
+  <div id="v132Buttons">
+
+    <button onclick="V132.spawnNPC()">
+      🚶 SPAWN
+    </button>
+
+    <button onclick="V132.spawnNPCs(5)">
+      👥 +5 NPC
+    </button>
+
+    <button onclick="V132.nearbyAction()">
+      🤝 INTERACT
+    </button>
+
+    <button onclick="V132.marketPanel()">
+      🏪 MARKET
+    </button>
+
+    <button onclick="V132.advanceTime(1)">
+      ⏩ +1 HOUR
+    </button>
+
+    <button onclick="V132.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+  </div>
+
+</div>
+
+<div id="v132Inventory">
+
+  <div id="v132InventoryTitle">
+    🎒 PLAYER INVENTORY
+  </div>
+
+  <div id="v132InventoryList">
+    Empty
+  </div>
+
+</div>
+
+<div id="v132Panel">
+
+  <div id="v132PanelTitle">
+    💱 MARKET
+  </div>
+
+  <div id="v132PanelContent"></div>
+
+  <button
+    class="v132Close"
+    onclick="V132.closePanel()">
+    CLOSE
+  </button>
+
+</div>
+
+<div id="v132Message"></div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V132
+   NPC INVENTORIES + PLAYER SELLING + DYNAMIC MARKET
+   ========================================================= */
+
+const V132={
+
+  version:"V132",
+
+  saveKey:"WEBBOUND_V132_MARKET",
+
+  running:true,
+
+  gameHour:8,
+
+  timeSpeed:1,
+
+  nextId:1,
+
+  totalTransactions:0,
+
+  cityMoney:0,
+
+  selectedNPC:null,
+
+  timer:null,
+
+  saveTimer:null,
+
+  messageTimer:null,
+
+  keys:{},
+
+  maxNPCs:35,
+
+  npcs:[],
+
+  player:{
+    money:1000,
+    x:window.innerWidth/2,
+    y:window.innerHeight/2
+  },
+
+  inventory:{},
+
+  /* -------------------------------------------------------
+     BASE ITEMS
+     ------------------------------------------------------- */
+
+  items:{
+
+    Food:{
+      price:50,
+      icon:"🍎"
+    },
+
+    Water:{
+      price:20,
+      icon:"💧"
+    },
+
+    Phone:{
+      price:500,
+      icon:"📱"
+    },
+
+    Book:{
+      price:120,
+      icon:"📖"
+    },
+
+    Backpack:{
+      price:350,
+      icon:"🎒"
+    },
+
+    Shoes:{
+      price:600,
+      icon:"👟"
+    },
+
+    Camera:{
+      price:900,
+      icon:"📷"
+    },
+
+    Bicycle:{
+      price:1500,
+      icon:"🚲"
+    }
+
+  },
+
+  /* -------------------------------------------------------
+     NPC TYPES
+     ------------------------------------------------------- */
+
+  types:[
+
+    {
+      name:"Student",
+      color:"#3f638c",
+      speed:.55,
+      money:500,
+      salary:0,
+      routine:[
+        [6,8,"home"],
+        [8,14,"school"],
+        [14,16,"park"],
+        [16,19,"home"],
+        [19,22,"park"],
+        [22,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Worker",
+      color:"#6b5742",
+      speed:.48,
+      money:1800,
+      salary:250,
+      routine:[
+        [6,9,"home"],
+        [9,17,"work"],
+        [17,19,"shop"],
+        [19,22,"home"],
+        [22,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Shopkeeper",
+      color:"#5b426b",
+      speed:.38,
+      money:3500,
+      salary:400,
+      routine:[
+        [6,9,"home"],
+        [9,20,"shop"],
+        [20,22,"home"],
+        [22,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Jogger",
+      color:"#426b55",
+      speed:.72,
+      money:900,
+      salary:0,
+      routine:[
+        [6,9,"park"],
+        [9,17,"home"],
+        [17,21,"park"],
+        [21,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Tourist",
+      color:"#7b6540",
+      speed:.43,
+      money:2500,
+      salary:0,
+      routine:[
+        [6,10,"hotel"],
+        [10,18,"park"],
+        [18,21,"shop"],
+        [21,24,"hotel"],
+        [0,6,"hotel"]
+      ]
+    }
+
+  ],
+
+
+  /* =======================================================
+     INIT
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.setupKeyboard();
+
+    this.renderAll();
+
+    this.updateInventory();
+
+    this.updateHUD();
+
+    this.start();
+
+    if(
+      this.npcs.length===0
+    ){
+
+      this.spawnNPCs(10);
+
+    }
+
+    this.message(
+      "V132 living market loaded"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(this.timer);
+
+    this.timer=
+      setInterval(
+        ()=>{
+          this.update();
+        },
+        50
+      );
+
+
+    clearInterval(this.saveTimer);
+
+    this.saveTimer=
+      setInterval(
+        ()=>{
+          this.save();
+        },
+        30000
+      );
+
+  },
+
+
+  /* =======================================================
+     RANDOM NAME
+     ======================================================= */
+
+  randomName(){
+
+    const names=[
+      "Alex","Sam","Ryan","Maya",
+      "Arun","Riya","Dev","Asha",
+      "Noah","Leo","Avi","Zara",
+      "Kiran","Nikhil","Anu"
+    ];
+
+    return names[
+      Math.floor(
+        Math.random()*names.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     RANDOM TYPE
+     ======================================================= */
+
+  randomType(){
+
+    return this.types[
+      Math.floor(
+        Math.random()*this.types.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     RANDOM NPC INVENTORY
+     ======================================================= */
+
+  createNPCInventory(type){
+
+    const inventory={};
+
+    const names=
+      Object.keys(this.items);
+
+
+    let amount=2;
+
+
+    if(type==="Shopkeeper"){
+      amount=5;
+    }
+
+
+    for(
+      let i=0;
+      i<amount;
+      i++
+    ){
+
+      const name=
+        names[
+          Math.floor(
+            Math.random()*names.length
+          )
+        ];
+
+
+      inventory[name]=
+        (
+          inventory[name]||0
+        )+
+        (
+          1+
+          Math.floor(
+            Math.random()*3
+          )
+        );
+
+    }
+
+
+    return inventory;
+
+  },
+
+
+  /* =======================================================
+     SPAWN NPC
+     ======================================================= */
+
+  spawnNPC(silent=false){
+
+    if(
+      this.npcs.length>=
+      this.maxNPCs
+    ){
+
+      if(!silent){
+
+        this.message(
+          "⚠️ NPC limit reached"
+        );
+
+      }
+
+      return null;
+
+    }
+
+
+    const type=
+      this.randomType();
+
+
+    const npc={
+
+      id:this.nextId++,
+
+      name:this.randomName(),
+
+      type:type.name,
+
+      color:type.color,
+
+      speed:type.speed,
+
+      money:type.money,
+
+      salary:type.salary,
+
+      routine:type.routine,
+
+      inventory:
+        this.createNPCInventory(
+          type.name
+        ),
+
+      x:
+        40+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerWidth-80
+        ),
+
+      y:
+        180+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerHeight-250
+        ),
+
+      targetX:0,
+
+      targetY:0,
+
+      direction:1,
+
+      destination:"home",
+
+      state:"walking",
+
+      idleUntil:0,
+
+      element:null
+
+    };
+
+
+    this.cityMoney+=
+      npc.money;
+
+
+    this.setDestination(npc);
+
+    this.npcs.push(npc);
+
+    this.createNPCElement(npc);
+
+
+    if(!silent){
+
+      this.message(
+        "🚶 "+
+        npc.name+
+        " joined the market"
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+    return npc;
+
+  },
+
+
+  /* =======================================================
+     SPAWN MULTIPLE
+     ======================================================= */
+
+  spawnNPCs(count){
+
+    for(
+      let i=0;
+      i<count;
+      i++
+    ){
+
+      this.spawnNPC(true);
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     ROUTINE
+     ======================================================= */
+
+  getRoutine(npc){
+
+    for(
+      const item of npc.routine
+    ){
+
+      if(
+        item[0]<=this.gameHour &&
+        this.gameHour<item[1]
+      ){
+
+        return item[2];
+
+      }
+
+    }
+
+    return "home";
+
+  },
+
+
+  /* =======================================================
+     DESTINATION
+     ======================================================= */
+
+  getPoint(place){
+
+    const w=
+      window.innerWidth;
+
+    const h=
+      window.innerHeight;
+
+
+    const points={
+
+      home:{
+        x:w*.12,
+        y:h*.55
+      },
+
+      school:{
+        x:w*.35,
+        y:h*.35
+      },
+
+      work:{
+        x:w*.62,
+        y:h*.32
+      },
+
+      shop:{
+        x:w*.78,
+        y:h*.55
+      },
+
+      park:{
+        x:w*.45,
+        y:h*.72
+      },
+
+      hotel:{
+        x:w*.82,
+        y:h*.25
+      }
+
+    };
+
+
+    const p=
+      points[place]||
+      points.home;
+
+
+    return{
+
+      x:
+        p.x+
+        Math.random()*100-
+        50,
+
+      y:
+        p.y+
+        Math.random()*70-
+        35
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SET DESTINATION
+     ======================================================= */
+
+  setDestination(npc){
+
+    npc.destination=
+      this.getRoutine(npc);
+
+
+    const p=
+      this.getPoint(
+        npc.destination
+      );
+
+
+    npc.targetX=p.x;
+
+    npc.targetY=p.y;
+
+    npc.state="walking";
+
+  },
+
+
+  /* =======================================================
+     CREATE NPC ELEMENT
+     ======================================================= */
+
+  createNPCElement(npc){
+
+    const layer=
+      document.getElementById(
+        "v132NPCs"
+      );
+
+
+    if(!layer)return;
+
+
+    const el=
+      document.createElement("div");
+
+
+    el.className=
+      "v132NPC";
+
+
+    el.style.background=
+      npc.color;
+
+
+    const head=
+      document.createElement("div");
+
+    head.className=
+      "v132Head";
+
+
+    const name=
+      document.createElement("div");
+
+    name.className=
+      "v132Name";
+
+    name.textContent=
+      npc.name;
+
+
+    const money=
+      document.createElement("div");
+
+    money.className=
+      "v132Money";
+
+
+    const bubble=
+      document.createElement("div");
+
+    bubble.className=
+      "v132Bubble";
+
+    bubble.textContent=
+      "Trading...";
+
+
+    el.appendChild(head);
+
+    el.appendChild(name);
+
+    el.appendChild(money);
+
+    el.appendChild(bubble);
+
+
+    npc.element=el;
+
+    layer.appendChild(el);
+
+    this.renderNPC(npc);
+
+  },
+
+
+  /* =======================================================
+     RENDER NPC
+     ======================================================= */
+
+  renderNPC(npc){
+
+    if(!npc.element)return;
+
+
+    npc.element.style.left=
+      npc.x+"px";
+
+
+    npc.element.style.top=
+      npc.y+"px";
+
+
+    npc.element.style.transform=
+      npc.direction<0
+      ? "scaleX(-1)"
+      : "scaleX(1)";
+
+
+    npc.element.classList.toggle(
+      "talking",
+      npc.state==="talking"
+    );
+
+
+    npc.element.classList.toggle(
+      "trading",
+      npc.state==="trading"
+    );
+
+
+    const money=
+      npc.element.querySelector(
+        ".v132Money"
+      );
+
+
+    if(money){
+
+      money.textContent=
+        "₹"+
+        Math.floor(npc.money);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MAIN UPDATE
+     ======================================================= */
+
+  update(){
+
+    if(!this.running)return;
+
+
+    this.updatePlayer();
+
+    this.advanceClock();
+
+
+    const now=
+      Date.now();
+
+
+    this.npcs.forEach(
+      npc=>{
+        this.updateNPC(
+          npc,
+          now
+        );
+      }
+    );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     PLAYER MOVEMENT
+     ======================================================= */
+
+  updatePlayer(){
+
+    const speed=3;
+
+
+    if(
+      this.keys["ArrowUp"]||
+      this.keys["KeyW"]
+    ){
+
+      this.player.y-=speed;
+
+    }
+
+
+    if(
+      this.keys["ArrowDown"]||
+      this.keys["KeyS"]
+    ){
+
+      this.player.y+=speed;
+
+    }
+
+
+    if(
+      this.keys["ArrowLeft"]||
+      this.keys["KeyA"]
+    ){
+
+      this.player.x-=speed;
+
+    }
+
+
+    if(
+      this.keys["ArrowRight"]||
+      this.keys["KeyD"]
+    ){
+
+      this.player.x+=speed;
+
+    }
+
+
+    this.player.x=
+      Math.max(
+        10,
+        Math.min(
+          window.innerWidth-20,
+          this.player.x
+        )
+      );
+
+
+    this.player.y=
+      Math.max(
+        150,
+        Math.min(
+          window.innerHeight-30,
+          this.player.y
+        )
+      );
+
+
+    const el=
+      document.getElementById(
+        "v132Player"
+      );
+
+
+    if(el){
+
+      el.style.left=
+        this.player.x+"px";
+
+      el.style.top=
+        this.player.y+"px";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     NPC UPDATE
+     ======================================================= */
+
+  updateNPC(npc,now){
+
+    if(
+      npc.state==="talking"||
+      npc.state==="trading"
+    ){
+
+      if(
+        now>=npc.idleUntil
+      ){
+
+        this.setDestination(npc);
+
+      }
+
+      this.renderNPC(npc);
+
+      return;
+
+    }
+
+
+    if(
+      npc.state==="idle"
+    ){
+
+      if(
+        now>=npc.idleUntil
+      ){
+
+        this.setDestination(npc);
+
+      }
+
+      this.renderNPC(npc);
+
+      return;
+
+    }
+
+
+    const desired=
+      this.getRoutine(npc);
+
+
+    if(
+      desired!==npc.destination
+    ){
+
+      this.setDestination(npc);
+
+    }
+
+
+    const dx=
+      npc.targetX-npc.x;
+
+    const dy=
+      npc.targetY-npc.y;
+
+
+    const distance=
+      Math.sqrt(
+        dx*dx+
+        dy*dy
+      );
+
+
+    if(
+      distance<10
+    ){
+
+      npc.state="idle";
+
+      npc.idleUntil=
+        now+
+        1500+
+        Math.random()*3000;
+
+      this.renderNPC(npc);
+
+      return;
+
+    }
+
+
+    npc.direction=
+      dx>=0?1:-1;
+
+
+    npc.x+=
+      (dx/distance)*
+      npc.speed;
+
+
+    npc.y+=
+      (dy/distance)*
+      npc.speed;
+
+
+    this.keepInside(npc);
+
+    this.renderNPC(npc);
+
+  },
+
+
+  /* =======================================================
+     NEAREST NPC
+     ======================================================= */
+
+  getNearestNPC(){
+
+    let nearest=null;
+
+    let best=75;
+
+
+    for(
+      const npc of this.npcs
+    ){
+
+      const dx=
+        npc.x-
+        this.player.x;
+
+      const dy=
+        npc.y-
+        this.player.y;
+
+
+      const distance=
+        Math.sqrt(
+          dx*dx+
+          dy*dy
+        );
+
+
+      if(
+        distance<best
+      ){
+
+        best=distance;
+
+        nearest=npc;
+
+      }
+
+    }
+
+
+    return nearest;
+
+  },
+
+
+  /* =======================================================
+     INTERACT
+     ======================================================= */
+
+  nearbyAction(){
+
+    const npc=
+      this.getNearestNPC();
+
+
+    if(!npc){
+
+      this.message(
+        "🚶 No NPC nearby"
+      );
+
+      return;
+
+    }
+
+
+    this.selectedNPC=npc;
+
+    npc.state="talking";
+
+    npc.idleUntil=
+      Date.now()+6000;
+
+
+    this.renderNPC(npc);
+
+
+    this.openNPCPanel(npc);
+
+  },
+
+
+  /* =======================================================
+     NPC PANEL
+     ======================================================= */
+
+  openNPCPanel(npc){
+
+    const panel=
+      document.getElementById(
+        "v132Panel"
+      );
+
+
+    const title=
+      document.getElementById(
+        "v132PanelTitle"
+      );
+
+
+    const content=
+      document.getElementById(
+        "v132PanelContent"
+      );
+
+
+    title.textContent=
+      "👤 "+
+      npc.name+
+      " — "+
+      npc.type;
+
+
+    content.innerHTML="";
+
+
+    const info=
+      document.createElement(
+        "div"
+      );
+
+
+    info.style.fontSize="10px";
+
+    info.innerHTML=
+      "💰 Money: ₹"+
+      Math.floor(npc.money)+
+      "<br>"+
+      "📦 Items: 
