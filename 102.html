@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V102</title>
+
+<style>
+
+#v102Panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(430px,90vw);
+  max-height:80vh;
+  overflow-y:auto;
+  z-index:10300;
+  display:none;
+  padding:18px;
+  background:#05070ef7;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:16px;
+  font-family:Arial,sans-serif;
+  box-shadow:0 15px 50px #000b;
+}
+
+#v102Panel h2{
+  margin:0 0 6px;
+}
+
+#v102Subtitle{
+  font-size:11px;
+  opacity:.65;
+  margin-bottom:14px;
+}
+
+.v102MissionCard{
+  padding:12px;
+  margin:8px 0;
+  background:#111827;
+  border:1px solid #ffffff20;
+  border-radius:11px;
+}
+
+.v102MissionCard.locked{
+  opacity:.45;
+}
+
+.v102MissionCard.active{
+  border-color:#ffffff70;
+}
+
+.v102MissionName{
+  font-weight:bold;
+  font-size:13px;
+}
+
+.v102MissionInfo{
+  margin-top:5px;
+  font-size:10px;
+  opacity:.7;
+}
+
+.v102MissionCard button{
+  width:100%;
+  margin-top:9px;
+  padding:8px;
+  background:#05070e;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+}
+
+#v102Open{
+  position:fixed;
+  right:12px;
+  top:285px;
+  z-index:10200;
+  padding:10px 13px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+  font-size:11px;
+}
+
+#v102Close{
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:9px;
+}
+
+#v102Message{
+  position:fixed;
+  left:50%;
+  top:20%;
+  transform:translateX(-50%);
+  z-index:10400;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V102 MISSION MAP BUTTON
+     ========================================================= -->
+
+<button id="v102Open"
+        onclick="V102.open()">
+
+  🗺️ MISSION MAP
+
+</button>
+
+
+<!-- =========================================================
+     MISSION MAP
+     ========================================================= -->
+
+<div id="v102Panel">
+
+  <h2>🗺️ Mission Map</h2>
+
+  <div id="v102Subtitle">
+    Select an available mission
+  </div>
+
+  <div id="v102MissionList"></div>
+
+  <button id="v102Close"
+          onclick="V102.close()">
+
+    ❌ CLOSE
+
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v102Message">
+  V102
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V102
+   MISSION MAP / SELECTION SYSTEM
+   ========================================================= */
+
+const V102 = {
+
+  version:"V102",
+
+  saveKey:
+    "WEBBOUND_V102_MISSION_MAP",
+
+  selectedMission:0,
+
+  unlockedMissions:5,
+
+  missions:[
+
+    {
+      id:"city_patrol",
+
+      name:"City Patrol",
+
+      icon:"🕷️",
+
+      description:
+        "Patrol the city and keep the streets safe.",
+
+      difficulty:"EASY",
+
+      reward:"100 XP + ₹50",
+
+      target:5
+
+    },
+
+    {
+      id:"help_city",
+
+      name:"Help the City",
+
+      icon:"🤝",
+
+      description:
+        "Assist people around the city.",
+
+      difficulty:"EASY",
+
+      reward:"175 XP + ₹100",
+
+      target:8
+
+    },
+
+    {
+      id:"web_training",
+
+      name:"Web Training",
+
+      icon:"🕸️",
+
+      description:
+        "Complete a series of web challenges.",
+
+      difficulty:"NORMAL",
+
+      reward:"250 XP + ₹150",
+
+      target:10
+
+    },
+
+    {
+      id:"night_watch",
+
+      name:"Night Watch",
+
+      icon:"🌙",
+
+      description:
+        "Protect the city after sunset.",
+
+      difficulty:"HARD",
+
+      reward:"350 XP + ₹225",
+
+      target:12
+
+    },
+
+    {
+      id:"city_crisis",
+
+      name:"City Crisis",
+
+      icon:"🚨",
+
+      description:
+        "Respond to a major city emergency.",
+
+      difficulty:"VERY HARD",
+
+      reward:"500 XP + ₹350",
+
+      target:15
+
+    },
+
+    {
+      id:"future_threat",
+
+      name:"Unknown Threat",
+
+      icon:"❓",
+
+      description:
+        "A mysterious threat is approaching.",
+
+      difficulty:"LOCKED",
+
+      reward:"???",
+
+      target:20
+
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.render();
+
+    console.log(
+      "WEBBOUND V102 MISSION MAP READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     OPEN
+     ======================================================= */
+
+  open(){
+
+    const panel=
+      document.getElementById(
+        "v102Panel"
+      );
+
+    if(panel){
+
+      panel.style.display=
+        "block";
+
+    }
+
+    this.render();
+
+  },
+
+
+  /* =======================================================
+     CLOSE
+     ======================================================= */
+
+  close(){
+
+    const panel=
+      document.getElementById(
+        "v102Panel"
+      );
+
+    if(panel){
+
+      panel.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
+  render(){
+
+    const list=
+      document.getElementById(
+        "v102MissionList"
+      );
+
+
+    if(!list){
+
+      return;
+
+    }
+
+
+    list.innerHTML="";
+
+
+    this.missions.forEach(
+      (mission,index)=>{
+
+        const card=
+          document.createElement(
+            "div"
+          );
+
+
+        const locked=
+          index>=
+          this.unlockedMissions;
+
+
+        const active=
+          index===
+          this.selectedMission;
+
+
+        card.className=
+          "v102MissionCard"+
+          (
+            locked
+            ? " locked"
+            : ""
+          )+
+          (
+            active
+            ? " active"
+            : ""
+          );
+
+
+        const name=
+          document.createElement(
+            "div"
+          );
+
+        name.className=
+          "v102MissionName";
+
+        name.textContent=
+          mission.icon+
+          " "+
+          mission.name;
+
+
+        const info=
+          document.createElement(
+            "div"
+          );
+
+        info.className=
+          "v102MissionInfo";
+
+        info.textContent=
+          mission.description+
+          " • "+
+          mission.difficulty+
+          " • "+
+          mission.reward;
+
+
+        card.appendChild(
+          name
+        );
+
+        card.appendChild(
+          info
+        );
+
+
+        const button=
+          document.createElement(
+            "button"
+          );
+
+
+        if(locked){
+
+          button.textContent=
+            "🔒 LOCKED";
+
+          button.disabled=
+            true;
+
+        }
+        else{
+
+          button.textContent=
+            active
+            ? "▶️ SELECTED"
+            : "▶️ SELECT MISSION";
+
+
+          button.onclick=
+            ()=>{
+
+              this.selectMission(
+                index
+              );
+
+            };
+
+        }
+
+
+        card.appendChild(
+          button
+        );
+
+        list.appendChild(
+          card
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     SELECT MISSION
+     ======================================================= */
+
+  selectMission(index){
+
+    if(
+      index<0 ||
+      index>=
+      this.missions.length
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      index>=
+      this.unlockedMissions
+    ){
+
+      this.message(
+        "🔒 Mission locked"
+      );
+
+      return;
+
+    }
+
+
+    this.selectedMission=
+      index;
+
+
+    this.save();
+
+    this.render();
+
+
+    const mission=
+      this.missions[index];
+
+
+    this.message(
+      "🎯 Selected: "+
+      mission.name
+    );
+
+
+    /*
+      Optional connection to V101.
+
+      If V101 exists, copy the
+      selected mission index into
+      its mission system.
+    */
+
+    if(
+      typeof V101!=="undefined" &&
+      V101 &&
+      Array.isArray(V101.missions)
+    ){
+
+      const matchingIndex=
+        V101.missions.findIndex(
+          item=>
+            item &&
+            item.id===
+            mission.id
+        );
+
+
+      if(
+        matchingIndex>=0
+      ){
+
+        V101.currentMission=
+          matchingIndex;
+
+        V101.progress=0;
+
+        V101.state=
+          "inactive";
+
+
+        if(
+          typeof V101.updateHUD===
+          "function"
+        ){
+
+          V101.updateHUD();
+
+        }
+
+
+        if(
+          typeof V101.save===
+          "function"
+        ){
+
+          V101.save();
+
+        }
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UNLOCK MISSION
+     ======================================================= */
+
+  unlock(index){
+
+    if(
+      index<0 ||
+      index>=
+      this.missions.length
+    ){
+
+      return false;
+
+    }
+
+
+    if(
+      index+1>
+      this.unlockedMissions
+    ){
+
+      this.unlockedMissions=
+        index+1;
+
+    }
+
+
+    this.save();
+
+    this.render();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     UNLOCK NEXT
+     ======================================================= */
+
+  unlockNext(){
+
+    if(
+      this.unlockedMissions<
+      this.missions.length
+    ){
+
+      const index=
+        this.unlockedMissions;
+
+
+      this.unlockedMissions++;
+
+
+      this.save();
+
+      this.render();
+
+
+      this.message(
+        "🔓 New mission unlocked!"
+      );
+
+
+      return;
+
+    }
+
+
+    this.message(
+      "🏆 All missions unlocked"
+    );
+
+  },
+
+
+  /* =======================================================
+     COMPLETE CURRENT MISSION
+     ======================================================= */
+
+  completeCurrent(){
+
+    if(
+      typeof V101!=="undefined" &&
+      V101 &&
+      typeof V101.completeMission===
+      "function"
+    ){
+
+      V101.completeMission();
+
+      return;
+
+    }
+
+
+    this.message(
+      "ℹ️ Mission system not connected"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET SELECTED
+     ======================================================= */
+
+  getSelectedMission(){
+
+    return this.missions[
+      this.selectedMission
+    ] || null;
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        selectedMission:
+          this.selectedMission,
+
+        unlockedMissions:
+          this.unlockedMissions
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V102 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.selectedMission
+          )
+        )
+      ){
+
+        this.selectedMission=
+          Math.max(
+            0,
+            Math.min(
+              this.missions.length-1,
+              Number(
+                data.selectedMission
+              )
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.unlockedMissions
+          )
+        )
+      ){
+
+        this.unlockedMissions=
+          Math.max(
+            1,
+            Math.min(
+              this.missions.length,
+              Number(
+                data.unlockedMissions
+              )
+            )
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V102 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      selectedMission:
+        this.selectedMission,
+
+      unlockedMissions:
+        this.unlockedMissions
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(
+          data.selectedMission
+        )
+      )
+    ){
+
+      this.selectedMission=
+        Math.max(
+          0,
+          Math.min(
+            this.missions.length-1,
+            Number(
+              data.selectedMission
+            )
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(
+          data.unlockedMissions
+        )
+      )
+    ){
+
+      this.unlockedMissions=
+        Math.max(
+          1,
+          Math.min(
+            this.missions.length,
+            Number(
+              data.unlockedMissions
+            )
+          )
+        );
+
+    }
+
+
+    this.render();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v102Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      K = Mission Map
+    */
+
+    if(
+      event.code==="KeyK"
+    ){
+
+      const panel=
+        document.getElementById(
+          "v102Panel"
+        );
+
+
+      if(
+        panel &&
+        panel.style.display===
+        "block"
+      ){
+
+        V102.close();
+
+      }
+      else{
+
+        V102.open();
+
+      }
+
+    }
+
+
+    /*
+      L = unlock next mission
+    */
+
+    if(
+      event.code==="KeyL"
+    ){
+
+      V102.unlockNext();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V102.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V102.init();
+
+
+console.log(
+  "WEBBOUND V102 MISSION MAP SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
