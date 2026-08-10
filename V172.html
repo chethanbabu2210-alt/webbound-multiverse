@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V172 — GARAGE SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(700px,92vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#vehicleHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.7;
+}
+
+.bar{
+ height:8px;
+ background:#ffffff12;
+ border-radius:7px;
+ overflow:hidden;
+ margin-top:4px;
+}
+
+#fuelFill{
+ height:100%;
+ width:100%;
+ background:#76c7a0;
+ transition:.3s;
+}
+
+#healthFill{
+ height:100%;
+ width:100%;
+ background:#d77d7d;
+ transition:.3s;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="line lineH"></div>
+  <div class="line lineV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🚗 GARAGE</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🚗 WEBBOUND V172 — GARAGE SYSTEM
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cashText">5000</span>
+   </div>
+
+   <div class="stat">
+    🚗 VEHICLES<br>
+    <span id="vehicleCountText">1</span>
+   </div>
+
+   <div class="stat">
+    🏎️ SPEED<br>
+    <span id="speedText">80</span> km/h
+   </div>
+
+   <div class="stat">
+    ⛽ FUEL<br>
+    <span id="fuelText">100</span>%
+   </div>
+
+  </div>
+
+  <div id="vehicleHud">
+
+   <b id="vehicleName">
+    🚲 Basic Bike
+   </b>
+
+   <br>
+
+   ❤️ Health:
+   <span id="healthText">100</span>%
+
+   <div class="bar">
+    <div id="healthFill"></div>
+   </div>
+
+   ⛽ Fuel:
+   <span id="fuelText2">100</span>%
+
+   <div class="bar">
+    <div id="fuelFill"></div>
+   </div>
+
+   <br>
+
+   💨 Speed:
+   <span id="speedText2">80</span> km/h
+
+   &nbsp;|&nbsp;
+
+   💰 Value:
+   ₹<span id="valueText">1000</span>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V172.garage()">
+   🚗 GARAGE
+  </button>
+
+  <button onclick="V172.drive()">
+   🛣️ DRIVE
+  </button>
+
+  <button onclick="V172.refuel()">
+   ⛽ REFUEL
+  </button>
+
+  <button onclick="V172.repair()">
+   🔧 REPAIR
+  </button>
+
+  <button onclick="V172.buyMenu()">
+   🛒 BUY VEHICLE
+  </button>
+
+  <button onclick="V172.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V172
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V172.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V172={
+
+ saveKey:"WEBBOUND_V172",
+
+ cash:5000,
+
+ selected:0,
+
+ vehicles:[
+
+  {
+   id:1,
+   name:"🚲 Basic Bike",
+   price:1000,
+   speed:80,
+   fuel:100,
+   health:100,
+   value:1000
+  }
+
+ ],
+
+ catalogue:[
+
+  {
+   id:2,
+   name:"🏍️ Street Bike",
+   price:4000,
+   speed:140,
+   fuel:100,
+   health:100,
+   value:4000
+  },
+
+  {
+   id:3,
+   name:"🚗 City Car",
+   price:8000,
+   speed:120,
+   fuel:100,
+   health:100,
+   value:8000
+  },
+
+  {
+   id:4,
+   name:"🏎️ Sports Car",
+   price:18000,
+   speed:220,
+   fuel:100,
+   health:100,
+   value:18000
+  },
+
+  {
+   id:5,
+   name:"🚙 Off-Roader",
+   price:25000,
+   speed:180,
+   fuel:100,
+   health:100,
+   value:25000
+  },
+
+  {
+   id:6,
+   name:"🏁 Super Car",
+   price:50000,
+   speed:300,
+   fuel:100,
+   health:100,
+   value:50000
+  }
+
+ ],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🚗 V172 Garage System ready"
+  );
+
+ },
+
+ /* =========================
+    CURRENT VEHICLE
+ ========================= */
+
+ current(){
+
+  return this.vehicles[
+   this.selected
+  ];
+
+ },
+
+ /* =========================
+    GARAGE
+ ========================= */
+
+ garage(){
+
+  let html="";
+
+  this.vehicles.forEach(
+   (vehicle,index)=>{
+
+    html+=`
+
+    <div class="card">
+
+     <b>${vehicle.name}</b>
+
+     <br>
+
+     💨 Speed:
+     ${vehicle.speed} km/h
+
+     <br>
+
+     ⛽ Fuel:
+     ${Math.floor(vehicle.fuel)}%
+
+     <br>
+
+     ❤️ Health:
+     ${Math.floor(vehicle.health)}%
+
+     <br>
+
+     ${
+      index===this.selected
+      ?"🟢 CURRENT VEHICLE"
+      :""
+     }
+
+     <button
+      onclick="
+       V172.selectVehicle(${index})
+      ">
+
+      ${
+       index===this.selected
+       ?"SELECTED"
+       :"SELECT VEHICLE"
+      }
+
+     </button>
+
+    </div>
+
+    `;
+
+   }
+  );
+
+  this.open(
+   "🚗 MY GARAGE",
+   html
+  );
+
+ },
+
+ /* =========================
+    SELECT
+ ========================= */
+
+ selectVehicle(index){
+
+  if(
+   !this.vehicles[index]
+  )
+   return;
+
+  this.selected=index;
+
+  this.update();
+
+  this.save();
+
+  this.garage();
+
+  this.notify(
+   "🚗 Vehicle selected."
+  );
+
+ },
+
+ /* =========================
+    BUY MENU
+ ========================= */
+
+ buyMenu(){
+
+  let html="";
+
+  this.catalogue.forEach(
+   vehicle=>{
+
+    const owned=
+     this.vehicles.some(
+      v=>v.id===vehicle.id
+     );
+
+    html+=`
+
+    <div class="card">
+
+     <b>${vehicle.name}</b>
+
+     <br>
+
+     💨 Speed:
+     ${vehicle.speed} km/h
+
+     <br>
+
+     💰 Price:
+     ₹${vehicle.price.toLocaleString()}
+
+     <br>
+
+     ${
+      owned
+      ?"✅ OWNED"
+      :`
+       <button
+        onclick="
+         V172.buy(${vehicle.id})
+        ">
+        BUY
+       </button>
+      `
+     }
+
+    </div>
+
+    `;
+
+   }
+  );
+
+  this.open(
+   "🛒 VEHICLE DEALERSHIP",
+   html
+  );
+
+ },
+
+ /* =========================
+    BUY
+ ========================= */
+
+ buy(id){
+
+  const vehicle=
+   this.catalogue.find(
+    v=>v.id===id
+   );
+
+  if(!vehicle)
+   return;
+
+  if(
+   this.vehicles.some(
+    v=>v.id===id
+   )
+  ){
+
+   this.notify(
+    "🚗 You already own this vehicle."
+   );
+
+   return;
+
+  }
+
+  if(
+   this.cash<vehicle.price
+  ){
+
+   this.notify(
+    "❌ Not enough cash."
+   );
+
+   return;
+
+  }
+
+  this.cash-=vehicle.price;
+
+  this.vehicles.push({
+
+   id:vehicle.id,
+
+   name:vehicle.name,
+
+   price:vehicle.price,
+
+   speed:vehicle.speed,
+
+   fuel:100,
+
+   health:100,
+
+   value:vehicle.value
+
+  });
+
+  this.update();
+
+  this.save();
+
+  this.buyMenu();
+
+  this.notify(
+   "🎉 Vehicle purchased!"
+  );
+
+ },
+
+ /* =========================
+    DRIVE
+ ========================= */
+
+ drive(){
+
+  const vehicle=
+   this.current();
+
+  if(!vehicle)
+   return;
+
+  if(vehicle.fuel<=0){
+
+   this.notify(
+    "⛽ Out of fuel."
+   );
+
+   return;
+
+  }
+
+  if(vehicle.health<=0){
+
+   this.notify(
+    "🔧 Vehicle needs repair."
+   );
+
+   return;
+
+  }
+
+  const fuelUsed=
+   Math.floor(
+    Math.random()*7
+   )+3;
+
+  const damage=
+   Math.floor(
+    Math.random()*5
+   );
+
+  vehicle.fuel=
+   Math.max(
+    0,
+    vehicle.fuel-fuelUsed
+   );
+
+  vehicle.health=
+   Math.max(
+    0,
+    vehicle.health-damage
+   );
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🛣️ Trip completed. "+
+   "Fuel -"+fuelUsed+
+   "%, Health -"+damage+
+   "%"
+  );
+
+ },
+
+ /* =========================
+    REFUEL
+ ========================= */
+
+ refuel(){
+
+  const vehicle=
+   this.current();
+
+  if(!vehicle)
+   return;
+
+  if(vehicle.fuel>=100){
+
+   this.notify(
+    "⛽ Tank is already full."
+   );
+
+   return;
+
+  }
+
+  const missing=
+   Math.ceil(
+    100-vehicle.fuel
+   );
+
+  const cost=
+   missing*5;
+
+  if(this.cash<cost){
+
+   this.notify(
+    "❌ Not enough cash for fuel."
+   );
+
+   return;
+
+  }
+
+  this.cash-=cost;
+
+  vehicle.fuel=100;
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "⛽ Refueled for ₹"+
+   cost
+  );
+
+ },
+
+ /* =========================
+    REPAIR
+ ========================= */
+
+ repair(){
+
+  const vehicle=
+   this.current();
+
+  if(!vehicle)
+   return;
+
+  if(vehicle.health>=100){
+
+   this.notify(
+    "🔧 Vehicle is already healthy."
+   );
+
+   return;
+
+  }
+
+  const missing=
+   Math.ceil(
+    100-vehicle.health
+   );
+
+  const cost=
+   missing*8;
+
+  if(this.cash<cost){
+
+   this.notify(
+    "❌ Not enough cash for repairs."
+   );
+
+   return;
+
+  }
+
+  this.cash-=cost;
+
+  vehicle.health=100;
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🔧 Vehicle repaired for ₹"+
+   cost
+  );
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const vehicle=
+   this.current();
+
+  document.getElementById(
+   "cashText"
+  ).textContent=
+   this.cash.toLocaleString();
+
+  document.getElementById(
+   "vehicleCountText"
+  ).textContent=
+   this.vehicles.length;
+
+  if(!vehicle)
+   return;
+
+  document.getElementById(
+   "vehicleName"
+  ).textContent=
+   vehicle.name;
+
+  document.getElementById(
+   "speedText"
+  ).textContent=
+   vehicle.speed;
+
+  document.getElementById(
+   "speedText2"
+  ).textContent=
+   vehicle.speed;
+
+  document.getElementById(
+   "fuelText"
+  ).textContent=
+   Math.floor(vehicle.fuel);
+
+  document.getElementById(
+   "fuelText2"
+  ).textContent=
+   Math.floor(vehicle.fuel);
+
+  document.getElementById(
+   "healthText"
+  ).textContent=
+   Math.floor(vehicle.health);
+
+  document.getElementById(
+   "valueText"
+  ).textContent=
+   vehicle.value.toLocaleString();
+
+  document.getElementById(
+   "fuelFill"
+  ).style.width=
+   vehicle.fuel+"%";
+
+  document.getElementById(
+   "healthFill"
+  ).style.width=
+   vehicle.health+"%";
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    selected:this.selected,
+
+    vehicles:this.vehicles
+
+   })
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(
+    Number.isFinite(
+     data.cash
+    )
+   )
+    this.cash=
+     Math.max(
+      0,
+      data.cash
+     );
+
+   if(
+    Array.isArray(
+     data.vehicles
+    ) &&
+    data.vehicles.length
+   ){
+
+    this.vehicles=
+     data.vehicles
+      .filter(
+       v=>
+        v &&
+        Number.isFinite(v.id)
+      )
+      .map(
+       v=>({
+
+        id:v.id,
+
+        name:String(
+         v.name||"Vehicle"
+        ),
+
+        price:Number(v.price)||0,
+
+        speed:Number(v.speed)||0,
+
+        fuel:Math.max(
+         0,
+         Math.min(
+          100,
+          Number(v.fuel)||0
+         )
+        ),
+
+        health:Math.max(
+         0,
+         Math.min(
+          100,
+          Number(v.health)||0
+         )
+        ),
+
+        value:Number(v.value)||0
+
+       })
+      );
+
+   }
+
+   if(
+    Number.isInteger(
+     data.selected
+    ) &&
+    data.selected>=0 &&
+    data.selected<
+     this.vehicles.length
+   )
+    this.selected=
+     data.selected;
+
+   else
+    this.selected=0;
+
+  }
+  catch(error){
+
+   console.log(
+    "V172 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V172.init();
+
+console.log(
+ "WEBBOUND V172 GARAGE SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
