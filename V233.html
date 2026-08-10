@@ -1,0 +1,1037 @@
+<!-- =====================================================
+ V233 — COMBAT + ENEMY AI SYSTEM
+ Add after V232
+ ===================================================== -->
+
+<style>
+
+#combatHud233{
+
+    position:fixed;
+    left:12px;
+    top:300px;
+
+    width:min(250px,50vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:4800;
+}
+
+.combatTitle233{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#enemyCount233,
+#combatState233,
+#playerHealth233{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= ENEMY ================= */
+
+.enemy233{
+
+    position:absolute;
+
+    width:22px;
+    height:30px;
+
+    background:#111820;
+
+    border:1px solid #ffffff35;
+
+    border-radius:6px;
+
+    z-index:2500;
+
+    cursor:pointer;
+
+    transition:
+        left .25s,
+        top .25s;
+
+}
+
+.enemy233::before{
+
+    content:"";
+
+    position:absolute;
+
+    width:10px;
+    height:10px;
+
+    left:6px;
+    top:4px;
+
+    border-radius:50%;
+
+    background:#d9dddf;
+
+}
+
+
+/* ================= HEALTH BAR ================= */
+
+.enemyHealth233{
+
+    position:absolute;
+
+    left:-3px;
+    top:-8px;
+
+    width:28px;
+    height:4px;
+
+    background:#303840;
+
+    border-radius:4px;
+
+    overflow:hidden;
+
+}
+
+.enemyHealthFill233{
+
+    width:100%;
+    height:100%;
+
+    background:#d9dddf;
+
+}
+
+
+/* ================= COMBAT MESSAGE ================= */
+
+#combatMessage233{
+
+    position:fixed;
+
+    left:50%;
+    top:42%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 18px;
+
+    background:#03070ded;
+
+    border:1px solid #ffffff30;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    z-index:6000;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#combatMessage233.show{
+
+    animation:
+        combatMessage233 .8s forwards;
+
+}
+
+@keyframes combatMessage233{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(.8);
+    }
+
+    25%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1);
+    }
+
+    75%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#combatControls233{
+
+    position:fixed;
+
+    left:12px;
+    bottom:75px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5000;
+
+}
+
+#combatControls233 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="combatHud233">
+
+    <div class="combatTitle233">
+        ⚔️ COMBAT SYSTEM — V233
+    </div>
+
+    <div id="enemyCount233">
+        Enemies: 0
+    </div>
+
+    <div id="combatState233">
+        Combat: READY
+    </div>
+
+    <div id="playerHealth233">
+        Health: 100
+    </div>
+
+</div>
+
+
+<div id="combatMessage233">
+    COMBAT
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="combatControls233">
+
+    <button onclick="SpiderCombat233.spawnEnemy()">
+        👤 ENEMY
+    </button>
+
+    <button onclick="SpiderCombat233.attack()">
+        🕷️ ATTACK
+    </button>
+
+    <button onclick="SpiderCombat233.webAttack()">
+        🕸️ WEB
+    </button>
+
+    <button onclick="SpiderCombat233.heal()">
+        ❤️ HEAL
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V233 COMBAT ENGINE
+ ===================================================== */
+
+const SpiderCombat233={
+
+    enemies:[],
+
+    nextId:1,
+
+    playerHealth:100,
+
+    maxHealth:100,
+
+    combatState:"READY",
+
+    maxEnemies:10,
+
+    attackCooldown:false,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.spawnInitialEnemies();
+
+        this.updateHUD();
+
+        this.message(
+            "⚔️ Combat system online."
+        );
+
+    },
+
+
+    /* =========================
+       SPAWN
+    ========================= */
+
+    spawnInitialEnemies(){
+
+        for(
+            let i=0;
+            i<3;
+            i++
+        ){
+
+            this.spawnEnemy();
+
+        }
+
+    },
+
+
+    spawnEnemy(){
+
+        if(
+            this.enemies.length>=
+            this.maxEnemies
+        ){
+
+            this.message(
+                "Enemy limit reached."
+            );
+
+            return;
+
+        }
+
+
+        const id=
+            "enemy233_"+
+            this.nextId++;
+
+
+        const enemy=
+            document.createElement(
+                "div"
+            );
+
+
+        enemy.id=id;
+
+        enemy.className=
+            "enemy233";
+
+
+        enemy.style.left=
+            (
+                15+
+                Math.random()*70
+            )+"vw";
+
+
+        enemy.style.top=
+            (
+                25+
+                Math.random()*55
+            )+"vh";
+
+
+        enemy.dataset.health="100";
+
+        enemy.dataset.state=
+            "idle";
+
+
+        const health=
+            document.createElement(
+                "div"
+            );
+
+
+        health.className=
+            "enemyHealth233";
+
+
+        const fill=
+            document.createElement(
+                "div"
+            );
+
+
+        fill.className=
+            "enemyHealthFill233";
+
+
+        health.appendChild(
+            fill
+        );
+
+
+        enemy.appendChild(
+            health
+        );
+
+
+        enemy.addEventListener(
+            "click",
+            ()=>{
+                this.damageEnemy(
+                    enemy,
+                    25
+                );
+            }
+        );
+
+
+        document.body.appendChild(
+            enemy
+        );
+
+
+        this.enemies.push({
+
+            id:id,
+
+            element:enemy,
+
+            health:100,
+
+            state:"idle",
+
+            active:true
+
+        });
+
+
+        this.combatState=
+            "ACTIVE";
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       BASIC ATTACK
+       ========================= */
+
+    attack(){
+
+        if(this.attackCooldown)
+            return;
+
+
+        const enemy=
+            this.getNearestEnemy();
+
+
+        if(!enemy){
+
+            this.message(
+                "No enemy nearby."
+            );
+
+            return;
+
+        }
+
+
+        this.attackCooldown=true;
+
+
+        this.damageEnemy(
+            enemy.element,
+            25
+        );
+
+
+        setTimeout(
+            ()=>{
+                this.attackCooldown=false;
+            },
+            400
+        );
+
+    },
+
+
+    /* =========================
+       WEB ATTACK
+       ========================= */
+
+    webAttack(){
+
+        const enemy=
+            this.getNearestEnemy();
+
+
+        if(!enemy){
+
+            this.message(
+                "No enemy in range."
+            );
+
+            return;
+
+        }
+
+
+        enemy.state=
+            "webbed";
+
+
+        enemy.element.dataset.state=
+            "webbed";
+
+
+        enemy.element.style.opacity=
+            ".65";
+
+
+        this.message(
+            "🕸️ Enemy webbed!"
+        );
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    enemy.active
+                ){
+
+                    enemy.state=
+                        "idle";
+
+                    enemy.element.dataset
+                        .state="idle";
+
+                    enemy.element.style
+                        .opacity="1";
+
+                }
+
+            },
+            3000
+        );
+
+    },
+
+
+    /* =========================
+       DAMAGE
+       ========================= */
+
+    damageEnemy(
+        element,
+        amount
+    ){
+
+        const enemy=
+            this.enemies.find(
+                e=>
+                    e.element===
+                    element
+            );
+
+
+        if(
+            !enemy ||
+            !enemy.active
+        )
+            return;
+
+
+        enemy.health=
+            Math.max(
+                0,
+                enemy.health-
+                amount
+            );
+
+
+        element.dataset.health=
+            enemy.health;
+
+
+        const fill=
+            element.querySelector(
+                ".enemyHealthFill233"
+            );
+
+
+        if(fill){
+
+            fill.style.width=
+                enemy.health+
+                "%";
+
+        }
+
+
+        this.message(
+            "💥 Hit! "+
+            enemy.health+
+            " HP"
+        );
+
+
+        if(
+            enemy.health<=0
+        ){
+
+            this.defeatEnemy(
+                enemy
+            );
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       DEFEAT
+       ========================= */
+
+    defeatEnemy(enemy){
+
+        enemy.active=false;
+
+        enemy.state=
+            "defeated";
+
+
+        enemy.element.dataset.state=
+            "defeated";
+
+
+        enemy.element.style.opacity=
+            "0";
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    enemy.element &&
+                    enemy.element.parentNode
+                ){
+
+                    enemy.element.parentNode
+                        .removeChild(
+                            enemy.element
+                        );
+
+                }
+
+            },
+            300
+        );
+
+
+        this.message(
+            "✓ Enemy defeated!"
+        );
+
+
+        /*
+         * Connect to missions.
+         */
+
+        if(
+            typeof SpiderMission228!==
+            "undefined"
+        ){
+
+            SpiderMission228
+                .completeObjective();
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       ENEMY AI
+       ========================= */
+
+    startAI(){
+
+        setInterval(
+            ()=>{
+
+                this.enemyAI();
+
+            },
+            1600
+        );
+
+    },
+
+
+    enemyAI(){
+
+        this.enemies.forEach(
+            enemy=>{
+
+                if(
+                    !enemy.active ||
+                    enemy.state==="webbed"
+                )
+                    return;
+
+
+                /*
+                 * Simple patrol movement.
+                 */
+
+                const left=
+                    parseFloat(
+                        enemy.element.style.left
+                    );
+
+
+                const top=
+                    parseFloat(
+                        enemy.element.style.top
+                    );
+
+
+                enemy.element.style.left=
+                    Math.max(
+                        5,
+                        Math.min(
+                            90,
+                            left+
+                            (
+                                Math.random()*
+                                10-
+                                5
+                            )
+                        )
+                    )+"vw";
+
+
+                enemy.element.style.top=
+                    Math.max(
+                        20,
+                        Math.min(
+                            85,
+                            top+
+                            (
+                                Math.random()*
+                                8-
+                                4
+                            )
+                    )+"vh";
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       NEAREST ENEMY
+       ========================= */
+
+    getNearestEnemy(){
+
+        const active=
+            this.enemies.filter(
+                e=>e.active
+            );
+
+
+        if(!active.length)
+            return null;
+
+
+        return active[0];
+
+    },
+
+
+    /* =========================
+       PLAYER DAMAGE
+       ========================= */
+
+    damagePlayer(amount){
+
+        this.playerHealth=
+            Math.max(
+                0,
+                this.playerHealth-
+                amount
+            );
+
+
+        this.combatState=
+            "UNDER ATTACK";
+
+
+        this.updateHUD();
+
+
+        if(
+            this.playerHealth<=0
+        ){
+
+            this.playerDefeated();
+
+        }
+
+    },
+
+
+    /* =========================
+       HEAL
+       ========================= */
+
+    heal(){
+
+        this.playerHealth=
+            Math.min(
+                this.maxHealth,
+                this.playerHealth+
+                25
+            );
+
+
+        this.combatState=
+            "READY";
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       PLAYER DEFEATED
+       ========================= */
+
+    playerDefeated(){
+
+        this.combatState=
+            "DOWN";
+
+
+        this.message(
+            "🕷️ Spider-Man is down."
+        );
+
+
+        setTimeout(
+            ()=>{
+
+                this.playerHealth=
+                    this.maxHealth;
+
+                this.combatState=
+                    "READY";
+
+                this.updateHUD();
+
+            },
+            3000
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const active=
+            this.enemies.filter(
+                e=>e.active
+            );
+
+
+        const count=
+            document.getElementById(
+                "enemyCount233"
+            );
+
+
+        const state=
+            document.getElementById(
+                "combatState233"
+            );
+
+
+        const health=
+            document.getElementById(
+                "playerHealth233"
+            );
+
+
+        if(count){
+
+            count.textContent=
+                "Enemies: "+
+                active.length;
+
+        }
+
+
+        if(state){
+
+            state.textContent=
+                "Combat: "+
+                this.combatState;
+
+        }
+
+
+        if(health){
+
+            health.textContent=
+                "Health: "+
+                this.playerHealth;
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "combatMessage233"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V233
+ ===================================================== */
+
+SpiderCombat233.init();
+
+SpiderCombat233.startAI();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="f")
+            SpiderCombat233.attack();
+
+
+        if(key==="g")
+            SpiderCombat233.webAttack();
+
+
+        if(key==="h")
+            SpiderCombat233.heal();
+
+
+        if(key==="b")
+            SpiderCombat233.spawnEnemy();
+
+    }
+);
