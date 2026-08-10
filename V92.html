@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V92</title>
+
+<style>
+
+#v92Dialogue{
+
+  position:fixed;
+
+  left:50%;
+  bottom:80px;
+
+  transform:translateX(-50%);
+
+  width:min(520px,90%);
+
+  z-index:9200;
+
+  padding:16px;
+
+  background:#05070ef2;
+
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:15px;
+
+  font-family:Arial,sans-serif;
+
+  display:none;
+
+}
+
+#v92Name{
+
+  font-size:15px;
+
+  font-weight:bold;
+
+  margin-bottom:8px;
+
+}
+
+#v92Text{
+
+  font-size:13px;
+
+  line-height:19px;
+
+  opacity:.9;
+
+}
+
+#v92Choices{
+
+  margin-top:12px;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:6px;
+
+}
+
+#v92Choices button{
+
+  padding:9px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+
+  text-align:left;
+
+}
+
+#v92HUD{
+
+  position:fixed;
+
+  right:12px;
+
+  top:12px;
+
+  z-index:9201;
+
+  padding:10px 12px;
+
+  background:#05070edb;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:10px;
+
+  font:11px Arial,sans-serif;
+
+}
+
+#v92Message{
+
+  position:fixed;
+
+  left:50%;
+
+  top:18%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  padding:10px 15px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:9px;
+
+  font:bold 12px Arial,sans-serif;
+
+  display:none;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     NPC DIALOGUE
+     ========================================================= -->
+
+<div id="v92Dialogue">
+
+  <div id="v92Name">
+    NPC
+  </div>
+
+  <div id="v92Text">
+    Hello.
+  </div>
+
+  <div id="v92Choices"></div>
+
+</div>
+
+
+<!-- =========================================================
+     HUD
+     ========================================================= -->
+
+<div id="v92HUD">
+
+  💬 NPC SYSTEM<br>
+
+  <span id="v92NPCCount">
+    NPCs: 0
+  </span>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v92Message">
+  V92
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V92
+   NPC RELATIONSHIP + DIALOGUE SYSTEM
+   ========================================================= */
+
+const V92 = {
+
+  version:"V92",
+
+  saveKey:
+    "WEBBOUND_V92_NPCS",
+
+  npcs:[],
+
+  activeNPC:null,
+
+  nextID:1,
+
+  maxNPCs:50,
+
+  dialogueOpen:false,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V92 NPC SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     CREATE NPC
+     ======================================================= */
+
+  createNPC(options={}){
+
+    if(
+      this.npcs.length>=
+      this.maxNPCs
+    ){
+
+      this.message(
+        "NPC limit reached."
+      );
+
+      return null;
+
+    }
+
+
+    const npc={
+
+      id:
+        options.id ||
+        "npc_"+this.nextID++,
+
+      name:
+        String(
+          options.name ||
+          "Citizen"
+        ),
+
+      personality:
+        String(
+          options.personality ||
+          "friendly"
+        ),
+
+      x:
+        Number(options.x)||0,
+
+      y:
+        Number(options.y)||0,
+
+      z:
+        Number(options.z)||0,
+
+      relationship:
+        Number(
+          options.relationship
+        ) || 0,
+
+      conversations:
+        Number(
+          options.conversations
+        ) || 0,
+
+      met:
+        options.met===true,
+
+      dialogue:
+        Array.isArray(
+          options.dialogue
+        )
+        ? options.dialogue
+        : [],
+
+      enabled:
+        options.enabled!==false
+
+    };
+
+
+    this.npcs.push(npc);
+
+    this.save();
+
+    this.updateHUD();
+
+    return npc;
+
+  },
+
+
+  /* =======================================================
+     FIND NPC
+     ======================================================= */
+
+  find(id){
+
+    return this.npcs.find(
+      npc=>
+        npc.id===id
+    );
+
+  },
+
+
+  /* =======================================================
+     REMOVE NPC
+     ======================================================= */
+
+  remove(id){
+
+    this.npcs=
+      this.npcs.filter(
+        npc=>
+          npc.id!==id
+      );
+
+
+    if(
+      this.activeNPC &&
+      this.activeNPC.id===id
+    ){
+
+      this.closeDialogue();
+
+    }
+
+
+    this.save();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     PLAYER POSITION
+     ======================================================= */
+
+  getPlayerPosition(){
+
+    try{
+
+      if(
+        typeof player!=="undefined" &&
+        player &&
+        player.position
+      ){
+
+        return{
+
+          x:
+            Number(
+              player.position.x
+            ) || 0,
+
+          y:
+            Number(
+              player.position.y
+            ) || 0,
+
+          z:
+            Number(
+              player.position.z
+            ) || 0
+
+        };
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V92 PLAYER ERROR:",
+        error
+      );
+
+    }
+
+
+    return{
+
+      x:0,
+      y:0,
+      z:0
+
+    };
+
+  },
+
+
+  /* =======================================================
+     DISTANCE
+     ======================================================= */
+
+  distanceTo(npc){
+
+    const p=
+      this.getPlayerPosition();
+
+
+    const dx=
+      npc.x-p.x;
+
+    const dy=
+      npc.y-p.y;
+
+    const dz=
+      npc.z-p.z;
+
+
+    return Math.sqrt(
+      dx*dx+
+      dy*dy+
+      dz*dz
+    );
+
+  },
+
+
+  /* =======================================================
+     FIND NEAREST NPC
+     ======================================================= */
+
+  getNearestNPC(
+    maxDistance=4
+  ){
+
+    let nearest=null;
+
+    let nearestDistance=
+      Infinity;
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(!npc.enabled){
+
+          return;
+
+        }
+
+
+        const distance=
+          this.distanceTo(
+            npc
+          );
+
+
+        if(
+          distance<=maxDistance &&
+          distance<nearestDistance
+        ){
+
+          nearest=npc;
+
+          nearestDistance=
+            distance;
+
+        }
+
+      }
+    );
+
+
+    return nearest;
+
+  },
+
+
+  /* =======================================================
+     TALK TO NPC
+     ======================================================= */
+
+  talkToNPC(
+    npc
+  ){
+
+    if(!npc){
+
+      npc=
+        this.getNearestNPC();
+
+    }
+
+
+    if(!npc){
+
+      this.message(
+        "No NPC nearby."
+      );
+
+      return false;
+
+    }
+
+
+    this.activeNPC=
+      npc;
+
+    this.dialogueOpen=
+      true;
+
+
+    npc.met=true;
+
+    npc.conversations++;
+
+
+    this.save();
+
+    this.showDialogue();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     SHOW DIALOGUE
+     ======================================================= */
+
+  showDialogue(){
+
+    const box=
+      document.getElementById(
+        "v92Dialogue"
+      );
+
+    const name=
+      document.getElementById(
+        "v92Name"
+      );
+
+    const text=
+      document.getElementById(
+        "v92Text"
+      );
+
+    const choices=
+      document.getElementById(
+        "v92Choices"
+      );
+
+
+    if(
+      !box ||
+      !name ||
+      !text ||
+      !choices ||
+      !this.activeNPC
+    ){
+
+      return;
+
+    }
+
+
+    const npc=
+      this.activeNPC;
+
+
+    name.textContent=
+      npc.name;
+
+
+    text.textContent=
+      this.getGreeting(
+        npc
+      );
+
+
+    choices.innerHTML="";
+
+
+    const options=[
+
+      {
+        text:"Hello.",
+        change:1
+      },
+
+      {
+        text:"How are you?",
+        change:2
+      },
+
+      {
+        text:"Goodbye.",
+        change:0
+      }
+
+    ];
+
+
+    options.forEach(
+      option=>{
+
+        const button=
+          document.createElement(
+            "button"
+          );
+
+
+        button.textContent=
+          option.text;
+
+
+        button.onclick=
+          ()=>{
+
+            this.chooseDialogue(
+              option
+            );
+
+          };
+
+
+        choices.appendChild(
+          button
+        );
+
+      }
+    );
+
+
+    box.style.display=
+      "block";
+
+  },
+
+
+  /* =======================================================
+     GREETING
+     ======================================================= */
+
+  getGreeting(npc){
+
+    if(
+      npc.relationship>=50
+    ){
+
+      return(
+        "Hey! Good to see you again."
+      );
+
+    }
+
+
+    if(
+      npc.relationship<=-20
+    ){
+
+      return(
+        "What do you want?"
+      );
+
+    }
+
+
+    switch(
+      npc.personality
+    ){
+
+      case"serious":
+        return(
+          "Hello. Is there something you need?"
+        );
+
+      case"funny":
+        return(
+          "Well, look who showed up."
+        );
+
+      case"quiet":
+        return(
+          "Hi."
+        );
+
+      default:
+        return(
+          "Hello! Nice to meet you."
+        );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CHOOSE DIALOGUE
+     ======================================================= */
+
+  chooseDialogue(
+    option
+  ){
+
+    if(!this.activeNPC){
+
+      return;
+
+    }
+
+
+    const npc=
+      this.activeNPC;
+
+
+    npc.relationship=
+      Math.max(
+        -100,
+        Math.min(
+          100,
+          npc.relationship+
+          Number(
+            option.change
+          )
+        )
+      );
+
+
+    if(
+      option.change>0
+    ){
+
+      this.message(
+        "❤️ Relationship +"+
+        option.change
+      );
+
+    }
+
+
+    if(
+      option.change===0
+    ){
+
+      this.closeDialogue();
+
+      return;
+
+    }
+
+
+    this.save();
+
+    this.showDialogue();
+
+  },
+
+
+  /* =======================================================
+     CHANGE RELATIONSHIP
+     ======================================================= */
+
+  changeRelationship(
+    id,
+    amount
+  ){
+
+    const npc=
+      this.find(id);
+
+
+    if(!npc){
+
+      return false;
+
+    }
+
+
+    const value=
+      Number(amount);
+
+
+    if(
+      !Number.isFinite(value)
+    ){
+
+      return false;
+
+    }
+
+
+    npc.relationship=
+      Math.max(
+        -100,
+        Math.min(
+          100,
+          npc.relationship+
+          value
+        )
+      );
+
+
+    this.save();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     GET RELATIONSHIP LEVEL
+     ======================================================= */
+
+  getRelationshipLevel(
+    id
+  ){
+
+    const npc=
+      this.find(id);
+
+
+    if(!npc){
+
+      return"unknown";
+
+    }
+
+
+    const value=
+      npc.relationship;
+
+
+    if(
+      value>=75
+    ){
+
+      return"best friend";
+
+    }
+
+
+    if(
+      value>=40
+    ){
+
+      return"friend";
+
+    }
+
+
+    if(
+      value>=10
+    ){
+
+      return"friendly";
+
+    }
+
+
+    if(
+      value>-10
+    ){
+
+      return"neutral";
+
+    }
+
+
+    if(
+      value>-40
+    ){
+
+      return"unfriendly";
+
+    }
+
+
+    return"hostile";
+
+  },
+
+
+  /* =======================================================
+     CLOSE DIALOGUE
+     ======================================================= */
+
+  closeDialogue(){
+
+    const box=
+      document.getElementById(
+        "v92Dialogue"
+      );
+
+
+    if(box){
+
+      box.style.display=
+        "none";
+
+    }
+
+
+    this.activeNPC=
+      null;
+
+    this.dialogueOpen=
+      false;
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v92Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const count=
+      document.getElementById(
+        "v92NPCCount"
+      );
+
+
+    if(count){
+
+      count.textContent=
+        "NPCs: "+
+        this.npcs.length;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        nextID:this.nextID,
+
+        npcs:
+          this.npcs.map(
+            npc=>({
+
+              id:npc.id,
+
+              name:npc.name,
+
+              personality:
+                npc.personality,
+
+              x:npc.x,
+
+              y:npc.y,
+
+              z:npc.z,
+
+              relationship:
+                npc.relationship,
+
+              conversations:
+                npc.conversations,
+
+              met:npc.met,
+
+              dialogue:
+                npc.dialogue,
+
+              enabled:npc.enabled
+
+            })
+          )
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V92 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.npcs
+        )
+      ){
+
+        this.npcs=
+          data.npcs;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.nextID)
+        )
+      ){
+
+        this.nextID=
+          Number(data.nextID);
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V92 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      nextID:this.nextID,
+
+      npcs:this.npcs
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Array.isArray(
+        data.npcs
+      )
+    ){
+
+      this.npcs=
+        data.npcs;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.nextID)
+      )
+    ){
+
+      this.nextID=
+        Number(data.nextID);
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     V91 COMPATIBILITY
+     ======================================================= */
+
+  installV91Compatibility(){
+
+    if(
+      typeof V91==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V91.__v92CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    V91.__v92CompatibilityInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    setInterval(
+      ()=>{
+
+        this.updateHUD();
+
+      },
+      1000
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      E = talk to nearest NPC
+    */
+
+    if(
+      event.code==="KeyE"
+    ){
+
+      if(
+        V92.dialogueOpen
+      ){
+
+        return;
+
+      }
+
+
+      V92.talkToNPC();
+
+    }
+
+
+    /*
+      Escape = close dialogue
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      if(
+        V92.dialogueOpen
+      ){
+
+        V92.closeDialogue();
+
+      }
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V92.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V92.init();
+
+V92.installV91Compatibility();
+
+V92.start();
+
+
+/* =========================================================
+   FUTURE API
+
+   V92.createNPC({
+
+     name:"Alex",
+
+     personality:"funny",
+
+     x:10,
+
+     y:0,
+
+     z:-20,
+
+     relationship:10
+
+   });
+
+
+   V92.talkToNPC();
+
+   V92.changeRelationship(
+     "npc_1",
+     10
+   );
+
+
+   V92.getRelationshipLevel(
+     "npc_1"
+   );
+
+   ========================================================= */
+
+</script>
+
+</body>
+</html>
