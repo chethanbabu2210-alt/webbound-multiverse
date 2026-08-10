@@ -1,0 +1,845 @@
+<!-- =====================================================
+ V245 — TRAFFIC + VEHICLE SYSTEM
+ Add after V244
+ ===================================================== -->
+
+<style>
+
+#trafficHud245{
+
+    position:fixed;
+
+    right:12px;
+    top:690px;
+
+    width:min(240px,48vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:9px;
+
+    z-index:5500;
+
+}
+
+.trafficTitle245{
+
+    font-size:9px;
+    font-weight:bold;
+
+}
+
+#trafficCount245,
+#trafficDensity245,
+#trafficStatus245{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= VEHICLES ================= */
+
+.vehicle245{
+
+    position:absolute;
+
+    width:38px;
+    height:18px;
+
+    background:#ffffff12;
+
+    border:1px solid #ffffff40;
+
+    border-radius:5px;
+
+    z-index:2300;
+
+    transition:
+        left 1.2s linear;
+
+    cursor:pointer;
+
+}
+
+.vehicle245::before,
+.vehicle245::after{
+
+    content:"";
+
+    position:absolute;
+
+    bottom:-4px;
+
+    width:7px;
+    height:7px;
+
+    border-radius:50%;
+
+    background:#03070d;
+
+    border:1px solid #ffffff35;
+
+}
+
+.vehicle245::before{
+
+    left:5px;
+
+}
+
+.vehicle245::after{
+
+    right:5px;
+
+}
+
+
+/* ================= TRAFFIC LIGHT ================= */
+
+.trafficLight245{
+
+    position:absolute;
+
+    width:10px;
+    height:32px;
+
+    background:#111;
+
+    border:1px solid #ffffff30;
+
+    border-radius:4px;
+
+    z-index:2400;
+
+}
+
+.trafficLight245::before{
+
+    content:"";
+
+    position:absolute;
+
+    width:6px;
+    height:6px;
+
+    top:4px;
+    left:1px;
+
+    border-radius:50%;
+
+    background:#ffffff40;
+
+    box-shadow:
+        0 9px 0 #ffffff25,
+        0 18px 0 #ffffff18;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#trafficControls245{
+
+    position:fixed;
+
+    right:12px;
+
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5600;
+
+}
+
+#trafficControls245 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= MESSAGE ================= */
+
+#trafficMessage245{
+
+    position:fixed;
+
+    left:50%;
+
+    top:40%;
+
+    transform:
+        translateX(-50%);
+
+    padding:9px 15px;
+
+    background:#03070df5;
+
+    border:1px solid #ffffff30;
+
+    border-radius:8px;
+
+    font-size:8px;
+
+    z-index:6500;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#trafficMessage245.show{
+
+    animation:
+        trafficPopup245 1s forwards;
+
+}
+
+@keyframes trafficPopup245{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(.8);
+    }
+
+    20%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1);
+    }
+
+    80%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="trafficHud245">
+
+    <div class="trafficTitle245">
+        🚗 CITY TRAFFIC — V245
+    </div>
+
+    <div id="trafficCount245">
+        Vehicles: 0
+    </div>
+
+    <div id="trafficDensity245">
+        Density: NORMAL
+    </div>
+
+    <div id="trafficStatus245">
+        Status: ACTIVE
+    </div>
+
+</div>
+
+
+<div id="trafficMessage245">
+    TRAFFIC
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="trafficControls245">
+
+    <button onclick="SpiderTraffic245.spawn()">
+        🚗 SPAWN
+    </button>
+
+    <button onclick="SpiderTraffic245.spawnTraffic()">
+        🚦 TRAFFIC
+    </button>
+
+    <button onclick="SpiderTraffic245.changeDensity()">
+        📊 DENSITY
+    </button>
+
+    <button onclick="SpiderTraffic245.clear()">
+        ✕ CLEAR
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V245 TRAFFIC ENGINE
+ ===================================================== */
+
+const SpiderTraffic245={
+
+    vehicles:[],
+
+    nextId:1,
+
+    active:true,
+
+    densityIndex:1,
+
+    densities:[
+
+        "LOW",
+
+        "NORMAL",
+
+        "HIGH"
+
+    ],
+
+    maxVehicles:40,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.spawnTraffic();
+
+        this.createLights();
+
+        this.startTrafficAI();
+
+        this.updateHUD();
+
+        this.message(
+            "🚗 City traffic online."
+        );
+
+    },
+
+
+    /* =========================
+       SPAWN VEHICLE
+       ========================= */
+
+    spawn(){
+
+        if(
+            this.vehicles.length>=
+            this.maxVehicles
+        ){
+
+            this.message(
+                "🚗 Maximum traffic reached."
+            );
+
+            return;
+
+        }
+
+
+        const vehicle=
+            document.createElement(
+                "div"
+            );
+
+
+        vehicle.id=
+            "vehicle245_"+
+            this.nextId++;
+
+
+        vehicle.className=
+            "vehicle245";
+
+
+        vehicle.style.left=
+            (
+                -5+
+                Math.random()*20
+            )+"vw";
+
+
+        vehicle.style.top=
+            (
+                20+
+                Math.random()*65
+            )+"vh";
+
+
+        vehicle.dataset.speed=
+            (
+                1+
+                Math.random()*2
+            );
+
+
+        vehicle.title=
+            "City vehicle";
+
+
+        vehicle.addEventListener(
+            "click",
+            ()=>{
+                this.interact(
+                    vehicle
+                );
+            }
+        );
+
+
+        document.body.appendChild(
+            vehicle
+        );
+
+
+        this.vehicles.push({
+
+            id:vehicle.id,
+
+            element:vehicle,
+
+            speed:
+                parseFloat(
+                    vehicle.dataset.speed
+                ),
+
+            active:true
+
+        });
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       TRAFFIC GROUP
+       ========================= */
+
+    spawnTraffic(){
+
+        const amount=
+            this.densityIndex===0
+            ?6
+            :this.densityIndex===1
+            ?12
+            :20;
+
+
+        for(
+            let i=0;
+            i<amount;
+            i++
+        ){
+
+            this.spawn();
+
+        }
+
+    },
+
+
+    /* =========================
+       TRAFFIC AI
+       ========================= */
+
+    startTrafficAI(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    !this.active
+                )
+                    return;
+
+
+                this.vehicles.forEach(
+                    vehicle=>{
+
+                        if(
+                            !vehicle.active ||
+                            !vehicle.element
+                        )
+                            return;
+
+
+                        const element=
+                            vehicle.element;
+
+
+                        let left=
+                            parseFloat(
+                                element.style.left
+                            );
+
+
+                        left+=
+                            vehicle.speed;
+
+
+                        if(
+                            left>105
+                        ){
+
+                            left=-10;
+
+                            element.style.top=
+                                (
+                                    20+
+                                    Math.random()*65
+                                )+"vh";
+
+                        }
+
+
+                        element.style.left=
+                            left+"vw";
+
+                    }
+                );
+
+
+            },
+            1000
+        );
+
+    },
+
+
+    /* =========================
+       INTERACTION
+       ========================= */
+
+    interact(vehicle){
+
+        this.message(
+            "🚗 Civilian vehicle detected."
+        );
+
+
+        if(
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            SpiderProgress239.addXP(
+                3
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       TRAFFIC LIGHTS
+       ========================= */
+
+    createLights(){
+
+        for(
+            let i=0;
+            i<4;
+            i++
+        ){
+
+            const light=
+                document.createElement(
+                    "div"
+                );
+
+
+            light.className=
+                "trafficLight245";
+
+
+            light.style.left=
+                (
+                    20+
+                    i*20
+                )+"vw";
+
+
+            light.style.top=
+                "48vh";
+
+
+            document.body.appendChild(
+                light
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       DENSITY
+       ========================= */
+
+    changeDensity(){
+
+        this.densityIndex=
+            (
+                this.densityIndex+
+                1
+            )%
+            this.densities.length;
+
+
+        this.message(
+            "📊 Traffic density: "+
+            this.densities[
+                this.densityIndex
+            ]
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       TOGGLE
+       ========================= */
+
+    toggle(){
+
+        this.active=
+            !this.active;
+
+
+        this.message(
+            this.active
+            ?"▶️ Traffic moving."
+            :"⏸️ Traffic paused."
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CLEAR
+       ========================= */
+
+    clear(){
+
+        this.vehicles.forEach(
+            vehicle=>{
+
+                if(
+                    vehicle.element &&
+                    vehicle.element.parentNode
+                ){
+
+                    vehicle.element
+                        .parentNode
+                        .removeChild(
+                            vehicle.element
+                        );
+
+                }
+
+            }
+        );
+
+
+        this.vehicles=[];
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "✕ Traffic cleared."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const count=
+            document.getElementById(
+                "trafficCount245"
+            );
+
+
+        const density=
+            document.getElementById(
+                "trafficDensity245"
+            );
+
+
+        const status=
+            document.getElementById(
+                "trafficStatus245"
+            );
+
+
+        if(count){
+
+            count.textContent=
+                "Vehicles: "+
+                this.vehicles.length;
+
+        }
+
+
+        if(density){
+
+            density.textContent=
+                "Density: "+
+                this.densities[
+                    this.densityIndex
+                ];
+
+        }
+
+
+        if(status){
+
+            status.textContent=
+                "Status: "+
+                (
+                    this.active
+                    ?"ACTIVE"
+                    :"PAUSED"
+                );
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "trafficMessage245"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V245
+ ===================================================== */
+
+SpiderTraffic245.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="v")
+            SpiderTraffic245.spawn();
+
+
+        if(key==="b")
+            SpiderTraffic245.spawnTraffic();
+
+
+        if(key==="d")
+            SpiderTraffic245.changeDensity();
+
+
+        if(key==="l")
+            SpiderTraffic245.toggle();
+
+
+        if(key==="x")
+            SpiderTraffic245.clear();
+
+    }
+);
