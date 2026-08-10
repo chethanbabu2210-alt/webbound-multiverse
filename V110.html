@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V110</title>
+
+<style>
+
+#v110HUD{
+  position:fixed;
+  left:50%;
+  top:12px;
+  transform:translateX(-50%);
+  z-index:12500;
+  width:min(360px,88vw);
+  padding:14px;
+  background:#05070ef2;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v110Title{
+  font-size:14px;
+  font-weight:bold;
+}
+
+#v110Mission{
+  margin-top:8px;
+  font-size:15px;
+}
+
+#v110Objective{
+  margin-top:6px;
+  font-size:12px;
+  line-height:1.5;
+  opacity:.9;
+}
+
+#v110Progress{
+  height:6px;
+  margin-top:9px;
+  background:#ffffff18;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+#v110ProgressBar{
+  width:0%;
+  height:100%;
+  background:#ffffff;
+  transition:width .25s ease;
+}
+
+#v110Reward{
+  margin-top:6px;
+  font-size:10px;
+  opacity:.65;
+}
+
+#v110Controls{
+  position:fixed;
+  left:50%;
+  top:205px;
+  transform:translateX(-50%);
+  z-index:12501;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:6px;
+  width:min(390px,90vw);
+}
+
+#v110Controls button{
+  padding:9px 12px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:9px;
+  font-size:10px;
+}
+
+#v110Message{
+  position:fixed;
+  left:50%;
+  top:30%;
+  transform:translateX(-50%);
+  z-index:12600;
+  display:none;
+  padding:11px 16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+  text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     WEBBOUND V110
+     MISSION / OBJECTIVE SYSTEM
+     ========================================================= -->
+
+<div id="v110HUD">
+
+  <div id="v110Title">
+    🎯 CURRENT MISSION
+  </div>
+
+  <div id="v110Mission">
+    No Mission
+  </div>
+
+  <div id="v110Objective">
+    Select a mission to begin.
+  </div>
+
+  <div id="v110Progress">
+    <div id="v110ProgressBar"></div>
+  </div>
+
+  <div id="v110Reward">
+    Reward: 0 XP
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v110Controls">
+
+  <button onclick="V110.startMission()">
+    ▶️ START MISSION
+  </button>
+
+  <button onclick="V110.nextObjective()">
+    🎯 COMPLETE OBJECTIVE
+  </button>
+
+  <button onclick="V110.completeMission()">
+    ✅ COMPLETE MISSION
+  </button>
+
+  <button onclick="V110.failMission()">
+    ❌ FAIL MISSION
+  </button>
+
+  <button onclick="V110.abandonMission()">
+    ↩️ ABANDON
+  </button>
+
+</div>
+
+
+<div id="v110Message">
+  V110
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V110
+   MISSION SYSTEM
+   ========================================================= */
+
+const V110 = {
+
+  version:"V110",
+
+  saveKey:
+    "WEBBOUND_V110_MISSIONS",
+
+  active:false,
+
+  currentMission:null,
+
+  objectiveIndex:0,
+
+  completedMissions:0,
+
+  failedMissions:0,
+
+  totalXP:0,
+
+  messageTimer:null,
+
+
+  /* =======================================================
+     MISSION DATABASE
+     ======================================================= */
+
+  missions:[
+
+    {
+      id:"first_patrol",
+
+      title:"🕷️ FIRST PATROL",
+
+      objectives:[
+        "Leave your starting area.",
+        "Reach the city streets.",
+        "Complete your first patrol."
+      ],
+
+      reward:100
+    },
+
+
+    {
+      id:"city_rescue",
+
+      title:"🆘 CITY RESCUE",
+
+      objectives:[
+        "Find the civilian in trouble.",
+        "Reach the rescue location.",
+        "Help the civilian.",
+        "Return to the safe area."
+      ],
+
+      reward:250
+    },
+
+
+    {
+      id:"night_patrol",
+
+      title:"🌙 NIGHT PATROL",
+
+      objectives:[
+        "Begin the night patrol.",
+        "Inspect the city.",
+        "Check the streets.",
+        "Return home."
+      ],
+
+      reward:300
+    },
+
+
+    {
+      id:"traffic_watch",
+
+      title:"🚗 TRAFFIC WATCH",
+
+      objectives:[
+        "Reach the traffic area.",
+        "Observe the city traffic.",
+        "Finish the patrol."
+      ],
+
+      reward:175
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V110 MISSION SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET MISSION
+     ======================================================= */
+
+  getMission(id){
+
+    return this.missions.find(
+      mission =>
+        mission.id===id
+    ) || null;
+
+  },
+
+
+  /* =======================================================
+     START MISSION
+     ======================================================= */
+
+  startMission(id){
+
+    if(this.active){
+
+      this.message(
+        "⚠️ A mission is already active"
+      );
+
+      return;
+
+    }
+
+
+    /*
+      If no mission is supplied,
+      choose the first unfinished mission.
+    */
+
+    let mission=null;
+
+
+    if(id){
+
+      mission=
+        this.getMission(id);
+
+    }
+    else{
+
+      mission=
+        this.missions[
+          this.completedMissions %
+          this.missions.length
+        ];
+
+    }
+
+
+    if(!mission){
+
+      this.message(
+        "❌ Mission not found"
+      );
+
+      return;
+
+    }
+
+
+    this.currentMission={
+      id:mission.id,
+      title:mission.title,
+      objectives:[
+        ...mission.objectives
+      ],
+      reward:mission.reward
+    };
+
+
+    this.objectiveIndex=0;
+
+    this.active=true;
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🎯 Mission started: "+
+      mission.title
+    );
+
+
+    /*
+      Optional connection to
+      other game systems.
+    */
+
+    if(
+      typeof window.onWebboundMissionStart===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundMissionStart(
+          this.currentMission
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V110 MISSION START CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CURRENT OBJECTIVE
+     ======================================================= */
+
+  getCurrentObjective(){
+
+    if(
+      !this.currentMission
+    ){
+
+      return null;
+
+    }
+
+
+    return this.currentMission
+      .objectives[
+        this.objectiveIndex
+      ] || null;
+
+  },
+
+
+  /* =======================================================
+     NEXT OBJECTIVE
+     ======================================================= */
+
+  nextObjective(){
+
+    if(!this.active){
+
+      this.message(
+        "🎯 No active mission"
+      );
+
+      return;
+
+    }
+
+
+    const objective=
+      this.getCurrentObjective();
+
+
+    if(!objective){
+
+      this.completeMission();
+
+      return;
+
+    }
+
+
+    this.message(
+      "✅ Objective complete"
+    );
+
+
+    this.objectiveIndex++;
+
+
+    if(
+      this.objectiveIndex>=
+      this.currentMission.objectives.length
+    ){
+
+      this.completeMission();
+
+      return;
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    if(
+      typeof window.onWebboundObjectiveComplete===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundObjectiveComplete({
+
+          mission:
+            this.currentMission,
+
+          completedObjective:
+            objective,
+
+          nextObjective:
+            this.getCurrentObjective()
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V110 OBJECTIVE CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COMPLETE MISSION
+     ======================================================= */
+
+  completeMission(){
+
+    if(!this.active){
+
+      this.message(
+        "❌ No active mission"
+      );
+
+      return;
+
+    }
+
+
+    const mission=
+      this.currentMission;
+
+
+    /*
+      Make sure every objective
+      has been completed.
+    */
+
+    if(
+      this.objectiveIndex<
+      mission.objectives.length
+    ){
+
+      this.message(
+        "🎯 Complete all objectives first"
+      );
+
+      return;
+
+    }
+
+
+    const reward=
+      Number(
+        mission.reward
+      ) || 0;
+
+
+    this.totalXP+=
+      reward;
+
+
+    this.completedMissions++;
+
+
+    this.active=false;
+
+    this.currentMission=null;
+
+    this.objectiveIndex=0;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    /*
+      Connect reward to existing
+      score system when available.
+    */
+
+    if(
+      typeof score!=="undefined"
+    ){
+
+      score+=reward;
+
+    }
+
+
+    this.message(
+      "🏆 MISSION COMPLETE +"+
+      reward+
+      " XP"
+    );
+
+
+    if(
+      typeof window.onWebboundMissionComplete===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundMissionComplete({
+
+          mission:mission,
+
+          reward:reward,
+
+          totalXP:this.totalXP
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V110 MISSION COMPLETE CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     FAIL MISSION
+     ======================================================= */
+
+  failMission(){
+
+    if(!this.active){
+
+      this.message(
+        "❌ No active mission"
+      );
+
+      return;
+
+    }
+
+
+    const mission=
+      this.currentMission;
+
+
+    this.failedMissions++;
+
+
+    this.active=false;
+
+    this.currentMission=null;
+
+    this.objectiveIndex=0;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "❌ MISSION FAILED"
+    );
+
+
+    if(
+      typeof window.onWebboundMissionFail===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundMissionFail(
+          mission
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V110 MISSION FAIL CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ABANDON
+     ======================================================= */
+
+  abandonMission(){
+
+    if(!this.active){
+
+      this.message(
+        "ℹ️ No active mission"
+      );
+
+      return;
+
+    }
+
+
+    this.active=false;
+
+    this.currentMission=null;
+
+    this.objectiveIndex=0;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "↩️ Mission abandoned"
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const missionBox=
+      document.getElementById(
+        "v110Mission"
+      );
+
+    const objectiveBox=
+      document.getElementById(
+        "v110Objective"
+      );
+
+    const progressBar=
+      document.getElementById(
+        "v110ProgressBar"
+      );
+
+    const rewardBox=
+      document.getElementById(
+        "v110Reward"
+      );
+
+
+    if(!this.active){
+
+      if(missionBox){
+
+        missionBox.textContent=
+          "No Mission";
+
+      }
+
+      if(objectiveBox){
+
+        objectiveBox.textContent=
+          "Select a mission to begin.";
+
+      }
+
+      if(progressBar){
+
+        progressBar.style.width=
+          "0%";
+
+      }
+
+      if(rewardBox){
+
+        rewardBox.textContent=
+          "Completed: "+
+          this.completedMissions+
+          " | XP: "+
+          this.totalXP;
+
+      }
+
+      return;
+
+    }
+
+
+    const mission=
+      this.currentMission;
+
+
+    const objective=
+      this.getCurrentObjective();
+
+
+    if(missionBox){
+
+      missionBox.textContent=
+        mission.title;
+
+    }
+
+
+    if(objectiveBox){
+
+      objectiveBox.textContent=
+        objective
+        ? (
+          "Objective "+
+          (
+            this.objectiveIndex+1
+          )+
+          "/"+
+          mission.objectives.length+
+          ": "+
+          objective
+        )
+        : "All objectives complete";
+
+    }
+
+
+    const progress=
+      Math.min(
+        100,
+        (
+          this.objectiveIndex/
+          mission.objectives.length
+        )*100
+      );
+
+
+    if(progressBar){
+
+      progressBar.style.width=
+        progress+
+        "%";
+
+    }
+
+
+    if(rewardBox){
+
+      rewardBox.textContent=
+        "Reward: "+
+        mission.reward+
+        " XP";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        active:this.active,
+
+        currentMission:
+          this.currentMission,
+
+        objectiveIndex:
+          this.objectiveIndex,
+
+        completedMissions:
+          this.completedMissions,
+
+        failedMissions:
+          this.failedMissions,
+
+        totalXP:
+          this.totalXP
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V110 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.active===
+        "boolean"
+      ){
+
+        this.active=
+          data.active;
+
+      }
+
+
+      if(
+        data.currentMission
+      ){
+
+        this.currentMission=
+          data.currentMission;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.objectiveIndex
+          )
+        )
+      ){
+
+        this.objectiveIndex=
+          Math.max(
+            0,
+            Number(
+              data.objectiveIndex
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.completedMissions
+          )
+        )
+      ){
+
+        this.completedMissions=
+          Math.max(
+            0,
+            Number(
+              data.completedMissions
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.failedMissions
+          )
+        )
+      ){
+
+        this.failedMissions=
+          Math.max(
+            0,
+            Number(
+              data.failedMissions
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.totalXP
+          )
+        )
+      ){
+
+        this.totalXP=
+          Math.max(
+            0,
+            Number(
+              data.totalXP
+            )
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V110 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      active:this.active,
+
+      currentMission:
+        this.currentMission,
+
+      objectiveIndex:
+        this.objectiveIndex,
+
+      completedMissions:
+        this.completedMissions,
+
+      failedMissions:
+        this.failedMissions,
+
+      totalXP:this.totalXP
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.active=
+      Boolean(
+        data.active
+      );
+
+
+    this.currentMission=
+      data.currentMission ||
+      null;
+
+
+    this.objectiveIndex=
+      Math.max(
+        0,
+        Number(
+          data.objectiveIndex
+        ) || 0
+      );
+
+
+    this.completedMissions=
+      Math.max(
+        0,
+        Number(
+          data.completedMissions
+        ) || 0
+      );
+
+
+    this.failedMissions=
+      Math.max(
+        0,
+        Number(
+          data.failedMissions
+        ) || 0
+      );
+
+
+    this.totalXP=
+      Math.max(
+        0,
+        Number(
+          data.totalXP
+        ) || 0
+      );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v110Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          2000
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      M = start mission
+    */
+
+    if(
+      event.code==="KeyM"
+    ){
+
+      V110.startMission();
+
+    }
+
+
+    /*
+      N = next objective
+    */
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      V110.nextObjective();
+
+    }
+
+
+    /*
+      X = abandon mission
+    */
+
+    if(
+      event.code==="KeyX"
+    ){
+
+      V110.abandonMission();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V110.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V110.init();
+
+
+console.log(
+  "WEBBOUND V110 MISSION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
