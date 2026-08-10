@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V139</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  overflow:hidden;
+  background:#071018;
+  color:#fff;
+  font-family:Arial,sans-serif
+}
+
+#world{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:linear-gradient(#182833,#09131b)
+}
+
+.road{
+  position:absolute;
+  background:#252c32;
+  z-index:3
+}
+
+.road.h{
+  height:38px;
+  left:0;
+  right:0
+}
+
+.road.v{
+  width:38px;
+  top:0;
+  bottom:0
+}
+
+#buildings{
+  position:absolute;
+  inset:0;
+  z-index:5
+}
+
+.building{
+  position:absolute;
+  background:#1b2935;
+  border:1px solid #ffffff18;
+  border-radius:8px
+}
+
+.label{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  font-size:9px;
+  white-space:nowrap
+}
+
+#player{
+  position:absolute;
+  width:22px;
+  height:30px;
+  background:#268de5;
+  border-radius:9px 9px 4px 4px;
+  transform:translate(-50%,-50%);
+  z-index:7000
+}
+
+#player:before{
+  content:"";
+  position:absolute;
+  width:13px;
+  height:13px;
+  left:4.5px;
+  top:-9px;
+  border-radius:50%;
+  background:#c9936c
+}
+
+.npc{
+  position:absolute;
+  width:17px;
+  height:25px;
+  border-radius:8px 8px 4px 4px;
+  z-index:2000
+}
+
+.npc:before{
+  content:"";
+  position:absolute;
+  width:10px;
+  height:10px;
+  left:3.5px;
+  top:-8px;
+  border-radius:50%;
+  background:#c9936c
+}
+
+.npcName{
+  position:absolute;
+  bottom:28px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:7px;
+  white-space:nowrap;
+  text-shadow:0 1px 3px #000
+}
+
+.car{
+  position:absolute;
+  width:27px;
+  height:13px;
+  border-radius:4px;
+  z-index:1800
+}
+
+.station{
+  position:absolute;
+  width:30px;
+  height:30px;
+  border-radius:7px;
+  z-index:2500;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#182c3b;
+  border:1px solid #ffffff30;
+  font-size:17px
+}
+
+.court{
+  position:absolute;
+  width:70px;
+  height:42px;
+  background:#30251e;
+  border:1px solid #d0a75b55;
+  border-radius:8px;
+  z-index:2500;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:10px;
+  text-align:center
+}
+
+.caseMarker{
+  position:absolute;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  z-index:5500;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#712d88;
+  border:2px solid #e8a7ff;
+  box-shadow:0 0 12px #a84bd8;
+  animation:pulse 1.1s infinite
+}
+
+.warrantMarker{
+  position:absolute;
+  width:27px;
+  height:27px;
+  border-radius:50%;
+  z-index:5600;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#9a5b24;
+  border:2px solid #ffd17b;
+  box-shadow:0 0 10px #d28b35
+}
+
+@keyframes pulse{
+  50%{transform:scale(1.2)}
+}
+
+#hud{
+  position:fixed;
+  left:10px;
+  bottom:10px;
+  width:min(460px,94vw);
+  padding:13px;
+  background:#03070cf2;
+  border:1px solid #ffffff25;
+  border-radius:14px;
+  z-index:9000
+}
+
+#title{
+  font-size:14px;
+  font-weight:bold
+}
+
+#stats{
+  margin-top:8px;
+  font-size:10px;
+  line-height:1.7
+}
+
+.buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:9px
+}
+
+button{
+  flex:1;
+  min-width:92px;
+  padding:8px;
+  border:1px solid #ffffff18;
+  border-radius:8px;
+  background:#172535;
+  color:white;
+  font-size:9px
+}
+
+#clock{
+  position:fixed;
+  right:10px;
+  top:10px;
+  z-index:9000;
+  padding:9px 12px;
+  background:#03070cf2;
+  border:1px solid #ffffff25;
+  border-radius:10px;
+  font-size:11px
+}
+
+#message{
+  position:fixed;
+  left:50%;
+  top:16%;
+  transform:translateX(-50%);
+  z-index:9500;
+  display:none;
+  padding:10px 15px;
+  background:#03070cf5;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+  font-size:11px;
+  text-align:center
+}
+
+#panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(480px,94vw);
+  max-height:80vh;
+  overflow:auto;
+  display:none;
+  padding:15px;
+  background:#03070cf9;
+  border:1px solid #ffffff30;
+  border-radius:16px;
+  z-index:12000
+}
+
+#panelTitle{
+  font-size:14px;
+  font-weight:bold
+}
+
+.row{
+  margin-top:8px;
+  padding:10px;
+  background:#111c28;
+  border-radius:9px;
+  font-size:10px;
+  line-height:1.6
+}
+
+.progress{
+  height:8px;
+  background:#25313c;
+  border-radius:5px;
+  margin-top:7px;
+  overflow:hidden
+}
+
+.progress i{
+  display:block;
+  height:100%;
+  background:#d39a48
+}
+
+.close{
+  width:100%;
+  margin-top:10px
+}
+</style>
+</head>
+
+<body>
+
+<div id="world">
+
+  <div class="road h" style="top:27%"></div>
+  <div class="road h" style="top:67%"></div>
+
+  <div class="road v" style="left:24%"></div>
+  <div class="road v" style="left:56%"></div>
+  <div class="road v" style="left:78%"></div>
+
+  <div id="buildings"></div>
+
+  <div id="player"></div>
+
+</div>
+
+<div id="clock">📅 Day 1 • 🕐 08:00</div>
+
+<div id="message"></div>
+
+<div id="hud">
+
+  <div id="title">
+    ⚖️ WEBBOUND V139 — COURT & JUSTICE
+  </div>
+
+  <div id="stats"></div>
+
+  <div class="buttons">
+
+    <button onclick="V139.courtPanel()">
+      ⚖️ COURT
+    </button>
+
+    <button onclick="V139.processCase()">
+      📄 PROCESS CASE
+    </button>
+
+    <button onclick="V139.issueWarrant()">
+      📜 WARRANT
+    </button>
+
+    <button onclick="V139.arrest()">
+      🚔 ARREST
+    </button>
+
+    <button onclick="V139.trial()">
+      🧑‍⚖️ TRIAL
+    </button>
+
+    <button onclick="V139.cityPanel()">
+      🏙️ CITY
+    </button>
+
+  </div>
+
+</div>
+
+<div id="panel">
+
+  <div id="panelTitle">
+    WEBBOUND V139
+  </div>
+
+  <div id="panelContent"></div>
+
+  <button class="close" onclick="V139.closePanel()">
+    CLOSE
+  </button>
+
+</div>
+
+<script>
+
+const V139={
+
+  saveKey:"WEBBOUND_V138",
+
+  running:true,
+
+  hour:8,
+
+  day:1,
+
+  keys:{},
+
+  player:{
+    x:window.innerWidth/2,
+    y:window.innerHeight/2,
+    money:1000,
+    reputation:0,
+    job:"Detective"
+  },
+
+  npcs:[],
+  cars:[],
+  stations:[],
+  emergencyVehicles:[],
+  cases:[],
+
+  court:{
+    hearings:0,
+    convictions:0,
+    acquittals:0,
+    warrants:0,
+    arrests:0,
+    fines:0,
+    justiceScore:50
+  },
+
+  /* ===================================
+     INIT
+     =================================== */
+
+  init(){
+
+    this.load();
+
+    this.createBuildings();
+
+    this.createStations();
+
+    this.createCourt();
+
+    this.createNPCs();
+
+    this.createCars();
+
+    this.createEmergencyVehicles();
+
+    this.keyboard();
+
+    this.render();
+
+    setInterval(
+      ()=>{
+        if(this.running)
+          this.update();
+      },
+      40
+    );
+
+    setInterval(
+      ()=>{
+        if(this.running)
+          this.generateCourtCase();
+      },
+      12000
+    );
+
+    this.message(
+      "⚖️ Court & justice system online"
+    );
+
+  },
+
+  /* ===================================
+     BUILDINGS
+     =================================== */
+
+  createBuildings(){
+
+    const root=
+      document.getElementById(
+        "buildings"
+      );
+
+    root.innerHTML="";
+
+    const data=[
+
+      ["🏠 Homes",5,6,17,18],
+
+      ["🏫 School",29,7,17,15],
+
+      ["🏥 Hospital",60,7,14,15],
+
+      ["🏢 Offices",81,7,15,16],
+
+      ["🏪 Shops",81,45,15,16],
+
+      ["🌳 Park",29,47,18,17],
+
+      ["🍽️ Restaurant",60,46,15,15],
+
+      ["🏭 Factory",5,46,17,16]
+
+    ];
+
+    data.forEach(
+      d=>{
+
+        const el=
+          document.createElement(
+            "div"
+          );
+
+        el.className="building";
+
+        el.style.left=d[1]+"%";
+        el.style.top=d[2]+"%";
+        el.style.width=d[3]+"%";
+        el.style.height=d[4]+"%";
+
+        const label=
+          document.createElement(
+            "div"
+          );
+
+        label.className="label";
+        label.textContent=d[0];
+
+        el.appendChild(label);
+
+        root.appendChild(el);
+
+      }
+    );
+
+  },
+
+  /* ===================================
+     COURT
+     =================================== */
+
+  createCourt(){
+
+    const el=
+      document.createElement(
+        "div"
+      );
+
+    el.className="court";
+
+    el.textContent=
+      "⚖️ CITY COURT";
+
+    el.style.left="43%";
+    el.style.top="82%";
+
+    document
+      .getElementById("world")
+      .appendChild(el);
+
+    this.courtElement=el;
+
+    this.courtPosition={
+      x:window.innerWidth*.43+35,
+      y:window.innerHeight*.82+21
+    };
+
+  },
+
+  /* ===================================
+     STATIONS
+     =================================== */
+
+  createStations(){
+
+    const data=[
+      {
+        type:"police",
+        icon:"🚓",
+        x:.12,
+        y:.20
+      },
+      {
+        type:"medical",
+        icon:"🏥",
+        x:.65,
+        y:.18
+      },
+      {
+        type:"fire",
+        icon:"🚒",
+        x:.87,
+        y:.35
+      }
+    ];
+
+    data.forEach(
+      d=>{
+
+        const el=
+          document.createElement(
+            "div"
+          );
+
+        el.className="station";
+
+        el.textContent=d.icon;
+
+        el.style.left=
+          `calc(${d.x*100}% - 15px)`;
+
+        el.style.top=
+          `calc(${d.y*100}% - 15px)`;
+
+        document
+          .getElementById("world")
+          .appendChild(el);
+
+        this.stations.push({
+
+          type:d.type,
+
+          x:
+            window.innerWidth*d.x,
+
+          y:
+            window.innerHeight*d.y,
+
+          element:el
+
+        });
+
+      }
+    );
+
+  },
+
+  /* ===================================
+     NPCS
+     =================================== */
+
+  createNPCs(){
+
+    if(this.npcs.length)
+      return;
+
+    const names=[
+      "Alex","Sam","Ryan","Maya",
+      "Arun","Riya","Dev","Asha",
+      "Noah","Leo","Avi","Zara",
+      "Kiran","Nikhil","Anu",
+      "Rahul","Meera","Vikram"
+    ];
+
+    for(
+      let i=0;
+      i<18;
+      i++
+    ){
+
+      this.npcs.push({
+
+        id:i+1,
+
+        name:
+          names[
+            i%names.length
+          ],
+
+        x:
+          Math.random()*
+          window.innerWidth,
+
+        y:
+          160+
+          Math.random()*
+          Math.max(
+            1,
+            window.innerHeight-220
+          ),
+
+        targetX:
+          Math.random()*
+          window.innerWidth,
+
+        targetY:
+          160+
+          Math.random()*
+          Math.max(
+            1,
+            window.innerHeight-220
+          ),
+
+        trust:
+          35+
+          Math.floor(
+            Math.random()*60
+          ),
+
+        legalStatus:"Free",
+
+        element:null
+
+      });
+
+    }
+
+  },
+
+  /* ===================================
+     CARS
+     =================================== */
+
+  createCars(){
+
+    if(this.cars.length)
+      return;
+
+    for(
+      let i=0;
+      i<12;
+      i++
+    ){
+
+      const horizontal=
+        Math.random()>.5;
+
+      this.cars.push({
+
+        x:
+          horizontal
+          ? Math.random()*
+            window.innerWidth
+          : window.innerWidth*.24,
+
+        y:
+          horizontal
+          ? (
+            Math.random()>.5
+            ? window.innerHeight*.27+12
+            : window.innerHeight*.67+12
+          )
+          : Math.random()*
+            window.innerHeight,
+
+        horizontal,
+
+        speed:
+          1+
+          Math.random()*1.4,
+
+        direction:
+          Math.random()>.5
+          ? 1
+          : -1,
+
+        element:null
+
+      });
+
+    }
+
+  },
+
+  /* ===================================
+     EMERGENCY
+     =================================== */
+
+  createEmergencyVehicles(){
+
+    if(this.emergencyVehicles.length)
+      return;
+
+    [
+      "police",
+      "police",
+      "medical",
+      "fire"
+    ].forEach(
+      (type,index)=>{
+
+        const s=
+          this.stations.find(
+            x=>x.type===type
+          );
+
+        this.emergencyVehicles.push({
+
+          id:index+1,
+          type,
+
+          x:s.x,
+          y:s.y,
+
+          targetX:s.x,
+          targetY:s.y,
+
+          speed:1.4,
+
+          available:true,
+
+          element:null
+
+        });
+
+      }
+    );
+
+  },
+
+  /* ===================================
+     UPDATE
+     =================================== */
+
+  update(){
+
+    this.movePlayer();
+
+    this.updateNPCs();
+
+    this.updateCars();
+
+    this.updateVehicles();
+
+    this.updateTime();
+
+    this.updateHUD();
+
+  },
+
+  updateNPCs(){
+
+    this.npcs.forEach(
+      n=>{
+
+        if(n.legalStatus==="Arrested")
+          return;
+
+        const dx=n.targetX-n.x;
+        const dy=n.targetY-n.y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+dy*dy
+          );
+
+        if(d<10){
+
+          n.targetX=
+            Math.random()*
+            window.innerWidth;
+
+          n.targetY=
+            160+
+            Math.random()*
+            Math.max(
+              1,
+              window.innerHeight-220
+            );
+
+        }
+        else{
+
+          n.x+=dx/d*.42;
+          n.y+=dy/d*.42;
+
+        }
+
+      }
+    );
+
+  },
+
+  updateCars(){
+
+    this.cars.forEach(
+      c=>{
+
+        if(c.horizontal)
+          c.x+=c.speed*c.direction;
+        else
+          c.y+=c.speed*c.direction;
+
+        if(
+          c.x<-70||
+          c.x>window.innerWidth+70
+        )
+          c.x=
+            c.direction>0
+            ? -70
+            : window.innerWidth+70;
+
+        if(
+          c.y<-70||
+          c.y>window.innerHeight+70
+        )
+          c.y=
+            c.direction>0
+            ? -70
+            : window.innerHeight+70;
+
+      }
+    );
+
+  },
+
+  updateVehicles(){
+
+    this.emergencyVehicles.forEach(
+      v=>{
+
+        const dx=v.targetX-v.x;
+        const dy=v.targetY-v.y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+dy*dy
+          );
+
+        if(d>8){
+
+          v.x+=dx/d*v.speed;
+          v.y+=dy/d*v.speed;
+
+        }
+        else{
+
+          v.available=true;
+
+        }
+
+      }
+    );
+
+  },
+
+  /* ===================================
+     GENERATE CASE
+     =================================== */
+
+  generateCourtCase(){
+
+    if(
+      this.cases.filter(
+        c=>c.status!=="Closed"
+      ).length>=3
+    )
+      return;
+
+    const types=[
+
+      {
+        name:"Shop Theft Case",
+        icon:"🛍️",
+        charge:"Property theft"
+      },
+
+      {
+        name:"Vehicle Theft Case",
+        icon:"🚗",
+        charge:"Vehicle theft"
+      },
+
+      {
+        name:"Fraud Case",
+        icon:"💳",
+        charge:"Financial fraud"
+      },
+
+      {
+        name:"Burglary Case",
+        icon:"🏠",
+        charge:"Burglary"
+      },
+
+      {
+        name:"Office Crime Case",
+        icon:"🏢",
+        charge:"Property crime"
+      }
+
+    ];
+
+    const t=
+      types[
+        Math.floor(
+          Math.random()*types.length
+        )
+      ];
+
+    const suspect=
+      this.npcs[
+        Math.floor(
+          Math.random()*this.npcs.length
+        )
+      ];
+
+    const evidence=
+      20+
+      Math.floor(
+        Math.random()*51
+      );
+
+    const c={
+
+      id:Date.now(),
+
+      name:t.name,
+
+      icon:t.icon,
+
+      charge:t.charge,
+
+      suspect:suspect.name,
+
+      evidence,
+
+      witness:
+        Math.random()>.4,
+
+      warrant:false,
+
+      arrested:false,
+
+      hearing:false,
+
+      verdict:null,
+
+      fine:0,
+
+      status:"Investigation",
+
+      x:
+        80+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerWidth-160
+        ),
+
+      y:
+        170+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerHeight-230
+        ),
+
+      marker:null
+
+    };
+
+    this.cases.push(c);
+
+    this.message(
+      t.icon+
+      " New court case: "+
+      t.name
+    );
+
+  },
+
+  /* ===================================
+     PROCESS CASE
+     =================================== */
+
+  processCase(){
+
+    const c=
+      this.nearestCase();
+
+    if(!c){
+
+      this.message(
+        "📄 No investigation nearby"
+      );
+
+      return;
+
+    }
+
+    if(
+      c.status!=="Investigation"
+    ){
+
+      this.message(
+        "📄 Case already processed"
+      );
+
+      return;
+
+    }
+
+    c.evidence=
+      Math.min(
+        100,
+        c.evidence+15
+      );
+
+    this.message(
+      "📄 Evidence processed: "+
+      c.evidence+"%"
+    );
+
+    if(
+      c.evidence>=60
+    ){
+
+      c.status="Ready for warrant";
+
+      this.message(
+        "📜 Evidence strong enough for warrant"
+      );
+
+    }
+
+  },
+
+  /* ===================================
+     WARRANT
+     =================================== */
+
+  issueWarrant(){
+
+    const c=
+      this.cases.find(
+        x=>
+          x.status==="Ready for warrant" &&
+          !x.warrant
+      );
+
+    if(!c){
+
+      this.message(
+        "📜 No case currently qualifies"
+      );
+
+      return;
+
+    }
+
+    c.warrant=true;
+
+    c.status="Warrant issued";
+
+    this.court.warrants++;
+
+    const suspect=
+      this.npcs.find(
+        n=>n.name===c.suspect
+      );
+
+    if(suspect)
+      suspect.legalStatus=
+        "Wanted";
+
+    this.message(
+      "📜 Warrant issued for "+
+      c.suspect
+    );
+
+  },
+
+  /* ===================================
+     ARREST
+     =================================== */
+
+  arrest(){
+
+    const c=
+      this.cases.find(
+        x=>
+          x.warrant &&
+          !x.arrested
+      );
+
+    if(!c){
+
+      this.message(
+        "🚔 No active warrant available"
+      );
+
+      return;
+
+    }
+
+    const suspect=
+      this.npcs.find(
+        n=>n.name===c.suspect
+      );
+
+    if(!suspect){
+
+      this.message(
+        "⚠️ Suspect unavailable"
+      );
+
+      return;
+
+    }
+
+    const dx=
+      suspect.x-this.player.x;
+
+    const dy=
+      suspect.y-this.player.y;
+
+    const distance=
+      Math.sqrt(
+        dx*dx+dy*dy
+      );
+
+    if(distance>140){
+
+      this.message(
+        "🚔 Move closer to the wanted suspect"
+      );
+
+      return;
+
+    }
+
+    c.arrested=true;
+
+    c.status="Awaiting trial";
+
+    this.court.arrests++;
+
+    suspect.legalStatus=
+      "Arrested";
+
+    this.player.reputation+=3;
+
+    this.message(
+      "🚔 "+
+      suspect.name+
+      " arrested under warrant"
+    );
+
+  },
+
+  /* ===================================
+     TRIAL
+     =================================== */
+
+  trial(){
+
+    const c=
+      this.cases.find(
+        x=>
+          x.status==="Awaiting trial"
+      );
+
+    if(!c){
+
+      this.message(
+        "🧑‍⚖️ No case is ready for trial"
+      );
+
+      return;
+
+    }
+
+    if(
+      this.player.x<
+      this.courtPosition.x-130||
+      this.player.x>
+      this.courtPosition.x+130||
+      this.player.y<
+      this.courtPosition.y-130||
+      this.player.y>
+      this.courtPosition.y+130
+    ){
+
+      this.message(
+        "⚖️ Go to the City Court"
+      );
+
+      return;
+
+    }
+
+    c.hearing=true;
+
+    this.court.hearings++;
+
+    const strength=
+      c.evidence+
+      (
+        c.witness
+        ? 20
+        : 0
+      );
+
+    if(strength>=70){
+
+      c.verdict="Guilty";
+
+      c.status="Closed";
+
+      c.fine=
+        100+
+        Math.floor(
+          Math.random()*400
+        );
+
+      this.court.convictions++;
+
+      this.court.fines+=c.fine;
+
+      this.court.justiceScore=
+        Math.min(
+          100,
+          this.court.justiceScore+4
+        );
+
+      this.player.reputation+=6;
+
+      this.player.money+=
+        Math.floor(
+          c.fine*.25
+        );
+
+      this.message(
+        "⚖️ GUILTY — case closed"
+      );
+
+    }
+    else{
+
+      c.verdict="Acquitted";
+
+      c.status="Closed";
+
+      this.court.acquittals++;
+
+      this.court.justiceScore=
+        Math.max(
+          0,
+          this.court.justiceScore-2
+        );
+
+      this.message(
+        "⚖️ ACQUITTED — insufficient evidence"
+      );
+
+    }
+
+    const suspect=
+      this.npcs.find(
+        n=>n.name===c.suspect
+      );
+
+    if(suspect){
+
+      suspect.legalStatus=
+        c.verdict==="Guilty"
+        ? "Convicted"
+        : "Free";
+
+    }
+
+  },
+
+  /* ===================================
+     NEAREST CASE
+     =================================== */
+
+  nearestCase(){
+
+    let best=null;
+    let distance=Infinity;
+
+    this.cases.forEach(
+      c=>{
+
+        if(
+          c.status==="Closed"
+        )
+          return;
+
+        const dx=
+          c.x-this.player.x;
+
+        const dy=
+          c.y-this.player.y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+        if(d<distance){
+
+  
