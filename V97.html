@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V97</title>
+
+<style>
+
+#v97Weather{
+
+  position:fixed;
+
+  left:12px;
+  top:72px;
+
+  z-index:9700;
+
+  padding:9px 12px;
+
+  background:#05070ee8;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+#v97Weather small{
+
+  display:block;
+
+  margin-top:3px;
+
+  opacity:.65;
+
+  font-weight:normal;
+
+}
+
+#v97Rain{
+
+  position:fixed;
+
+  inset:0;
+
+  z-index:8500;
+
+  pointer-events:none;
+
+  display:none;
+
+  overflow:hidden;
+
+}
+
+.v97Drop{
+
+  position:absolute;
+
+  top:-40px;
+
+  width:1px;
+
+  height:18px;
+
+  background:#ffffff80;
+
+  transform:rotate(14deg);
+
+  animation:v97RainFall linear infinite;
+
+}
+
+@keyframes v97RainFall{
+
+  from{
+
+    transform:
+      translate3d(0,0,0)
+      rotate(14deg);
+
+  }
+
+  to{
+
+    transform:
+      translate3d(-90px,110vh,0)
+      rotate(14deg);
+
+  }
+
+}
+
+#v97Fog{
+
+  position:fixed;
+
+  inset:0;
+
+  z-index:8400;
+
+  pointer-events:none;
+
+  display:none;
+
+  background:#ffffff12;
+
+  backdrop-filter:blur(1px);
+
+}
+
+#v97Storm{
+
+  position:fixed;
+
+  inset:0;
+
+  z-index:8600;
+
+  pointer-events:none;
+
+  display:none;
+
+  background:#ffffff00;
+
+}
+
+#v97Controls{
+
+  position:fixed;
+
+  left:12px;
+
+  bottom:18px;
+
+  z-index:9701;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:5px;
+
+}
+
+#v97Controls button{
+
+  padding:8px 11px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+
+  font-size:10px;
+
+}
+
+#v97Message{
+
+  position:fixed;
+
+  left:50%;
+
+  top:25%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  display:none;
+
+  padding:10px 15px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V97 WEATHER HUD
+     ========================================================= -->
+
+<div id="v97Weather">
+
+  <span id="v97WeatherName">
+    ☀️ CLEAR
+  </span>
+
+  <small id="v97WeatherInfo">
+    Weather system ready
+  </small>
+
+</div>
+
+
+<!-- =========================================================
+     RAIN EFFECT
+     ========================================================= -->
+
+<div id="v97Rain"></div>
+
+
+<!-- =========================================================
+     FOG EFFECT
+     ========================================================= -->
+
+<div id="v97Fog"></div>
+
+
+<!-- =========================================================
+     STORM FLASH
+     ========================================================= -->
+
+<div id="v97Storm"></div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v97Controls">
+
+  <button onclick="V97.toggle()">
+    🌦️ WEATHER
+  </button>
+
+  <button onclick="V97.nextWeather()">
+    🔄 NEXT WEATHER
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v97Message">
+  V97
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V97
+   WEATHER SYSTEM
+   ========================================================= */
+
+const V97 = {
+
+  version:"V97",
+
+  saveKey:
+    "WEBBOUND_V97_WEATHER",
+
+  visible:true,
+
+  weather:"clear",
+
+  weatherIndex:0,
+
+  elapsed:0,
+
+  weatherDuration:300,
+
+  lastTime:0,
+
+  lightningTimer:null,
+
+  rainDrops:80,
+
+  weatherTypes:[
+
+    {
+      id:"clear",
+      name:"CLEAR",
+      icon:"☀️"
+    },
+
+    {
+      id:"cloudy",
+      name:"CLOUDY",
+      icon:"☁️"
+    },
+
+    {
+      id:"rain",
+      name:"RAIN",
+      icon:"🌧️"
+    },
+
+    {
+      id:"storm",
+      name:"STORM",
+      icon:"⛈️"
+    },
+
+    {
+      id:"fog",
+      name:"FOG",
+      icon:"🌫️"
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.createRain();
+
+    this.applyWeather();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V97 WEATHER SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET CURRENT WEATHER
+     ======================================================= */
+
+  getCurrent(){
+
+    return this.weatherTypes[
+      this.weatherIndex
+    ] || this.weatherTypes[0];
+
+  },
+
+
+  /* =======================================================
+     NEXT WEATHER
+     ======================================================= */
+
+  nextWeather(){
+
+    this.weatherIndex++;
+
+    if(
+      this.weatherIndex>=
+      this.weatherTypes.length
+    ){
+
+      this.weatherIndex=0;
+
+    }
+
+
+    this.weather=
+      this.weatherTypes[
+        this.weatherIndex
+      ].id;
+
+    this.elapsed=0;
+
+    this.applyWeather();
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      this.getCurrent().icon+
+      " "+
+      this.getCurrent().name
+    );
+
+  },
+
+
+  /* =======================================================
+     SET WEATHER
+     ======================================================= */
+
+  setWeather(
+    weather
+  ){
+
+    const index=
+      this.weatherTypes.findIndex(
+        item=>
+          item.id===
+          String(weather)
+      );
+
+
+    if(index<0){
+
+      this.message(
+        "❌ Unknown weather"
+      );
+
+      return false;
+
+    }
+
+
+    this.weatherIndex=
+      index;
+
+    this.weather=
+      this.weatherTypes[index].id;
+
+    this.elapsed=0;
+
+    this.applyWeather();
+
+    this.updateHUD();
+
+    this.save();
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.visible=
+      !this.visible;
+
+    this.updateEffects();
+
+    this.save();
+
+
+    this.message(
+
+      this.visible
+      ? "🌦️ Weather ON"
+      : "🌦️ Weather OFF"
+
+    );
+
+  },
+
+
+  /* =======================================================
+     CREATE RAIN
+     ======================================================= */
+
+  createRain(){
+
+    const container=
+      document.getElementById(
+        "v97Rain"
+      );
+
+
+    if(!container){
+
+      return;
+
+    }
+
+
+    container.innerHTML="";
+
+
+    for(
+      let i=0;
+      i<this.rainDrops;
+      i++
+    ){
+
+      const drop=
+        document.createElement(
+          "div"
+        );
+
+
+      drop.className=
+        "v97Drop";
+
+
+      drop.style.left=
+        Math.random()*110+
+        "vw";
+
+
+      drop.style.animationDuration=
+        (
+          0.35+
+          Math.random()*0.5
+        )+
+        "s";
+
+
+      drop.style.animationDelay=
+        (
+          -Math.random()*2
+        )+
+        "s";
+
+
+      drop.style.opacity=
+        (
+          0.25+
+          Math.random()*0.55
+        );
+
+
+      container.appendChild(
+        drop
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY WEATHER
+     ======================================================= */
+
+  applyWeather(){
+
+    this.clearLightning();
+
+
+    const rain=
+      document.getElementById(
+        "v97Rain"
+      );
+
+    const fog=
+      document.getElementById(
+        "v97Fog"
+      );
+
+    const storm=
+      document.getElementById(
+        "v97Storm"
+      );
+
+
+    if(!rain || !fog){
+
+      return;
+
+    }
+
+
+    rain.style.display=
+      "none";
+
+    fog.style.display=
+      "none";
+
+
+    if(storm){
+
+      storm.style.display=
+        "none";
+
+    }
+
+
+    if(
+      !this.visible
+    ){
+
+      return;
+
+    }
+
+
+    switch(
+      this.weather
+    ){
+
+      case "clear":
+
+        break;
+
+
+      case "cloudy":
+
+        break;
+
+
+      case "rain":
+
+        rain.style.display=
+          "block";
+
+        break;
+
+
+      case "storm":
+
+        rain.style.display=
+          "block";
+
+        if(storm){
+
+          storm.style.display=
+            "block";
+
+        }
+
+        this.startLightning();
+
+        break;
+
+
+      case "fog":
+
+        fog.style.display=
+          "block";
+
+        break;
+
+    }
+
+
+    this.updateEffects();
+
+  },
+
+
+  /* =======================================================
+     UPDATE EFFECTS
+     ======================================================= */
+
+  updateEffects(){
+
+    const rain=
+      document.getElementById(
+        "v97Rain"
+      );
+
+    const fog=
+      document.getElementById(
+        "v97Fog"
+      );
+
+
+    if(
+      !this.visible
+    ){
+
+      if(rain){
+
+        rain.style.display=
+          "none";
+
+      }
+
+      if(fog){
+
+        fog.style.display=
+          "none";
+
+      }
+
+      this.clearLightning();
+
+      return;
+
+    }
+
+
+    if(
+      this.weather==="rain" ||
+      this.weather==="storm"
+    ){
+
+      if(rain){
+
+        rain.style.display=
+          "block";
+
+      }
+
+    }
+    else{
+
+      if(rain){
+
+        rain.style.display=
+          "none";
+
+      }
+
+    }
+
+
+    if(
+      this.weather==="fog"
+    ){
+
+      if(fog){
+
+        fog.style.display=
+          "block";
+
+      }
+
+    }
+    else{
+
+      if(fog){
+
+        fog.style.display=
+          "none";
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LIGHTNING
+     ======================================================= */
+
+  startLightning(){
+
+    this.clearLightning();
+
+
+    const flash=()=>{
+
+      if(
+        !this.visible ||
+        this.weather!=="storm"
+      ){
+
+        return;
+
+      }
+
+
+      const storm=
+        document.getElementById(
+          "v97Storm"
+        );
+
+
+      if(storm){
+
+        storm.style.background=
+          "#ffffff35";
+
+
+        setTimeout(
+          ()=>{
+
+            storm.style.background=
+              "#ffffff00";
+
+          },
+          80
+        );
+
+      }
+
+
+      this.lightningTimer=
+        setTimeout(
+          flash,
+          5000+
+          Math.random()*7000
+        );
+
+    };
+
+
+    this.lightningTimer=
+      setTimeout(
+        flash,
+        4000+
+        Math.random()*5000
+      );
+
+  },
+
+
+  /* =======================================================
+     CLEAR LIGHTNING
+     ======================================================= */
+
+  clearLightning(){
+
+    if(
+      this.lightningTimer
+    ){
+
+      clearTimeout(
+        this.lightningTimer
+      );
+
+      this.lightningTimer=null;
+
+    }
+
+
+    const storm=
+      document.getElementById(
+        "v97Storm"
+      );
+
+
+    if(storm){
+
+      storm.style.background=
+        "#ffffff00";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const name=
+      document.getElementById(
+        "v97WeatherName"
+      );
+
+    const info=
+      document.getElementById(
+        "v97WeatherInfo"
+      );
+
+
+    const current=
+      this.getCurrent();
+
+
+    if(name){
+
+      name.textContent=
+        current.icon+
+        " "+
+        current.name;
+
+    }
+
+
+    if(info){
+
+      const remaining=
+        Math.max(
+          0,
+          Math.ceil(
+            this.weatherDuration-
+            this.elapsed
+          )
+        );
+
+
+      info.textContent=
+        "Changes in "+
+        remaining+
+        "s";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const now=
+      performance.now();
+
+
+    if(!this.lastTime){
+
+      this.lastTime=
+        now;
+
+      return;
+
+    }
+
+
+    const delta=
+      (now-
+       this.lastTime)/
+      1000;
+
+
+    this.lastTime=
+      now;
+
+
+    if(
+      !this.visible
+    ){
+
+      return;
+
+    }
+
+
+    this.elapsed+=
+      delta;
+
+
+    if(
+      this.elapsed>=
+      this.weatherDuration
+    ){
+
+      this.nextWeather();
+
+      return;
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v97Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        visible:this.visible,
+
+        weather:this.weather,
+
+        weatherIndex:this.weatherIndex,
+
+        elapsed:this.elapsed
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V97 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.visible===
+        "boolean"
+      ){
+
+        this.visible=
+          data.visible;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.weatherIndex
+          )
+        )
+      ){
+
+        this.weatherIndex=
+          Math.max(
+            0,
+            Math.min(
+              this.weatherTypes.length-1,
+              Number(
+                data.weatherIndex
+              )
+            )
+          );
+
+      }
+
+
+      if(
+        typeof data.weather===
+        "string"
+      ){
+
+        const index=
+          this.weatherTypes.findIndex(
+            item=>
+              item.id===
+              data.weather
+          );
+
+
+        if(index>=0){
+
+          this.weatherIndex=
+            index;
+
+        }
+
+      }
+
+
+      this.weather=
+        this.weatherTypes[
+          this.weatherIndex
+        ].id;
+
+
+      if(
+        Number.isFinite(
+          Number(data.elapsed)
+        )
+      ){
+
+        this.elapsed=
+          Math.max(
+            0,
+            Number(
+              data.elapsed
+            )
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V97 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      visible:this.visible,
+
+      weather:this.weather,
+
+      weatherIndex:this.weatherIndex,
+
+      elapsed:this.elapsed
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.visible===
+      "boolean"
+    ){
+
+      this.visible=
+        data.visible;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.weatherIndex)
+      )
+    ){
+
+      this.weatherIndex=
+        Math.max(
+          0,
+          Math.min(
+            this.weatherTypes.length-1,
+            Number(
+              data.weatherIndex
+            )
+          )
+        );
+
+    }
+
+
+    if(
+      typeof data.weather===
+      "string"
+    ){
+
+      const index=
+        this.weatherTypes.findIndex(
+          item=>
+            item.id===
+            data.weather
+        );
+
+
+      if(index>=0){
+
+        this.weatherIndex=
+          index;
+
+      }
+
+    }
+
+
+    this.weather=
+      this.weatherTypes[
+        this.weatherIndex
+      ].id;
+
+
+    if(
+      Number.isFinite(
+        Number(data.elapsed)
+      )
+    ){
+
+      this.elapsed=
+        Number(data.elapsed);
+
+    }
+
+
+    this.applyWeather();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    const loop=()=>{
+
+      this.update();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      W = weather ON/OFF
+    */
+
+    if(
+      event.code==="KeyW"
+    ){
+
+      V97.toggle();
+
+    }
+
+
+    /*
+      Y = next weather
+    */
+
+    if(
+      event.code==="KeyY"
+    ){
+
+      V97.nextWeather();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V97.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V97.init();
+
+V97.start();
+
+
+console.log(
+  "WEBBOUND V97 WEATHER SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
