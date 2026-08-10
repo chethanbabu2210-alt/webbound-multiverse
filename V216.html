@@ -1,0 +1,1060 @@
+<!-- =====================================================
+ V216 — DAY/NIGHT + WEATHER SYSTEM
+ Add after V215
+ ===================================================== -->
+
+<style>
+
+/* ================= ATMOSPHERE ================= */
+
+#weatherSky216{
+    position:fixed;
+
+    inset:0;
+
+    z-index:1;
+
+    pointer-events:none;
+
+    background:rgba(255,255,255,0);
+
+    transition:
+        background 1.5s ease;
+}
+
+
+/* ================= MOON ================= */
+
+#moon216{
+    position:fixed;
+
+    width:45px;
+    height:45px;
+
+    border-radius:50%;
+
+    top:9%;
+    right:12%;
+
+    background:#e8ecee;
+
+    opacity:0;
+
+    z-index:3;
+
+    pointer-events:none;
+
+    box-shadow:
+        0 0 20px #ffffff55;
+
+    transition:
+        opacity 1s;
+}
+
+
+/* ================= SUN ================= */
+
+#sun216{
+    position:fixed;
+
+    width:55px;
+    height:55px;
+
+    border-radius:50%;
+
+    top:10%;
+    left:15%;
+
+    background:#f1f1ee;
+
+    opacity:1;
+
+    z-index:3;
+
+    pointer-events:none;
+
+    box-shadow:
+        0 0 30px #ffffff55;
+
+    transition:
+        opacity 1s;
+}
+
+
+/* ================= CLOUDS ================= */
+
+.cloud216{
+
+    position:fixed;
+
+    width:110px;
+    height:35px;
+
+    border-radius:30px;
+
+    background:#ffffff22;
+
+    z-index:4;
+
+    pointer-events:none;
+
+    animation:
+        cloudMove216 35s linear infinite;
+
+}
+
+.cloud216:before{
+
+    content:"";
+
+    position:absolute;
+
+    width:55px;
+    height:55px;
+
+    left:20px;
+    top:-20px;
+
+    border-radius:50%;
+
+    background:#ffffff22;
+
+}
+
+.cloud216:after{
+
+    content:"";
+
+    position:absolute;
+
+    width:45px;
+    height:45px;
+
+    right:15px;
+    top:-13px;
+
+    border-radius:50%;
+
+    background:#ffffff22;
+
+}
+
+@keyframes cloudMove216{
+
+    from{
+        transform:
+            translateX(-180px);
+    }
+
+    to{
+        transform:
+            translateX(
+                calc(100vw + 180px)
+            );
+    }
+
+}
+
+
+/* ================= RAIN ================= */
+
+#rain216{
+
+    position:fixed;
+
+    inset:0;
+
+    z-index:1200;
+
+    pointer-events:none;
+
+    display:none;
+
+    overflow:hidden;
+
+}
+
+.rainDrop216{
+
+    position:absolute;
+
+    width:1px;
+    height:18px;
+
+    background:#ffffff55;
+
+    transform:
+        rotate(18deg);
+
+    animation:
+        rainFall216 .55s linear infinite;
+
+}
+
+@keyframes rainFall216{
+
+    from{
+        transform:
+            translateY(-30px)
+            rotate(18deg);
+
+        opacity:0;
+    }
+
+    20%{
+        opacity:.7;
+    }
+
+    to{
+        transform:
+            translateY(110vh)
+            rotate(18deg);
+
+        opacity:0;
+    }
+
+}
+
+
+/* ================= WEATHER HUD ================= */
+
+#weatherHud216{
+
+    position:fixed;
+
+    right:12px;
+    top:12px;
+
+    width:min(210px,45vw);
+
+    padding:10px;
+
+    background:#03070de8;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:2900;
+
+}
+
+.weatherTitle{
+
+    font-size:10px;
+
+    font-weight:bold;
+
+}
+
+#time216{
+
+    margin-top:5px;
+
+    font-size:15px;
+
+}
+
+#weatherText216{
+
+    margin-top:4px;
+
+    font-size:8px;
+
+    opacity:.8;
+
+}
+
+#weatherProgress216{
+
+    margin-top:7px;
+
+    height:4px;
+
+    background:#18232a;
+
+    border-radius:5px;
+
+    overflow:hidden;
+
+}
+
+#weatherProgressBar216{
+
+    width:0%;
+
+    height:100%;
+
+    background:#dce2e4;
+
+    transition:
+        width .4s;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#weatherControls216{
+
+    position:fixed;
+
+    right:12px;
+
+    top:100px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:2900;
+
+}
+
+#weatherControls216 button{
+
+    padding:7px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+
+/* ================= WEATHER EFFECT ================= */
+
+body.weatherRain216
+#weatherSky216{
+
+    background:
+        rgba(30,45,55,.25);
+
+}
+
+body.weatherStorm216
+#weatherSky216{
+
+    background:
+        rgba(10,18,25,.38);
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ ATMOSPHERE
+ ===================================================== -->
+
+<div id="weatherSky216"></div>
+
+<div id="sun216"></div>
+
+<div id="moon216"></div>
+
+
+<!-- CLOUDS -->
+
+<div
+    class="cloud216"
+    style="
+        top:12%;
+        animation-delay:0s;
+    ">
+</div>
+
+<div
+    class="cloud216"
+    style="
+        top:25%;
+        animation-delay:12s;
+    ">
+</div>
+
+<div
+    class="cloud216"
+    style="
+        top:38%;
+        animation-delay:22s;
+    ">
+</div>
+
+
+<!-- RAIN -->
+
+<div id="rain216"></div>
+
+
+<!-- =====================================================
+ WEATHER HUD
+ ===================================================== -->
+
+<div id="weatherHud216">
+
+    <div class="weatherTitle">
+        🌤️ CITY ATMOSPHERE — V216
+    </div>
+
+    <div id="time216">
+        12:00
+    </div>
+
+    <div id="weatherText216">
+        ☀️ Clear
+    </div>
+
+    <div id="weatherProgress216">
+
+        <div
+            id="weatherProgressBar216">
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="weatherControls216">
+
+    <button
+        onclick="SpiderWeather216.nextTime()">
+        🕐 TIME
+    </button>
+
+    <button
+        onclick="SpiderWeather216.setWeather('clear')">
+        ☀️ CLEAR
+    </button>
+
+    <button
+        onclick="SpiderWeather216.setWeather('rain')">
+        🌧️ RAIN
+    </button>
+
+    <button
+        onclick="SpiderWeather216.setWeather('storm')">
+        ⛈️ STORM
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V216 WEATHER ENGINE
+ ===================================================== */
+
+const SpiderWeather216={
+
+    hour:12,
+
+    minute:0,
+
+    weather:"clear",
+
+    running:true,
+
+    interval:null,
+
+    weatherTypes:[
+
+        "clear",
+        "cloudy",
+        "rain",
+        "storm"
+
+    ],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.createRain();
+
+        this.update();
+
+        this.startClock();
+
+        this.message(
+            "🌤️ Dynamic atmosphere enabled."
+        );
+
+    },
+
+
+    /* =========================
+       CLOCK
+    ========================= */
+
+    startClock(){
+
+        clearInterval(
+            this.interval
+        );
+
+        this.interval=
+            setInterval(
+                ()=>{
+
+                    if(
+                        !this.running
+                    )
+                        return;
+
+                    /*
+                     One game minute every
+                     2 real seconds.
+                    */
+
+                    this.minute++;
+
+                    if(
+                        this.minute>=60
+                    ){
+
+                        this.minute=0;
+
+                        this.hour++;
+
+                        if(
+                            this.hour>=24
+                        )
+                            this.hour=0;
+
+                    }
+
+                    this.update();
+
+                },
+                2000
+            );
+
+    },
+
+
+    /* =========================
+       NEXT TIME
+    ========================= */
+
+    nextTime(){
+
+        this.hour+=3;
+
+        if(
+            this.hour>=24
+        )
+            this.hour-=24;
+
+        this.minute=0;
+
+        this.update();
+
+        this.message(
+            "🕐 Time changed."
+        );
+
+    },
+
+
+    /* =========================
+       SET WEATHER
+    ========================= */
+
+    setWeather(type){
+
+        if(
+            !this.weatherTypes.includes(
+                type
+            )
+        )
+            return;
+
+        this.weather=type;
+
+        document.body.classList.remove(
+            "weatherRain216",
+            "weatherStorm216"
+        );
+
+        if(
+            type==="rain"
+        ){
+
+            document.body.classList.add(
+                "weatherRain216"
+            );
+
+        }
+
+        if(
+            type==="storm"
+        ){
+
+            document.body.classList.add(
+                "weatherStorm216"
+            );
+
+        }
+
+        this.updateRain();
+
+        this.update();
+
+        this.message(
+            this.weatherIcon()+
+            " "+
+            type.toUpperCase()
+        );
+
+    },
+
+
+    /* =========================
+       DAY / NIGHT
+    ========================= */
+
+    getPhase(){
+
+        if(
+            this.hour>=5 &&
+            this.hour<8
+        ){
+
+            return "sunrise";
+
+        }
+
+        if(
+            this.hour>=8 &&
+            this.hour<18
+        ){
+
+            return "day";
+
+        }
+
+        if(
+            this.hour>=18 &&
+            this.hour<21
+        ){
+
+            return "sunset";
+
+        }
+
+        return "night";
+
+    },
+
+
+    /* =========================
+       UPDATE
+    ========================= */
+
+    update(){
+
+        const phase=
+            this.getPhase();
+
+        const time=
+            document.getElementById(
+                "time216"
+            );
+
+        const text=
+            document.getElementById(
+                "weatherText216"
+            );
+
+        const bar=
+            document.getElementById(
+                "weatherProgressBar216"
+            );
+
+        const sun=
+            document.getElementById(
+                "sun216"
+            );
+
+        const moon=
+            document.getElementById(
+                "moon216"
+            );
+
+
+        /* CLOCK */
+
+        if(time){
+
+            const h=
+                String(
+                    this.hour
+                ).padStart(
+                    2,
+                    "0"
+                );
+
+            const m=
+                String(
+                    this.minute
+                ).padStart(
+                    2,
+                    "0"
+                );
+
+            time.textContent=
+                h+
+                ":"+
+                m;
+
+        }
+
+
+        /* WEATHER */
+
+        if(text){
+
+            text.textContent=
+                this.weatherIcon()+
+                " "+
+                this.weatherName();
+
+        }
+
+
+        /* DAY PROGRESS */
+
+        if(bar){
+
+            bar.style.width=
+                (
+                    (
+                        this.hour+
+                        this.minute/60
+                    )/
+                    24*
+                    100
+                )+
+                "%";
+
+        }
+
+
+        /* SUN */
+
+        if(sun){
+
+            sun.style.opacity=
+                (
+                    phase==="night"
+                    ?0
+                    :1
+                );
+
+        }
+
+
+        /* MOON */
+
+        if(moon){
+
+            moon.style.opacity=
+                (
+                    phase==="night"
+                    ?1
+                    :0
+                );
+
+        }
+
+
+        this.updateCityAtmosphere();
+
+    },
+
+
+    /* =========================
+       CITY ATMOSPHERE
+    ========================= */
+
+    updateCityAtmosphere(){
+
+        const phase=
+            this.getPhase();
+
+        let overlay=
+            "rgba(255,255,255,0)";
+
+        if(
+            phase==="sunrise"
+        ){
+
+            overlay=
+                "rgba(255,255,255,.08)";
+
+        }
+
+        if(
+            phase==="sunset"
+        ){
+
+            overlay=
+                "rgba(40,35,25,.16)";
+
+        }
+
+        if(
+            phase==="night"
+        ){
+
+            overlay=
+                "rgba(5,10,18,.42)";
+
+        }
+
+        if(
+            this.weather==="rain"
+        ){
+
+            overlay=
+                "rgba(25,40,50,.18)";
+
+        }
+
+        if(
+            this.weather==="storm"
+        ){
+
+            overlay=
+                "rgba(5,12,18,.38)";
+
+        }
+
+        const sky=
+            document.getElementById(
+                "weatherSky216"
+            );
+
+        if(sky)
+            sky.style.background=
+                overlay;
+
+    },
+
+
+    /* =========================
+       WEATHER NAME
+    ========================= */
+
+    weatherName(){
+
+        const names={
+
+            clear:
+                "Clear",
+
+            cloudy:
+                "Cloudy",
+
+            rain:
+                "Rain",
+
+            storm:
+                "Thunderstorm"
+
+        };
+
+        return names[
+            this.weather
+        ];
+
+    },
+
+
+    /* =========================
+       ICON
+    ========================= */
+
+    weatherIcon(){
+
+        const icons={
+
+            clear:"☀️",
+
+            cloudy:"☁️",
+
+            rain:"🌧️",
+
+            storm:"⛈️"
+
+        };
+
+        return icons[
+            this.weather
+        ];
+
+    },
+
+
+    /* =========================
+       CREATE RAIN
+    ========================= */
+
+    createRain(){
+
+        const container=
+            document.getElementById(
+                "rain216"
+            );
+
+        if(!container)
+            return;
+
+        for(
+            let i=0;
+            i<90;
+            i++
+        ){
+
+            const drop=
+                document.createElement(
+                    "div"
+                );
+
+            drop.className=
+                "rainDrop216";
+
+            drop.style.left=
+                Math.random()*100+
+                "%";
+
+            drop.style.animationDelay=
+                Math.random()*.7+
+                "s";
+
+            drop.style.opacity=
+                Math.random()*.7;
+
+            container.appendChild(
+                drop
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       UPDATE RAIN
+    ========================= */
+
+    updateRain(){
+
+        const rain=
+            document.getElementById(
+                "rain216"
+            );
+
+        if(!rain)
+            return;
+
+        if(
+            this.weather==="rain" ||
+            this.weather==="storm"
+        ){
+
+            rain.style.display=
+                "block";
+
+        }else{
+
+            rain.style.display=
+                "none";
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V216
+ ===================================================== */
+
+SpiderWeather216.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="t")
+            SpiderWeather216.nextTime();
+
+        if(key==="1")
+            SpiderWeather216.setWeather(
+                "clear"
+            );
+
+        if(key==="2")
+            SpiderWeather216.setWeather(
+                "rain"
+            );
+
+        if(key==="3")
+            SpiderWeather216.setWeather(
+                "storm"
+            );
+
+    }
+);
