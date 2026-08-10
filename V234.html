@@ -1,0 +1,677 @@
+<!-- =====================================================
+ V234 — WEB SWINGING + TRAVERSAL SYSTEM
+ Add after V233
+ ===================================================== -->
+
+<style>
+
+#traversalHud234{
+
+    position:fixed;
+
+    left:12px;
+    top:420px;
+
+    width:min(250px,50vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:4800;
+
+}
+
+.traversalTitle234{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#movementState234,
+#speed234,
+#webState234{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= WEB LINE ================= */
+
+.webLine234{
+
+    position:fixed;
+
+    width:2px;
+
+    height:0;
+
+    background:#ffffffaa;
+
+    transform-origin:top center;
+
+    z-index:4500;
+
+    pointer-events:none;
+
+}
+
+
+/* ================= SWING INDICATOR ================= */
+
+#swingIndicator234{
+
+    position:fixed;
+
+    left:50%;
+    top:50%;
+
+    transform:
+        translate(-50%,-50%);
+
+    width:8px;
+    height:8px;
+
+    border:1px solid #ffffff80;
+
+    border-radius:50%;
+
+    z-index:4500;
+
+    pointer-events:none;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#traversalControls234{
+
+    position:fixed;
+
+    left:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5000;
+
+}
+
+#traversalControls234 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="traversalHud234">
+
+    <div class="traversalTitle234">
+        🕸️ TRAVERSAL — V234
+    </div>
+
+    <div id="movementState234">
+        Movement: GROUNDED
+    </div>
+
+    <div id="speed234">
+        Speed: 0
+    </div>
+
+    <div id="webState234">
+        Web: READY
+    </div>
+
+</div>
+
+
+<div id="swingIndicator234"></div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="traversalControls234">
+
+    <button onclick="SpiderTraversal234.jump()">
+        ⬆️ JUMP
+    </button>
+
+    <button onclick="SpiderTraversal234.swing()">
+        🕸️ SWING
+    </button>
+
+    <button onclick="SpiderTraversal234.release()">
+        ✋ RELEASE
+    </button>
+
+    <button onclick="SpiderTraversal234.boost()">
+        ⚡ BOOST
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V234 TRAVERSAL ENGINE
+ ===================================================== */
+
+const SpiderTraversal234={
+
+    state:"GROUNDED",
+
+    speed:0,
+
+    maxSpeed:100,
+
+    webAttached:false,
+
+    swinging:false,
+
+    altitude:0,
+
+    web:null,
+
+    swingTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.message(
+            "🕸️ Traversal system online."
+        );
+
+    },
+
+
+    /* =========================
+       JUMP
+    ========================= */
+
+    jump(){
+
+        if(
+            this.state==="AIRBORNE" ||
+            this.state==="SWINGING"
+        )
+            return;
+
+
+        this.state=
+            "AIRBORNE";
+
+
+        this.altitude=25;
+
+        this.speed=
+            Math.max(
+                this.speed,
+                20
+            );
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "⬆️ Jump!"
+        );
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    this.state===
+                    "AIRBORNE"
+                ){
+
+                    this.land();
+
+                }
+
+            },
+            900
+        );
+
+    },
+
+
+    /* =========================
+       SWING
+       ========================= */
+
+    swing(){
+
+        if(
+            this.state!=="AIRBORNE" &&
+            this.state!=="GROUNDED"
+        )
+            return;
+
+
+        this.webAttached=true;
+
+        this.swinging=true;
+
+        this.state=
+            "SWINGING";
+
+
+        this.speed=
+            Math.max(
+                this.speed,
+                45
+            );
+
+
+        this.createWeb();
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "🕸️ Web attached!"
+        );
+
+
+        this.swingTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        !this.swinging
+                    )
+                        return;
+
+
+                    this.speed=
+                        Math.min(
+                            this.maxSpeed,
+                            this.speed+3
+                        );
+
+
+                    this.altitude=
+                        Math.min(
+                            80,
+                            this.altitude+2
+                        );
+
+
+                    this.updateHUD();
+
+                },
+                300
+            );
+
+    },
+
+
+    /* =========================
+       RELEASE
+       ========================= */
+
+    release(){
+
+        if(
+            !this.swinging
+        )
+            return;
+
+
+        this.swinging=false;
+
+        this.webAttached=false;
+
+        this.state=
+            "AIRBORNE";
+
+
+        if(this.swingTimer){
+
+            clearInterval(
+                this.swingTimer
+            );
+
+            this.swingTimer=null;
+
+        }
+
+
+        this.removeWeb();
+
+
+        this.speed=
+            Math.min(
+                this.maxSpeed,
+                this.speed+15
+            );
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "✋ Web released!"
+        );
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    this.state===
+                    "AIRBORNE"
+                ){
+
+                    this.land();
+
+                }
+
+            },
+            1200
+        );
+
+    },
+
+
+    /* =========================
+       BOOST
+    ========================= */
+
+    boost(){
+
+        this.speed=
+            Math.min(
+                this.maxSpeed,
+                this.speed+25
+            );
+
+
+        this.state=
+            this.swinging
+            ?"SWINGING"
+            :"AIRBORNE";
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "⚡ Web boost!"
+        );
+
+    },
+
+
+    /* =========================
+       LAND
+    ========================= */
+
+    land(){
+
+        this.state=
+            "GROUNDED";
+
+
+        this.altitude=0;
+
+        this.speed=
+            Math.max(
+                0,
+                this.speed-20
+            );
+
+
+        this.removeWeb();
+
+
+        this.webAttached=false;
+
+        this.swinging=false;
+
+
+        if(this.swingTimer){
+
+            clearInterval(
+                this.swingTimer
+            );
+
+            this.swingTimer=null;
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CREATE WEB
+    ========================= */
+
+    createWeb(){
+
+        this.removeWeb();
+
+
+        const web=
+            document.createElement(
+                "div"
+            );
+
+
+        web.className=
+            "webLine234";
+
+
+        web.style.left=
+            "50%";
+
+
+        web.style.top=
+            "50px";
+
+
+        web.style.height=
+            Math.max(
+                80,
+                this.altitude*4
+            )+"px";
+
+
+        document.body.appendChild(
+            web
+        );
+
+
+        this.web=web;
+
+    },
+
+
+    /* =========================
+       REMOVE WEB
+    ========================= */
+
+    removeWeb(){
+
+        if(
+            this.web &&
+            this.web.parentNode
+        ){
+
+            this.web.parentNode
+                .removeChild(
+                    this.web
+                );
+
+        }
+
+
+        this.web=null;
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const state=
+            document.getElementById(
+                "movementState234"
+            );
+
+
+        const speed=
+            document.getElementById(
+                "speed234"
+            );
+
+
+        const web=
+            document.getElementById(
+                "webState234"
+            );
+
+
+        if(state){
+
+            state.textContent=
+                "Movement: "+
+                this.state;
+
+        }
+
+
+        if(speed){
+
+            speed.textContent=
+                "Speed: "+
+                Math.round(
+                    this.speed
+                );
+
+        }
+
+
+        if(web){
+
+            web.textContent=
+                "Web: "+
+                (
+                    this.webAttached
+                    ?"ATTACHED"
+                    :"READY"
+                );
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V234
+ ===================================================== */
+
+SpiderTraversal234.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key===" ")
+            SpiderTraversal234.jump();
+
+
+        if(key==="w")
+            SpiderTraversal234.swing();
+
+
+        if(key==="r")
+            SpiderTraversal234.release();
+
+
+        if(key==="shift")
+            SpiderTraversal234.boost();
+
+    }
+);
