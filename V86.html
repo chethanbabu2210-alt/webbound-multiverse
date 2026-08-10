@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V86</title>
+
+<style>
+
+#v86MissionButton{
+  position:fixed;
+  right:15px;
+  top:125px;
+  z-index:9000;
+
+  padding:11px 14px;
+
+  background:#05070ee8;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:11px;
+
+  font-weight:bold;
+}
+
+#v86Panel{
+  position:fixed;
+
+  left:50%;
+  top:50%;
+
+  transform:translate(-50%,-50%);
+
+  width:min(440px,90%);
+  max-height:80vh;
+
+  overflow:auto;
+
+  z-index:9600;
+
+  padding:20px;
+
+  background:#05070ef7;
+  color:white;
+
+  border:1px solid #ffffff35;
+  border-radius:18px;
+
+  font-family:Arial,sans-serif;
+
+  display:none;
+}
+
+#v86Panel h2{
+  margin-top:0;
+}
+
+.v86Mission{
+  padding:13px;
+  margin:9px 0;
+
+  background:#111827;
+
+  border:1px solid #ffffff20;
+  border-radius:12px;
+}
+
+.v86MissionTitle{
+  font-weight:bold;
+  margin-bottom:5px;
+}
+
+.v86MissionDescription{
+  font-size:12px;
+  opacity:.75;
+  margin-bottom:9px;
+}
+
+.v86Progress{
+  height:6px;
+
+  background:#ffffff18;
+
+  border-radius:10px;
+
+  overflow:hidden;
+}
+
+.v86ProgressBar{
+  height:100%;
+  width:0%;
+
+  background:white;
+}
+
+.v86MissionStatus{
+  margin-top:7px;
+
+  font-size:11px;
+  opacity:.7;
+}
+
+#v86Close{
+  width:100%;
+
+  padding:11px;
+
+  margin-top:8px;
+
+  background:#111827;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:10px;
+}
+
+#v86Tracker{
+  position:fixed;
+
+  left:15px;
+  top:15px;
+
+  z-index:8500;
+
+  width:min(280px,75%);
+
+  padding:12px;
+
+  background:#05070ed9;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:12px;
+
+  font:12px Arial,sans-serif;
+}
+
+#v86TrackerTitle{
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+#v86TrackerObjective{
+  opacity:.8;
+  line-height:1.4;
+}
+
+#v86Message{
+  position:fixed;
+
+  left:50%;
+  top:18%;
+
+  transform:translateX(-50%);
+
+  z-index:9800;
+
+  padding:11px 17px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff35;
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+  display:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     MISSION TRACKER
+     ========================================================= -->
+
+<div id="v86Tracker">
+
+  <div id="v86TrackerTitle">
+    🎯 CURRENT OBJECTIVE
+  </div>
+
+  <div id="v86TrackerObjective">
+    No active mission.
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     MISSION BUTTON
+     ========================================================= -->
+
+<button id="v86MissionButton">
+
+  🎯 MISSIONS
+
+</button>
+
+
+<!-- =========================================================
+     MISSION PANEL
+     ========================================================= -->
+
+<div id="v86Panel">
+
+  <h2>🎯 MISSION LOG</h2>
+
+  <p>
+    Track your current story objectives.
+  </p>
+
+  <div id="v86MissionList"></div>
+
+  <button id="v86Close">
+    ❌ CLOSE
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v86Message">
+  Mission updated
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V86
+   MISSION / OBJECTIVE SYSTEM
+   ========================================================= */
+
+const V86 = {
+
+  version:"V86",
+
+  saveKey:"WEBBOUND_V86_MISSIONS",
+
+  panelOpen:false,
+
+  activeMission:null,
+
+  missions:{
+
+    city_patrol:{
+
+      title:"City Patrol",
+
+      description:
+        "Explore the city and complete your first patrol.",
+
+      objective:
+        "Reach the marked patrol area.",
+
+      progress:0,
+
+      required:1,
+
+      completed:false
+
+    },
+
+
+    investigate:{
+
+      title:"Investigation",
+
+      description:
+        "Investigate a suspicious activity in the city.",
+
+      objective:
+        "Find the investigation location.",
+
+      progress:0,
+
+      required:1,
+
+      completed:false
+
+    },
+
+
+    rooftop:{
+
+      title:"Rooftop Watch",
+
+      description:
+        "Reach a high point and survey the surrounding area.",
+
+      objective:
+        "Reach a rooftop.",
+
+      progress:0,
+
+      required:1,
+
+      completed:false
+
+    },
+
+
+    rescue:{
+
+      title:"Emergency Response",
+
+      description:
+        "Respond to an emergency event.",
+
+      objective:
+        "Reach the emergency location.",
+
+      progress:0,
+
+      required:1,
+
+      completed:false
+
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.render();
+
+    this.updateTracker();
+
+    console.log(
+      "WEBBOUND V86 MISSION SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     OPEN
+     ======================================================= */
+
+  open(){
+
+    const panel=
+      document.getElementById(
+        "v86Panel"
+      );
+
+    if(panel){
+
+      panel.style.display=
+        "block";
+
+    }
+
+    this.panelOpen=true;
+
+    this.render();
+
+  },
+
+
+  /* =======================================================
+     CLOSE
+     ======================================================= */
+
+  close(){
+
+    const panel=
+      document.getElementById(
+        "v86Panel"
+      );
+
+    if(panel){
+
+      panel.style.display=
+        "none";
+
+    }
+
+    this.panelOpen=false;
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    if(this.panelOpen){
+
+      this.close();
+
+    }
+    else{
+
+      this.open();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     START MISSION
+     ======================================================= */
+
+  startMission(id){
+
+    const mission=
+      this.missions[id];
+
+    if(!mission){
+
+      return false;
+
+    }
+
+    if(mission.completed){
+
+      this.message(
+        "✅ Mission already completed."
+      );
+
+      return false;
+
+    }
+
+    this.activeMission=id;
+
+    this.updateTracker();
+
+    this.save();
+
+    this.message(
+      "🎯 Mission started: "+
+      mission.title
+    );
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     UPDATE PROGRESS
+     ======================================================= */
+
+  updateProgress(
+    id,
+    amount=1
+  ){
+
+    const mission=
+      this.missions[id];
+
+    if(!mission){
+
+      return false;
+
+    }
+
+    if(mission.completed){
+
+      return false;
+
+    }
+
+
+    mission.progress+=
+      Number(amount) || 0;
+
+
+    if(
+      mission.progress>=
+      mission.required
+    ){
+
+      mission.progress=
+        mission.required;
+
+      mission.completed=true;
+
+      if(
+        this.activeMission===
+        id
+      ){
+
+        this.message(
+          "✅ Mission completed: "+
+          mission.title
+        );
+
+      }
+
+    }
+    else{
+
+      this.message(
+        "🎯 Objective updated"
+      );
+
+    }
+
+
+    this.updateTracker();
+
+    this.render();
+
+    this.save();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     COMPLETE MISSION
+     ======================================================= */
+
+  completeMission(id){
+
+    const mission=
+      this.missions[id];
+
+    if(!mission){
+
+      return false;
+
+    }
+
+
+    mission.progress=
+      mission.required;
+
+    mission.completed=true;
+
+
+    if(
+      this.activeMission===
+      id
+    ){
+
+      this.activeMission=null;
+
+    }
+
+
+    this.updateTracker();
+
+    this.render();
+
+    this.save();
+
+
+    this.message(
+      "🏆 Mission Complete!"
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     SET ACTIVE MISSION
+     ======================================================= */
+
+  setActive(id){
+
+    if(
+      !this.missions[id]
+    ){
+
+      return false;
+
+    }
+
+
+    if(
+      this.missions[id].completed
+    ){
+
+      return false;
+
+    }
+
+
+    this.activeMission=id;
+
+    this.updateTracker();
+
+    this.save();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     RENDER MISSION LIST
+     ======================================================= */
+
+  render(){
+
+    const list=
+      document.getElementById(
+        "v86MissionList"
+      );
+
+    if(!list){
+
+      return;
+
+    }
+
+
+    list.innerHTML="";
+
+
+    Object.entries(
+      this.missions
+    ).forEach(
+      ([id,mission])=>{
+
+        const box=
+          document.createElement(
+            "div"
+          );
+
+        box.className=
+          "v86Mission";
+
+
+        const title=
+          document.createElement(
+            "div"
+          );
+
+        title.className=
+          "v86MissionTitle";
+
+
+        title.textContent=
+          mission.completed
+          ? "✅ "+
+            mission.title
+          : "🎯 "+
+            mission.title;
+
+
+        const description=
+          document.createElement(
+            "div"
+          );
+
+        description.className=
+          "v86MissionDescription";
+
+        description.textContent=
+          mission.description;
+
+
+        const progress=
+          document.createElement(
+            "div"
+          );
+
+        progress.className=
+          "v86Progress";
+
+
+        const bar=
+          document.createElement(
+            "div"
+          );
+
+        bar.className=
+          "v86ProgressBar";
+
+
+        const percent=
+          mission.required>0
+          ?
+          (
+            mission.progress/
+            mission.required
+          )*100
+          :
+          0;
+
+
+        bar.style.width=
+          Math.max(
+            0,
+            Math.min(
+              100,
+              percent
+            )
+          )+
+          "%";
+
+
+        progress.appendChild(
+          bar
+        );
+
+
+        const status=
+          document.createElement(
+            "div"
+          );
+
+        status.className=
+          "v86MissionStatus";
+
+
+        if(mission.completed){
+
+          status.textContent=
+            "Completed";
+
+        }
+        else{
+
+          status.textContent=
+            mission.objective+
+            "  ("+
+            mission.progress+
+            "/"+
+            mission.required+
+            ")";
+
+        }
+
+
+        box.appendChild(title);
+
+        box.appendChild(description);
+
+        box.appendChild(progress);
+
+        box.appendChild(status);
+
+
+        if(
+          !mission.completed &&
+          this.activeMission!==id
+        ){
+
+          const button=
+            document.createElement(
+              "button"
+            );
+
+          button.textContent=
+            "🎯 TRACK";
+
+
+          button.style.width=
+            "100%";
+
+          button.style.padding=
+            "9px";
+
+          button.style.marginTop=
+            "8px";
+
+          button.style.background=
+            "#111827";
+
+          button.style.color=
+            "white";
+
+          button.style.border=
+            "1px solid #ffffff30";
+
+          button.style.borderRadius=
+            "8px";
+
+
+          button.onclick=
+            ()=>{
+
+              this.setActive(id);
+
+              this.message(
+                "🎯 Tracking "+
+                mission.title
+              );
+
+              this.render();
+
+            };
+
+
+          box.appendChild(
+            button
+          );
+
+        }
+
+
+        list.appendChild(
+          box
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     TRACKER
+     ======================================================= */
+
+  updateTracker(){
+
+    const objective=
+      document.getElementById(
+        "v86TrackerObjective"
+      );
+
+    if(!objective){
+
+      return;
+
+    }
+
+
+    if(
+      !this.activeMission ||
+      !this.missions[
+        this.activeMission
+      ]
+    ){
+
+      objective.textContent=
+        "No active mission.";
+
+      return;
+
+    }
+
+
+    const mission=
+      this.missions[
+        this.activeMission
+      ];
+
+
+    if(mission.completed){
+
+      objective.textContent=
+        "Mission completed.";
+
+      return;
+
+    }
+
+
+    objective.innerHTML=
+      "<b>"+
+      mission.title+
+      "</b><br>"+
+      mission.objective+
+      "<br>"+
+      mission.progress+
+      "/"+
+      mission.required;
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v86Message"
+      );
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          2200
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT SAVE DATA
+     ======================================================= */
+
+  collect(){
+
+    const missionData={};
+
+
+    Object.entries(
+      this.missions
+    ).forEach(
+      ([id,mission])=>{
+
+        missionData[id]={
+
+          progress:
+            mission.progress,
+
+          completed:
+            mission.completed
+
+        };
+
+      }
+    );
+
+
+    return{
+
+      activeMission:
+        this.activeMission,
+
+      missions:
+        missionData
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V86 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        data &&
+        typeof data.activeMission===
+        "string"
+      ){
+
+        if(
+          this.missions[
+            data.activeMission
+          ]
+        ){
+
+          this.activeMission=
+            data.activeMission;
+
+        }
+
+      }
+
+
+      if(
+        data &&
+        data.missions
+      ){
+
+        Object.keys(
+          this.missions
+        ).forEach(
+          id=>{
+
+            const saved=
+              data.missions[id];
+
+
+            if(!saved){
+
+              return;
+
+            }
+
+
+            if(
+              Number.isFinite(
+                Number(saved.progress)
+              )
+            ){
+
+              this.missions[id].progress=
+                Math.max(
+                  0,
+                  Math.min(
+                    this.missions[id].required,
+                    Number(saved.progress)
+                  )
+                );
+
+            }
+
+
+            if(
+              typeof saved.completed===
+              "boolean"
+            ){
+
+              this.missions[id].completed=
+                saved.completed;
+
+            }
+
+          }
+        );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V86 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY SAVE DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.activeMission===
+      "string" &&
+      this.missions[
+        data.activeMission
+      ]
+    ){
+
+      this.activeMission=
+        data.activeMission;
+
+    }
+
+
+    if(data.missions){
+
+      Object.keys(
+        this.missions
+      ).forEach(
+        id=>{
+
+          const saved=
+            data.missions[id];
+
+          if(!saved){
+
+            return;
+
+          }
+
+
+          if(
+            Number.isFinite(
+              Number(saved.progress)
+            )
+          ){
+
+            this.missions[id].progress=
+              Math.max(
+                0,
+                Math.min(
+                  this.missions[id].required,
+                  Number(saved.progress)
+                )
+              );
+
+          }
+
+
+          if(
+            typeof saved.completed===
+            "boolean"
+          ){
+
+            this.missions[id].completed=
+              saved.completed;
+
+          }
+
+        }
+      );
+
+    }
+
+
+    this.render();
+
+    this.updateTracker();
+
+  },
+
+
+  /* =======================================================
+     V60 SAVE COMPATIBILITY
+     ======================================================= */
+
+  installV60Compatibility(){
+
+    if(
+      typeof V60==="undefined" ||
+      typeof V60.collect!=="function"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V60.__v86CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    const originalCollect=
+      V60.collect.bind(V60);
+
+
+    V60.collect=function(){
+
+      const data=
+        originalCollect();
+
+      data.v86=
+        V86.collect();
+
+      return data;
+
+    };
+
+
+    if(
+      typeof V60.apply==="function"
+    ){
+
+      const originalApply=
+        V60.apply.bind(V60);
+
+
+      V60.apply=function(data){
+
+        originalApply(data);
+
+
+        if(
+          data &&
+          data.v86
+        ){
+
+          V86.apply(
+            data.v86
+          );
+
+        }
+
+      };
+
+    }
+
+
+    V60.__v86CompatibilityInstalled=
+      true;
+
+  }
+
+};
+
+
+/* =========================================================
+   BUTTON
+   ========================================================= */
+
+document
+  .getElementById(
+    "v86MissionButton"
+  )
+  .addEventListener(
+    "click",
+    ()=>{
+      V86.toggle();
+    }
+  );
+
+
+document
+  .getElementById(
+    "v86Close"
+  )
+  .addEventListener(
+    "click",
+    ()=>{
+      V86.close();
+    }
+  );
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    if(
+      event.code==="KeyJ"
+    ){
+
+      event.preventDefault();
+
+      V86.toggle();
+
+    }
+
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V86.close();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V86.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V86.init();
+
+V86.installV60Compatibility();
+
+
+/* =========================================================
+   OPTIONAL API
+   =========================================================
+
+   You can use these from future versions:
+
+   V86.startMission("city_patrol");
+
+   V86.updateProgress("city_patrol",1);
+
+   V86.completeMission("city_patrol");
+
+   V86.setActive("investigate");
+
+   ========================================================= */
+
+</script>
+
+</body>
+</html>
