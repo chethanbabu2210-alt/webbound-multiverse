@@ -1,0 +1,1047 @@
+<!-- =====================================================
+ V248 — COMBAT ENCOUNTER SYSTEM
+ Add after V247
+ ===================================================== -->
+
+<style>
+
+#combatHud248{
+
+    position:fixed;
+
+    left:12px;
+    top:900px;
+
+    width:min(260px,52vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:9px;
+
+    z-index:5500;
+
+}
+
+.combatTitle248{
+
+    font-size:9px;
+    font-weight:bold;
+
+}
+
+#combatEnemies248,
+#combatDifficulty248,
+#combatStatus248{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= ENEMY ================= */
+
+.enemy248{
+
+    position:absolute;
+
+    width:24px;
+    height:28px;
+
+    background:#ffffff12;
+
+    border:1px solid #ffffff45;
+
+    border-radius:6px;
+
+    z-index:4200;
+
+    cursor:pointer;
+
+    transition:
+        left .4s,
+        top .4s;
+
+}
+
+.enemy248::before{
+
+    content:"";
+
+    position:absolute;
+
+    width:8px;
+    height:8px;
+
+    left:7px;
+    top:-9px;
+
+    border-radius:50%;
+
+    background:#ffffff30;
+
+}
+
+
+/* ================= HEALTH ================= */
+
+.enemyHealth248{
+
+    position:absolute;
+
+    left:-3px;
+    right:-3px;
+
+    top:-13px;
+
+    height:4px;
+
+    background:#202830;
+
+    border-radius:4px;
+
+    overflow:hidden;
+
+}
+
+.enemyHealthFill248{
+
+    width:100%;
+
+    height:100%;
+
+    background:#ffffff;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#combatControls248{
+
+    position:fixed;
+
+    left:12px;
+
+    bottom:105px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5600;
+
+}
+
+#combatControls248 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= MESSAGE ================= */
+
+#combatMessage248{
+
+    position:fixed;
+
+    left:50%;
+
+    top:20%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 16px;
+
+    background:#03070df5;
+
+    border:1px solid #ffffff35;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    z-index:8000;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#combatMessage248.show{
+
+    animation:
+        combatPopup248 1.2s forwards;
+
+}
+
+@keyframes combatPopup248{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+            translateX(-50%)
+            scale(.8);
+
+    }
+
+    20%{
+
+        opacity:1;
+
+        transform:
+            translateX(-50%)
+            scale(1);
+
+    }
+
+    80%{
+
+        opacity:1;
+
+    }
+
+    100%{
+
+        opacity:0;
+
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="combatHud248">
+
+    <div class="combatTitle248">
+        ⚔️ COMBAT ENCOUNTERS — V248
+    </div>
+
+    <div id="combatEnemies248">
+        Enemies: 0
+    </div>
+
+    <div id="combatDifficulty248">
+        Difficulty: NORMAL
+    </div>
+
+    <div id="combatStatus248">
+        Status: READY
+    </div>
+
+</div>
+
+
+<div id="combatMessage248">
+    COMBAT
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="combatControls248">
+
+    <button onclick="SpiderCombat248.startEncounter()">
+        ⚔️ ENCOUNTER
+    </button>
+
+    <button onclick="SpiderCombat248.attackNearest()">
+        🕷️ ATTACK
+    </button>
+
+    <button onclick="SpiderCombat248.changeDifficulty()">
+        📊 DIFFICULTY
+    </button>
+
+    <button onclick="SpiderCombat248.clear()">
+        ✕ CLEAR
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V248 COMBAT ENGINE
+ ===================================================== */
+
+const SpiderCombat248={
+
+    enemies:[],
+
+    nextId:1,
+
+    active:true,
+
+    difficultyIndex:1,
+
+    difficulties:[
+
+        "EASY",
+
+        "NORMAL",
+
+        "HARD"
+
+    ],
+
+    totalDefeated:0,
+
+    maxEnemies:20,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.startAI();
+
+        this.updateHUD();
+
+        this.message(
+            "⚔️ Combat system online."
+        );
+
+    },
+
+
+    /* =========================
+       START ENCOUNTER
+       ========================= */
+
+    startEncounter(){
+
+        if(
+            this.enemies.length>0
+        ){
+
+            this.message(
+                "⚔️ Encounter already active."
+            );
+
+            return;
+
+        }
+
+
+        const amount=
+            this.difficultyIndex===0
+            ?3
+            :this.difficultyIndex===1
+            ?5
+            :8;
+
+
+        for(
+            let i=0;
+            i<amount;
+            i++
+        ){
+
+            this.spawnEnemy();
+
+        }
+
+
+        this.message(
+            "⚔️ Enemy encounter started!"
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       SPAWN ENEMY
+       ========================= */
+
+    spawnEnemy(){
+
+        if(
+            this.enemies.length>=
+            this.maxEnemies
+        )
+            return;
+
+
+        const enemy=
+            document.createElement(
+                "div"
+            );
+
+
+        enemy.id=
+            "enemy248_"+
+            this.nextId++;
+
+
+        enemy.className=
+            "enemy248";
+
+
+        enemy.style.left=
+            (
+                10+
+                Math.random()*75
+            )+"vw";
+
+
+        enemy.style.top=
+            (
+                20+
+                Math.random()*65
+            )+"vh";
+
+
+        const health=
+            this.difficultyIndex===0
+            ?60
+            :this.difficultyIndex===1
+            ?100
+            :150;
+
+
+        enemy.dataset.health=
+            health;
+
+
+        const healthBar=
+            document.createElement(
+                "div"
+            );
+
+
+        healthBar.className=
+            "enemyHealth248";
+
+
+        const healthFill=
+            document.createElement(
+                "div"
+            );
+
+
+        healthFill.className=
+            "enemyHealthFill248";
+
+
+        healthBar.appendChild(
+            healthFill
+        );
+
+
+        enemy.appendChild(
+            healthBar
+        );
+
+
+        enemy.addEventListener(
+            "click",
+            ()=>{
+                this.attack(enemy);
+            }
+        );
+
+
+        document.body.appendChild(
+            enemy
+        );
+
+
+        this.enemies.push({
+
+            id:enemy.id,
+
+            element:enemy,
+
+            health:health,
+
+            maxHealth:health,
+
+            speed:
+                this.difficultyIndex===2
+                ?1.5
+                :1,
+
+            active:true
+
+        });
+
+    },
+
+
+    /* =========================
+       ATTACK
+       ========================= */
+
+    attack(enemy){
+
+        const target=
+            this.enemies.find(
+                e=>
+                    e.element===
+                    enemy
+            );
+
+
+        if(
+            !target ||
+            !target.active
+        )
+            return;
+
+
+        const damage=
+            this.difficultyIndex===0
+            ?35
+            :this.difficultyIndex===1
+            ?30
+            :25;
+
+
+        target.health=
+            Math.max(
+                0,
+                target.health-
+                damage
+            );
+
+
+        this.updateEnemyHealth(
+            target
+        );
+
+
+        if(
+            target.health<=0
+        ){
+
+            this.defeat(
+                target
+            );
+
+        }else{
+
+            this.message(
+                "🕷️ Hit! Enemy HP: "+
+                target.health
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       NEAREST ATTACK
+       ========================= */
+
+    attackNearest(){
+
+        const target=
+            this.enemies.find(
+                e=>
+                    e.active
+            );
+
+
+        if(!target){
+
+            this.message(
+                "⚔️ No enemies active."
+            );
+
+            return;
+
+        }
+
+
+        this.attack(
+            target.element
+        );
+
+    },
+
+
+    /* =========================
+       UPDATE HEALTH
+       ========================= */
+
+    updateEnemyHealth(enemy){
+
+        const fill=
+            enemy.element
+                .querySelector(
+                    ".enemyHealthFill248"
+                );
+
+
+        if(fill){
+
+            fill.style.width=
+                (
+                    enemy.health/
+                    enemy.maxHealth*
+                    100
+                )+"%";
+
+        }
+
+    },
+
+
+    /* =========================
+       DEFEAT
+       ========================= */
+
+    defeat(enemy){
+
+        enemy.active=false;
+
+        enemy.element.style.opacity=
+            "0";
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    enemy.element.parentNode
+                ){
+
+                    enemy.element
+                        .parentNode
+                        .removeChild(
+                            enemy.element
+                        );
+
+                }
+
+            },
+            250
+        );
+
+
+        this.totalDefeated++;
+
+
+        const reward=
+            this.difficultyIndex===0
+            ?40
+            :this.difficultyIndex===1
+            ?70
+            :110;
+
+
+        if(
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            SpiderProgress239.addXP(
+                reward
+            );
+
+        }
+
+
+        if(
+            typeof SpiderMission236!==
+            "undefined"
+        ){
+
+            SpiderMission236
+                .addProgress();
+
+        }
+
+
+        this.message(
+            "✅ Enemy defeated! +"+
+            reward+
+            " XP"
+        );
+
+
+        this.updateHUD();
+
+
+        if(
+            this.enemies.filter(
+                e=>e.active
+            ).length===0
+        ){
+
+            this.encounterComplete();
+
+        }
+
+    },
+
+
+    /* =========================
+       ENCOUNTER COMPLETE
+       ========================= */
+
+    encounterComplete(){
+
+        this.message(
+            "🏆 Encounter complete!"
+        );
+
+
+        if(
+            typeof SpiderCollect242!==
+            "undefined"
+        ){
+
+            SpiderCollect242.tokens+=
+                25;
+
+            SpiderCollect242
+                .updateHUD();
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       ENEMY AI
+       ========================= */
+
+    startAI(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    !this.active
+                )
+                    return;
+
+
+                this.enemies.forEach(
+                    enemy=>{
+
+                        if(
+                            !enemy.active ||
+                            !enemy.element
+                        )
+                            return;
+
+
+                        let left=
+                            parseFloat(
+                                enemy.element
+                                    .style.left
+                            );
+
+
+                        let top=
+                            parseFloat(
+                                enemy.element
+                                    .style.top
+                            );
+
+
+                        left+=
+                            (
+                                Math.random()*
+                                2
+                            )-1;
+
+
+                        top+=
+                            (
+                                Math.random()*
+                                2
+                            )-1;
+
+
+                        left=
+                            Math.max(
+                                5,
+                                Math.min(
+                                    92,
+                                    left
+                                )
+                            );
+
+
+                        top=
+                            Math.max(
+                                18,
+                                Math.min(
+                                    90,
+                                    top
+                                )
+                            );
+
+
+                        enemy.element.style.left=
+                            left+"vw";
+
+
+                        enemy.element.style.top=
+                            top+"vh";
+
+                    }
+                );
+
+
+            },
+            700
+        );
+
+    },
+
+
+    /* =========================
+       DIFFICULTY
+       ========================= */
+
+    changeDifficulty(){
+
+        this.difficultyIndex=
+            (
+                this.difficultyIndex+
+                1
+            )%
+            this.difficulties.length;
+
+
+        this.message(
+            "📊 Difficulty: "+
+            this.difficulties[
+                this.difficultyIndex
+            ]
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CLEAR
+       ========================= */
+
+    clear(){
+
+        this.enemies.forEach(
+            enemy=>{
+
+                if(
+                    enemy.element &&
+                    enemy.element.parentNode
+                ){
+
+                    enemy.element
+                        .parentNode
+                        .removeChild(
+                            enemy.element
+                        );
+
+                }
+
+            }
+        );
+
+
+        this.enemies=[];
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "✕ Combat encounter cleared."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const enemies=
+            document.getElementById(
+                "combatEnemies248"
+            );
+
+
+        const difficulty=
+            document.getElementById(
+                "combatDifficulty248"
+            );
+
+
+        const status=
+            document.getElementById(
+                "combatStatus248"
+            );
+
+
+        if(enemies){
+
+            enemies.textContent=
+                "Enemies: "+
+                this.enemies.filter(
+                    e=>e.active
+                ).length;
+
+        }
+
+
+        if(difficulty){
+
+            difficulty.textContent=
+                "Difficulty: "+
+                this.difficulties[
+                    this.difficultyIndex
+                ];
+
+        }
+
+
+        if(status){
+
+            status.textContent=
+                "Status: "+
+                (
+                    this.enemies.some(
+                        e=>e.active
+                    )
+                    ?"COMBAT"
+                    :"READY"
+                );
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "combatMessage248"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V248
+ ===================================================== */
+
+SpiderCombat248.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="f")
+            SpiderCombat248.startEncounter();
+
+
+        if(key==="j")
+            SpiderCombat248.attackNearest();
+
+
+        if(key==="h")
+            SpiderCombat248.changeDifficulty();
+
+
+        if(key==="delete")
+            SpiderCombat248.clear();
+
+    }
+);
