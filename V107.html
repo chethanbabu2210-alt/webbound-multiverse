@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V107</title>
+
+<style>
+
+#v107HUD{
+  position:fixed;
+  right:12px;
+  top:330px;
+  z-index:11500;
+  width:min(210px,58vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+}
+
+#v107Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v107Density{
+  margin-top:7px;
+  font-size:15px;
+}
+
+#v107Stats{
+  margin-top:6px;
+  font-size:10px;
+  line-height:1.5;
+  opacity:.75;
+}
+
+#v107Controls{
+  position:fixed;
+  right:12px;
+  top:465px;
+  z-index:11501;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#v107Controls button{
+  padding:8px 11px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:10px;
+}
+
+#v107Message{
+  position:fixed;
+  left:50%;
+  top:18%;
+  transform:translateX(-50%);
+  z-index:11600;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V107 TRAFFIC HUD
+     ========================================================= -->
+
+<div id="v107HUD">
+
+  <div id="v107Title">
+    🚗 CITY TRAFFIC
+  </div>
+
+  <div id="v107Density">
+    Density: LOW
+  </div>
+
+  <div id="v107Stats">
+    Vehicles: 0<br>
+    Speed: 35 km/h<br>
+    Traffic: Active
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v107Controls">
+
+  <button onclick="V107.setDensity('low')">
+    🟢 LOW TRAFFIC
+  </button>
+
+  <button onclick="V107.setDensity('medium')">
+    🟡 MEDIUM TRAFFIC
+  </button>
+
+  <button onclick="V107.setDensity('high')">
+    🔴 HIGH TRAFFIC
+  </button>
+
+  <button onclick="V107.toggle()">
+    🚦 PAUSE / PLAY
+  </button>
+
+  <button onclick="V107.clear()">
+    🧹 CLEAR TRAFFIC
+  </button>
+
+</div>
+
+
+<div id="v107Message">
+  V107
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V107
+   CITY TRAFFIC SYSTEM
+   ========================================================= */
+
+const V107 = {
+
+  version:"V107",
+
+  saveKey:
+    "WEBBOUND_V107_TRAFFIC",
+
+  running:true,
+
+  density:"low",
+
+  vehicles:[],
+
+  nextVehicleId:1,
+
+  timer:null,
+
+  cleanupTimer:null,
+
+  settings:{
+
+    low:{
+      max:8,
+      spawnRate:4000,
+      speed:30
+    },
+
+    medium:{
+      max:16,
+      spawnRate:2800,
+      speed:40
+    },
+
+    high:{
+      max:28,
+      spawnRate:1800,
+      speed:50
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.start();
+
+    console.log(
+      "WEBBOUND V107 TRAFFIC SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+    clearInterval(
+      this.cleanupTimer
+    );
+
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          if(
+            this.running
+          ){
+
+            this.spawn();
+
+          }
+
+        },
+        this.settings[
+          this.density
+        ].spawnRate
+      );
+
+
+    this.cleanupTimer=
+      setInterval(
+        ()=>{
+
+          if(
+            this.running
+          ){
+
+            this.cleanup();
+
+            this.updateVehicles();
+
+          }
+
+        },
+        1000
+      );
+
+  },
+
+
+  /* =======================================================
+     SET DENSITY
+     ======================================================= */
+
+  setDensity(level){
+
+    if(
+      !this.settings[level]
+    ){
+
+      return;
+
+    }
+
+
+    this.density=
+      level;
+
+
+    this.start();
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🚦 Traffic: "+
+      level.toUpperCase()
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.running=
+      !this.running;
+
+
+    this.message(
+      this.running
+      ? "🚗 Traffic active"
+      : "⏸️ Traffic paused"
+    );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     SPAWN VEHICLE
+     ======================================================= */
+
+  spawn(){
+
+    const config=
+      this.settings[
+        this.density
+      ];
+
+
+    if(
+      this.vehicles.length>=
+      config.max
+    ){
+
+      return;
+
+    }
+
+
+    const vehicleTypes=[
+
+      "sedan",
+      "hatchback",
+      "suv",
+      "taxi",
+      "van",
+      "truck"
+
+    ];
+
+
+    const type=
+      vehicleTypes[
+        Math.floor(
+          Math.random()*
+          vehicleTypes.length
+        )
+      ];
+
+
+    const vehicle={
+
+      id:
+        this.nextVehicleId++,
+
+      type:type,
+
+      lane:
+        Math.floor(
+          Math.random()*4
+        ),
+
+      x:
+        Math.random()*2000-1000,
+
+      y:0,
+
+      z:
+        Math.random()*2000-1000,
+
+      speed:
+        config.speed+
+        Math.random()*15,
+
+      direction:
+        Math.random()<.5
+        ? 1
+        : -1,
+
+      spawnedAt:
+        Date.now()
+
+    };
+
+
+    this.vehicles.push(
+      vehicle
+    );
+
+
+    /*
+      If an existing game has
+      a vehicle creation function,
+      notify it without requiring it.
+    */
+
+    if(
+      typeof window.onWebboundTrafficSpawn===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundTrafficSpawn(
+          vehicle
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V107 SPAWN CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     UPDATE VEHICLES
+     ======================================================= */
+
+  updateVehicles(){
+
+    const delta=
+      1/60;
+
+
+    this.vehicles.forEach(
+      vehicle=>{
+
+        vehicle.x+=
+          vehicle.direction*
+          vehicle.speed*
+          delta;
+
+
+        /*
+          Keep traffic inside a
+          large simulated city area.
+        */
+
+        if(
+          vehicle.x>1200
+        ){
+
+          vehicle.x=-1200;
+
+        }
+
+
+        if(
+          vehicle.x<-1200
+        ){
+
+          vehicle.x=1200;
+
+        }
+
+
+        if(
+          typeof window.onWebboundTrafficMove===
+          "function"
+        ){
+
+          try{
+
+            window.onWebboundTrafficMove(
+              vehicle
+            );
+
+          }
+          catch(error){
+
+            console.warn(
+              "V107 MOVE CALLBACK:",
+              error
+            );
+
+          }
+
+        }
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     CLEANUP
+     ======================================================= */
+
+  cleanup(){
+
+    const now=
+      Date.now();
+
+
+    const maxAge=
+      180000;
+
+
+    this.vehicles=
+      this.vehicles.filter(
+        vehicle=>{
+
+          return(
+            now-
+            vehicle.spawnedAt<
+            maxAge
+          );
+
+        }
+      );
+
+
+    /*
+      Keep the vehicle list
+      within the selected limit.
+    */
+
+    const max=
+      this.settings[
+        this.density
+      ].max;
+
+
+    if(
+      this.vehicles.length>max
+    ){
+
+      this.vehicles=
+        this.vehicles.slice(
+          this.vehicles.length-max
+        );
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  clear(){
+
+    this.vehicles=[];
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🧹 Traffic cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET VEHICLES
+     ======================================================= */
+
+  getVehicles(){
+
+    return this.vehicles;
+
+  },
+
+
+  /* =======================================================
+     GET TRAFFIC COUNT
+     ======================================================= */
+
+  getCount(){
+
+    return this.vehicles.length;
+
+  },
+
+
+  /* =======================================================
+     GET CURRENT SPEED
+     ======================================================= */
+
+  getAverageSpeed(){
+
+    if(
+      this.vehicles.length===0
+    ){
+
+      return 0;
+
+    }
+
+
+    let total=0;
+
+
+    this.vehicles.forEach(
+      vehicle=>{
+
+        total+=
+          Number(
+            vehicle.speed
+          )||0;
+
+      }
+    );
+
+
+    return Math.round(
+      total/
+      this.vehicles.length
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const densityBox=
+      document.getElementById(
+        "v107Density"
+      );
+
+    const stats=
+      document.getElementById(
+        "v107Stats"
+      );
+
+
+    const config=
+      this.settings[
+        this.density
+      ];
+
+
+    if(densityBox){
+
+      densityBox.textContent=
+        "Density: "+
+        this.density.toUpperCase();
+
+    }
+
+
+    if(stats){
+
+      stats.innerHTML=
+        "Vehicles: "+
+        this.vehicles.length+
+        " / "+
+        config.max+
+        "<br>"+
+        "Speed: "+
+        this.getAverageSpeed()+
+        " km/h"+
+        "<br>"+
+        "Traffic: "+
+        (
+          this.running
+          ? "Active"
+          : "Paused"
+        );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        running:this.running,
+
+        density:this.density,
+
+        nextVehicleId:
+          this.nextVehicleId
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V107 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        this.settings[
+          data.density
+        ]
+      ){
+
+        this.density=
+          data.density;
+
+      }
+
+
+      if(
+        typeof data.running===
+        "boolean"
+      ){
+
+        this.running=
+          data.running;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.nextVehicleId
+          )
+        )
+      ){
+
+        this.nextVehicleId=
+          Math.max(
+            1,
+            Number(
+              data.nextVehicleId
+            )
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V107 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      running:this.running,
+
+      density:this.density,
+
+      nextVehicleId:
+        this.nextVehicleId
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      this.settings[
+        data.density
+      ]
+    ){
+
+      this.density=
+        data.density;
+
+    }
+
+
+    if(
+      typeof data.running===
+      "boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(
+          data.nextVehicleId
+        )
+      )
+    ){
+
+      this.nextVehicleId=
+        Math.max(
+          1,
+          Number(
+            data.nextVehicleId
+          )
+        );
+
+    }
+
+
+    this.start();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v107Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      T = traffic density cycle
+    */
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      const levels=[
+        "low",
+        "medium",
+        "high"
+      ];
+
+      const index=
+        levels.indexOf(
+          V107.density
+        );
+
+      V107.setDensity(
+        levels[
+          (index+1)%
+          levels.length
+        ]
+      );
+
+    }
+
+
+    /*
+      C = clear traffic
+    */
+
+    if(
+      event.code==="KeyC"
+    ){
+
+      V107.clear();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   OPTIONAL V105 TIME CONNECTION
+   ========================================================= */
+
+if(
+  typeof window.onWebboundTimeChange===
+  "undefined"
+){
+
+  window.onWebboundTimeChange=
+    function(time){
+
+      if(!time){
+
+        return;
+
+      }
+
+
+      /*
+        More traffic during
+        simulated rush hours.
+      */
+
+      if(
+        time.hour>=7 &&
+        time.hour<10
+      ){
+
+        V107.setDensity(
+          "high"
+        );
+
+      }
+      else if(
+        time.hour>=17 &&
+        time.hour<20
+      ){
+
+        V107.setDensity(
+          "high"
+        );
+
+      }
+
+    };
+
+}
+
+
+/* =========================================================
+   OPTIONAL V106 WEATHER CONNECTION
+   ========================================================= */
+
+if(
+  typeof window.onWebboundWeatherChange===
+  "undefined"
+){
+
+  window.onWebboundWeatherChange=
+    function(weather){
+
+      if(!weather){
+
+        return;
+
+      }
+
+
+      /*
+        Bad weather slightly
+        reduces traffic speed.
+      */
+
+      if(
+        weather.type==="storm"
+      ){
+
+        V107.vehicles.forEach(
+          vehicle=>{
+
+            vehicle.speed*=
+              .75;
+
+          }
+        );
+
+      }
+      else if(
+        weather.type==="rain"
+      ){
+
+        V107.vehicles.forEach(
+          vehicle=>{
+
+            vehicle.speed*=
+              .9;
+
+          }
+        );
+
+      }
+
+    };
+
+}
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V107.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V107.init();
+
+
+console.log(
+  "WEBBOUND V107 TRAFFIC SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
