@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V194 — BANKING SYSTEM</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#05090d;color:#fff}
+#game{position:fixed;inset:0;overflow:hidden;background:linear-gradient(#304d59,#091116)}
+#sky{position:absolute;inset:0;background:linear-gradient(#6fa4c0,#b9d0d8)}
+.road{position:absolute;background:#252d32}
+.rh{left:0;right:0;top:57%;height:70px}
+.rv{top:0;bottom:0;left:68%;width:70px}
+.line{position:absolute;background:#d5c36c;opacity:.4}
+.lineH{left:0;right:0;top:calc(57% + 34px);height:2px}
+.lineV{top:0;bottom:0;left:calc(68% + 34px);width:2px}
+.building{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;background:#14242d;border:1px solid #ffffff18;border-radius:9px;color:#82929b;font-size:10px}
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+#player{position:absolute;left:50%;top:53%;width:29px;height:41px;border-radius:10px 10px 5px 5px;background:#2c91da;z-index:50}
+#player:before{content:"";position:absolute;left:5.5px;top:-14px;width:18px;height:18px;border-radius:50%;background:#bd8967}
+#hud{position:fixed;left:10px;top:10px;width:min(980px,94vw);padding:12px;background:#03070cee;border:1px solid #ffffff25;border-radius:13px;z-index:500}
+.title{font-size:13px;font-weight:bold}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:8px}
+.stat{padding:7px 4px;background:#101b23;border-radius:7px;text-align:center;font-size:9px}
+#bankHud{margin-top:8px;padding:9px;background:#111d25;border-radius:8px;font-size:9px;line-height:1.8}
+.bar{height:7px;background:#ffffff12;border-radius:7px;overflow:hidden;margin-top:4px}
+.fill{height:100%;width:0%;background:#8fb8df;transition:.3s}
+#controls{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);width:min(980px,96vw);display:flex;flex-wrap:wrap;gap:6px;z-index:500}
+button{flex:1;min-width:105px;padding:10px;background:#142733;border:1px solid #ffffff22;border-radius:8px;color:#fff;font-size:10px;cursor:pointer}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+#panel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000c;z-index:1000}
+.box{width:min(830px,94vw);max-height:84vh;overflow:auto;padding:17px;background:#050b10;border:1px solid #ffffff28;border-radius:15px}
+.card{padding:11px;background:#111d25;border-radius:9px;margin-bottom:7px;font-size:10px;line-height:1.7}
+.card button{width:100%;margin-top:8px}
+#notification{position:fixed;left:50%;top:20%;transform:translateX(-50%);padding:10px 15px;background:#03070cf5;border:1px solid #ffffff25;border-radius:9px;display:none;z-index:1500;font-size:10px;text-align:center}
+</style>
+</head>
+
+<body>
+<div id="game">
+
+<div id="sky"></div>
+<div class="road rh"></div>
+<div class="road rv"></div>
+<div class="line lineH"></div>
+<div class="line lineV"></div>
+
+<div class="building b1">🏠 RESIDENTIAL</div>
+<div class="building b2">🏢 CORPORATE DISTRICT</div>
+<div class="building b3">🛒 MARKET</div>
+<div class="building b4">🏦 FINANCIAL DISTRICT</div>
+<div class="building b5">🏭 INDUSTRIAL AREA</div>
+<div class="building b6">🏦 NATIONAL BANK</div>
+
+<div id="player"></div>
+
+<div id="hud">
+<div class="title">🏦 WEBBOUND V194 — BANKING & FINANCE</div>
+
+<div class="stats">
+<div class="stat">💰 CASH<br>₹<span id="cashText">5000</span></div>
+<div class="stat">🏦 BANK<br>₹<span id="bankText">0</span></div>
+<div class="stat">💳 LOAN<br>₹<span id="loanText">0</span></div>
+<div class="stat">⭐ CREDIT<br><span id="creditText">500</span></div>
+<div class="stat">💵 INTEREST<br>₹<span id="interestText">0</span></div>
+<div class="stat">📅 DAYS<br><span id="daysText">0</span></div>
+</div>
+
+<div id="bankHud">
+<b>🏦 ACTIVE BANK ACCOUNT</b><br>
+Account:
+<span id="accountName">Personal Account</span><br>
+Balance:
+₹<span id="activeBalance">0</span><br>
+Loan:
+₹<span id="activeLoan">0</span><br>
+Credit Score:
+<span id="activeCredit">500</span>
+
+<div class="bar">
+<div id="creditFill" class="fill"></div>
+</div>
+</div>
+</div>
+
+<div id="notification"></div>
+
+<div id="controls">
+<button onclick="V194.bank()">🏦 BANK</button>
+<button onclick="V194.deposit()">💰 DEPOSIT</button>
+<button onclick="V194.withdraw()">💵 WITHDRAW</button>
+<button onclick="V194.interest()">📈 INTEREST</button>
+<button onclick="V194.loan()">💳 LOAN</button>
+<button onclick="V194.repay()">↩️ REPAY</button>
+<button onclick="V194.credit()">⭐ CREDIT</button>
+<button onclick="V194.save()">💾 SAVE</button>
+</div>
+
+<div id="panel">
+<div class="box">
+<h2 id="panelTitle">WEBBOUND V194</h2>
+<div id="panelContent"></div>
+<button onclick="V194.close()">CLOSE</button>
+</div>
+</div>
+
+</div>
+
+<script>
+const V194={
+
+saveKey:"WEBBOUND_V194",
+
+cash:5000,
+bankBalance:0,
+loan:0,
+interestEarned:0,
+creditScore:500,
+days:0,
+
+depositRate:0.02,
+loanRate:0.05,
+
+init(){
+this.load();
+this.update();
+this.notify("🏦 V194 Banking System ready");
+},
+
+bank(){
+
+const html=`
+<div class="card">
+<b>🏦 PERSONAL BANK ACCOUNT</b><br><br>
+
+💰 Cash:
+₹${this.cash.toLocaleString()}<br>
+
+🏦 Bank Balance:
+₹${this.bankBalance.toLocaleString()}<br>
+
+💳 Outstanding Loan:
+₹${this.loan.toLocaleString()}<br>
+
+⭐ Credit Score:
+${this.creditScore}/850<br>
+
+📈 Deposit Interest:
+${this.depositRate*100}% per day<br>
+
+💳 Loan Interest:
+${this.loanRate*100}% per day
+</div>
+
+<div class="card">
+<b>🏦 BANK SERVICES</b><br><br>
+
+Deposit money to earn interest.<br>
+Withdraw money whenever required.<br>
+Take loans based on your credit score.<br>
+Repay loans to improve your credit score.
+</div>
+`;
+
+this.open("🏦 BANK",html);
+},
+
+deposit(){
+
+const amount=prompt("Enter amount to deposit:");
+
+if(amount===null)return;
+
+const n=Math.floor(Number(amount));
+
+if(!Number.isFinite(n)||n<=0){
+this.notify("❌ Invalid amount.");
+return;
+}
+
+if(n>this.cash){
+this.notify("❌ You don't have enough cash.");
+return;
+}
+
+this.cash-=n;
+this.bankBalance+=n;
+
+this.creditScore=Math.min(
+850,
+this.creditScore+1
+);
+
+this.update();
+this.save();
+
+this.notify("💰 Deposited ₹"+n.toLocaleString());
+},
+
+withdraw(){
+
+const amount=prompt("Enter amount to withdraw:");
+
+if(amount===null)return;
+
+const n=Math.floor(Number(amount));
+
+if(!Number.isFinite(n)||n<=0){
+this.notify("❌ Invalid amount.");
+return;
+}
+
+if(n>this.bankBalance){
+this.notify("❌ Insufficient bank balance.");
+return;
+}
+
+this.bankBalance-=n;
+this.cash+=n;
+
+this.update();
+this.save();
+
+this.notify("💵 Withdrawn ₹"+n.toLocaleString());
+},
+
+interest(){
+
+if(this.bankBalance<=0&&this.loan<=0){
+this.notify("📈 Nothing to calculate.");
+return;
+}
+
+const earned=
+Math.floor(
+this.bankBalance*this.depositRate
+);
+
+const loanInterest=
+Math.floor(
+this.loan*this.loanRate
+);
+
+this.bankBalance+=earned;
+this.loan+=loanInterest;
+
+this.interestEarned+=earned;
+this.days++;
+
+if(earned>0){
+this.creditScore=
+Math.min(850,this.creditScore+2);
+}
+
+this.update();
+this.save();
+
+this.notify(
+"📈 Interest processed: +₹"+
+earned.toLocaleString()+
+" | Loan interest: ₹"+
+loanInterest.toLocaleString()
+);
+},
+
+loan(){
+
+const maxLoan=
+Math.floor(
+Math.max(
+0,
+this.creditScore-400
+)*100
+);
+
+if(maxLoan<=0){
+this.notify("⭐ Credit score too low for a loan.");
+return;
+}
+
+const amount=prompt(
+"Maximum loan available: ₹"+
+maxLoan.toLocaleString()+
+"\nEnter loan amount:"
+);
+
+if(amount===null)return;
+
+const n=Math.floor(Number(amount));
+
+if(!Number.isFinite(n)||n<=0){
+this.notify("❌ Invalid amount.");
+return;
+}
+
+if(n>maxLoan){
+this.notify("❌ Amount exceeds your loan limit.");
+return;
+}
+
+this.loan+=n;
+this.cash+=n;
+
+this.creditScore=
+Math.max(
+300,
+this.creditScore-10
+);
+
+this.update();
+this.save();
+
+this.notify(
+"💳 Loan received: ₹"+
+n.toLocaleString()
+);
+},
+
+repay(){
+
+if(this.loan<=0){
+this.notify("✅ You have no outstanding loan.");
+return;
+}
+
+const amount=prompt(
+"Outstanding loan: ₹"+
+this.loan.toLocaleString()+
+"\nEnter repayment amount:"
+);
+
+if(amount===null)return;
+
+const n=Math.floor(Number(amount));
+
+if(!Number.isFinite(n)||n<=0){
+this.notify("❌ Invalid amount.");
+return;
+}
+
+if(n>this.loan){
+this.notify("❌ Repayment exceeds your loan.");
+return;
+}
+
+if(n>this.cash){
+this.notify("❌ Not enough cash.");
+return;
+}
+
+this.cash-=n;
+this.loan-=n;
+
+this.creditScore=
+Math.min(
+850,
+this.creditScore+15
+);
+
+this.update();
+this.save();
+
+this.notify(
+"↩️ Repaid ₹"+
+n.toLocaleString()+
+" | Credit improved"
+);
+},
+
+credit(){
+
+let rating="";
+
+if(this.creditScore>=750)
+rating="Excellent";
+else if(this.creditScore>=650)
+rating="Good";
+else if(this.creditScore>=550)
+rating="Fair";
+else
+rating="Poor";
+
+const html=`
+<div class="card">
+<b>⭐ CREDIT REPORT</b><br><br>
+
+Credit Score:
+<strong>${this.creditScore}/850</strong><br><br>
+
+Rating:
+<strong>${rating}</strong><br><br>
+
+💰 Bank Balance:
+₹${this.bankBalance.toLocaleString()}<br>
+
+💳 Outstanding Loan:
+₹${this.loan.toLocaleString()}<br>
+
+📈 Total Interest Earned:
+₹${this.interestEarned.toLocaleString()}<br>
+
+📅 Banking Days:
+${this.days}
+</div>
+
+<div class="card">
+<b>📊 CREDIT LEVELS</b><br><br>
+
+750–850 → Excellent<br>
+650–749 → Good<br>
+550–649 → Fair<br>
+300–549 → Poor
+</div>
+`;
+
+this.open("⭐ CREDIT REPORT",html);
+},
+
+update(){
+
+document.getElementById("cashText").textContent=
+this.cash.toLocaleString();
+
+document.getElementById("bankText").textContent=
+this.bankBalance.toLocaleString();
+
+document.getElementById("loanText").textContent=
+this.loan.toLocaleString();
+
+document.getElementById("creditText").textContent=
+this.creditScore;
+
+document.getElementById("interestText").textContent=
+this.interestEarned.toLocaleString();
+
+document.getElementById("daysText").textContent=
+this.days;
+
+document.getElementById("activeBalance").textContent=
+this.bankBalance.toLocaleString();
+
+document.getElementById("activeLoan").textContent=
+this.loan.toLocaleString();
+
+document.getElementById("activeCredit").textContent=
+this.creditScore;
+
+document.getElementById("creditFill").style.width=
+((this.creditScore/850)*100)+"%";
+},
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+cash:this.cash,
+bankBalance:this.bankBalance,
+loan:this.loan,
+interestEarned:this.interestEarned,
+creditScore:this.creditScore,
+days:this.days
+})
+);
+},
+
+load(){
+
+try{
+
+const raw=localStorage.getItem(this.saveKey);
+
+if(!raw)return;
+
+const d=JSON.parse(raw);
+
+if(Number.isFinite(d.cash))
+this.cash=Math.max(0,d.cash);
+
+if(Number.isFinite(d.bankBalance))
+this.bankBalance=Math.max(0,d.bankBalance);
+
+if(Number.isFinite(d.loan))
+this.loan=Math.max(0,d.loan);
+
+if(Number.isFinite(d.interestEarned))
+this.interestEarned=Math.max(0,d.interestEarned);
+
+if(Number.isFinite(d.creditScore))
+this.creditScore=Math.min(850,Math.max(300,d.creditScore));
+
+if(Number.isFinite(d.days))
+this.days=Math.max(0,d.days);
+
+}catch(e){
+console.log("V194 load error:",e);
+}
+},
+
+open(title,content){
+
+document.getElementById("panelTitle").textContent=title;
+document.getElementById("panelContent").innerHTML=content;
+document.getElementById("panel").style.display="flex";
+},
+
+close(){
+document.getElementById("panel").style.display="none";
+},
+
+notify(text){
+
+const el=document.getElementById("notification");
+
+el.textContent=text;
+el.style.display="block";
+
+clearTimeout(this.timer);
+
+this.timer=setTimeout(()=>{
+el.style.display="none";
+},2400);
+}
+
+};
+
+V194.init();
+
+console.log("WEBBOUND V194 BANKING SYSTEM READY");
+</script>
+
+</body>
+</html>
