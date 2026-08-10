@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V88</title>
+
+<style>
+
+#v88Prompt{
+  position:fixed;
+
+  left:50%;
+  bottom:110px;
+
+  transform:translateX(-50%);
+
+  z-index:8800;
+
+  min-width:210px;
+
+  padding:12px 16px;
+
+  background:#05070eea;
+  color:white;
+
+  border:1px solid #ffffff35;
+  border-radius:12px;
+
+  text-align:center;
+
+  font:13px Arial,sans-serif;
+
+  display:none;
+}
+
+#v88PromptKey{
+  font-weight:bold;
+  font-size:15px;
+}
+
+#v88PromptText{
+  margin-top:4px;
+  opacity:.8;
+}
+
+#v88Message{
+  position:fixed;
+
+  left:50%;
+  top:20%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  padding:11px 17px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+  display:none;
+}
+
+#v88List{
+  position:fixed;
+
+  right:12px;
+  top:12px;
+
+  z-index:8700;
+
+  width:190px;
+
+  padding:10px;
+
+  background:#05070ed9;
+  color:white;
+
+  border:1px solid #ffffff25;
+  border-radius:11px;
+
+  font:11px Arial,sans-serif;
+
+  display:none;
+}
+
+.v88Item{
+  padding:6px 0;
+
+  border-bottom:
+    1px solid #ffffff15;
+}
+
+.v88Item:last-child{
+  border-bottom:none;
+}
+
+#v88Debug{
+  position:fixed;
+
+  left:10px;
+  bottom:10px;
+
+  z-index:8500;
+
+  padding:7px 9px;
+
+  background:#05070ec9;
+  color:white;
+
+  border-radius:8px;
+
+  font:10px monospace;
+
+  display:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     INTERACTION PROMPT
+     ========================================================= -->
+
+<div id="v88Prompt">
+
+  <div id="v88PromptKey">
+    [ E ]
+  </div>
+
+  <div id="v88PromptText">
+    Interact
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     INTERACTION MESSAGE
+     ========================================================= -->
+
+<div id="v88Message">
+  Interaction
+</div>
+
+
+<!-- =========================================================
+     NEARBY OBJECT LIST
+     ========================================================= -->
+
+<div id="v88List">
+
+  <b>NEARBY</b>
+
+  <div id="v88NearbyItems"></div>
+
+</div>
+
+
+<!-- =========================================================
+     DEBUG
+     ========================================================= -->
+
+<div id="v88Debug">
+  V88 INTERACTION
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V88
+   WORLD INTERACTION SYSTEM
+   ========================================================= */
+
+const V88 = {
+
+  version:"V88",
+
+  saveKey:
+    "WEBBOUND_V88_INTERACTIONS",
+
+  interactions:[],
+
+  nearby:[],
+
+  activeInteraction:null,
+
+  interactionDistance:4,
+
+  enabled:true,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.registerDefaultInteractions();
+
+    this.update();
+
+    console.log(
+      "WEBBOUND V88 INTERACTION SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     REGISTER INTERACTION
+     ======================================================= */
+
+  register(
+    id,
+    name,
+    x,
+    y,
+    z,
+    callback,
+    options={}
+  ){
+
+    if(!id){
+
+      return false;
+
+    }
+
+
+    const interaction={
+
+      id:String(id),
+
+      name:
+        String(name || "Interact"),
+
+      x:Number(x) || 0,
+
+      y:Number(y) || 0,
+
+      z:Number(z) || 0,
+
+      radius:
+        Number(options.radius) ||
+        this.interactionDistance,
+
+      once:
+        options.once===true,
+
+      completed:false,
+
+      enabled:
+        options.enabled!==false,
+
+      callback:
+        typeof callback==="function"
+        ? callback
+        : null
+
+    };
+
+
+    const existing=
+      this.interactions.find(
+        item=>
+          item.id===
+          interaction.id
+      );
+
+
+    if(existing){
+
+      Object.assign(
+        existing,
+        interaction
+      );
+
+    }
+    else{
+
+      this.interactions.push(
+        interaction
+      );
+
+    }
+
+
+    this.save();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     REMOVE INTERACTION
+     ======================================================= */
+
+  remove(id){
+
+    const before=
+      this.interactions.length;
+
+
+    this.interactions=
+      this.interactions.filter(
+        item=>
+          item.id!==id
+      );
+
+
+    if(
+      this.activeInteraction &&
+      this.activeInteraction.id===id
+    ){
+
+      this.activeInteraction=
+        null;
+
+      this.hidePrompt();
+
+    }
+
+
+    this.save();
+
+    return(
+      this.interactions.length<
+      before
+    );
+
+  },
+
+
+  /* =======================================================
+     ENABLE
+     ======================================================= */
+
+  enable(id){
+
+    const item=
+      this.find(id);
+
+    if(!item){
+
+      return false;
+
+    }
+
+    item.enabled=true;
+
+    this.save();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     DISABLE
+     ======================================================= */
+
+  disable(id){
+
+    const item=
+      this.find(id);
+
+    if(!item){
+
+      return false;
+
+    }
+
+    item.enabled=false;
+
+    if(
+      this.activeInteraction===
+      item
+    ){
+
+      this.activeInteraction=
+        null;
+
+      this.hidePrompt();
+
+    }
+
+
+    this.save();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     FIND
+     ======================================================= */
+
+  find(id){
+
+    return this.interactions.find(
+      item=>
+        item.id===id
+    );
+
+  },
+
+
+  /* =======================================================
+     PLAYER POSITION
+     ======================================================= */
+
+  getPlayerPosition(){
+
+    try{
+
+      if(
+        typeof player!=="undefined" &&
+        player &&
+        player.position
+      ){
+
+        return{
+
+          x:
+            Number(
+              player.position.x
+            ) || 0,
+
+          y:
+            Number(
+              player.position.y
+            ) || 0,
+
+          z:
+            Number(
+              player.position.z
+            ) || 0
+
+        };
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V88 PLAYER ERROR:",
+        error
+      );
+
+    }
+
+
+    return{
+
+      x:0,
+      y:0,
+      z:0
+
+    };
+
+  },
+
+
+  /* =======================================================
+     DISTANCE
+     ======================================================= */
+
+  distanceTo(item,playerPos){
+
+    const dx=
+      item.x-playerPos.x;
+
+    const dy=
+      item.y-playerPos.y;
+
+    const dz=
+      item.z-playerPos.z;
+
+
+    return Math.sqrt(
+      dx*dx+
+      dy*dy+
+      dz*dz
+    );
+
+  },
+
+
+  /* =======================================================
+     FIND NEARBY
+     ======================================================= */
+
+  findNearby(){
+
+    const pos=
+      this.getPlayerPosition();
+
+
+    const result=[];
+
+
+    this.interactions.forEach(
+      item=>{
+
+        if(!item.enabled){
+
+          return;
+
+        }
+
+
+        if(
+          item.once &&
+          item.completed
+        ){
+
+          return;
+
+        }
+
+
+        const distance=
+          this.distanceTo(
+            item,
+            pos
+          );
+
+
+        if(
+          distance<=
+          item.radius
+        ){
+
+          result.push({
+
+            item:item,
+
+            distance:distance
+
+          });
+
+        }
+
+      }
+    );
+
+
+    result.sort(
+      (a,b)=>
+        a.distance-
+        b.distance
+    );
+
+
+    this.nearby=result;
+
+
+    return result;
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    if(!this.enabled){
+
+      return;
+
+    }
+
+
+    const nearby=
+      this.findNearby();
+
+
+    if(
+      nearby.length>0
+    ){
+
+      this.activeInteraction=
+        nearby[0].item;
+
+      this.showPrompt(
+        nearby[0].item,
+        nearby[0].distance
+      );
+
+    }
+    else{
+
+      this.activeInteraction=
+        null;
+
+      this.hidePrompt();
+
+    }
+
+
+    this.updateNearbyList();
+
+  },
+
+
+  /* =======================================================
+     INTERACT
+     ======================================================= */
+
+  interact(){
+
+    const item=
+      this.activeInteraction;
+
+
+    if(!item){
+
+      this.message(
+        "Nothing to interact with."
+      );
+
+      return false;
+
+    }
+
+
+    if(
+      !item.enabled
+    ){
+
+      return false;
+
+    }
+
+
+    if(
+      item.once &&
+      item.completed
+    ){
+
+      return false;
+
+    }
+
+
+    const pos=
+      this.getPlayerPosition();
+
+
+    const distance=
+      this.distanceTo(
+        item,
+        pos
+      );
+
+
+    if(
+      distance>
+      item.radius
+    ){
+
+      this.message(
+        "Move closer."
+      );
+
+      return false;
+
+    }
+
+
+    try{
+
+      if(item.callback){
+
+        item.callback(item);
+
+      }
+
+
+      if(item.once){
+
+        item.completed=
+          true;
+
+      }
+
+
+      this.message(
+        "✓ "+
+        item.name
+      );
+
+
+      this.save();
+
+      this.update();
+
+      return true;
+
+    }
+    catch(error){
+
+      console.error(
+        "V88 INTERACTION ERROR:",
+        error
+      );
+
+      this.message(
+        "Interaction failed."
+      );
+
+      return false;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     PROMPT
+     ======================================================= */
+
+  showPrompt(
+    item,
+    distance
+  ){
+
+    const prompt=
+      document.getElementById(
+        "v88Prompt"
+      );
+
+    const text=
+      document.getElementById(
+        "v88PromptText"
+      );
+
+
+    if(!prompt){
+
+      return;
+
+    }
+
+
+    if(text){
+
+      text.textContent=
+        item.name+
+        " • "+
+        Math.max(
+          0,
+          distance
+        ).toFixed(1)+
+        " m";
+
+    }
+
+
+    prompt.style.display=
+      "block";
+
+  },
+
+
+  /* =======================================================
+     HIDE PROMPT
+     ======================================================= */
+
+  hidePrompt(){
+
+    const prompt=
+      document.getElementById(
+        "v88Prompt"
+      );
+
+
+    if(prompt){
+
+      prompt.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     NEARBY LIST
+     ======================================================= */
+
+  updateNearbyList(){
+
+    const list=
+      document.getElementById(
+        "v88NearbyItems"
+      );
+
+
+    if(!list){
+
+      return;
+
+    }
+
+
+    list.innerHTML="";
+
+
+    if(
+      this.nearby.length===0
+    ){
+
+      list.innerHTML=
+        "<div class='v88Item'>Nothing nearby</div>";
+
+      return;
+
+    }
+
+
+    this.nearby
+      .slice(0,5)
+      .forEach(
+        data=>{
+
+          const div=
+            document.createElement(
+              "div"
+            );
+
+
+          div.className=
+            "v88Item";
+
+
+          div.textContent=
+            data.item.name+
+            " • "+
+            data.distance.toFixed(1)+
+            "m";
+
+
+          list.appendChild(
+            div
+          );
+
+        }
+      );
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v88Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          2000
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     DEFAULT INTERACTIONS
+     ======================================================= */
+
+  registerDefaultInteractions(){
+
+    /*
+      These are disabled by default because
+      their coordinates may not match your
+      existing world.
+    */
+
+    this.register(
+
+      "peter_home_door",
+
+      "Enter Home",
+
+      0,
+      0,
+      0,
+
+      ()=>{
+        this.message(
+          "🏠 Home interaction ready"
+        );
+      },
+
+      {
+        radius:3,
+        enabled:false
+      }
+
+    );
+
+
+    this.register(
+
+      "computer",
+
+      "Use Computer",
+
+      5,
+      0,
+      5,
+
+      ()=>{
+        this.message(
+          "💻 Computer interaction ready"
+        );
+      },
+
+      {
+        radius:2.5,
+        enabled:false
+      }
+
+    );
+
+
+    this.register(
+
+      "workbench",
+
+      "Use Workbench",
+
+      -5,
+      0,
+      5,
+
+      ()=>{
+        this.message(
+          "🧰 Workbench interaction ready"
+        );
+      },
+
+      {
+        radius:2.5,
+        enabled:false
+      }
+
+    );
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+        version:this.version,
+
+        interactions:
+          this.interactions.map(
+            item=>({
+
+              id:item.id,
+
+              completed:
+                item.completed,
+
+              enabled:
+                item.enabled
+
+            })
+          )
+      };
+
+
+      localStorage.setItem(
+        this.saveKey,
+
+        JSON.stringify(data)
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V88 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        !data ||
+        !Array.isArray(
+          data.interactions
+        )
+      ){
+
+        return;
+
+      }
+
+
+      data.interactions.forEach(
+        saved=>{
+
+          const item=
+            this.find(
+              saved.id
+            );
+
+
+          if(!item){
+
+            return;
+
+          }
+
+
+          if(
+            typeof saved.completed===
+            "boolean"
+          ){
+
+            item.completed=
+              saved.completed;
+
+          }
+
+
+          if(
+            typeof saved.enabled===
+            "boolean"
+          ){
+
+            item.enabled=
+              saved.enabled;
+
+          }
+
+        }
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V88 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     EXPORT DATA
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      interactions:
+        this.interactions.map(
+          item=>({
+
+            id:item.id,
+
+            completed:
+              item.completed,
+
+            enabled:
+              item.enabled
+
+          })
+        )
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(
+      !data ||
+      !Array.isArray(
+        data.interactions
+      )
+    ){
+
+      return;
+
+    }
+
+
+    data.interactions.forEach(
+      saved=>{
+
+        const item=
+          this.find(
+            saved.id
+          );
+
+
+        if(!item){
+
+          return;
+
+        }
+
+
+        if(
+          typeof saved.completed===
+          "boolean"
+        ){
+
+          item.completed=
+            saved.completed;
+
+        }
+
+
+        if(
+          typeof saved.enabled===
+          "boolean"
+        ){
+
+          item.enabled=
+            saved.enabled;
+
+        }
+
+      }
+    );
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     V87 COMPATIBILITY
+     ======================================================= */
+
+  installV87Compatibility(){
+
+    if(
+      typeof V87==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V87.__v88CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    V87.__v88CompatibilityInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     LOOP
+     ======================================================= */
+
+  start(){
+
+    const loop=()=>{
+
+      this.update();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      E = interact
+    */
+
+    if(
+      event.code==="KeyE"
+    ){
+
+      event.preventDefault();
+
+      V88.interact();
+
+    }
+
+
+    /*
+      F6 = show nearby list
+    */
+
+    if(
+      event.code==="F6"
+    ){
+
+      const list=
+        document.getElementById(
+          "v88List"
+        );
+
+
+      if(list){
+
+        list.style.display=
+          list.style.display===
+          "none"
+          ? "block"
+          : "none";
+
+      }
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V88.init();
+
+V88.installV87Compatibility();
+
+V88.start();
+
+
+/* =========================================================
+   FUTURE API EXAMPLES
+
+   V88.register(
+     "front_door",
+     "Enter Home",
+     20,
+     0,
+     -30,
+     function(item){
+       console.log("Door opened");
+     },
+     {
+       radius:3,
+       once:false
+     }
+   );
+
+   V88.enable("front_door");
+
+   V88.disable("front_door");
+
+   V88.remove("front_door");
+
+   ========================================================= */
+
+</script>
+
+</body>
+</html>
