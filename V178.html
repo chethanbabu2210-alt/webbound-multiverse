@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V178 — MISSIONS</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#314e5a,#091116);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.4;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(800px,92vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#missionHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.7;
+}
+
+.bar{
+ height:8px;
+ background:#ffffff12;
+ border-radius:7px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+.fill{
+ height:100%;
+ width:0%;
+ background:#8fb8df;
+ transition:.3s;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+.completed{
+ opacity:.55;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="line lineH"></div>
+  <div class="line lineV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">📋 MISSION HQ</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   📋 WEBBOUND V178 — MISSION SYSTEM
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    📋 MISSIONS<br>
+    <span id="missionCount">0</span>
+   </div>
+
+   <div class="stat">
+    🏆 COMPLETED<br>
+    <span id="completedText">0</span>
+   </div>
+
+   <div class="stat">
+    ⭐ XP<br>
+    <span id="xpText">0</span>
+   </div>
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cashText">5000</span>
+   </div>
+
+  </div>
+
+  <div id="missionHud">
+
+   <b>🎯 ACTIVE OBJECTIVE</b>
+
+   <br>
+
+   <span id="activeMission">
+    No active mission
+   </span>
+
+   <br>
+
+   Progress:
+   <span id="progressText">
+    0 / 0
+   </span>
+
+   <div class="bar">
+    <div id="progressFill" class="fill"></div>
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V178.missions()">
+   📋 MISSIONS
+  </button>
+
+  <button onclick="V178.story()">
+   📖 STORY
+  </button>
+
+  <button onclick="V178.randomMission()">
+   🎯 NEW MISSION
+  </button>
+
+  <button onclick="V178.progress(1)">
+   ➕ PROGRESS
+  </button>
+
+  <button onclick="V178.complete()">
+   🏆 COMPLETE
+  </button>
+
+  <button onclick="V178.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V178
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V178.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V178={
+
+ saveKey:"WEBBOUND_V178",
+
+ cash:5000,
+
+ xp:0,
+
+ active:null,
+
+ completed:[],
+
+ missionsData:[
+
+  {
+   id:"first_steps",
+   title:"🚶 First Steps",
+   description:
+    "Explore the city and complete your first objective.",
+   goal:3,
+   rewardCash:500,
+   rewardXP:50
+  },
+
+  {
+   id:"city_helper",
+   title:"🤝 City Helper",
+   description:
+    "Complete several helpful activities around the city.",
+   goal:5,
+   rewardCash:900,
+   rewardXP:90
+  },
+
+  {
+   id:"delivery",
+   title:"📦 Important Delivery",
+   description:
+    "Deliver an important package across the city.",
+   goal:4,
+   rewardCash:1200,
+   rewardXP:120
+  },
+
+  {
+   id:"business",
+   title:"💼 Business Opportunity",
+   description:
+    "Complete tasks connected with a local business.",
+   goal:6,
+   rewardCash:1800,
+   rewardXP:170
+  },
+
+  {
+   id:"technology",
+   title:"💻 Digital Investigation",
+   description:
+    "Complete technical objectives and collect information.",
+   goal:7,
+   rewardCash:2500,
+   rewardXP:220
+  },
+
+  {
+   id:"infrastructure",
+   title:"🏗️ City Infrastructure",
+   description:
+    "Assist with an important infrastructure project.",
+   goal:8,
+   rewardCash:3500,
+   rewardXP:300
+  }
+
+ ],
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "📋 V178 Mission System ready"
+  );
+
+ },
+
+ /* =========================
+    CURRENT MISSION
+ ========================= */
+
+ current(){
+
+  if(!this.active)
+   return null;
+
+  return this.missionsData.find(
+   m=>m.id===this.active.id
+  );
+
+ },
+
+ /* =========================
+    MISSIONS
+ ========================= */
+
+ missions(){
+
+  let html="";
+
+  this.missionsData.forEach(
+   mission=>{
+
+    const done=
+     this.completed.includes(
+      mission.id
+     );
+
+    const active=
+     this.active &&
+     this.active.id===
+     mission.id;
+
+    html+=`
+
+    <div class="card ${
+     done
+     ?"completed"
+     :""
+    }">
+
+     <b>${mission.title}</b>
+
+     <br>
+
+     ${mission.description}
+
+     <br><br>
+
+     🎯 Goal:
+     ${mission.goal}
+
+     <br>
+
+     💰 Reward:
+     ₹${mission.rewardCash.toLocaleString()}
+
+     <br>
+
+     ⭐ XP:
+     ${mission.rewardXP}
+
+     <br>
+
+     ${
+      done
+      ?"✅ COMPLETED"
+      :active
+      ?"🟢 ACTIVE"
+      :`
+       <button
+        onclick="
+         V178.start('${mission.id}')
+        ">
+        ▶️ START MISSION
+       </button>
+      `
+     }
+
+    </div>
+
+    `;
+
+   });
+
+  this.open(
+   "📋 MISSION BOARD",
+   html
+  );
+
+ },
+
+ /* =========================
+    START
+ ========================= */
+
+ start(id){
+
+  const mission=
+   this.missionsData.find(
+    m=>m.id===id
+   );
+
+  if(!mission)
+   return;
+
+  if(
+   this.completed.includes(
+    mission.id
+   )
+  ){
+
+   this.notify(
+    "✅ Mission already completed."
+   );
+
+   return;
+
+  }
+
+  this.active={
+   id:mission.id,
+   progress:0
+  };
+
+  this.update();
+
+  this.save();
+
+  this.close();
+
+  this.notify(
+   "🎯 Mission started: "+
+   mission.title
+  );
+
+ },
+
+ /* =========================
+    RANDOM
+ ========================= */
+
+ randomMission(){
+
+  const available=
+   this.missionsData.filter(
+    m=>
+     !this.completed.includes(
+      m.id
+     )
+  );
+
+  if(!available.length){
+
+   this.notify(
+    "🏆 All missions completed!"
+   );
+
+   return;
+
+  }
+
+  const mission=
+   available[
+    Math.floor(
+     Math.random()*
+     available.length
+    )
+   ];
+
+  this.start(
+   mission.id
+  );
+
+ },
+
+ /* =========================
+    PROGRESS
+ ========================= */
+
+ progress(amount){
+
+  const mission=
+   this.current();
+
+  if(!mission){
+
+   this.notify(
+    "📋 Start a mission first."
+   );
+
+   return;
+
+  }
+
+  this.active.progress+=
+   Math.max(
+    0,
+    Math.floor(amount)
+   );
+
+  this.active.progress=
+   Math.min(
+    mission.goal,
+    this.active.progress
+   );
+
+  this.update();
+
+  this.save();
+
+  if(
+   this.active.progress>=
+   mission.goal
+  ){
+
+   this.notify(
+    "🏆 Objective complete! Claim reward."
+   );
+
+  }
+  else{
+
+   this.notify(
+    "🎯 Progress "+
+    this.active.progress+
+    "/"+
+    mission.goal
+   );
+
+  }
+
+ },
+
+ /* =========================
+    COMPLETE
+ ========================= */
+
+ complete(){
+
+  const mission=
+   this.current();
+
+  if(!mission){
+
+   this.notify(
+    "📋 No active mission."
+   );
+
+   return;
+
+  }
+
+  if(
+   this.active.progress<
+   mission.goal
+  ){
+
+   this.notify(
+    "❌ Complete the objective first."
+   );
+
+   return;
+
+  }
+
+  this.cash+=
+   mission.rewardCash;
+
+  this.xp+=
+   mission.rewardXP;
+
+  this.completed.push(
+   mission.id
+  );
+
+  this.active=null;
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🏆 Mission complete! +₹"+
+   mission.rewardCash+
+   " +"+
+   mission.rewardXP+
+   " XP"
+  );
+
+ },
+
+ /* =========================
+    STORY
+ ========================= */
+
+ story(){
+
+  this.open(
+   "📖 WEBBOUND STORY",
+   `
+
+   <div class="card">
+
+    <b>CHAPTER 1 — THE CITY</b>
+
+    <br><br>
+
+    You arrive in a growing city
+    filled with opportunities.
+
+    <br><br>
+
+    Build your reputation,
+    develop your skills,
+    collect vehicles,
+    complete missions,
+    and discover what the city
+    has hidden.
+
+   </div>
+
+   <div class="card">
+
+    <b>CHAPTER 2 — CONNECTIONS</b>
+
+    <br><br>
+
+    Different organizations begin
+    noticing your work.
+
+    <br><br>
+
+    Your decisions and reputation
+    can shape which opportunities
+    become available.
+
+   </div>
+
+   <div class="card">
+
+    <b>CHAPTER 3 — RISE</b>
+
+    <br><br>
+
+    As your experience grows,
+    larger missions become
+    available.
+
+    <br><br>
+
+    Your ultimate objective is
+    still unknown...
+
+   </div>
+
+   `
+  );
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  document.getElementById(
+   "missionCount"
+  ).textContent=
+   this.missionsData.length;
+
+  document.getElementById(
+   "completedText"
+  ).textContent=
+   this.completed.length;
+
+  document.getElementById(
+   "xpText"
+  ).textContent=
+   this.xp;
+
+  document.getElementById(
+   "cashText"
+  ).textContent=
+   this.cash.toLocaleString();
+
+  const mission=
+   this.current();
+
+  if(!mission){
+
+   document.getElementById(
+    "activeMission"
+   ).textContent=
+    "No active mission";
+
+   document.getElementById(
+    "progressText"
+   ).textContent=
+    "0 / 0";
+
+   document.getElementById(
+    "progressFill"
+   ).style.width=
+    "0%";
+
+   return;
+
+  }
+
+  const progress=
+   this.active.progress;
+
+  document.getElementById(
+   "activeMission"
+  ).textContent=
+   mission.title;
+
+  document.getElementById(
+   "progressText"
+  ).textContent=
+   progress+
+   " / "+
+   mission.goal;
+
+  document.getElementById(
+   "progressFill"
+  ).style.width=
+   Math.min(
+    100,
+    progress/
+    mission.goal*
+    100
+   )+"%";
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    xp:this.xp,
+
+    active:this.active,
+
+    completed:this.completed
+
+   })
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(
+    Number.isFinite(
+     data.cash
+    )
+   )
+    this.cash=
+     Math.max(
+      0,
+      data.cash
+     );
+
+   if(
+    Number.isFinite(
+     data.xp
+    )
+   )
+    this.xp=
+     Math.max(
+      0,
+      data.xp
+     );
+
+   if(
+    data.active &&
+    typeof data.active.id===
+    "string"
+   ){
+
+    this.active={
+     id:data.active.id,
+     progress:
+      Number.isFinite(
+       data.active.progress
+      )
+      ?Math.max(
+       0,
+       data.active.progress
+      )
+      :0
+    };
+
+   }
+
+   if(
+    Array.isArray(
+     data.completed
+    )
+   ){
+
+    this.completed=
+     data.completed.filter(
+      id=>
+       typeof id==="string"
+     );
+
+   }
+
+  }
+  catch(error){
+
+   console.log(
+    "V178 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V178.init();
+
+console.log(
+ "WEBBOUND V178 MISSION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
