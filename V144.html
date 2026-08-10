@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V144 — VIDEO SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ overflow:hidden;
+ background:#000;
+ color:#fff;
+ font-family:Arial,sans-serif
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ background:
+ radial-gradient(circle at center,#263b4b,#05080b 75%);
+}
+
+#cinema{
+ position:fixed;
+ inset:0;
+ display:none;
+ background:#000;
+ z-index:50000;
+}
+
+#videoScene{
+ position:absolute;
+ inset:0;
+ overflow:hidden;
+ background:
+ linear-gradient(
+  180deg,
+  #162733 0%,
+  #081016 55%,
+  #030506 100%
+ );
+}
+
+.city{
+ position:absolute;
+ bottom:0;
+ width:100%;
+ height:55%;
+ display:flex;
+ align-items:flex-end;
+ justify-content:center;
+ gap:8px;
+}
+
+.building{
+ width:9%;
+ min-width:35px;
+ background:#101a21;
+ border:1px solid #263640;
+ position:relative;
+}
+
+.building:nth-child(1){height:45%}
+.building:nth-child(2){height:75%}
+.building:nth-child(3){height:55%}
+.building:nth-child(4){height:90%}
+.building:nth-child(5){height:65%}
+.building:nth-child(6){height:80%}
+.building:nth-child(7){height:50%}
+.building:nth-child(8){height:70%}
+
+.window{
+ position:absolute;
+ width:5px;
+ height:5px;
+ background:#d7b85c;
+ opacity:.65;
+}
+
+#character{
+ position:absolute;
+ left:50%;
+ bottom:18%;
+ transform:translateX(-50%);
+ width:45px;
+ height:90px;
+ background:#172633;
+ border-radius:18px 18px 5px 5px;
+}
+
+#character:before{
+ content:"";
+ position:absolute;
+ width:32px;
+ height:32px;
+ left:6px;
+ top:-28px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#character:after{
+ content:"";
+ position:absolute;
+ width:70px;
+ height:6px;
+ left:-13px;
+ bottom:8px;
+ background:#111;
+ border-radius:50%;
+}
+
+#cameraFlash{
+ position:absolute;
+ inset:0;
+ background:#fff;
+ opacity:0;
+ pointer-events:none;
+}
+
+#subtitle{
+ position:absolute;
+ left:50%;
+ bottom:13%;
+ transform:translateX(-50%);
+ width:min(850px,90vw);
+ padding:12px 18px;
+ text-align:center;
+ font-size:clamp(14px,2.5vw,23px);
+ text-shadow:0 2px 5px #000;
+ z-index:10;
+}
+
+#sceneTitle{
+ position:absolute;
+ left:50%;
+ top:12%;
+ transform:translateX(-50%);
+ font-size:clamp(20px,4vw,38px);
+ font-weight:bold;
+ letter-spacing:3px;
+ opacity:0;
+ transition:opacity .7s;
+ text-align:center;
+}
+
+#controls{
+ position:absolute;
+ left:50%;
+ bottom:3%;
+ transform:translateX(-50%);
+ width:min(850px,94vw);
+ display:flex;
+ gap:7px;
+ justify-content:center;
+ z-index:20;
+}
+
+#controls button{
+ padding:9px 15px;
+ border:1px solid #ffffff35;
+ border-radius:8px;
+ background:#101820dd;
+ color:white;
+ cursor:pointer;
+}
+
+#controls button:hover{
+ background:#20303c;
+}
+
+#mainUI{
+ position:fixed;
+ inset:0;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:10;
+}
+
+#menu{
+ width:min(500px,90vw);
+ padding:22px;
+ background:#05090df0;
+ border:1px solid #ffffff25;
+ border-radius:16px;
+ text-align:center;
+}
+
+#menu h1{
+ margin-top:0;
+}
+
+.menuButton{
+ width:100%;
+ padding:13px;
+ margin-top:8px;
+ border:0;
+ border-radius:9px;
+ background:#182b39;
+ color:#fff;
+}
+
+.menuButton:active{
+ transform:scale(.98);
+}
+
+#progress{
+ position:absolute;
+ left:0;
+ bottom:0;
+ height:4px;
+ width:0%;
+ background:#fff;
+ z-index:30;
+}
+
+#fade{
+ position:absolute;
+ inset:0;
+ background:#000;
+ opacity:0;
+ pointer-events:none;
+ z-index:40;
+ transition:opacity .7s;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="mainUI">
+
+  <div id="menu">
+
+   <h1>🕵️ WEBBOUND</h1>
+
+   <p>
+    V144 — Interactive Video & Cutscene System
+   </p>
+
+   <button
+    class="menuButton"
+    onclick="V144.playIntro()">
+    ▶️ PLAY INTRO
+   </button>
+
+   <button
+    class="menuButton"
+    onclick="V144.playMissionVideo()">
+    🎬 MISSION CUTSCENE
+   </button>
+
+   <button
+    class="menuButton"
+    onclick="V144.playCaseVideo()">
+    📁 CASE REVEAL
+   </button>
+
+   <button
+    class="menuButton"
+    onclick="V144.playEnding()">
+    🏆 STORY ENDING
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<div id="cinema">
+
+ <div id="videoScene">
+
+  <div id="sceneTitle"></div>
+
+  <div class="city">
+
+   <div class="building"></div>
+   <div class="building"></div>
+   <div class="building"></div>
+   <div class="building"></div>
+   <div class="building"></div>
+   <div class="building"></div>
+   <div class="building"></div>
+   <div class="building"></div>
+
+  </div>
+
+  <div id="character"></div>
+
+  <div id="subtitle"></div>
+
+  <div id="cameraFlash"></div>
+
+  <div id="fade"></div>
+
+  <div id="progress"></div>
+
+  <div id="controls">
+
+   <button onclick="V144.togglePause()">
+    ⏯️ Pause
+   </button>
+
+   <button onclick="V144.previous()">
+    ⏮️ Previous
+   </button>
+
+   <button onclick="V144.next()">
+    ⏭️ Next
+   </button>
+
+   <button onclick="V144.skip()">
+    ⏩ Skip
+   </button>
+
+   <button onclick="V144.closeVideo()">
+    ✖️ Exit
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V144={
+
+ scenes:[],
+ current:0,
+ paused:false,
+ timer:null,
+ startTime:0,
+
+ /* =========================
+    VIDEO DATA
+ ========================= */
+
+ introScenes:[
+
+  {
+   title:"THE CITY",
+   text:"The city never sleeps.",
+   duration:4000
+  },
+
+  {
+   title:"A NEW BEGINNING",
+   text:"Every investigation begins with a single clue.",
+   duration:4500
+  },
+
+  {
+   title:"THE INVESTIGATOR",
+   text:"You decided to uncover the truth.",
+   duration:4500
+  },
+
+  {
+   title:"THE FIRST CLUE",
+   text:"Tonight, someone is watching.",
+   duration:4000
+  },
+
+  {
+   title:"WEBBOUND",
+   text:"Your story begins now.",
+   duration:4000
+  }
+
+ ],
+
+ missionScenes:[
+
+  {
+   title:"MISSION ACCEPTED",
+   text:"A new case has arrived.",
+   duration:3500
+  },
+
+  {
+   title:"SEARCH",
+   text:"Search the city and find the evidence.",
+   duration:4000
+  },
+
+  {
+   title:"CONNECT THE CLUES",
+   text:"Every piece of evidence matters.",
+   duration:4000
+  },
+
+  {
+   title:"THE TRUTH",
+   text:"Follow the clues. Find the truth.",
+   duration:4000
+  }
+
+ ],
+
+ caseScenes:[
+
+  {
+   title:"CASE FILE",
+   text:"A mysterious case has appeared.",
+   duration:3500
+  },
+
+  {
+   title:"THE SUSPECT",
+   text:"Someone in the city may know more than they admit.",
+   duration:4500
+  },
+
+  {
+   title:"EVIDENCE",
+   text:"The evidence will decide what happens next.",
+   duration:4000
+  },
+
+  {
+   title:"DECISION",
+   text:"The truth is closer than you think.",
+   duration:4000
+  }
+
+ ],
+
+ endingScenes:[
+
+  {
+   title:"THE CASE IS OVER",
+   text:"The evidence has been presented.",
+   duration:4000
+  },
+
+  {
+   title:"JUSTICE",
+   text:"The city finally has answers.",
+   duration:4000
+  },
+
+  {
+   title:"YOUR REPUTATION",
+   text:"Your name will be remembered.",
+   duration:4000
+  },
+
+  {
+   title:"THE NEXT STORY",
+   text:"But this is only the beginning...",
+   duration:5000
+  },
+
+  {
+   title:"WEBBOUND",
+   text:"TO BE CONTINUED",
+   duration:5000
+  }
+
+ ],
+
+ /* =========================
+    START VIDEO
+ ========================= */
+
+ playIntro(){
+
+  this.start(
+   this.introScenes
+  );
+
+ },
+
+ playMissionVideo(){
+
+  this.start(
+   this.missionScenes
+  );
+
+ },
+
+ playCaseVideo(){
+
+  this.start(
+   this.caseScenes
+  );
+
+ },
+
+ playEnding(){
+
+  this.start(
+   this.endingScenes
+  );
+
+ },
+
+ start(scenes){
+
+  clearTimeout(this.timer);
+
+  this.scenes=scenes;
+
+  this.current=0;
+
+  this.paused=false;
+
+  document.getElementById(
+   "mainUI"
+  ).style.display="none";
+
+  document.getElementById(
+   "cinema"
+  ).style.display="block";
+
+  this.showScene();
+
+ },
+
+ /* =========================
+    SCENE
+ ========================= */
+
+ showScene(){
+
+  clearTimeout(this.timer);
+
+  if(
+   this.current>=
+   this.scenes.length
+  ){
+
+   this.closeVideo();
+
+   return;
+
+  }
+
+  if(this.current<0)
+   this.current=0;
+
+  const scene=
+   this.scenes[
+    this.current
+   ];
+
+  const title=
+   document.getElementById(
+    "sceneTitle"
+   );
+
+  const subtitle=
+   document.getElementById(
+    "subtitle"
+   );
+
+  title.style.opacity="0";
+
+  subtitle.style.opacity="0";
+
+  this.fadeIn();
+
+  setTimeout(()=>{
+
+   title.textContent=
+    scene.title;
+
+   subtitle.textContent=
+    scene.text;
+
+   title.style.opacity="1";
+
+   subtitle.style.opacity="1";
+
+   this.startTime=
+    Date.now();
+
+   this.updateProgress();
+
+  },500);
+
+  if(!this.paused){
+
+   this.timer=
+    setTimeout(
+     ()=>{
+      this.next();
+     },
+     scene.duration
+    );
+
+  }
+
+ },
+
+ /* =========================
+    NEXT
+ ========================= */
+
+ next(){
+
+  clearTimeout(this.timer);
+
+  if(
+   this.current<
+   this.scenes.length-1
+  ){
+
+   this.current++;
+
+   this.showScene();
+
+  }
+  else{
+
+   this.closeVideo();
+
+  }
+
+ },
+
+ previous(){
+
+  clearTimeout(this.timer);
+
+  if(this.current>0){
+
+   this.current--;
+
+   this.showScene();
+
+  }
+
+ },
+
+ /* =========================
+    PAUSE
+ ========================= */
+
+ togglePause(){
+
+  this.paused=!this.paused;
+
+  if(this.paused){
+
+   clearTimeout(this.timer);
+
+   this.message(
+    "⏸️ Video paused"
+   );
+
+  }
+  else{
+
+   const scene=
+    this.scenes[
+     this.current
+    ];
+
+   const elapsed=
+    Date.now()-
+    this.startTime;
+
+   const remaining=
+    Math.max(
+     500,
+     scene.duration-elapsed
+    );
+
+   this.timer=
+    setTimeout(
+     ()=>{
+      this.next();
+     },
+     remaining
+    );
+
+   this.message(
+    "▶️ Video resumed"
+   );
+
+  }
+
+ },
+
+ /* =========================
+    SKIP
+ ========================= */
+
+ skip(){
+
+  clearTimeout(this.timer);
+
+  this.current=
+   this.scenes.length;
+
+  this.closeVideo();
+
+ },
+
+ /* =========================
+    FADE
+ ========================= */
+
+ fadeIn(){
+
+  const fade=
+   document.getElementById(
+    "fade"
+   );
+
+  fade.style.opacity="1";
+
+  setTimeout(
+   ()=>{
+    fade.style.opacity="0";
+   },
+   80
+  );
+
+ },
+
+ /* =========================
+    PROGRESS
+ ========================= */
+
+ updateProgress(){
+
+  clearInterval(
+   this.progressTimer
+  );
+
+  const scene=
+   this.scenes[
+    this.current
+   ];
+
+  const bar=
+   document.getElementById(
+    "progress"
+   );
+
+  const start=
+   Date.now();
+
+  this.progressTimer=
+   setInterval(()=>{
+
+    if(this.paused)
+     return;
+
+    const elapsed=
+     Date.now()-start;
+
+    const percent=
+     Math.min(
+      100,
+      elapsed/
+      scene.duration*
+      100
+     );
+
+    bar.style.width=
+     percent+"%";
+
+    if(percent>=100)
+     clearInterval(
+      this.progressTimer
+     );
+
+   },40);
+
+ },
+
+ /* =========================
+    EXIT
+ ========================= */
+
+ closeVideo(){
+
+  clearTimeout(this.timer);
+
+  clearInterval(
+   this.progressTimer
+  );
+
+  document.getElementById(
+   "cinema"
+  ).style.display="none";
+
+  document.getElementById(
+   "mainUI"
+  ).style.display="flex";
+
+  document.getElementById(
+   "progress"
+  ).style.width="0%";
+
+ },
+
+ /* =========================
+    MESSAGE
+ ========================= */
+
+ message(text){
+
+  console.log(text);
+
+ }
+
+};
+
+console.log(
+ "WEBBOUND V144 VIDEO SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
