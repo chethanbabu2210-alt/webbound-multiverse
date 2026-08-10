@@ -1,0 +1,1072 @@
+<!-- =====================================================
+ V249 — BOSS / VILLAIN ENCOUNTER SYSTEM
+ Add after V248
+ ===================================================== -->
+
+<style>
+
+#bossHud249{
+
+    position:fixed;
+
+    left:50%;
+
+    top:12px;
+
+    transform:translateX(-50%);
+
+    width:min(420px,82vw);
+
+    padding:10px 14px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff35;
+
+    border-radius:10px;
+
+    z-index:8500;
+
+    display:none;
+
+}
+
+.bossTitle249{
+
+    text-align:center;
+
+    font-size:10px;
+
+    font-weight:bold;
+
+}
+
+#bossName249{
+
+    margin-top:4px;
+
+    text-align:center;
+
+    font-size:9px;
+
+}
+
+#bossHealthBar249{
+
+    width:100%;
+
+    height:8px;
+
+    margin-top:7px;
+
+    background:#202830;
+
+    border-radius:8px;
+
+    overflow:hidden;
+
+}
+
+#bossHealthFill249{
+
+    width:100%;
+
+    height:100%;
+
+    transition:width .25s;
+
+}
+
+#bossPhase249{
+
+    margin-top:5px;
+
+    text-align:center;
+
+    font-size:8px;
+
+}
+
+
+/* ================= BOSS ================= */
+
+.boss249{
+
+    position:absolute;
+
+    width:52px;
+
+    height:64px;
+
+    background:#ffffff15;
+
+    border:2px solid #ffffff55;
+
+    border-radius:10px;
+
+    z-index:6000;
+
+    cursor:pointer;
+
+    transition:
+        left .45s,
+        top .45s,
+        transform .2s;
+
+}
+
+.boss249::before{
+
+    content:"";
+
+    position:absolute;
+
+    width:18px;
+
+    height:18px;
+
+    left:15px;
+
+    top:-20px;
+
+    border-radius:50%;
+
+    background:#ffffff30;
+
+    border:1px solid #ffffff50;
+
+}
+
+.boss249.hit{
+
+    transform:scale(.9);
+
+}
+
+
+/* ================= BOSS MESSAGE ================= */
+
+#bossMessage249{
+
+    position:fixed;
+
+    left:50%;
+
+    top:28%;
+
+    transform:translateX(-50%);
+
+    padding:10px 18px;
+
+    background:#03070df7;
+
+    border:1px solid #ffffff40;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    z-index:9000;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#bossMessage249.show{
+
+    animation:
+        bossPopup249 1.3s forwards;
+
+}
+
+@keyframes bossPopup249{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+            translateX(-50%)
+            scale(.8);
+
+    }
+
+    20%{
+
+        opacity:1;
+
+        transform:
+            translateX(-50%)
+            scale(1);
+
+    }
+
+    80%{
+
+        opacity:1;
+
+    }
+
+    100%{
+
+        opacity:0;
+
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#bossControls249{
+
+    position:fixed;
+
+    right:12px;
+
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:8600;
+
+}
+
+#bossControls249 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ BOSS HUD
+ ===================================================== -->
+
+<div id="bossHud249">
+
+    <div class="bossTitle249">
+        ⚔️ VILLAIN ENCOUNTER
+    </div>
+
+    <div id="bossName249">
+        No villain detected
+    </div>
+
+    <div id="bossHealthBar249">
+
+        <div id="bossHealthFill249"></div>
+
+    </div>
+
+    <div id="bossPhase249">
+        Phase: NONE
+    </div>
+
+</div>
+
+
+<div id="bossMessage249">
+    BOSS
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="bossControls249">
+
+    <button onclick="SpiderBoss249.start()">
+        🦹 BOSS
+    </button>
+
+    <button onclick="SpiderBoss249.attack()">
+        🕷️ ATTACK
+    </button>
+
+    <button onclick="SpiderBoss249.changeBoss()">
+        🔄 VILLAIN
+    </button>
+
+    <button onclick="SpiderBoss249.end()">
+        ✕ END
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V249 BOSS ENGINE
+ ===================================================== */
+
+const SpiderBoss249={
+
+    active:false,
+
+    boss:null,
+
+    element:null,
+
+    bossIndex:0,
+
+    attackCooldown:false,
+
+    defeated:0,
+
+    villains:[
+
+        {
+            name:"The Green Goblin",
+            health:500,
+            reward:500
+        },
+
+        {
+            name:"Doctor Octopus",
+            health:650,
+            reward:650
+        },
+
+        {
+            name:"Venom",
+            health:800,
+            reward:800
+        },
+
+        {
+            name:"Electro",
+            health:700,
+            reward:700
+        }
+
+    ],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.message(
+            "🦹 Villain encounter system ready."
+        );
+
+    },
+
+
+    /* =========================
+       START
+       ========================= */
+
+    start(){
+
+        if(
+            this.active
+        ){
+
+            this.message(
+                "⚔️ A villain encounter is already active."
+            );
+
+            return;
+
+        }
+
+
+        this.boss=
+            this.villains[
+                this.bossIndex
+            ];
+
+
+        this.active=true;
+
+
+        this.createBoss();
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "⚠️ "+
+            this.boss.name+
+            " has appeared!"
+        );
+
+
+        /*
+         * Increase police
+         * pressure during boss event.
+         */
+
+        if(
+            typeof SpiderPolice246!==
+            "undefined"
+        ){
+
+            SpiderPolice246
+                .addWanted(1);
+
+        }
+
+    },
+
+
+    /* =========================
+       CREATE BOSS
+       ========================= */
+
+    createBoss(){
+
+        this.removeBoss();
+
+
+        const boss=
+            document.createElement(
+                "div"
+            );
+
+
+        boss.className=
+            "boss249";
+
+
+        boss.style.left=
+            "70vw";
+
+
+        boss.style.top=
+            "42vh";
+
+
+        boss.title=
+            this.boss.name;
+
+
+        boss.addEventListener(
+            "click",
+            ()=>{
+                this.attack();
+            }
+        );
+
+
+        document.body.appendChild(
+            boss
+        );
+
+
+        this.element=boss;
+
+
+        this.startBossAI();
+
+    },
+
+
+    /* =========================
+       ATTACK
+       ========================= */
+
+    attack(){
+
+        if(
+            !this.active ||
+            !this.boss
+        )
+            return;
+
+
+        if(
+            this.attackCooldown
+        )
+            return;
+
+
+        this.attackCooldown=true;
+
+
+        setTimeout(
+            ()=>{
+                this.attackCooldown=false;
+            },
+            300
+        );
+
+
+        const phase=
+            this.getPhase();
+
+
+        let damage=40;
+
+
+        if(
+            phase===2
+        )
+            damage=50;
+
+
+        if(
+            phase===3
+        )
+            damage=60;
+
+
+        this.boss.health=
+            Math.max(
+                0,
+                this.boss.health-
+                damage
+            );
+
+
+        if(this.element){
+
+            this.element.classList.add(
+                "hit"
+            );
+
+
+            setTimeout(
+                ()=>{
+                    if(
+                        this.element
+                    ){
+
+                        this.element
+                            .classList
+                            .remove(
+                                "hit"
+                            );
+
+                    }
+                },
+                180
+            );
+
+        }
+
+
+        this.updateHUD();
+
+
+        if(
+            this.boss.health<=0
+        ){
+
+            this.victory();
+
+            return;
+
+        }
+
+
+        this.message(
+            "🕷️ Hit! "+
+            this.boss.name+
+            " HP: "+
+            this.boss.health
+        );
+
+    },
+
+
+    /* =========================
+       PHASE
+       ========================= */
+
+    getPhase(){
+
+        if(
+            !this.boss
+        )
+            return 0;
+
+
+        const ratio=
+            this.boss.health/
+            this.boss.maxHealth;
+
+
+        if(
+            ratio>0.66
+        )
+            return 1;
+
+
+        if(
+            ratio>0.33
+        )
+            return 2;
+
+
+        return 3;
+
+    },
+
+
+    /* =========================
+       BOSS AI
+       ========================= */
+
+    startBossAI(){
+
+        const loop=
+            setInterval(
+                ()=>{
+
+                    if(
+                        !this.active ||
+                        !this.element
+                    ){
+
+                        clearInterval(
+                            loop
+                        );
+
+                        return;
+
+                    }
+
+
+                    const phase=
+                        this.getPhase();
+
+
+                    let left=
+                        parseFloat(
+                            this.element
+                                .style
+                                .left
+                        );
+
+
+                    let top=
+                        parseFloat(
+                            this.element
+                                .style
+                                .top
+                        );
+
+
+                    const speed=
+                        phase===3
+                        ?3
+                        :phase===2
+                        ?2
+                        :1;
+
+
+                    left+=
+                        (
+                            Math.random()*
+                            speed*2
+                        )-
+                        speed;
+
+
+                    top+=
+                        (
+                            Math.random()*
+                            speed*2
+                        )-
+                        speed;
+
+
+                    left=
+                        Math.max(
+                            10,
+                            Math.min(
+                                85,
+                                left
+                            )
+                        );
+
+
+                    top=
+                        Math.max(
+                            25,
+                            Math.min(
+                                75,
+                                top
+                            )
+                        );
+
+
+                    this.element
+                        .style
+                        .left=
+                        left+"vw";
+
+
+                    this.element
+                        .style
+                        .top=
+                        top+"vh";
+
+
+                },
+                700
+            );
+
+    },
+
+
+    /* =========================
+       VICTORY
+       ========================= */
+
+    victory(){
+
+        const reward=
+            this.boss.reward;
+
+
+        this.defeated++;
+
+
+        this.message(
+            "🏆 "+
+            this.boss.name+
+            " defeated! +"+
+            reward+
+            " XP"
+        );
+
+
+        if(
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            SpiderProgress239.addXP(
+                reward
+            );
+
+        }
+
+
+        if(
+            typeof SpiderMission236!==
+            "undefined"
+        ){
+
+            SpiderMission236
+                .addProgress();
+
+        }
+
+
+        if(
+            typeof SpiderCollect242!==
+            "undefined"
+        ){
+
+            SpiderCollect242.tokens+=
+                50;
+
+            SpiderCollect242
+                .updateHUD();
+
+        }
+
+
+        this.active=false;
+
+
+        this.removeBoss();
+
+
+        this.updateHUD();
+
+
+        /*
+         * Move to next villain.
+         */
+
+        this.bossIndex=
+            (
+                this.bossIndex+
+                1
+            )%
+            this.villains.length;
+
+    },
+
+
+    /* =========================
+       CHANGE VILLAIN
+       ========================= */
+
+    changeBoss(){
+
+        this.bossIndex=
+            (
+                this.bossIndex+
+                1
+            )%
+            this.villains.length;
+
+
+        this.message(
+            "🦹 Selected: "+
+            this.villains[
+                this.bossIndex
+            ].name
+        );
+
+    },
+
+
+    /* =========================
+       END
+       ========================= */
+
+    end(){
+
+        this.active=false;
+
+        this.removeBoss();
+
+        this.boss=null;
+
+        this.updateHUD();
+
+
+        this.message(
+            "✕ Villain encounter ended."
+        );
+
+    },
+
+
+    /* =========================
+       REMOVE
+       ========================= */
+
+    removeBoss(){
+
+        if(
+            this.element &&
+            this.element.parentNode
+        ){
+
+            this.element
+                .parentNode
+                .removeChild(
+                    this.element
+                );
+
+        }
+
+
+        this.element=null;
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const hud=
+            document.getElementById(
+                "bossHud249"
+            );
+
+
+        const name=
+            document.getElementById(
+                "bossName249"
+            );
+
+
+        const fill=
+            document.getElementById(
+                "bossHealthFill249"
+            );
+
+
+        const phase=
+            document.getElementById(
+                "bossPhase249"
+            );
+
+
+        if(
+            hud
+        ){
+
+            hud.style.display=
+                this.active
+                ?"block"
+                :"none";
+
+        }
+
+
+        if(
+            name
+        ){
+
+            name.textContent=
+                this.boss
+                ?this.boss.name
+                :"No villain detected";
+
+        }
+
+
+        if(
+            fill
+        ){
+
+            const health=
+                this.boss
+                ?this.boss.health
+                :0;
+
+
+            const max=
+                this.boss
+                ?this.boss.maxHealth
+                :1;
+
+
+            fill.style.width=
+                (
+                    health/
+                    max*
+                    100
+                )+"%";
+
+        }
+
+
+        if(
+            phase
+        ){
+
+            phase.textContent=
+                "Phase: "+
+                (
+                    this.active
+                    ?this.getPhase()
+                    :"NONE"
+                );
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "bossMessage249"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V249
+ ===================================================== */
+
+SpiderBoss249.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="b")
+            SpiderBoss249.start();
+
+
+        if(key==="k")
+            SpiderBoss249.attack();
+
+
+        if(key==="r")
+            SpiderBoss249.changeBoss();
+
+
+        if(key==="escape")
+            SpiderBoss249.end();
+
+    }
+);
