@@ -1,0 +1,842 @@
+<!-- =========================================================
+ WEBBOUND V74
+ MISSION JOURNAL + QUEST TRACKER
+ BUILDS ON V60 - V73
+ ========================================================= -->
+
+<style>
+
+#v74Journal{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:9900;
+  width:min(500px,90%);
+  max-height:80vh;
+  overflow:auto;
+  padding:20px;
+  background:#05070ef7;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:18px;
+  font-family:Arial,sans-serif;
+  display:none;
+  box-shadow:0 20px 60px #000b;
+}
+
+#v74Journal h2{
+  margin-top:0;
+}
+
+#v74MissionList{
+  margin-top:10px;
+}
+
+.v74Mission{
+  padding:12px;
+  margin:7px 0;
+  background:#ffffff0d;
+  border:1px solid #ffffff20;
+  border-radius:11px;
+}
+
+.v74MissionTitle{
+  font-weight:bold;
+}
+
+.v74MissionStatus{
+  margin-top:5px;
+  font-size:12px;
+  color:#cbd5e1;
+}
+
+.v74Mission button{
+  width:100%;
+  margin-top:8px;
+  padding:9px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:9px;
+}
+
+#v74Close{
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:9px;
+}
+
+</style>
+
+
+<!-- =========================================================
+ MISSION JOURNAL
+ ========================================================= -->
+
+<div id="v74Journal">
+
+  <h2>📖 MISSION JOURNAL</h2>
+
+  <div id="v74MissionList">
+    No missions available.
+  </div>
+
+  <button id="v74Close"
+          onclick="V74.close()">
+
+    ❌ CLOSE
+
+  </button>
+
+</div>
+
+
+<script>
+
+const V74 = {
+
+  version:"V74",
+
+  openState:false,
+
+  selectedMission:null,
+
+
+  /* =======================================================
+     MISSION DATABASE
+     ======================================================= */
+
+  missions:{
+
+    patrol:{
+      id:"patrol",
+      title:"City Patrol",
+      description:
+        "Explore the city and respond to an active situation.",
+      status:"available",
+      progress:0,
+      goal:3
+    },
+
+    investigation:{
+      id:"investigation",
+      title:"Strange Activity",
+      description:
+        "Investigate unusual activity reported in the area.",
+      status:"available",
+      progress:0,
+      goal:2
+    },
+
+    assistance:{
+      id:"assistance",
+      title:"Help a Resident",
+      description:
+        "Speak with residents and help resolve a local problem.",
+      status:"available",
+      progress:0,
+      goal:1
+    }
+
+  },
+
+
+  /* =======================================================
+     OPEN
+     ======================================================= */
+
+  open(){
+
+    this.openState=true;
+
+    const journal=
+      document.getElementById(
+        "v74Journal"
+      );
+
+    if(journal){
+
+      journal.style.display=
+        "block";
+
+    }
+
+    this.render();
+
+  },
+
+
+  /* =======================================================
+     CLOSE
+     ======================================================= */
+
+  close(){
+
+    this.openState=false;
+
+    const journal=
+      document.getElementById(
+        "v74Journal"
+      );
+
+    if(journal){
+
+      journal.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     START MISSION
+     ======================================================= */
+
+  start(id){
+
+    const mission=
+      this.missions[id];
+
+    if(!mission){
+
+      return;
+
+    }
+
+
+    if(
+      mission.status==="completed"
+    ){
+
+      this.message(
+        "✅ Mission already completed."
+      );
+
+      return;
+
+    }
+
+
+    mission.status=
+      "active";
+
+    this.selectedMission=
+      id;
+
+
+    /*
+      Connect to V66 objective system
+      when available.
+    */
+
+    if(
+      typeof V66 !== "undefined" &&
+      typeof V66.createTarget==="function"
+    ){
+
+      V66.createTarget();
+
+    }
+
+
+    this.message(
+      "🎯 Mission started: "+
+      mission.title
+    );
+
+
+    this.render();
+
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save==="function"
+    ){
+
+      V60.save();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     PROGRESS
+     ======================================================= */
+
+  progress(amount=1){
+
+    if(!this.selectedMission){
+
+      return;
+
+    }
+
+
+    const mission=
+      this.missions[
+        this.selectedMission
+      ];
+
+
+    if(!mission){
+
+      return;
+
+    }
+
+
+    if(
+      mission.status!=="active"
+    ){
+
+      return;
+
+    }
+
+
+    mission.progress+=
+      Number(amount) || 0;
+
+
+    if(
+      mission.progress>=
+      mission.goal
+    ){
+
+      mission.progress=
+        mission.goal;
+
+      mission.status=
+        "completed";
+
+
+      this.message(
+        "🏆 Mission completed: "+
+        mission.title
+      );
+
+
+      /*
+        Remove active target.
+      */
+
+      if(
+        typeof V66 !== "undefined"
+      ){
+
+        V66.target=null;
+
+        V66.removeMarker();
+
+        V66.update();
+
+      }
+
+
+      this.selectedMission=
+        null;
+
+    }
+    else{
+
+      this.message(
+        "🎯 Mission progress: "+
+        mission.progress+
+        "/"+
+        mission.goal
+      );
+
+    }
+
+
+    this.render();
+
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save==="function"
+    ){
+
+      V60.save();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ABANDON
+     ======================================================= */
+
+  abandon(id){
+
+    const mission=
+      this.missions[id];
+
+    if(!mission){
+
+      return;
+
+    }
+
+
+    if(
+      mission.status!=="active"
+    ){
+
+      return;
+
+    }
+
+
+    mission.status=
+      "available";
+
+    mission.progress=0;
+
+
+    if(
+      this.selectedMission===id
+    ){
+
+      this.selectedMission=
+        null;
+
+    }
+
+
+    if(
+      typeof V66 !== "undefined"
+    ){
+
+      V66.target=null;
+
+      V66.removeMarker();
+
+      V66.update();
+
+    }
+
+
+    this.message(
+      "↩️ Mission abandoned."
+    );
+
+
+    this.render();
+
+  },
+
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
+  render(){
+
+    const list=
+      document.getElementById(
+        "v74MissionList"
+      );
+
+
+    if(!list){
+
+      return;
+
+    }
+
+
+    list.innerHTML="";
+
+
+    Object.values(
+      this.missions
+    ).forEach(
+      mission=>{
+
+        const card=
+          document.createElement(
+            "div"
+          );
+
+
+        card.className=
+          "v74Mission";
+
+
+        let action="";
+
+
+        if(
+          mission.status==="available"
+        ){
+
+          action=
+            "<button onclick=\"V74.start('"+
+            mission.id+
+            "')\">"+
+            "🎯 START MISSION"+
+            "</button>";
+
+        }
+
+
+        if(
+          mission.status==="active"
+        ){
+
+          action=
+            "<button onclick=\"V74.abandon('"+
+            mission.id+
+            "')\">"+
+            "↩️ ABANDON"+
+            "</button>";
+
+        }
+
+
+        if(
+          mission.status==="completed"
+        ){
+
+          action=
+            "<button disabled>"+
+            "✅ COMPLETED"+
+            "</button>";
+
+        }
+
+
+        card.innerHTML=
+          "<div class='v74MissionTitle'>"+
+          mission.title+
+          "</div>"+
+          "<div class='v74MissionStatus'>"+
+          mission.description+
+          "<br><br>"+
+          "Status: "+
+          mission.status+
+          "<br>"+
+          "Progress: "+
+          mission.progress+
+          "/"+
+          mission.goal+
+          "</div>"+
+          action;
+
+
+        list.appendChild(
+          card
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof V68 !== "undefined" &&
+      typeof V68.message==="function"
+    ){
+
+      V68.message(text);
+
+      return;
+
+    }
+
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      selectedMission:
+        this.selectedMission,
+
+      missions:
+        JSON.parse(
+          JSON.stringify(
+            this.missions
+          )
+        )
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.selectedMission=
+      data.selectedMission ||
+      null;
+
+
+    if(
+      data.missions &&
+      typeof data.missions==="object"
+    ){
+
+      Object.keys(
+        data.missions
+      ).forEach(
+        id=>{
+
+          if(
+            this.missions[id]
+          ){
+
+            this.missions[id]=
+              {
+                ...this.missions[id],
+                ...data.missions[id]
+              };
+
+          }
+
+        }
+      );
+
+    }
+
+
+    this.render();
+
+  }
+
+};
+
+
+/* =========================================================
+ V65 INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V65 !== "undefined"
+){
+
+  /*
+    If V65 exposes a mission starter,
+    keep the V74 journal synchronized.
+  */
+
+  if(
+    typeof V65.startMission==="function"
+  ){
+
+    const v65OriginalStart=
+      V65.startMission.bind(V65);
+
+
+    V65.startMission=function(id){
+
+      v65OriginalStart(id);
+
+
+      if(
+        V74.missions[id]
+      ){
+
+        V74.missions[id].status=
+          "active";
+
+        V74.selectedMission=
+          id;
+
+        V74.render();
+
+      }
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+ V66 TARGET INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V66 !== "undefined"
+){
+
+  /*
+    When V66 reaches an objective,
+    progress the active V74 mission.
+  */
+
+  const v66OriginalReached=
+    V66.onReached.bind(V66);
+
+
+  V66.onReached=function(){
+
+    v66OriginalReached();
+
+
+    if(
+      V74.selectedMission
+    ){
+
+      V74.progress(1);
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ V60 SAVE / LOAD INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const v74OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v74OriginalCollect();
+
+    data.v74=
+      V74.collect();
+
+    return data;
+
+  };
+
+
+  const v74OriginalApply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    v74OriginalApply(data);
+
+
+    if(
+      data &&
+      data.v74
+    ){
+
+      V74.apply(
+        data.v74
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      J = Journal
+    */
+
+    if(
+      event.code==="KeyJ"
+    ){
+
+      event.preventDefault();
+
+      if(V74.openState){
+
+        V74.close();
+
+      }
+      else{
+
+        V74.open();
+
+      }
+
+    }
+
+
+    /*
+      Escape = Close
+    */
+
+    if(
+      event.code==="Escape" &&
+      V74.openState
+    ){
+
+      V74.close();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V74.render();
+
+console.log(
+  "WEBBOUND V74 MISSION JOURNAL READY"
+);
+
+</script>
