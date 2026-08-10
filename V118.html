@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V118</title>
+
+<style>
+
+#v118HUD{
+  position:fixed;
+  right:12px;
+  top:500px;
+  z-index:14500;
+  width:min(245px,62vw);
+  padding:13px;
+  background:#05070eeb;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:13px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v118Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v118Weight{
+  margin-top:5px;
+  font-size:10px;
+  opacity:.7;
+}
+
+#v118Items{
+  margin-top:9px;
+  max-height:170px;
+  overflow-y:auto;
+}
+
+.v118Item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:5px 0;
+  padding:7px 8px;
+  background:#ffffff08;
+  border:1px solid #ffffff18;
+  border-radius:8px;
+  font-size:10px;
+}
+
+.v118ItemName{
+  font-weight:bold;
+}
+
+.v118ItemCount{
+  opacity:.75;
+}
+
+#v118Controls{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:9px;
+}
+
+#v118Controls button{
+  flex:1;
+  min-width:75px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v118Message{
+  position:fixed;
+  left:50%;
+  top:25%;
+  transform:translateX(-50%);
+  z-index:14600;
+  display:none;
+  max-width:85%;
+  padding:11px 16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:11px;
+  font:bold 12px Arial,sans-serif;
+  text-align:center;
+}
+
+#v118Pickup{
+  position:fixed;
+  left:50%;
+  bottom:13%;
+  transform:translateX(-50%);
+  z-index:14600;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 11px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V118
+     PLAYER INVENTORY SYSTEM
+     ========================================================= -->
+
+<div id="v118HUD">
+
+  <div id="v118Title">
+    🎒 INVENTORY
+  </div>
+
+  <div id="v118Weight">
+    Items: 0 / 30
+  </div>
+
+  <div id="v118Items">
+    Empty
+  </div>
+
+  <div id="v118Controls">
+
+    <button onclick="V118.addItem('Web Fluid',1)">
+      🧪 WEB FLUID
+    </button>
+
+    <button onclick="V118.addItem('Health Pack',1)">
+      ❤️ HEALTH
+    </button>
+
+    <button onclick="V118.addItem('Energy Cell',1)">
+      ⚡ ENERGY
+    </button>
+
+    <button onclick="V118.addItem('Coin',10)">
+      🪙 COINS
+    </button>
+
+    <button onclick="V118.clearInventory()">
+      🗑️ CLEAR
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="v118Pickup">
+  Press I to open inventory
+</div>
+
+
+<div id="v118Message">
+  V118
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V118
+   PLAYER INVENTORY SYSTEM
+   ========================================================= */
+
+const V118 = {
+
+  version:"V118",
+
+  saveKey:
+    "WEBBOUND_V118_INVENTORY",
+
+  maxItems:30,
+
+  inventory:{},
+
+  totalItems:0,
+
+  messageTimer:null,
+
+  initialized:false,
+
+
+  /* =======================================================
+     ITEM DATABASE
+     ======================================================= */
+
+  itemDatabase:{
+
+    "Web Fluid":{
+      type:"consumable",
+      weight:1,
+      description:
+        "Restores web fluid."
+    },
+
+    "Health Pack":{
+      type:"consumable",
+      weight:1,
+      description:
+        "Restores player health."
+    },
+
+    "Energy Cell":{
+      type:"consumable",
+      weight:1,
+      description:
+        "Restores player energy."
+    },
+
+    "Coin":{
+      type:"currency",
+      weight:0,
+      description:
+        "City currency."
+    },
+
+    "Mission Token":{
+      type:"mission",
+      weight:0,
+      description:
+        "Used by future missions."
+    },
+
+    "Key":{
+      type:"key",
+      weight:0,
+      description:
+        "Used to unlock locations."
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.initialized=true;
+
+    console.log(
+      "WEBBOUND V118 INVENTORY SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     NORMALIZE ITEM NAME
+     ======================================================= */
+
+  normalizeItem(item){
+
+    if(
+      typeof item!=="string"
+    ){
+
+      return null;
+
+    }
+
+    const name=
+      item.trim();
+
+
+    if(
+      !name
+    ){
+
+      return null;
+
+    }
+
+
+    return name;
+
+  },
+
+
+  /* =======================================================
+     CHECK ITEM
+     ======================================================= */
+
+  isValidItem(item){
+
+    return(
+      Object.prototype.hasOwnProperty.call(
+        this.itemDatabase,
+        item
+      )
+    );
+
+  },
+
+
+  /* =======================================================
+     GET ITEM COUNT
+     ======================================================= */
+
+  getItemCount(item){
+
+    const name=
+      this.normalizeItem(
+        item
+      );
+
+
+    if(!name){
+
+      return 0;
+
+    }
+
+
+    return(
+      Number(
+        this.inventory[name]
+      )||0
+    );
+
+  },
+
+
+  /* =======================================================
+     GET TOTAL ITEMS
+     ======================================================= */
+
+  calculateTotalItems(){
+
+    let total=0;
+
+
+    Object.keys(
+      this.inventory
+    ).forEach(
+      item=>{
+
+        const count=
+          Number(
+            this.inventory[item]
+          )||0;
+
+
+        if(
+          count>0 &&
+          this.itemDatabase[item]
+        ){
+
+          /*
+            Coins and key items do not
+            consume inventory slots.
+          */
+
+          const weight=
+            Number(
+              this.itemDatabase[item].weight
+            )||0;
+
+
+          if(weight>0){
+
+            total+=
+              count;
+
+          }
+
+        }
+
+      }
+    );
+
+
+    return total;
+
+  },
+
+
+  /* =======================================================
+     ADD ITEM
+     ======================================================= */
+
+  addItem(item,amount=1){
+
+    const name=
+      this.normalizeItem(
+        item
+      );
+
+
+    if(!name){
+
+      return false;
+
+    }
+
+
+    if(
+      !this.isValidItem(name)
+    ){
+
+      this.message(
+        "❌ Unknown item: "+
+        name
+      );
+
+      return false;
+
+    }
+
+
+    let quantity=
+      Number(amount);
+
+
+    if(
+      !Number.isFinite(quantity) ||
+      quantity<=0
+    ){
+
+      return false;
+
+    }
+
+
+    quantity=
+      Math.floor(
+        quantity
+      );
+
+
+    const itemInfo=
+      this.itemDatabase[name];
+
+
+    const weight=
+      Number(
+        itemInfo.weight
+      )||0;
+
+
+    if(
+      weight>0
+    ){
+
+      const available=
+        this.maxItems-
+        this.calculateTotalItems();
+
+
+      const maxCanAdd=
+        Math.floor(
+          available/
+          weight
+        );
+
+
+      if(
+        maxCanAdd<=0
+      ){
+
+        this.message(
+          "🎒 Inventory full"
+        );
+
+        return false;
+
+      }
+
+
+      quantity=
+        Math.min(
+          quantity,
+          maxCanAdd
+        );
+
+    }
+
+
+    this.inventory[name]=
+      (
+        Number(
+          this.inventory[name]
+        )||0
+      )+
+      quantity;
+
+
+    this.totalItems=
+      this.calculateTotalItems();
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🎒 +"+
+      quantity+
+      " "+
+      name
+    );
+
+
+    this.callHook(
+      "added",
+      name,
+      quantity
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     REMOVE ITEM
+     ======================================================= */
+
+  removeItem(item,amount=1){
+
+    const name=
+      this.normalizeItem(
+        item
+      );
+
+
+    if(!name){
+
+      return false;
+
+    }
+
+
+    const current=
+      this.getItemCount(
+        name
+      );
+
+
+    let quantity=
+      Math.floor(
+        Number(amount)
+      );
+
+
+    if(
+      !Number.isFinite(quantity) ||
+      quantity<=0
+    ){
+
+      return false;
+
+    }
+
+
+    if(
+      current<
+      quantity
+    ){
+
+      this.message(
+        "❌ Not enough "+
+        name
+      );
+
+      return false;
+
+    }
+
+
+    const remaining=
+      current-
+      quantity;
+
+
+    if(
+      remaining<=0
+    ){
+
+      delete this.inventory[
+        name
+      ];
+
+    }
+    else{
+
+      this.inventory[name]=
+        remaining;
+
+    }
+
+
+    this.totalItems=
+      this.calculateTotalItems();
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.callHook(
+      "removed",
+      name,
+      quantity
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     USE ITEM
+     ======================================================= */
+
+  useItem(item){
+
+    const name=
+      this.normalizeItem(
+        item
+      );
+
+
+    if(!name){
+
+      return false;
+
+    }
+
+
+    if(
+      this.getItemCount(name)<=0
+    ){
+
+      this.message(
+        "❌ You don't have "+
+        name
+      );
+
+      return false;
+
+    }
+
+
+    /*
+      HEALTH PACK
+    */
+
+    if(
+      name==="Health Pack"
+    ){
+
+      if(
+        typeof health!=="undefined"
+      ){
+
+        const maximum=100;
+
+        health=
+          Math.min(
+            maximum,
+            (
+              Number(health)||
+              0
+            )+
+            30
+          );
+
+      }
+
+
+      this.removeItem(
+        name,
+        1
+      );
+
+
+      this.message(
+        "❤️ Health restored"
+      );
+
+
+      return true;
+
+    }
+
+
+    /*
+      ENERGY CELL
+    */
+
+    if(
+      name==="Energy Cell"
+    ){
+
+      if(
+        typeof energy!=="undefined"
+      ){
+
+        const maximum=100;
+
+        energy=
+          Math.min(
+            maximum,
+            (
+              Number(energy)||
+              0
+            )+
+            30
+          );
+
+      }
+
+
+      this.removeItem(
+        name,
+        1
+      );
+
+
+      this.message(
+        "⚡ Energy restored"
+      );
+
+
+      return true;
+
+    }
+
+
+    /*
+      WEB FLUID
+    */
+
+    if(
+      name==="Web Fluid"
+    ){
+
+      /*
+        Supports a future global
+        web-fluid variable.
+      */
+
+      if(
+        typeof webFluid!=="undefined"
+      ){
+
+        webFluid=
+          Math.min(
+            100,
+            (
+              Number(webFluid)||
+              0
+            )+
+            30
+          );
+
+      }
+
+
+      this.removeItem(
+        name,
+        1
+      );
+
+
+      this.message(
+        "🕸️ Web fluid restored"
+      );
+
+
+      return true;
+
+    }
+
+
+    /*
+      OTHER ITEMS
+    */
+
+    this.message(
+      "ℹ️ "+
+      name+
+      " cannot be used yet."
+    );
+
+
+    return false;
+
+  },
+
+
+  /* =======================================================
+     DROP ITEM
+     ======================================================= */
+
+  dropItem(item,amount=1){
+
+    const success=
+      this.removeItem(
+        item,
+        amount
+      );
+
+
+    if(success){
+
+      this.message(
+        "🗑️ Item dropped"
+      );
+
+    }
+
+
+    return success;
+
+  },
+
+
+  /* =======================================================
+     HAS ITEM
+     ======================================================= */
+
+  hasItem(item,amount=1){
+
+    return(
+      this.getItemCount(
+        item
+      )>=
+      Number(amount)
+    );
+
+  },
+
+
+  /* =======================================================
+     CLEAR INVENTORY
+     ======================================================= */
+
+  clearInventory(){
+
+    this.inventory={};
+
+    this.totalItems=0;
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🗑️ Inventory cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const weight=
+      document.getElementById(
+        "v118Weight"
+      );
+
+    const items=
+      document.getElementById(
+        "v118Items"
+      );
+
+
+    if(weight){
+
+      weight.textContent=
+        "Items: "+
+        this.calculateTotalItems()+
+        " / "+
+        this.maxItems;
+
+    }
+
+
+    if(!items){
+
+      return;
+
+    }
+
+
+    const keys=
+      Object.keys(
+        this.inventory
+      ).filter(
+        item=>
+          this.getItemCount(item)>0
+      );
+
+
+    if(
+      keys.length===0
+    ){
+
+      items.textContent=
+        "Empty";
+
+      return;
+
+    }
+
+
+    items.innerHTML="";
+
+
+    keys.forEach(
+      item=>{
+
+        const row=
+          document.createElement(
+            "div"
+          );
+
+
+        row.className=
+          "v118Item";
+
+
+        const name=
+          document.createElement(
+            "span"
+          );
+
+
+        name.className=
+          "v118ItemName";
+
+
+        name.textContent=
+          item;
+
+
+        const count=
+          document.createElement(
+            "span"
+          );
+
+
+        count.className=
+          "v118ItemCount";
+
+
+        count.textContent=
+          "x"+
+          this.getItemCount(
+            item
+          );
+
+
+        row.appendChild(
+          name
+        );
+
+
+        row.appendChild(
+          count
+        );
+
+
+        items.appendChild(
+          row
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     COLLECT DATA
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      inventory:
+        {
+          ...this.inventory
+        },
+
+      totalItems:
+        this.calculateTotalItems()
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      data.inventory &&
+      typeof data.inventory==="object"
+    ){
+
+      this.inventory={};
+
+
+      Object.keys(
+        data.inventory
+      ).forEach(
+        item=>{
+
+          if(
+            this.isValidItem(item)
+          ){
+
+            const amount=
+              Number(
+                data.inventory[item]
+              )||0;
+
+
+            if(
+              amount>0
+            ){
+
+              this.inventory[item]=
+                Math.floor(
+                  amount
+                );
+
+            }
+
+          }
+
+        }
+      );
+
+    }
+
+
+    this.totalItems=
+      this.calculateTotalItems();
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V118 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(
+          raw
+        );
+
+
+      if(
+        !data ||
+        typeof data!=="object"
+      ){
+
+        return;
+
+      }
+
+
+      if(
+        data.inventory &&
+        typeof data.inventory==="object"
+      ){
+
+        Object.keys(
+          data.inventory
+        ).forEach(
+          item=>{
+
+            if(
+              this.isValidItem(item)
+            ){
+
+              const amount=
+                Number(
+                  data.inventory[item]
+                )||0;
+
+
+              if(
+                amount>0
+              ){
+
+                this.inventory[item]=
+                  Math.floor(
+                    amount
+                  );
+
+              }
+
+            }
+
+          }
+        );
+
+      }
+
+
+      this.totalItems=
+        this.calculateTotalItems();
+
+    }
+    catch(error){
+
+      console.error(
+        "V118 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     NPC / MISSION HOOK
+     ======================================================= */
+
+  callHook(
+    event,
+    item,
+    amount
+  ){
+
+    if(
+      typeof window.onWebboundInventoryEvent===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundInventoryEvent({
+
+          event:
+            event,
+
+          item:
+            item,
+
+          amount:
+            amount,
+
+          inventory:
+            this.collect()
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V118 INVENTORY CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v118Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(
+        text
+      );
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      I = inventory message
+    */
+
+    if(
+      event.code==="KeyI"
+    ){
+
+      V118.message(
+        "🎒 Inventory contains "+
+        V118.calculateTotalItems()+
+        " items."
+      );
+
+    }
+
+
+    /*
+      H = use health pack
+    */
+
+    if(
+      event.code==="KeyH"
+    ){
+
+      V118.useItem(
+        "Health Pack"
+      );
+
+    }
+
+
+    /*
+      U = use energy cell
+    */
+
+    if(
+      event.code==="KeyU"
+    ){
+
+      V118.useItem(
+        "Energy Cell"
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V118.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V118.init();
+
+
+console.log(
+  "WEBBOUND V118 INVENTORY SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
