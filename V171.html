@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V171 — CHARACTER PROGRESSION</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(680px,92vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#progressHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.7;
+}
+
+.bar{
+ height:8px;
+ background:#ffffff12;
+ border-radius:7px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+#xpFill{
+ height:100%;
+ width:0%;
+ background:#b48ad4;
+ transition:.3s;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="line lineH"></div>
+  <div class="line lineV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🎓 TRAINING CENTER</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   ⭐ WEBBOUND V171 — CHARACTER PROGRESSION
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    ⭐ LEVEL<br>
+    <span id="levelText">1</span>
+   </div>
+
+   <div class="stat">
+    ✨ XP<br>
+    <span id="xpText">0</span>
+   </div>
+
+   <div class="stat">
+    🎯 SKILL POINTS<br>
+    <span id="pointsText">0</span>
+   </div>
+
+   <div class="stat">
+    🏆 TOTAL XP<br>
+    <span id="totalXpText">0</span>
+   </div>
+
+  </div>
+
+  <div id="progressHud">
+
+   <b>CHARACTER PROGRESS</b>
+
+   <br>
+
+   XP:
+   <span id="xpCurrentText">0</span> /
+   <span id="xpNeededText">100</span>
+
+   <div class="bar">
+    <div id="xpFill"></div>
+   </div>
+
+   <br>
+
+   💪 Strength:
+   <span id="strengthText">1</span>
+
+   &nbsp;|&nbsp;
+
+   🧠 Intelligence:
+   <span id="intelligenceText">1</span>
+
+   &nbsp;|&nbsp;
+
+   🏃 Agility:
+   <span id="agilityText">1</span>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V171.profile()">
+   👤 PROFILE
+  </button>
+
+  <button onclick="V171.gainXP(20)">
+   ⭐ EARN XP
+  </button>
+
+  <button onclick="V171.skillMenu()">
+   🎓 SKILLS
+  </button>
+
+  <button onclick="V171.levelInfo()">
+   📈 LEVEL INFO
+  </button>
+
+  <button onclick="V171.resetSkills()">
+   🔄 RESET SKILLS
+  </button>
+
+  <button onclick="V171.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V171
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V171.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V171={
+
+ saveKey:"WEBBOUND_V171",
+
+ level:1,
+
+ xp:0,
+
+ totalXP:0,
+
+ skillPoints:0,
+
+ strength:1,
+
+ intelligence:1,
+
+ agility:1,
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "⭐ V171 Progression System ready"
+  );
+
+ },
+
+ /* =========================
+    XP REQUIRED
+ ========================= */
+
+ xpRequired(){
+
+  return this.level*100;
+
+ },
+
+ /* =========================
+    EARN XP
+ ========================= */
+
+ gainXP(amount){
+
+  amount=Math.max(
+   0,
+   Math.floor(amount)
+  );
+
+  this.xp+=amount;
+
+  this.totalXP+=amount;
+
+  this.checkLevel();
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "⭐ +"+amount+" XP"
+  );
+
+ },
+
+ /* =========================
+    LEVEL CHECK
+ ========================= */
+
+ checkLevel(){
+
+  while(
+   this.xp>=this.xpRequired()
+  ){
+
+   this.xp-=
+    this.xpRequired();
+
+   this.level++;
+
+   this.skillPoints+=3;
+
+   this.notify(
+    "🎉 LEVEL UP! You reached level "+
+    this.level
+   );
+
+  }
+
+ },
+
+ /* =========================
+    SKILL MENU
+ ========================= */
+
+ skillMenu(){
+
+  this.open(
+   "🎓 SKILL TREE",
+   `
+
+   <div class="card">
+
+    <b>💪 STRENGTH — Level ${this.strength}</b>
+
+    <br>
+
+    Improves physical activities.
+
+    <br>
+
+    Available points:
+    ${this.skillPoints}
+
+    <button
+     onclick="
+      V171.upgrade('strength')
+     ">
+     UPGRADE STRENGTH
+    </button>
+
+   </div>
+
+   <div class="card">
+
+    <b>🧠 INTELLIGENCE — Level ${this.intelligence}</b>
+
+    <br>
+
+    Improves learning and technical
+    activities.
+
+    <br>
+
+    Available points:
+    ${this.skillPoints}
+
+    <button
+     onclick="
+      V171.upgrade('intelligence')
+     ">
+     UPGRADE INTELLIGENCE
+    </button>
+
+   </div>
+
+   <div class="card">
+
+    <b>🏃 AGILITY — Level ${this.agility}</b>
+
+    <br>
+
+    Improves movement and exploration.
+
+    <br>
+
+    Available points:
+    ${this.skillPoints}
+
+    <button
+     onclick="
+      V171.upgrade('agility')
+     ">
+     UPGRADE AGILITY
+    </button>
+
+   </div>
+
+   `
+  );
+
+ },
+
+ /* =========================
+    UPGRADE
+ ========================= */
+
+ upgrade(skill){
+
+  if(this.skillPoints<=0){
+
+   this.notify(
+    "🎯 No skill points available."
+   );
+
+   return;
+
+  }
+
+  if(
+   ![
+    "strength",
+    "intelligence",
+    "agility"
+   ].includes(skill)
+  )
+   return;
+
+  this[skill]++;
+
+  this.skillPoints--;
+
+  this.update();
+
+  this.save();
+
+  this.skillMenu();
+
+  this.notify(
+   "🎓 Skill upgraded!"
+  );
+
+ },
+
+ /* =========================
+    RESET
+ ========================= */
+
+ resetSkills(){
+
+  const spent=
+   (this.strength-1)+
+   (this.intelligence-1)+
+   (this.agility-1);
+
+  if(spent<=0){
+
+   this.notify(
+    "🔄 No upgrades to reset."
+   );
+
+   return;
+
+  }
+
+  this.skillPoints+=spent;
+
+  this.strength=1;
+
+  this.intelligence=1;
+
+  this.agility=1;
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🔄 Skill points refunded."
+  );
+
+ },
+
+ /* =========================
+    PROFILE
+ ========================= */
+
+ profile(){
+
+  this.open(
+   "👤 CHARACTER PROFILE",
+   `
+
+   <div class="card">
+
+    <b>⭐ LEVEL</b>
+
+    <br>
+
+    ${this.level}
+
+   </div>
+
+   <div class="card">
+
+    <b>✨ EXPERIENCE</b>
+
+    <br>
+
+    Current XP:
+    ${this.xp}
+
+    <br>
+
+    Total XP:
+    ${this.totalXP}
+
+   </div>
+
+   <div class="card">
+
+    <b>🎯 SKILL POINTS</b>
+
+    <br>
+
+    ${this.skillPoints}
+
+   </div>
+
+   <div class="card">
+
+    <b>📊 ATTRIBUTES</b>
+
+    <br><br>
+
+    💪 Strength:
+    ${this.strength}
+
+    <br>
+
+    🧠 Intelligence:
+    ${this.intelligence}
+
+    <br>
+
+    🏃 Agility:
+    ${this.agility}
+
+   </div>
+
+   `
+  );
+
+ },
+
+ /* =========================
+    LEVEL INFO
+ ========================= */
+
+ levelInfo(){
+
+  const needed=
+   this.xpRequired();
+
+  this.open(
+   "📈 LEVEL INFORMATION",
+   `
+
+   <div class="card">
+
+    <b>Current Level</b>
+
+    <br>
+
+    Level ${this.level}
+
+   </div>
+
+   <div class="card">
+
+    <b>Current XP</b>
+
+    <br>
+
+    ${this.xp} / ${needed}
+
+   </div>
+
+   <div class="card">
+
+    <b>Next Level Reward</b>
+
+    <br>
+
+    🎯 +3 Skill Points
+
+   </div>
+
+   <div class="card">
+
+    <b>XP Formula</b>
+
+    <br>
+
+    Required XP =
+    Current Level × 100
+
+   </div>
+
+   `
+  );
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const needed=
+   this.xpRequired();
+
+  document.getElementById(
+   "levelText"
+  ).textContent=
+   this.level;
+
+  document.getElementById(
+   "xpText"
+  ).textContent=
+   this.xp;
+
+  document.getElementById(
+   "pointsText"
+  ).textContent=
+   this.skillPoints;
+
+  document.getElementById(
+   "totalXpText"
+  ).textContent=
+   this.totalXP;
+
+  document.getElementById(
+   "xpCurrentText"
+  ).textContent=
+   this.xp;
+
+  document.getElementById(
+   "xpNeededText"
+  ).textContent=
+   needed;
+
+  document.getElementById(
+   "xpFill"
+  ).style.width=
+   Math.min(
+    100,
+    this.xp/needed*100
+   )+"%";
+
+  document.getElementById(
+   "strengthText"
+  ).textContent=
+   this.strength;
+
+  document.getElementById(
+   "intelligenceText"
+  ).textContent=
+   this.intelligence;
+
+  document.getElementById(
+   "agilityText"
+  ).textContent=
+   this.agility;
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    level:this.level,
+
+    xp:this.xp,
+
+    totalXP:this.totalXP,
+
+    skillPoints:
+     this.skillPoints,
+
+    strength:this.strength,
+
+    intelligence:
+     this.intelligence,
+
+    agility:this.agility
+
+   })
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(
+    Number.isFinite(data.level)
+   )
+    this.level=
+     Math.max(
+      1,
+      Math.floor(data.level)
+     );
+
+   if(
+    Number.isFinite(data.xp)
+   )
+    this.xp=
+     Math.max(
+      0,
+      data.xp
+     );
+
+   if(
+    Number.isFinite(data.totalXP)
+   )
+    this.totalXP=
+     Math.max(
+      0,
+      data.totalXP
+     );
+
+   if(
+    Number.isFinite(
+     data.skillPoints
+    )
+   )
+    this.skillPoints=
+     Math.max(
+      0,
+      Math.floor(
+       data.skillPoints
+      )
+     );
+
+   if(
+    Number.isFinite(data.strength)
+   )
+    this.strength=
+     Math.max(
+      1,
+      Math.floor(
+       data.strength
+      )
+     );
+
+   if(
+    Number.isFinite(
+     data.intelligence
+    )
+   )
+    this.intelligence=
+     Math.max(
+      1,
+      Math.floor(
+       data.intelligence
+      )
+     );
+
+   if(
+    Number.isFinite(data.agility)
+   )
+    this.agility=
+     Math.max(
+      1,
+      Math.floor(
+       data.agility
+      )
+     );
+
+  }
+  catch(error){
+
+   console.log(
+    "V171 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V171.init();
+
+console.log(
+ "WEBBOUND V171 CHARACTER PROGRESSION READY"
+);
+
+</script>
+
+</body>
+  </html>
