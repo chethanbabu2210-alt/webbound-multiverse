@@ -1,0 +1,758 @@
+<!-- =========================================================
+ WEBBOUND V69
+ OUTFIT + WARDROBE + SUIT PRESET SYSTEM
+ BUILDS ON V60 - V68
+ ========================================================= -->
+
+<style>
+
+#v69Wardrobe{
+  position:fixed;
+  z-index:9700;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(430px,90%);
+  max-height:80vh;
+  overflow:auto;
+  padding:20px;
+  background:#05070ef7;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:18px;
+  font-family:Arial,sans-serif;
+  display:none;
+  box-shadow:0 20px 60px #000b;
+}
+
+#v69Wardrobe h2{
+  margin-top:0;
+}
+
+.v69Outfit{
+  padding:12px;
+  margin:7px 0;
+  background:#ffffff0d;
+  border:1px solid #ffffff20;
+  border-radius:11px;
+}
+
+.v69Outfit button{
+  width:100%;
+  padding:9px;
+  margin-top:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:9px;
+}
+
+#v69Close{
+  margin-top:10px;
+}
+
+#v69Current{
+  padding:10px;
+  margin-bottom:12px;
+  background:#ffffff12;
+  border-radius:10px;
+  font-size:13px;
+}
+
+</style>
+
+
+<!-- =========================================================
+ WARDROBE MENU
+ ========================================================= -->
+
+<div id="v69Wardrobe">
+
+  <h2>👕 WARDROBE</h2>
+
+  <div id="v69Current">
+    Current outfit: Casual
+  </div>
+
+
+  <div class="v69Outfit">
+
+    <b>👕 Casual Outfit</b>
+
+    <br>
+
+    <small>
+      Everyday clothing.
+    </small>
+
+    <button onclick="V69.equip('casual')">
+      WEAR CASUAL
+    </button>
+
+  </div>
+
+
+  <div class="v69Outfit">
+
+    <b>🎒 School Outfit</b>
+
+    <br>
+
+    <small>
+      Everyday student clothing.
+    </small>
+
+    <button onclick="V69.equip('school')">
+      WEAR SCHOOL
+    </button>
+
+  </div>
+
+
+  <div class="v69Outfit">
+
+    <b>🧥 Jacket Outfit</b>
+
+    <br>
+
+    <small>
+      Casual jacket and streetwear.
+    </small>
+
+    <button onclick="V69.equip('jacket')">
+      WEAR JACKET
+    </button>
+
+  </div>
+
+
+  <div class="v69Outfit">
+
+    <b>🕷️ Hero Suit</b>
+
+    <br>
+
+    <small>
+      Original superhero suit preset.
+    </small>
+
+    <button onclick="V69.equip('hero')">
+      WEAR HERO SUIT
+    </button>
+
+  </div>
+
+
+  <div class="v69Outfit">
+
+    <b>🕶️ Hero Suit + Glasses</b>
+
+    <br>
+
+    <small>
+      Hero suit with glasses accessory.
+    </small>
+
+    <button onclick="V69.equip('hero_glasses')">
+      WEAR SUIT + GLASSES
+    </button>
+
+  </div>
+
+
+  <button id="v69Close"
+          onclick="V69.close()">
+
+    ❌ CLOSE
+
+  </button>
+
+</div>
+
+
+<script>
+
+const V69 = {
+
+  version:"V69",
+
+  current:"casual",
+
+  glasses:false,
+
+  mask:false,
+
+  accessory:"none",
+
+
+  /* =======================================================
+     OUTFIT DATABASE
+     ======================================================= */
+
+  outfits:{
+
+    casual:{
+      name:"Casual Outfit",
+      category:"civilian",
+      glasses:false,
+      mask:false,
+      accessory:"none"
+    },
+
+    school:{
+      name:"School Outfit",
+      category:"civilian",
+      glasses:true,
+      mask:false,
+      accessory:"backpack"
+    },
+
+    jacket:{
+      name:"Jacket Outfit",
+      category:"civilian",
+      glasses:false,
+      mask:false,
+      accessory:"jacket"
+    },
+
+    hero:{
+      name:"Hero Suit",
+      category:"hero",
+      glasses:false,
+      mask:true,
+      accessory:"none"
+    },
+
+    hero_glasses:{
+      name:"Hero Suit + Glasses",
+      category:"hero",
+      glasses:true,
+      mask:false,
+      accessory:"glasses"
+    }
+
+  },
+
+
+  /* =======================================================
+     OPEN
+     ======================================================= */
+
+  open(){
+
+    const menu=
+      document.getElementById(
+        "v69Wardrobe"
+      );
+
+    if(menu){
+
+      menu.style.display=
+        "block";
+
+    }
+
+    this.updateUI();
+
+  },
+
+
+  /* =======================================================
+     CLOSE
+     ======================================================= */
+
+  close(){
+
+    const menu=
+      document.getElementById(
+        "v69Wardrobe"
+      );
+
+    if(menu){
+
+      menu.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     EQUIP
+     ======================================================= */
+
+  equip(id){
+
+    const outfit=
+      this.outfits[id];
+
+    if(!outfit){
+
+      return;
+
+    }
+
+
+    this.current=id;
+
+    this.glasses=
+      Boolean(
+        outfit.glasses
+      );
+
+    this.mask=
+      Boolean(
+        outfit.mask
+      );
+
+    this.accessory=
+      outfit.accessory;
+
+
+    this.applyToCharacter();
+
+    this.updateUI();
+
+
+    this.notify(
+      "👕 Equipped: "+
+      outfit.name
+    );
+
+
+    /*
+      Save automatically when the
+      existing save system exists.
+    */
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save==="function"
+    ){
+
+      V60.save();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY TO CHARACTER
+     ======================================================= */
+
+  applyToCharacter(){
+
+    /*
+      V69 stores the outfit state without
+      assuming a specific player model.
+
+      Future 3D model systems can read:
+
+      V69.current
+      V69.glasses
+      V69.mask
+      V69.accessory
+    */
+
+
+    if(
+      typeof player !== "undefined" &&
+      player
+    ){
+
+      player.userData=
+        player.userData ||
+        {};
+
+      player.userData.outfit=
+        this.current;
+
+      player.userData.glasses=
+        this.glasses;
+
+      player.userData.mask=
+        this.mask;
+
+      player.userData.accessory=
+        this.accessory;
+
+    }
+
+
+    /*
+      Optional integration with a future
+      character renderer.
+    */
+
+    if(
+      typeof V69_onOutfitChanged==="function"
+    ){
+
+      V69_onOutfitChanged(
+        this.current,
+        this.glasses,
+        this.mask,
+        this.accessory
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     GET CURRENT OUTFIT
+     ======================================================= */
+
+  getCurrent(){
+
+    return this.outfits[
+      this.current
+    ];
+
+  },
+
+
+  /* =======================================================
+     GLASSES
+     ======================================================= */
+
+  toggleGlasses(){
+
+    this.glasses=
+      !this.glasses;
+
+
+    if(
+      typeof player !== "undefined" &&
+      player
+    ){
+
+      player.userData=
+        player.userData ||
+        {};
+
+      player.userData.glasses=
+        this.glasses;
+
+    }
+
+
+    this.notify(
+      this.glasses
+      ? "👓 Glasses ON"
+      : "👓 Glasses OFF"
+    );
+
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save==="function"
+    ){
+
+      V60.save();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE UI
+     ======================================================= */
+
+  updateUI(){
+
+    const box=
+      document.getElementById(
+        "v69Current"
+      );
+
+    if(!box){
+
+      return;
+
+    }
+
+
+    const outfit=
+      this.getCurrent();
+
+
+    box.innerHTML=
+      "<b>Current outfit:</b> "+
+      (
+        outfit
+        ? outfit.name
+        : this.current
+      )+
+      "<br><br>"+
+      "👓 Glasses: "+
+      (
+        this.glasses
+        ? "ON"
+        : "OFF"
+      )+
+      "<br>"+
+      "🎭 Mask: "+
+      (
+        this.mask
+        ? "ON"
+        : "OFF"
+      )+
+      "<br>"+
+      "🎒 Accessory: "+
+      this.accessory;
+
+  },
+
+
+  /* =======================================================
+     NOTIFICATION
+     ======================================================= */
+
+  notify(text){
+
+    /*
+      Use V68 notification when available.
+    */
+
+    if(
+      typeof V68 !== "undefined" &&
+      typeof V68.message==="function"
+    ){
+
+      V68.message(text);
+
+      return;
+
+    }
+
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      current:
+        this.current,
+
+      glasses:
+        this.glasses,
+
+      mask:
+        this.mask,
+
+      accessory:
+        this.accessory
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      this.outfits[data.current]
+    ){
+
+      this.current=
+        data.current;
+
+    }
+
+
+    this.glasses=
+      Boolean(
+        data.glasses
+      );
+
+
+    this.mask=
+      Boolean(
+        data.mask
+      );
+
+
+    this.accessory=
+      data.accessory ||
+      "none";
+
+
+    this.applyToCharacter();
+
+    this.updateUI();
+
+  }
+
+};
+
+
+/* =========================================================
+ V68 WARDROBE INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V68 !== "undefined"
+){
+
+  const v68OriginalWardrobe=
+    V68.openWardrobe.bind(V68);
+
+
+  V68.openWardrobe=function(){
+
+    v68OriginalWardrobe();
+
+    V69.open();
+
+  };
+
+}
+
+
+/* =========================================================
+ V60 SAVE / LOAD INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const v69OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v69OriginalCollect();
+
+    data.v69=
+      V69.collect();
+
+    return data;
+
+  };
+
+
+  const v69OriginalApply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    v69OriginalApply(data);
+
+
+    if(
+      data &&
+      data.v69
+    ){
+
+      V69.apply(
+        data.v69
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      O = open outfit menu
+    */
+
+    if(
+      event.code==="KeyO"
+    ){
+
+      event.preventDefault();
+
+      V69.open();
+
+    }
+
+
+    /*
+      G = glasses toggle
+    */
+
+    if(
+      event.code==="KeyG"
+    ){
+
+      event.preventDefault();
+
+      V69.toggleGlasses();
+
+    }
+
+
+    /*
+      Escape = close
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V69.close();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V69.applyToCharacter();
+
+V69.updateUI();
+
+console.log(
+  "WEBBOUND V69 OUTFIT SYSTEM READY"
+);
+
+</script>
