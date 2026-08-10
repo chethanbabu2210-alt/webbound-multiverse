@@ -1,0 +1,893 @@
+<!-- =====================================================
+ V239 — XP + LEVEL + SKILL SYSTEM
+ Add after V238
+ ===================================================== -->
+
+<style>
+
+#progressHud239{
+
+    position:fixed;
+
+    left:12px;
+    top:12px;
+
+    width:min(270px,54vw);
+
+    padding:11px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:5400;
+
+}
+
+.progressTitle239{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#level239,
+#xp239,
+#skillPoints239{
+
+    margin-top:6px;
+
+    font-size:8px;
+
+}
+
+#xpBar239{
+
+    margin-top:7px;
+
+    width:100%;
+    height:6px;
+
+    background:#202830;
+
+    border-radius:6px;
+
+    overflow:hidden;
+
+}
+
+#xpFill239{
+
+    width:0%;
+
+    height:100%;
+
+    background:#ffffff;
+
+    transition:
+        width .3s;
+
+}
+
+
+/* ================= SKILLS ================= */
+
+#skillPanel239{
+
+    position:fixed;
+
+    left:12px;
+    bottom:20px;
+
+    width:min(270px,54vw);
+
+    padding:10px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:5400;
+
+}
+
+.skillTitle239{
+
+    font-size:9px;
+    font-weight:bold;
+
+    margin-bottom:6px;
+
+}
+
+.skill239{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+.skill239 button{
+
+    padding:5px 8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:5px;
+
+    font-size:7px;
+
+}
+
+
+/* ================= MESSAGE ================= */
+
+#levelMessage239{
+
+    position:fixed;
+
+    left:50%;
+    top:30%;
+
+    transform:
+        translateX(-50%);
+
+    padding:11px 18px;
+
+    background:#03070df5;
+
+    border:1px solid #ffffff35;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    font-weight:bold;
+
+    z-index:6500;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#levelMessage239.show{
+
+    animation:
+        levelPopup239 1s forwards;
+
+}
+
+@keyframes levelPopup239{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(.8);
+    }
+
+    20%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1);
+    }
+
+    80%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ PROGRESSION HUD
+ ===================================================== -->
+
+<div id="progressHud239">
+
+    <div class="progressTitle239">
+        ⭐ PROGRESSION — V239
+    </div>
+
+    <div id="level239">
+        Level: 1
+    </div>
+
+    <div id="xp239">
+        XP: 0 / 100
+    </div>
+
+    <div id="xpBar239">
+
+        <div id="xpFill239"></div>
+
+    </div>
+
+    <div id="skillPoints239">
+        Skill Points: 0
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ SKILL PANEL
+ ===================================================== -->
+
+<div id="skillPanel239">
+
+    <div class="skillTitle239">
+        🕷️ SKILLS
+    </div>
+
+    <div class="skill239">
+        Combat:
+        <span>
+            <b id="combatSkill239">1</b>
+            <button onclick="SpiderProgress239.upgrade('combat')">
+                +
+            </button>
+        </span>
+    </div>
+
+    <div class="skill239">
+        Traversal:
+        <span>
+            <b id="traversalSkill239">1</b>
+            <button onclick="SpiderProgress239.upgrade('traversal')">
+                +
+            </button>
+        </span>
+    </div>
+
+    <div class="skill239">
+        Spider-Sense:
+        <span>
+            <b id="senseSkill239">1</b>
+            <button onclick="SpiderProgress239.upgrade('sense')">
+                +
+            </button>
+        </span>
+    </div>
+
+    <div class="skill239">
+        Gadgets:
+        <span>
+            <b id="gadgetSkill239">1</b>
+            <button onclick="SpiderProgress239.upgrade('gadget')">
+                +
+            </button>
+        </span>
+    </div>
+
+</div>
+
+
+<div id="levelMessage239">
+    LEVEL UP
+</div>
+
+
+<script>
+
+/* =====================================================
+ V239 PROGRESSION ENGINE
+ ===================================================== */
+
+const SpiderProgress239={
+
+
+    level:1,
+
+    xp:0,
+
+    skillPoints:0,
+
+    xpRequired:100,
+
+
+    skills:{
+
+        combat:1,
+
+        traversal:1,
+
+        sense:1,
+
+        gadget:1
+
+    },
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.message(
+            "⭐ Progression system online."
+        );
+
+        this.connectMissionXP();
+
+    },
+
+
+    /* =========================
+       ADD XP
+    ========================= */
+
+    addXP(amount){
+
+        if(
+            !Number.isFinite(amount) ||
+            amount<=0
+        )
+            return;
+
+
+        this.xp+=amount;
+
+
+        this.message(
+            "⭐ +"+
+            amount+
+            " XP"
+        );
+
+
+        while(
+            this.xp>=
+            this.xpRequired
+        ){
+
+            this.xp-=
+                this.xpRequired;
+
+            this.levelUp();
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       LEVEL UP
+    ========================= */
+
+    levelUp(){
+
+        this.level++;
+
+        this.skillPoints++;
+
+
+        /*
+         * XP requirement grows
+         * gradually with level.
+         */
+
+        this.xpRequired=
+            Math.round(
+                100+
+                (
+                    this.level-1
+                )*50
+            );
+
+
+        this.message(
+            "🆙 LEVEL "+
+            this.level+
+            "! +1 Skill Point"
+        );
+
+
+        this.applyLevelBonuses();
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       LEVEL BONUSES
+    ========================= */
+
+    applyLevelBonuses(){
+
+        /*
+         * Combat bonus
+         */
+
+        if(
+            typeof SpiderCombat233!==
+            "undefined"
+        ){
+
+            SpiderCombat233.maxHealth=
+                100+
+                (
+                    this.level-1
+                )*5;
+
+        }
+
+
+        /*
+         * Traversal bonus
+         */
+
+        if(
+            typeof SpiderTraversal234!==
+            "undefined"
+        ){
+
+            SpiderTraversal234.maxSpeed=
+                100+
+                (
+                    this.level-1
+                )*3;
+
+        }
+
+    },
+
+
+    /* =========================
+       UPGRADE SKILL
+       ========================= */
+
+    upgrade(skill){
+
+        if(
+            !this.skills[skill]
+        )
+            return;
+
+
+        if(
+            this.skillPoints<=0
+        ){
+
+            this.message(
+                "⭐ No skill points available."
+            );
+
+            return;
+
+        }
+
+
+        this.skills[skill]++;
+
+        this.skillPoints--;
+
+
+        this.applySkillBonus(
+            skill
+        );
+
+
+        this.message(
+            "⬆️ "+
+            skill+
+            " upgraded to "+
+            this.skills[skill]
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       APPLY SKILL
+       ========================= */
+
+    applySkillBonus(skill){
+
+        const level=
+            this.skills[skill];
+
+
+        if(
+            skill==="combat" &&
+            typeof SpiderCombat233!==
+            "undefined"
+        ){
+
+            SpiderCombat233.maxHealth=
+                100+
+                level*10;
+
+        }
+
+
+        if(
+            skill==="traversal" &&
+            typeof SpiderTraversal234!==
+            "undefined"
+        ){
+
+            SpiderTraversal234.maxSpeed=
+                100+
+                level*5;
+
+        }
+
+
+        if(
+            skill==="sense" &&
+            typeof SpiderSense232!==
+            "undefined"
+        ){
+
+            SpiderSense232.scanRange=
+                350+
+                level*25;
+
+        }
+
+
+        if(
+            skill==="gadget" &&
+            typeof SpiderSuit235!==
+            "undefined"
+        ){
+
+            SpiderSuit235.maxEnergy=
+                100+
+                level*10;
+
+        }
+
+    },
+
+
+    /* =========================
+       MISSION XP CONNECTION
+       ========================= */
+
+    connectMissionXP(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    typeof SpiderMission236===
+                    "undefined"
+                )
+                    return;
+
+
+                /*
+                 * Read mission XP
+                 * when it increases.
+                 */
+
+                const missionXP=
+                    SpiderMission236.xp;
+
+
+                if(
+                    missionXP>
+                    this.lastMissionXP
+                ){
+
+                    const difference=
+                        missionXP-
+                        this.lastMissionXP;
+
+
+                    this.addXP(
+                        difference
+                    );
+
+                }
+
+
+                this.lastMissionXP=
+                    missionXP;
+
+            },
+            1000
+        );
+
+    },
+
+
+    lastMissionXP:0,
+
+
+    /* =========================
+       MANUAL REWARD
+    ========================= */
+
+    reward(){
+
+        this.addXP(50);
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    reset(){
+
+        this.level=1;
+
+        this.xp=0;
+
+        this.skillPoints=0;
+
+        this.xpRequired=100;
+
+
+        this.skills={
+
+            combat:1,
+
+            traversal:1,
+
+            sense:1,
+
+            gadget:1
+
+        };
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "↻ Progression reset."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const level=
+            document.getElementById(
+                "level239"
+            );
+
+
+        const xp=
+            document.getElementById(
+                "xp239"
+            );
+
+
+        const fill=
+            document.getElementById(
+                "xpFill239"
+            );
+
+
+        const points=
+            document.getElementById(
+                "skillPoints239"
+            );
+
+
+        if(level){
+
+            level.textContent=
+                "Level: "+
+                this.level;
+
+        }
+
+
+        if(xp){
+
+            xp.textContent=
+                "XP: "+
+                this.xp+
+                " / "+
+                this.xpRequired;
+
+        }
+
+
+        if(fill){
+
+            fill.style.width=
+                Math.min(
+                    100,
+                    (
+                        this.xp/
+                        this.xpRequired
+                    )*100
+                )+"%";
+
+        }
+
+
+        if(points){
+
+            points.textContent=
+                "Skill Points: "+
+                this.skillPoints;
+
+        }
+
+
+        this.updateSkill(
+            "combat",
+            "combatSkill239"
+        );
+
+
+        this.updateSkill(
+            "traversal",
+            "traversalSkill239"
+        );
+
+
+        this.updateSkill(
+            "sense",
+            "senseSkill239"
+        );
+
+
+        this.updateSkill(
+            "gadget",
+            "gadgetSkill239"
+        );
+
+    },
+
+
+    updateSkill(
+        skill,
+        elementId
+    ){
+
+        const element=
+            document.getElementById(
+                elementId
+            );
+
+
+        if(element){
+
+            element.textContent=
+                this.skills[skill];
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "levelMessage239"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V239
+ ===================================================== */
+
+SpiderProgress239.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="l")
+            SpiderProgress239.reward();
+
+
+        if(key==="x")
+            SpiderProgress239.upgrade(
+                "combat"
+            );
+
+        if(key==="v")
+            SpiderProgress239.upgrade(
+                "traversal"
+            );
+
+        if(key==="z")
+            SpiderProgress239.upgrade(
+                "sense"
+            );
+
+        if(key==="g")
+            SpiderProgress239.upgrade(
+                "gadget"
+            );
+
+    }
+);
