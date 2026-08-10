@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V193 — BUSINESS</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{
+ margin:0;width:100%;height:100%;overflow:hidden;
+ font-family:Arial,sans-serif;background:#05090d;color:#fff
+}
+#game{
+ position:fixed;inset:0;overflow:hidden;
+ background:linear-gradient(#304d59,#091116)
+}
+#sky{
+ position:absolute;inset:0;
+ background:linear-gradient(#6fa4c0,#b9d0d8)
+}
+.road{position:absolute;background:#252d32}
+.rh{left:0;right:0;top:57%;height:70px}
+.rv{top:0;bottom:0;left:68%;width:70px}
+.line{position:absolute;background:#d5c36c;opacity:.4}
+.lineH{left:0;right:0;top:calc(57% + 34px);height:2px}
+.lineV{top:0;bottom:0;left:calc(68% + 34px);width:2px}
+
+.building{
+ position:absolute;display:flex;align-items:center;
+ justify-content:center;text-align:center;
+ background:#14242d;border:1px solid #ffffff18;
+ border-radius:9px;color:#82929b;font-size:10px
+}
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;left:50%;top:53%;
+ width:29px;height:41px;border-radius:10px 10px 5px 5px;
+ background:#2c91da;z-index:50
+}
+#player:before{
+ content:"";position:absolute;left:5.5px;top:-14px;
+ width:18px;height:18px;border-radius:50%;background:#bd8967
+}
+
+#hud{
+ position:fixed;left:10px;top:10px;
+ width:min(980px,94vw);padding:12px;
+ background:#03070cee;border:1px solid #ffffff25;
+ border-radius:13px;z-index:500
+}
+.title{font-size:13px;font-weight:bold}
+.stats{
+ display:grid;grid-template-columns:repeat(6,1fr);
+ gap:5px;margin-top:8px
+}
+.stat{
+ padding:7px 4px;background:#101b23;
+ border-radius:7px;text-align:center;font-size:9px
+}
+#businessHud{
+ margin-top:8px;padding:9px;background:#111d25;
+ border-radius:8px;font-size:9px;line-height:1.8
+}
+.bar{
+ height:7px;background:#ffffff12;
+ border-radius:7px;overflow:hidden;margin-top:4px
+}
+.fill{
+ height:100%;width:0%;
+ background:#8fb8df;transition:.3s
+}
+
+#controls{
+ position:fixed;left:50%;bottom:10px;
+ transform:translateX(-50%);
+ width:min(980px,96vw);
+ display:flex;flex-wrap:wrap;gap:6px;z-index:500
+}
+button{
+ flex:1;min-width:105px;padding:10px;
+ background:#142733;border:1px solid #ffffff22;
+ border-radius:8px;color:#fff;font-size:10px;cursor:pointer
+}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+
+#panel{
+ position:fixed;inset:0;display:none;
+ align-items:center;justify-content:center;
+ background:#000c;z-index:1000
+}
+.box{
+ width:min(830px,94vw);max-height:84vh;
+ overflow:auto;padding:17px;background:#050b10;
+ border:1px solid #ffffff28;border-radius:15px
+}
+.card{
+ padding:11px;background:#111d25;
+ border-radius:9px;margin-bottom:7px;
+ font-size:10px;line-height:1.7
+}
+.card button{width:100%;margin-top:8px}
+
+#notification{
+ position:fixed;left:50%;top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;background:#03070cf5;
+ border:1px solid #ffffff25;border-radius:9px;
+ display:none;z-index:1500;font-size:10px;
+ text-align:center
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="sky"></div>
+<div class="road rh"></div>
+<div class="road rv"></div>
+<div class="line lineH"></div>
+<div class="line lineV"></div>
+
+<div class="building b1">🏠 RESIDENTIAL</div>
+<div class="building b2">🏢 CORPORATE DISTRICT</div>
+<div class="building b3">🛒 MARKET</div>
+<div class="building b4">💻 TECHNOLOGY PARK</div>
+<div class="building b5">🏭 INDUSTRIAL AREA</div>
+<div class="building b6">🏢 BUSINESS CENTER</div>
+
+<div id="player"></div>
+
+<div id="hud">
+
+<div class="title">
+🏢 WEBBOUND V193 — BUSINESS & COMPANY
+</div>
+
+<div class="stats">
+
+<div class="stat">
+💰 CASH<br>
+₹<span id="cashText">5000</span>
+</div>
+
+<div class="stat">
+🏢 COMPANIES<br>
+<span id="companyText">0</span>
+</div>
+
+<div class="stat">
+👨‍💼 EMPLOYEES<br>
+<span id="employeeText">0</span>
+</div>
+
+<div class="stat">
+📦 PRODUCTS<br>
+<span id="productText">0</span>
+</div>
+
+<div class="stat">
+💵 PROFIT<br>
+₹<span id="profitText">0</span>
+</div>
+
+<div class="stat">
+⭐ REPUTATION<br>
+<span id="reputationText">0</span>
+</div>
+
+</div>
+
+<div id="businessHud">
+
+<b>🏢 ACTIVE COMPANY</b><br>
+
+<span id="companyName">No company selected</span><br>
+
+Level:
+<span id="companyLevel">—</span><br>
+
+Employees:
+<span id="activeEmployees">0</span><br>
+
+Products:
+<span id="activeProducts">0</span><br>
+
+Profit:
+₹<span id="activeProfit">0</span>
+
+<div class="bar">
+<div id="businessFill" class="fill"></div>
+</div>
+
+</div>
+
+</div>
+
+<div id="notification"></div>
+
+<div id="controls">
+
+<button onclick="V193.market()">
+🏢 BUSINESS MARKET
+</button>
+
+<button onclick="V193.hire()">
+👨‍💼 HIRE
+</button>
+
+<button onclick="V193.produce()">
+🏭 PRODUCE
+</button>
+
+<button onclick="V193.sell()">
+🛒 SELL
+</button>
+
+<button onclick="V193.upgrade()">
+⬆️ UPGRADE
+</button>
+
+<button onclick="V193.portfolio()">
+📊 PORTFOLIO
+</button>
+
+<button onclick="V193.sellCompany()">
+🏷️ SELL COMPANY
+</button>
+
+<button onclick="V193.save()">
+💾 SAVE
+</button>
+
+</div>
+
+<div id="panel">
+
+<div class="box">
+
+<h2 id="panelTitle">
+WEBBOUND V193
+</h2>
+
+<div id="panelContent"></div>
+
+<button onclick="V193.close()">
+CLOSE
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const V193={
+
+saveKey:"WEBBOUND_V193",
+
+cash:5000,
+
+companies:[],
+
+activeCompany:null,
+
+levels:{},
+
+employees:{},
+
+products:{},
+
+profits:{},
+
+totalProfit:0,
+
+reputation:0,
+
+companyData:{
+
+tech:{
+name:"💻 Technology Startup",
+price:25000,
+employeeCost:1200,
+productionCost:500,
+salePrice:1100,
+maxLevel:10
+},
+
+food:{
+name:"🍔 Food Company",
+price:12000,
+employeeCost:700,
+productionCost:300,
+salePrice:650,
+maxLevel:8
+},
+
+fashion:{
+name:"👕 Fashion Brand",
+price:20000,
+employeeCost:900,
+productionCost:450,
+salePrice:950,
+maxLevel:10
+},
+
+auto:{
+name:"🚗 Automobile Company",
+price:80000,
+employeeCost:1800,
+productionCost:4500,
+salePrice:7000,
+maxLevel:12
+},
+
+finance:{
+name:"🏦 Finance Company",
+price:120000,
+employeeCost:2500,
+productionCost:6000,
+salePrice:10000,
+maxLevel:15
+}
+
+},
+
+init(){
+
+this.load();
+this.update();
+
+this.notify(
+"🏢 V193 Business System ready"
+);
+
+},
+
+market(){
+
+let html="";
+
+Object.entries(this.companyData)
+.forEach(([id,c])=>{
+
+const owned=
+this.companies.includes(id);
+
+const level=
+this.levels[id]||1;
+
+html+=`
+
+<div class="card">
+
+<b>${c.name}</b>
+
+<br><br>
+
+💰 Startup Cost:
+₹${c.price.toLocaleString()}
+
+<br>
+
+👨‍💼 Employee Cost:
+₹${c.employeeCost.toLocaleString()}
+
+<br>
+
+🏭 Production Cost:
+₹${c.productionCost.toLocaleString()}
+
+<br>
+
+🛒 Product Price:
+₹${c.salePrice.toLocaleString()}
+
+<br>
+
+🏆 Maximum Level:
+${c.maxLevel}
+
+<br>
+
+Current Level:
+${owned?level:"—"}
+
+<br><br>
+
+<button
+onclick="V193.buy('${id}')"
+${owned?"disabled":""}>
+
+${owned?
+"✅ ALREADY OWNED":
+"🏢 START COMPANY"}
+
+</button>
+
+${
+owned?
+`<button onclick="V193.select('${id}')">
+SELECT COMPANY
+</button>`:""
+}
+
+</div>
+
+`;
+
+});
+
+this.open(
+"🏢 BUSINESS MARKET",
+html
+);
+
+},
+
+buy(id){
+
+const c=this.companyData[id];
+
+if(this.companies.includes(id)){
+
+this.notify(
+"Company already owned."
+);
+
+return;
+
+}
+
+if(this.cash<c.price){
+
+this.notify(
+"❌ Not enough capital."
+);
+
+return;
+
+}
+
+this.cash-=c.price;
+
+this.companies.push(id);
+
+this.levels[id]=1;
+
+this.employees[id]=0;
+
+this.products[id]=0;
+
+this.profits[id]=0;
+
+this.activeCompany=id;
+
+this.reputation+=5;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🎉 Started "+
+c.name
+);
+
+},
+
+select(id){
+
+if(!this.companies.includes(id))
+return;
+
+this.activeCompany=id;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🏢 Selected "+
+this.companyData[id].name
+);
+
+},
+
+hire(){
+
+if(!this.activeCompany){
+
+this.notify(
+"🏢 Select a company first."
+);
+
+return;
+
+}
+
+const id=this.activeCompany;
+const c=this.companyData[id];
+
+const level=
+this.levels[id]||1;
+
+const maxEmployees=
+level*5;
+
+const current=
+this.employees[id]||0;
+
+if(current>=maxEmployees){
+
+this.notify(
+"👨‍💼 Employee limit reached."
+);
+
+return;
+
+}
+
+if(this.cash<c.employeeCost){
+
+this.notify(
+"❌ Hiring costs ₹"+
+c.employeeCost.toLocaleString()
+);
+
+return;
+
+}
+
+this.cash-=c.employeeCost;
+
+this.employees[id]=current+1;
+
+this.reputation+=1;
+
+this.update();
+this.save();
+
+this.notify(
+"👨‍💼 Employee hired."
+);
+
+},
+
+produce(){
+
+if(!this.activeCompany){
+
+this.notify(
+"🏢 Select a company first."
+);
+
+return;
+
+}
+
+const id=this.activeCompany;
+const c=this.companyData[id];
+
+const employees=
+this.employees[id]||0;
+
+if(employees<=0){
+
+this.notify(
+"👨‍💼 Hire employees first."
+);
+
+return;
+
+}
+
+if(this.cash<c.productionCost){
+
+this.notify(
+"❌ Production costs ₹"+
+c.productionCost.toLocaleString()
+);
+
+return;
+
+}
+
+const level=
+this.levels[id]||1;
+
+const amount=
+Math.max(
+1,
+Math.floor(
+employees*
+(1+level*0.25)
+)
+);
+
+const cost=
+c.productionCost;
+
+if(this.cash<cost){
+
+this.notify(
+"❌ Not enough money."
+);
+
+return;
+
+}
+
+this.cash-=cost;
+
+this.products[id]=
+(this.products[id]||0)+amount;
+
+this.reputation+=1;
+
+this.update();
+this.save();
+
+this.notify(
+"🏭 Produced "+
+amount+
+" products."
+);
+
+},
+
+sell(){
+
+if(!this.activeCompany){
+
+this.notify(
+"🏢 Select a company first."
+);
+
+return;
+
+}
+
+const id=this.activeCompany;
+const c=this.companyData[id];
+
+const stock=
+this.products[id]||0;
+
+if(stock<=0){
+
+this.notify(
+"📦 No products available."
+);
+
+return;
+
+}
+
+const level=
+this.levels[id]||1;
+
+const amount=
+Math.min(
+stock,
+Math.max(
+1,
+Math.floor(
+(this.employees[id]||1)*
+(1+level*0.2)
+)
+)
+);
+
+const revenue=
+amount*c.salePrice;
+
+this.products[id]-=amount;
+
+this.cash+=revenue;
+
+this.profits[id]=
+(this.profits[id]||0)+revenue;
+
+this.totalProfit+=revenue;
+
+this.reputation+=2;
+
+this.update();
+this.save();
+
+this.notify(
+"🛒 Sold "+
+amount+
+" products for ₹"+
+revenue.toLocaleString()
+);
+
+},
+
+upgrade(){
+
+if(!this.activeCompany){
+
+this.notify(
+"🏢 Select a company first."
+);
+
+return;
+
+}
+
+const id=this.activeCompany;
+const c=this.companyData[id];
+
+const level=
+this.levels[id]||1;
+
+if(level>=c.maxLevel){
+
+this.notify(
+"🏆 Company reached maximum level."
+);
+
+return;
+
+}
+
+const cost=
+Math.floor(
+c.price*0.25*level
+);
+
+if(this.cash<cost){
+
+this.notify(
+"❌ Upgrade costs ₹"+
+cost.toLocaleString()
+);
+
+return;
+
+}
+
+this.cash-=cost;
+
+this.levels[id]=level+1;
+
+this.reputation+=5;
+
+this.update();
+this.save();
+
+this.notify(
+"⬆️ Company upgraded to Level "+
+(level+1)
+);
+
+},
+
+portfolio(){
+
+let html="";
+
+let totalValue=0;
+let totalEmployees=0;
+let totalProducts=0;
+let totalProfit=0;
+
+this.companies.forEach(id=>{
+
+const c=this.companyData[id];
+
+const level=
+this.levels[id]||1;
+
+const employees=
+this.employees[id]||0;
+
+const products=
+this.products[id]||0;
+
+const profit=
+this.profits[id]||0;
+
+const value=
+Math.floor(
+c.price*
+(1+(level-1)*0.25)
+);
+
+totalValue+=value;
+totalEmployees+=employees;
+totalProducts+=products;
+totalProfit+=profit;
+
+html+=`
+
+<div class="card">
+
+<b>${c.name}</b>
+
+<br>
+
+🏆 Level:
+${level}
+
+<br>
+
+👨‍💼 Employees:
+${employees}
+
+<br>
+
+📦 Products:
+${products}
+
+<br>
+
+💵 Profit:
+₹${profit.toLocaleString()}
+
+<br>
+
+🏢 Estimated Value:
+₹${value.toLocaleString()}
+
+<br>
+
+<button onclick="V193.select('${id}')">
+SELECT COMPANY
+</button>
+
+</div>
+
+`;
+
+});
+
+if(!html){
+
+html=`
+
+<div class="card">
+You don't own a company yet.
+</div>
+
+`;
+
+}
+
+html+=`
+
+<div class="card">
+
+<b>📊 BUSINESS EMPIRE</b>
+
+<br><br>
+
+🏢 Companies:
+${this.companies.length}
+
+<br>
+
+🏢 Total Value:
+₹${totalValue.toLocaleString()}
+
+<br>
+
+👨‍💼 Employees:
+${totalEmployees}
+
+<br>
+
+📦 Products:
+${totalProducts}
+
+<br>
+
+💵 Total Profit:
+₹${totalProfit.toLocaleString()}
+
+<br>
+
+⭐ Reputation:
+${this.reputation}
+
+</div>
+
+`;
+
+this.open(
+"📊 BUSINESS PORTFOLIO",
+html
+);
+
+},
+
+sellCompany(){
+
+if(!this.activeCompany){
+
+this.notify(
+"🏢 Select a company first."
+);
+
+return;
+
+}
+
+const id=this.activeCompany;
+const c=this.companyData[id];
+
+const level=
+this.levels[id]||1;
+
+const companyValue=
+Math.floor(
+c.price*
+(1+(level-1)*0.25)
+);
+
+const salePrice=
+Math.floor(
+companyValue*0.8
+);
+
+this.cash+=salePrice;
+
+this.companies=
+this.companies.filter(
+x=>x!==id
+);
+
+delete this.levels[id];
+delete this.employees[id];
+delete this.products[id];
+delete this.profits[id];
+
+this.activeCompany=
+this.companies.length?
+this.companies[0]:
+null;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🏷️ Company sold for ₹"+
+salePrice.toLocaleString()
+);
+
+},
+
+update(){
+
+let employees=0;
+let products=0;
+let profit=0;
+let value=0;
+
+this.companies.forEach(id=>{
+
+const c=this.companyData[id];
+
+if(!c)return;
+
+const level=
+this.levels[id]||1;
+
+employees+=
+this.employees[id]||0;
+
+products+=
+this.products[id]||0;
+
+profit+=
+this.profits[id]||0;
+
+value+=Math.floor(
+c.price*
+(1+(level-1)*0.25)
+);
+
+});
+
+document.getElementById(
+"cashText"
+).textContent=
+this.cash.toLocaleString();
+
+document.getElementById(
+"companyText"
+).textContent=
+this.companies.length;
+
+document.getElementById(
+"employeeText"
+).textContent=
+employees;
+
+document.getElementById(
+"productText"
+).textContent=
+products;
+
+document.getElementById(
+"profitText"
+).textContent=
+profit.toLocaleString();
+
+document.getElementById(
+"reputationText"
+).textContent=
+this.reputation;
+
+if(!this.activeCompany){
+
+document.getElementById(
+"companyName"
+).textContent=
+"No company selected";
+
+document.getElementById(
+"companyLevel"
+).textContent="—";
+
+document.getElementById(
+"activeEmployees"
+).textContent="0";
+
+document.getElementById(
+"activeProducts"
+).textContent="0";
+
+document.getElementById(
+"activeProfit"
+).textContent="0";
+
+document.getElementById(
+"businessFill"
+).style.width="0%";
+
+return;
+
+}
+
+const id=this.activeCompany;
+const c=this.companyData[id];
+
+const level=
+this.levels[id]||1;
+
+document.getElementById(
+"companyName"
+).textContent=
+c.name;
+
+document.getElementById(
+"companyLevel"
+).textContent=
+level;
+
+document.getElementById(
+"activeEmployees"
+).textContent=
+this.employees[id]||0;
+
+document.getElementById(
+"activeProducts"
+).textContent=
+this.products[id]||0;
+
+document.getElementById(
+"activeProfit"
+).textContent=
+(this.profits[id]||0)
+.toLocaleString();
+
+document.getElementById(
+"businessFill"
+).style.width=
+Math.min(
+100,
+level/c.maxLevel*100
+)+"%";
+
+},
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+
+cash:this.cash,
+
+companies:this.companies,
+
+activeCompany:this.activeCompany,
+
+levels:this.levels,
+
+employees:this.employees,
+
+products:this.products,
+
+profits:this.profits,
+
+totalProfit:this.totalProfit,
+
+reputation:this.reputation
+
+})
+);
+
+},
+
+load(){
+
+try{
+
+const raw=
+localStorage.getItem(
+this.saveKey
+);
+
+if(!raw)return;
+
+const data=
+JSON.parse(raw);
+
+if(Number.isFinite(data.cash))
+this.cash=Math.max(
+0,data.cash
+);
+
+if(Array.isArray(data.companies))
+this.companies=
+data.companies.filter(
+id=>this.companyData[id]
+);
+
+if(
+typeof data.activeCompany==="string" &&
+this.companyData[data.activeCompany]
+)
+this.activeCompany=
+data.activeCompany;
+
+if(data.levels)
+this.levels=data.levels;
+
+if(data.employees)
+this.employees=data.employees;
+
+if(data.products)
+this.products=data.products;
+
+if(data.profits)
+this.profits=data.profits;
+
+if(Number.isFinite(data.totalProfit))
+this.totalProfit=Math.max(
+0,data.totalProfit
+);
+
+if(Number.isFinite(data.reputation))
+this.reputation=Math.max(
+0,data.reputation
+);
+
+}catch(e){
+
+console.log(
+"V193 load error:",
+e
+);
+
+}
+
+},
+
+open(title,content){
+
+document.getElementById(
+"panelTitle"
+).textContent=title;
+
+document.getElementById(
+"panelContent"
+).innerHTML=
+content;
+
+document.getElementById(
+"panel"
+).style.display=
+"flex";
+
+},
+
+close(){
+
+document.getElementById(
+"panel"
+).style.display=
+"none";
+
+},
+
+notify(text){
+
+const el=
+document.getElementById(
+"notification"
+);
+
+el.textContent=text;
+
+el.style.display=
+"block";
+
+clearTimeout(this.timer);
+
+this.timer=
+setTimeout(
+()=>{
+el.style.display=
+"none";
+},
+2400
+);
+
+}
+
+};
+
+V193.init();
+
+console.log(
+"WEBBOUND V193 BUSINESS SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
