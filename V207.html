@@ -1,0 +1,1244 @@
+<!-- =====================================================
+ V207 — ADVANCED WEB COMBAT
+ Add this after V206.
+ ===================================================== -->
+
+<style>
+
+/* ================= WEB COMBAT HUD ================= */
+
+#webCombatHud{
+    position:fixed;
+    left:12px;
+    bottom:105px;
+
+    width:min(280px,55vw);
+
+    padding:11px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff25;
+    border-radius:12px;
+
+    z-index:850;
+}
+
+.webTitle{
+    font-size:12px;
+    font-weight:bold;
+}
+
+.webMeter{
+    width:100%;
+    height:8px;
+
+    margin-top:7px;
+
+    background:#20252a;
+
+    border-radius:10px;
+
+    overflow:hidden;
+}
+
+#webMeterFill{
+    width:100%;
+    height:100%;
+
+    background:#e8edf0;
+
+    transition:.2s;
+}
+
+.webStats{
+    display:grid;
+
+    grid-template-columns:
+        repeat(3,1fr);
+
+    gap:5px;
+
+    margin-top:7px;
+}
+
+.webStat{
+    padding:6px 3px;
+
+    background:#101b23;
+
+    border-radius:6px;
+
+    text-align:center;
+
+    font-size:8px;
+}
+
+#webComboText{
+    margin-top:7px;
+
+    text-align:center;
+
+    color:#dce9ef;
+
+    font-size:9px;
+}
+
+
+/* ================= WEB LINE ================= */
+
+.webLine{
+    position:absolute;
+
+    height:3px;
+
+    background:#f2f5f7;
+
+    transform-origin:left center;
+
+    border-radius:10px;
+
+    box-shadow:
+        0 0 5px #ffffffaa;
+
+    z-index:700;
+
+    pointer-events:none;
+
+    animation:webShoot .25s linear;
+}
+
+@keyframes webShoot{
+
+    from{
+        opacity:.2;
+    }
+
+    to{
+        opacity:1;
+    }
+
+}
+
+
+/* ================= WEB TRAP ================= */
+
+.webTrap{
+    position:absolute;
+
+    width:70px;
+    height:70px;
+
+    border:3px solid #f1f4f5;
+
+    border-radius:50%;
+
+    z-index:170;
+
+    pointer-events:none;
+
+    animation:
+        trapPulse .7s infinite alternate;
+}
+
+.webTrap:before,
+.webTrap:after{
+    content:"";
+
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:85%;
+
+    height:3px;
+
+    background:#f1f4f5;
+
+    transform:
+        translate(-50%,-50%)
+        rotate(45deg);
+}
+
+.webTrap:after{
+    transform:
+        translate(-50%,-50%)
+        rotate(-45deg);
+}
+
+@keyframes trapPulse{
+
+    from{
+        opacity:.65;
+        transform:scale(.9);
+    }
+
+    to{
+        opacity:1;
+        transform:scale(1);
+    }
+
+}
+
+
+/* ================= WEBBED ENEMY ================= */
+
+#combatEnemy.webbed{
+    filter:
+        drop-shadow(
+            0 0 12px #ffffff
+        );
+}
+
+.webWrap{
+    position:absolute;
+
+    inset:-8px;
+
+    border:
+        3px solid #eef3f5;
+
+    border-radius:50%;
+
+    pointer-events:none;
+
+    animation:
+        webWrapPulse .5s infinite alternate;
+}
+
+@keyframes webWrapPulse{
+
+    from{
+        transform:rotate(-3deg);
+    }
+
+    to{
+        transform:rotate(3deg);
+    }
+
+}
+
+
+/* ================= WEB CONTROLS ================= */
+
+#webControls{
+    position:fixed;
+
+    right:12px;
+    bottom:105px;
+
+    width:min(270px,55vw);
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:6px;
+
+    z-index:900;
+}
+
+#webControls button{
+
+    padding:9px 4px;
+
+    background:#111f2a;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:8px;
+
+    color:white;
+
+    font-size:9px;
+
+    cursor:pointer;
+}
+
+#webControls button:active{
+    transform:scale(.94);
+}
+
+.webAttack{
+    background:#23333c !important;
+}
+
+.webTrapButton{
+    background:#29342b !important;
+}
+
+
+/* ================= WEB FLASH ================= */
+
+.webFlash{
+    position:fixed;
+
+    inset:0;
+
+    pointer-events:none;
+
+    z-index:1000;
+
+    border:
+        5px solid transparent;
+}
+
+.webFlash.active{
+    animation:
+        webFlash .3s;
+}
+
+@keyframes webFlash{
+
+    0%{
+        border-color:#ffffff;
+    }
+
+    100%{
+        border-color:transparent;
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ WEB HUD
+ ===================================================== -->
+
+<div id="webCombatHud">
+
+    <div class="webTitle">
+        🕸️ WEB COMBAT — V207
+    </div>
+
+    <div class="webMeter">
+        <div id="webMeterFill"></div>
+    </div>
+
+    <div class="webStats">
+
+        <div class="webStat">
+            🕸️ WEBS<br>
+            <span id="webCount">
+                30
+            </span>
+        </div>
+
+        <div class="webStat">
+            🪤 TRAPS<br>
+            <span id="trapCount">
+                3
+            </span>
+        </div>
+
+        <div class="webStat">
+            🔥 COMBO<br>
+            <span id="webCombo">
+                0
+            </span>
+        </div>
+
+    </div>
+
+    <div id="webComboText">
+        WEB READY
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ WEB CONTROLS
+ ===================================================== -->
+
+<div id="webControls">
+
+    <button
+        class="webAttack"
+        onclick="SpiderWeb.shoot()">
+        🕸️ WEB SHOT
+    </button>
+
+    <button
+        class="webAttack"
+        onclick="SpiderWeb.pull()">
+        🕸️ WEB PULL
+    </button>
+
+    <button
+        class="webTrapButton"
+        onclick="SpiderWeb.trap()">
+        🪤 WEB TRAP
+    </button>
+
+    <button
+        onclick="SpiderWeb.bind()">
+        🕷️ WEB BIND
+    </button>
+
+    <button
+        onclick="SpiderWeb.burst()">
+        💥 WEB BURST
+    </button>
+
+    <button
+        onclick="SpiderWeb.resetCombo()">
+        🔄 RESET
+    </button>
+
+</div>
+
+
+<div id="webFlash"></div>
+
+
+<script>
+
+/* =====================================================
+ V207 WEB ENGINE
+ ===================================================== */
+
+const SpiderWeb={
+
+    webs:30,
+
+    maxWebs:30,
+
+    traps:3,
+
+    combo:0,
+
+    enemyBound:false,
+
+    enemyPulled:false,
+
+    lastShot:0,
+
+    trapObjects:[],
+
+    comboTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.update();
+
+        this.message(
+            "🕸️ Advanced Web Combat ready!"
+        );
+
+    },
+
+
+    /* =========================
+       WEB SHOT
+    ========================= */
+
+    shoot(){
+
+        if(this.enemyDefeated())
+            return;
+
+        if(!this.consumeWeb())
+            return;
+
+        if(this.distance()>380){
+
+            this.message(
+                "🎯 Enemy is out of web range."
+            );
+
+            return;
+
+        }
+
+        this.drawWeb();
+
+        this.damageEnemy(
+            7
+        );
+
+        this.addCombo();
+
+        this.message(
+            "🕸️ WEB SHOT!"
+        );
+
+    },
+
+
+    /* =========================
+       WEB PULL
+    ========================= */
+
+    pull(){
+
+        if(this.enemyDefeated())
+            return;
+
+        if(!this.consumeWeb())
+            return;
+
+        if(this.distance()>550){
+
+            this.message(
+                "🕸️ Target too far away."
+            );
+
+            return;
+
+        }
+
+        this.drawWeb();
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        const er=
+            enemy.getBoundingClientRect();
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const pr=
+            player.getBoundingClientRect();
+
+        const px=
+            pr.left+
+            pr.width/2;
+
+        const py=
+            pr.top+
+            pr.height/2;
+
+        const ex=
+            er.left+
+            er.width/2;
+
+        const ey=
+            er.top+
+            er.height/2;
+
+        const dx=
+            px-ex;
+
+        const dy=
+            py-ey;
+
+        enemy.style.left=
+            (
+                enemy.offsetLeft+
+                dx*.45
+            )+"px";
+
+        enemy.style.top=
+            (
+                enemy.offsetTop+
+                dy*.45
+            )+"px";
+
+        this.damageEnemy(
+            4
+        );
+
+        this.addCombo();
+
+        this.message(
+            "🕸️ WEB PULL!"
+        );
+
+    },
+
+
+    /* =========================
+       WEB TRAP
+    ========================= */
+
+    trap(){
+
+        if(this.traps<=0){
+
+            this.message(
+                "🪤 No traps remaining."
+            );
+
+            return;
+
+        }
+
+        this.traps--;
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        const rect=
+            enemy.getBoundingClientRect();
+
+        const trap=
+            document.createElement(
+                "div"
+            );
+
+        trap.className=
+            "webTrap";
+
+        trap.style.left=
+            (
+                rect.left+
+                rect.width/2-
+                35
+            )+"px";
+
+        trap.style.top=
+            (
+                rect.top+
+                rect.height/2-
+                35
+            )+"px";
+
+        document.body.appendChild(
+            trap
+        );
+
+        this.trapObjects.push(
+            trap
+        );
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    !this.enemyDefeated()
+                ){
+
+                    this.enemyBound=true;
+
+                    this.bindVisual();
+
+                    this.damageEnemy(
+                        10
+                    );
+
+                    this.addCombo();
+
+                    this.message(
+                        "🪤 ENEMY CAUGHT!"
+                    );
+
+                }
+
+            },
+            500
+        );
+
+        setTimeout(
+            ()=>{
+
+                trap.remove();
+
+            },
+            3500
+        );
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       WEB BIND
+    ========================= */
+
+    bind(){
+
+        if(this.enemyDefeated())
+            return;
+
+        if(this.distance()>300){
+
+            this.message(
+                "🕸️ Get closer to bind the enemy."
+            );
+
+            return;
+
+        }
+
+        if(!this.consumeWeb())
+            return;
+
+        this.enemyBound=true;
+
+        this.bindVisual();
+
+        this.damageEnemy(
+            8
+        );
+
+        this.addCombo();
+
+        this.message(
+            "🕸️ ENEMY WEBBED!"
+        );
+
+    },
+
+
+    /* =========================
+       BIND VISUAL
+    ========================= */
+
+    bindVisual(){
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        enemy.classList.add(
+            "webbed"
+        );
+
+        if(
+            !enemy.querySelector(
+                ".webWrap"
+            )
+        ){
+
+            const wrap=
+                document.createElement(
+                    "div"
+                );
+
+            wrap.className=
+                "webWrap";
+
+            enemy.appendChild(
+                wrap
+            );
+
+        }
+
+        clearTimeout(
+            this.bindTimer
+        );
+
+        this.bindTimer=
+            setTimeout(
+                ()=>{
+
+                    this.enemyBound=false;
+
+                    enemy.classList.remove(
+                        "webbed"
+                    );
+
+                    const wrap=
+                        enemy.querySelector(
+                            ".webWrap"
+                        );
+
+                    if(wrap)
+                        wrap.remove();
+
+                },
+                4000
+            );
+
+    },
+
+
+    /* =========================
+       WEB BURST
+    ========================= */
+
+    burst(){
+
+        if(this.enemyDefeated())
+            return;
+
+        if(this.webs<5){
+
+            this.message(
+                "🕸️ Need 5 webs."
+            );
+
+            return;
+
+        }
+
+        this.webs-=5;
+
+        this.drawWeb();
+
+        this.damageEnemy(
+            20
+        );
+
+        this.addCombo();
+
+        this.flash();
+
+        this.message(
+            "💥 WEB BURST!"
+        );
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       CONSUME WEB
+    ========================= */
+
+    consumeWeb(){
+
+        if(this.webs<=0){
+
+            this.message(
+                "🕸️ Web supply empty."
+            );
+
+            return false;
+
+        }
+
+        this.webs--;
+
+        if(
+            typeof Spider!==
+            "undefined"
+        ){
+
+            Spider.webs=
+                this.webs;
+
+            Spider.update();
+
+        }
+
+        this.update();
+
+        return true;
+
+    },
+
+
+    /* =========================
+       DRAW WEB
+    ========================= */
+
+    drawWeb(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        const a=
+            player.getBoundingClientRect();
+
+        const b=
+            enemy.getBoundingClientRect();
+
+        const x1=
+            a.left+
+            a.width/2;
+
+        const y1=
+            a.top+
+            a.height/2;
+
+        const x2=
+            b.left+
+            b.width/2;
+
+        const y2=
+            b.top+
+            b.height/2;
+
+        const dx=
+            x2-x1;
+
+        const dy=
+            y2-y1;
+
+        const length=
+            Math.hypot(
+                dx,
+                dy
+            );
+
+        const angle=
+            Math.atan2(
+                dy,
+                dx
+            )*
+            180/Math.PI;
+
+        const line=
+            document.createElement(
+                "div"
+            );
+
+        line.className=
+            "webLine";
+
+        line.style.left=
+            x1+"px";
+
+        line.style.top=
+            y1+"px";
+
+        line.style.width=
+            length+"px";
+
+        line.style.transform=
+            `rotate(${angle}deg)`;
+
+        document.body.appendChild(
+            line
+        );
+
+        setTimeout(
+            ()=>{
+                line.remove();
+            },
+            300
+        );
+
+    },
+
+
+    /* =========================
+       DAMAGE
+    ========================= */
+
+    damageEnemy(
+        damage
+    ){
+
+        if(
+            typeof SpiderCombat===
+            "undefined"
+        )
+            return;
+
+        SpiderCombat.enemyHealth=
+            Math.max(
+                0,
+                SpiderCombat.enemyHealth-
+                damage
+            );
+
+        SpiderCombat.enemyFlash();
+
+        SpiderCombat.showHit();
+
+        SpiderCombat.update();
+
+        if(
+            SpiderCombat.enemyHealth<=0
+        ){
+
+            SpiderCombat.defeat();
+
+        }
+
+    },
+
+
+    /* =========================
+       DISTANCE
+    ========================= */
+
+    distance(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        const a=
+            player.getBoundingClientRect();
+
+        const b=
+            enemy.getBoundingClientRect();
+
+        return Math.hypot(
+
+            a.left-b.left,
+
+            a.top-b.top
+
+        );
+
+    },
+
+
+    /* =========================
+       COMBO
+    ========================= */
+
+    addCombo(){
+
+        this.combo++;
+
+        clearTimeout(
+            this.comboTimer
+        );
+
+        this.comboTimer=
+            setTimeout(
+                ()=>{
+                    this.combo=0;
+                    this.update();
+                },
+                1800
+            );
+
+        if(this.combo>=3){
+
+            this.message(
+                "🔥 WEB COMBO x"+
+                this.combo+"!"
+            );
+
+        }
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       RESET COMBO
+    ========================= */
+
+    resetCombo(){
+
+        this.combo=0;
+
+        this.update();
+
+        this.message(
+            "🔄 Web combo reset."
+        );
+
+    },
+
+
+    /* =========================
+       FLASH
+    ========================= */
+
+    flash(){
+
+        const flash=
+            document.getElementById(
+                "webFlash"
+            );
+
+        flash.classList.remove(
+            "active"
+        );
+
+        void flash.offsetWidth;
+
+        flash.classList.add(
+            "active"
+        );
+
+    },
+
+
+    /* =========================
+       ENEMY CHECK
+    ========================= */
+
+    enemyDefeated(){
+
+        return(
+            typeof SpiderCombat!==
+            "undefined" &&
+            SpiderCombat.defeated
+        );
+
+    },
+
+
+    /* =========================
+       UPDATE
+    ========================= */
+
+    update(){
+
+        const count=
+            document.getElementById(
+                "webCount"
+            );
+
+        const meter=
+            document.getElementById(
+                "webMeterFill"
+            );
+
+        const traps=
+            document.getElementById(
+                "trapCount"
+            );
+
+        const combo=
+            document.getElementById(
+                "webCombo"
+            );
+
+        const text=
+            document.getElementById(
+                "webComboText"
+            );
+
+        if(count)
+            count.textContent=
+                this.webs;
+
+        if(traps)
+            traps.textContent=
+                this.traps;
+
+        if(combo)
+            combo.textContent=
+                this.combo;
+
+        if(meter){
+
+            meter.style.width=
+                (
+                    this.webs/
+                    this.maxWebs*
+                    100
+                )+"%";
+
+        }
+
+        if(text){
+
+            if(this.combo>=3){
+
+                text.textContent=
+                    "🔥 WEB COMBO x"+
+                    this.combo;
+
+            }else{
+
+                text.textContent=
+                    "WEB READY";
+
+            }
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "message"
+            );
+
+        if(!box)
+            return;
+
+        box.textContent=
+            text;
+
+        box.style.display=
+            "block";
+
+        clearTimeout(
+            this.messageTimer
+        );
+
+        this.messageTimer=
+            setTimeout(
+                ()=>{
+                    box.style.display=
+                        "none";
+                },
+                1800
+            );
+
+    }
+
+};
+
+
+/* =====================================================
+ START V207
+===================================================== */
+
+SpiderWeb.init();
+
+
+/* =====================================================
+ KEYBOARD
+===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="z")
+            SpiderWeb.shoot();
+
+        if(key==="x")
+            SpiderWeb.pull();
+
+        if(key==="c")
+            SpiderWeb.bind();
+
+        if(key==="v")
+            SpiderWeb.trap();
+
+        if(key==="b")
+            SpiderWeb.burst();
+
+    }
+);
+
+</script>
