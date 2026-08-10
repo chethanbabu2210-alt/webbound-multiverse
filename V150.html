@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V150 — SHOP & EQUIPMENT</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ overflow:hidden;
+ background:#05090d;
+ color:#fff;
+ font-family:Arial,sans-serif
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ background:
+ linear-gradient(#203a47,#071016 65%);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+ overflow:hidden;
+}
+
+.road{
+ position:absolute;
+ background:#252e33;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:60px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:69%;
+ width:60px;
+}
+
+.building{
+ position:absolute;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:8px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ color:#81929b;
+ font-size:10px;
+ text-align:center;
+}
+
+.b1{
+ left:4%;
+ top:7%;
+ width:19%;
+ height:28%;
+}
+
+.b2{
+ left:28%;
+ top:7%;
+ width:19%;
+ height:28%;
+}
+
+.b3{
+ left:52%;
+ top:7%;
+ width:16%;
+ height:27%;
+}
+
+.b4{
+ right:3%;
+ top:7%;
+ width:22%;
+ height:28%;
+}
+
+.b5{
+ left:4%;
+ bottom:6%;
+ width:20%;
+ height:24%;
+}
+
+.b6{
+ left:30%;
+ bottom:7%;
+ width:18%;
+ height:22%;
+}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:57%;
+ width:30px;
+ height:42px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:20;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ width:18px;
+ height:18px;
+ left:6px;
+ top:-14px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#shop{
+ position:absolute;
+ right:7%;
+ top:43%;
+ width:42px;
+ height:42px;
+ border-radius:50%;
+ background:#7e43a9;
+ border:2px solid #d3a2f4;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:20px;
+ cursor:pointer;
+ box-shadow:0 0 18px #9d5bd955;
+ z-index:50;
+ animation:pulse 1.4s infinite;
+}
+
+@keyframes pulse{
+ 50%{
+  transform:scale(1.12);
+ }
+}
+
+#hud{
+ position:fixed;
+ top:10px;
+ left:10px;
+ width:min(410px,74vw);
+ padding:12px;
+ background:#03070ced;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:100;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:flex;
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ flex:1;
+ padding:7px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#equipment{
+ margin-top:8px;
+ padding:8px;
+ background:#101b23;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.6;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(760px,95vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:100;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ border:1px solid #ffffff20;
+ border-radius:8px;
+ background:#142733;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(650px,92vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.box h2{
+ margin-top:0;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:
+ repeat(auto-fit,minmax(135px,1fr));
+ gap:7px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border:1px solid #ffffff14;
+ border-radius:9px;
+ min-height:130px;
+}
+
+.card b{
+ display:block;
+ margin-bottom:7px;
+}
+
+.card p{
+ color:#aebbc2;
+ font-size:9px;
+ line-height:1.5;
+ margin:0 0 8px;
+}
+
+.card button{
+ width:100%;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+}
+
+#shopMarker{
+ position:absolute;
+ left:50%;
+ top:-22px;
+ transform:translateX(-50%);
+ color:#e2b4ff;
+ font-size:9px;
+ white-space:nowrap;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="building b1">
+   🏠 RESIDENTIAL
+  </div>
+
+  <div class="building b2">
+   🏫 SCHOOL
+  </div>
+
+  <div class="building b3">
+   🏥 HOSPITAL
+  </div>
+
+  <div class="building b4">
+   🏢 CORPORATE
+  </div>
+
+  <div class="building b5">
+   🏭 WAREHOUSE
+  </div>
+
+  <div class="building b6">
+   🌳 PARK
+  </div>
+
+  <div id="player"></div>
+
+  <div
+   id="shop"
+   onclick="V150.openShop()">
+
+   🛒
+
+   <div id="shopMarker">
+    CITY SHOP
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🕵️ WEBBOUND V150
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cash">0</span>
+   </div>
+
+   <div class="stat">
+    ⭐ LEVEL<br>
+    <span id="level">1</span>
+   </div>
+
+   <div class="stat">
+    ❤️ HEALTH<br>
+    <span id="health">100</span>
+   </div>
+
+   <div class="stat">
+    🎒 ITEMS<br>
+    <span id="items">0</span>
+   </div>
+
+  </div>
+
+  <div id="equipment">
+
+   🛡️ Equipment:
+   <span id="equipmentText">
+    Basic Investigator Kit
+   </span>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V150.openShop()">
+   🛒 SHOP
+  </button>
+
+  <button onclick="V150.equipment()">
+   🛡️ EQUIPMENT
+  </button>
+
+  <button onclick="V150.inventory()">
+   🎒 INVENTORY
+  </button>
+
+  <button onclick="V150.heal()">
+   ❤️ HEAL
+  </button>
+
+  <button onclick="V150.earn()">
+   💰 TEST REWARD
+  </button>
+
+  <button onclick="V150.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V150.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V150={
+
+ saveKey:"WEBBOUND_V150",
+
+ cash:0,
+
+ level:1,
+
+ health:100,
+
+ xp:0,
+
+ inventory:[],
+
+ equipmentData:{
+
+  weapon:"Basic Investigator Kit",
+
+  scanner:"Standard Scanner",
+
+  armor:"Light Jacket"
+
+ },
+
+ shopItems:[
+
+  {
+   id:"advanced_scanner",
+   icon:"🔬",
+   name:"Advanced Scanner",
+   price:500,
+   description:
+    "Improves clue detection and investigation."
+  },
+
+  {
+   id:"detective_kit",
+   icon:"🕵️",
+   name:"Professional Detective Kit",
+   price:900,
+   description:
+    "A complete field investigation kit."
+  },
+
+  {
+   id:"protective_jacket",
+   icon:"🧥",
+   name:"Protective Jacket",
+   price:700,
+   description:
+    "Provides additional protection during missions."
+  },
+
+  {
+   id:"flashlight",
+   icon:"🔦",
+   name:"High-Power Flashlight",
+   price:350,
+   description:
+    "Useful for investigating dark locations."
+  },
+
+  {
+   id:"radio",
+   icon:"📻",
+   name:"Encrypted Radio",
+   price:800,
+   description:
+    "Allows secure communication with contacts."
+  },
+
+  {
+   id:"camera",
+   icon:"📷",
+   name:"Investigation Camera",
+   price:650,
+   description:
+    "Capture important evidence."
+  }
+
+ ],
+
+ purchased:[],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.updateHUD();
+
+  this.notify(
+   "🛒 V150 shop system ready"
+  );
+
+ },
+
+ /* =========================
+    SHOP
+ ========================= */
+
+ openShop(){
+
+  let html="";
+
+  html+=`
+   <div style="
+    padding:9px;
+    background:#111d25;
+    border-radius:8px;
+    margin-bottom:9px;
+    font-size:10px">
+    💰 Your balance:
+    <b>₹${this.cash}</b>
+   </div>
+  `;
+
+  html+=`
+   <div class="grid">
+  `;
+
+  this.shopItems.forEach(
+   item=>{
+
+    const owned=
+     this.purchased.includes(
+      item.id
+     );
+
+    html+=`
+
+     <div class="card">
+
+      <b>
+       ${item.icon}
+       ${item.name}
+      </b>
+
+      <p>
+       ${item.description}
+      </p>
+
+      <p>
+       💰 Price:
+       ₹${item.price}
+      </p>
+
+      ${
+       owned
+       ?`
+        <button disabled>
+         ✅ OWNED
+        </button>
+       `
+       :`
+        <button
+         onclick="V150.buy('${item.id}')">
+         BUY
+        </button>
+       `
+      }
+
+     </div>
+
+    `;
+
+   }
+  );
+
+  html+=`</div>`;
+
+  this.open(
+   "🛒 CITY SHOP",
+   html
+  );
+
+ },
+
+ /* =========================
+    BUY
+ ========================= */
+
+ buy(id){
+
+  const item=
+   this.shopItems.find(
+    x=>x.id===id
+   );
+
+  if(!item)
+   return;
+
+  if(
+   this.purchased.includes(
+    id
+   )
+  ){
+
+   this.notify(
+    "You already own this item."
+   );
+
+   return;
+
+  }
+
+  if(this.cash<item.price){
+
+   this.notify(
+    "❌ Not enough cash."
+   );
+
+   return;
+
+  }
+
+  this.cash-=item.price;
+
+  this.purchased.push(id);
+
+  this.inventory.push(id);
+
+  this.applyEquipment(item);
+
+  this.updateHUD();
+
+  this.save();
+
+  this.openShop();
+
+  this.notify(
+   "✅ Purchased "+
+   item.name
+  );
+
+ },
+
+ /* =========================
+    EQUIPMENT
+ ========================= */
+
+ applyEquipment(item){
+
+  if(item.id==="advanced_scanner")
+   this.equipmentData.scanner=
+    "Advanced Scanner";
+
+  if(item.id==="detective_kit")
+   this.equipmentData.weapon=
+    "Professional Detective Kit";
+
+  if(item.id==="protective_jacket")
+   this.equipmentData.armor=
+    "Protective Jacket";
+
+  if(item.id==="flashlight")
+   this.equipmentData.flashlight=
+    "High-Power Flashlight";
+
+  if(item.id==="radio")
+   this.equipmentData.radio=
+    "Encrypted Radio";
+
+  if(item.id==="camera")
+   this.equipmentData.camera=
+    "Investigation Camera";
+
+ },
+
+ equipment(){
+
+  let html=`
+
+   <div class="grid">
+
+    <div class="card">
+     <b>🕵️ Investigation Kit</b>
+     <p>
+      ${this.equipmentData.weapon}
+     </p>
+    </div>
+
+    <div class="card">
+     <b>🔬 Scanner</b>
+     <p>
+      ${this.equipmentData.scanner}
+     </p>
+    </div>
+
+    <div class="card">
+     <b>🧥 Protection</b>
+     <p>
+      ${this.equipmentData.armor}
+     </p>
+    </div>
+
+    <div class="card">
+     <b>🔦 Flashlight</b>
+     <p>
+      ${this.equipmentData.flashlight||
+       "Not equipped"}
+     </p>
+    </div>
+
+    <div class="card">
+     <b>📻 Radio</b>
+     <p>
+      ${this.equipmentData.radio||
+       "Not equipped"}
+     </p>
+    </div>
+
+    <div class="card">
+     <b>📷 Camera</b>
+     <p>
+      ${this.equipmentData.camera||
+       "Not equipped"}
+     </p>
+    </div>
+
+   </div>
+
+  `;
+
+  this.open(
+   "🛡️ EQUIPMENT",
+   html
+  );
+
+ },
+
+ /* =========================
+    INVENTORY
+ ========================= */
+
+ inventory(){
+
+  if(this.inventory.length===0){
+
+   this.open(
+    "🎒 INVENTORY",
+    `
+     <div class="card">
+      <b>Inventory empty</b>
+      <p>
+       Visit the city shop to purchase equipment.
+      </p>
+     </div>
+    `
+   );
+
+   return;
+
+  }
+
+  const cards=
+   this.inventory.map(
+    id=>{
+
+     const item=
+      this.shopItems.find(
+       x=>x.id===id
+      );
+
+     if(!item)
+      return "";
+
+     return`
+
+      <div class="card">
+
+       <b>
+        ${item.icon}
+        ${item.name}
+       </b>
+
+       <p>
+        ${item.description}
+       </p>
+
+       <p>
+        Status: ✅ Owned
+       </p>
+
+      </div>
+
+     `;
+
+    }
+   ).join("");
+
+  this.open(
+   "🎒 INVENTORY",
+   `<div class="grid">${cards}</div>`
+  );
+
+ },
+
+ /* =========================
+    HEAL
+ ========================= */
+
+ heal(){
+
+  if(this.health>=100){
+
+   this.notify(
+    "❤️ Health is already full."
+   );
+
+   return;
+
+  }
+
+  const cost=100;
+
+  if(this.cash<cost){
+
+   this.notify(
+    "❌ Healing costs ₹100."
+   );
+
+   return;
+
+  }
+
+  this.cash-=cost;
+
+  this.health=100;
+
+  this.updateHUD();
+
+  this.save();
+
+  this.notify(
+   "❤️ Health restored."
+  );
+
+ },
+
+ /* =========================
+    TEST MONEY
+ ========================= */
+
+ earn(){
+
+  const amount=
+   250+
+   Math.floor(
+    Math.random()*251
+   );
+
+  this.cash+=amount;
+
+  this.updateHUD();
+
+  this.save();
+
+  this.notify(
+   "💰 Reward received: ₹"+
+   amount
+  );
+
+ },
+
+ /* =========================
+    XP
+ ========================= */
+
+ addXP(amount){
+
+  this.xp+=amount;
+
+  const required=
+   this.level*100;
+
+  if(this.xp>=required){
+
+   this.xp-=required;
+
+   this.level++;
+
+   this.notify(
+    "🎉 Level up! Level "+
+    this.level
+   );
+
+  }
+
+ },
+
+ /* =========================
+    HUD
+ ========================= */
+
+ updateHUD(){
+
+  document.getElementById(
+   "cash"
+  ).textContent=
+   this.cash;
+
+  document.getElementById(
+   "level"
+  ).textContent=
+   this.level;
+
+  document.getElementById(
+   "health"
+  ).textContent=
+   this.health;
+
+  document.getElementById(
+   "items"
+  ).textContent=
+   this.inventory.length;
+
+  document.getElementById(
+   "equipmentText"
+  ).textContent=
+   this.equipmentData.weapon+
+   " • "+
+   this.equipmentData.scanner;
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2200
+   );
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    level:this.level,
+
+    xp:this.xp,
+
+    health:this.health,
+
+    inventory:this.inventory,
+
+    purchased:this.purchased,
+
+    equipmentData:
+     this.equipmentData
+
+   })
+  );
+
+  this.notify(
+   "💾 V150 saved"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   this.cash=
+    data.cash||0;
+
+   this.level=
+    data.level||1;
+
+   this.xp=
+    data.xp||0;
+
+   this.health=
+    data.health??100;
+
+   this.inventory=
+    Array.isArray(
+     data.inventory
+    )
+    ?data.inventory
+    :[];
+
+   this.purchased=
+    Array.isArray(
+     data.purchased
+    )
+    ?data.purchased
+    :[];
+
+   if(data.equipmentData){
+
+    this.equipmentData={
+     ...this.equipmentData,
+     ...data.equipmentData
+    };
+
+   }
+
+  }
+  catch(error){
+
+   console.log(
+    "V150 load error:",
+    error
+   );
+
+  }
+
+ }
+
+};
+
+V150.init();
+
+console.log(
+ "WEBBOUND V150 SHOP & EQUIPMENT SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
