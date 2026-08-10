@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V176 — WEATHER & DAY/NIGHT</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#071018;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#47788a,#15262d);
+ transition:background 2s;
+}
+
+#sky{
+ position:absolute;
+ inset:0;
+ background:linear-gradient(#5b9bb1,#20353e);
+ transition:background 2s,opacity 2s;
+}
+
+#sun{
+ position:absolute;
+ width:70px;
+ height:70px;
+ border-radius:50%;
+ background:#ffd76b;
+ right:12%;
+ top:12%;
+ box-shadow:0 0 45px #ffd76b88;
+ transition:all 2s;
+}
+
+#moon{
+ position:absolute;
+ width:55px;
+ height:55px;
+ border-radius:50%;
+ background:#e8f0ff;
+ right:14%;
+ top:15%;
+ box-shadow:0 0 35px #dce8ff88;
+ opacity:0;
+ transition:all 2s;
+}
+
+#clouds{
+ position:absolute;
+ inset:0;
+ pointer-events:none;
+}
+
+.cloud{
+ position:absolute;
+ width:150px;
+ height:42px;
+ border-radius:50px;
+ background:#ffffff45;
+ filter:blur(1px);
+ animation:moveCloud 40s linear infinite;
+}
+
+.c1{top:15%;left:-180px}
+.c2{top:27%;left:20%;animation-duration:55s}
+.c3{top:10%;left:60%;animation-duration:48s}
+
+@keyframes moveCloud{
+ from{transform:translateX(-100px)}
+ to{transform:translateX(120vw)}
+}
+
+#rain{
+ position:absolute;
+ inset:0;
+ pointer-events:none;
+ opacity:0;
+ background:
+ repeating-linear-gradient(
+  105deg,
+  transparent 0 12px,
+  #b9ddff55 13px 14px,
+  transparent 15px 25px
+ );
+ animation:rainMove .35s linear infinite;
+ transition:opacity 1s;
+}
+
+@keyframes rainMove{
+ from{background-position:0 0}
+ to{background-position:20px 50px}
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.4;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+ transition:filter 2s;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(760px,92vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#weatherHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.7;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(700px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="sky"></div>
+
+ <div id="sun"></div>
+ <div id="moon"></div>
+
+ <div id="clouds">
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+  <div class="cloud c3"></div>
+ </div>
+
+ <div id="rain"></div>
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="line lineH"></div>
+  <div class="line lineV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🌦️ WEATHER STATION</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🌦️ WEBBOUND V176 — WEATHER SYSTEM
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    🕐 TIME<br>
+    <span id="timeText">06:00</span>
+   </div>
+
+   <div class="stat">
+    📅 DAY<br>
+    <span id="dayText">1</span>
+   </div>
+
+   <div class="stat">
+    🌡️ TEMP<br>
+    <span id="tempText">28°C</span>
+   </div>
+
+   <div class="stat">
+    🌦️ WEATHER<br>
+    <span id="weatherText">Clear</span>
+   </div>
+
+  </div>
+
+  <div id="weatherHud">
+
+   <b>🌍 CITY CONDITIONS</b>
+
+   <br>
+
+   Current:
+   <span id="conditionText">
+    Clear skies
+   </span>
+
+   <br>
+
+   Visibility:
+   <span id="visibilityText">
+    Excellent
+   </span>
+
+   <br>
+
+   Activity modifier:
+   <span id="modifierText">
+    Normal
+   </span>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V176.weather()">
+   🌦️ WEATHER
+  </button>
+
+  <button onclick="V176.nextWeather()">
+   🔄 CHANGE WEATHER
+  </button>
+
+  <button onclick="V176.advanceHour()">
+   ⏩ +1 HOUR
+  </button>
+
+  <button onclick="V176.advanceDay()">
+   📅 NEXT DAY
+  </button>
+
+  <button onclick="V176.toggleAuto()">
+   ▶️ AUTO TIME
+  </button>
+
+  <button onclick="V176.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V176
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V176.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V176={
+
+ saveKey:"WEBBOUND_V176",
+
+ hour:6,
+
+ day:1,
+
+ weatherIndex:0,
+
+ auto:false,
+
+ timer:null,
+
+ weatherList:[
+
+  {
+   name:"☀️ Clear",
+   description:
+    "Clear skies and excellent visibility.",
+   temp:28,
+   visibility:"Excellent",
+   modifier:"Normal"
+  },
+
+  {
+   name:"⛅ Cloudy",
+   description:
+    "Cloud cover reduces sunlight.",
+   temp:25,
+   visibility:"Good",
+   modifier:"Normal"
+  },
+
+  {
+   name:"🌧️ Rain",
+   description:
+    "Rain reduces visibility and makes roads slippery.",
+   temp:21,
+   visibility:"Reduced",
+   modifier:"Driving -10%"
+  },
+
+  {
+   name:"⛈️ Storm",
+   description:
+    "Heavy storm conditions affect the entire city.",
+   temp:19,
+   visibility:"Poor",
+   modifier:"All activities -15%"
+  },
+
+  {
+   name:"🌫️ Fog",
+   description:
+    "Dense fog makes navigation difficult.",
+   temp:17,
+   visibility:"Very Poor",
+   modifier:"Exploration -20%"
+  }
+
+ ],
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🌦️ V176 Weather System ready"
+  );
+
+ },
+
+ currentWeather(){
+
+  return this.weatherList[
+   this.weatherIndex
+  ];
+
+ },
+
+ /* =========================
+    TIME
+ ========================= */
+
+ advanceHour(){
+
+  this.hour++;
+
+  if(this.hour>=24){
+
+   this.hour=0;
+
+   this.day++;
+
+  }
+
+  this.update();
+
+  this.save();
+
+ },
+
+ advanceDay(){
+
+  this.day++;
+
+  this.hour=6;
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "📅 Day "+this.day+
+   " has started."
+  );
+
+ },
+
+ toggleAuto(){
+
+  this.auto=!this.auto;
+
+  if(this.auto){
+
+   clearInterval(
+    this.timer
+   );
+
+   this.timer=
+    setInterval(
+     ()=>{
+      this.advanceHour();
+     },
+     5000
+    );
+
+   this.notify(
+    "▶️ Automatic time enabled"
+   );
+
+  }
+  else{
+
+   clearInterval(
+    this.timer
+   );
+
+   this.notify(
+    "⏸️ Automatic time paused"
+   );
+
+  }
+
+ },
+
+ /* =========================
+    WEATHER
+ ========================= */
+
+ nextWeather(){
+
+  this.weatherIndex++;
+
+  if(
+   this.weatherIndex>=
+   this.weatherList.length
+  )
+   this.weatherIndex=0;
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🌦️ Weather changed to "+
+   this.currentWeather().name
+  );
+
+ },
+
+ weather(){
+
+  const w=
+   this.currentWeather();
+
+  this.open(
+   "🌦️ WEATHER CENTER",
+   `
+
+   <div class="card">
+
+    <b>${w.name}</b>
+
+    <br><br>
+
+    ${w.description}
+
+    <br><br>
+
+    🌡️ Temperature:
+    ${w.temp}°C
+
+    <br>
+
+    👁️ Visibility:
+    ${w.visibility}
+
+    <br>
+
+    ⚙️ Modifier:
+    ${w.modifier}
+
+   </div>
+
+   <div class="card">
+
+    <b>🕐 CITY TIME</b>
+
+    <br>
+
+    Day ${this.day},
+    ${this.formatHour()}
+
+   </div>
+
+   <div class="card">
+
+    <b>🌍 WEATHER CYCLE</b>
+
+    <br><br>
+
+    Weather changes dynamically
+    through the city cycle.
+
+    <br><br>
+
+    Clear → Cloudy → Rain →
+    Storm → Fog
+
+   </div>
+
+   `
+  );
+
+ },
+
+ /* =========================
+    VISUALS
+ ========================= */
+
+ applyVisuals(){
+
+  const night=
+   this.hour<6 ||
+   this.hour>=19;
+
+  const evening=
+   this.hour>=17 &&
+   this.hour<19;
+
+  const sky=
+   document.getElementById(
+    "sky"
+   );
+
+  const sun=
+   document.getElementById(
+    "sun"
+   );
+
+  const moon=
+   document.getElementById(
+    "moon"
+   );
+
+  const rain=
+   document.getElementById(
+    "rain"
+   );
+
+  if(night){
+
+   sky.style.background=
+    "linear-gradient(#071321,#02070d)";
+
+   sun.style.opacity="0";
+
+   moon.style.opacity="1";
+
+   moon.style.top="12%";
+
+  }
+  else if(evening){
+
+   sky.style.background=
+    "linear-gradient(#704d45,#1b252c)";
+
+   sun.style.opacity="1";
+
+   moon.style.opacity="0";
+
+   sun.style.top="30%";
+
+  }
+  else{
+
+   sky.style.background=
+    "linear-gradient(#5b9bb1,#20353e)";
+
+   sun.style.opacity="1";
+
+   moon.style.opacity="0";
+
+   sun.style.top="12%";
+
+  }
+
+  if(
+   this.weatherIndex===2 ||
+   this.weatherIndex===3
+  ){
+
+   rain.style.opacity=
+    this.weatherIndex===3
+    ?"0.75"
+    :"0.4";
+
+  }
+  else{
+
+   rain.style.opacity="0";
+
+  }
+
+  const buildings=
+   document.querySelectorAll(
+    ".building"
+   );
+
+  buildings.forEach(
+   b=>{
+    b.style.filter=
+     night
+     ?"brightness(.45)"
+     :"brightness(1)";
+   }
+  );
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const w=
+   this.currentWeather();
+
+  document.getElementById(
+   "timeText"
+  ).textContent=
+   this.formatHour();
+
+  document.getElementById(
+   "dayText"
+  ).textContent=
+   this.day;
+
+  document.getElementById(
+   "tempText"
+  ).textContent=
+   w.temp+"°C";
+
+  document.getElementById(
+   "weatherText"
+  ).textContent=
+   w.name;
+
+  document.getElementById(
+   "conditionText"
+  ).textContent=
+   w.description;
+
+  document.getElementById(
+   "visibilityText"
+  ).textContent=
+   w.visibility;
+
+  document.getElementById(
+   "modifierText"
+  ).textContent=
+   w.modifier;
+
+  this.applyVisuals();
+
+ },
+
+ /* =========================
+    FORMAT TIME
+ ========================= */
+
+ formatHour(){
+
+  const h=
+   String(
+    this.hour
+   ).padStart(2,"0");
+
+  return h+":00";
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    hour:this.hour,
+
+    day:this.day,
+
+    weatherIndex:
+     this.weatherIndex,
+
+    auto:this.auto
+
+   })
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(
+    Number.isFinite(
+     data.hour
+    )
+   )
+    this.hour=
+     Math.max(
+      0,
+      Math.min(
+       23,
+       Math.floor(
+        data.hour
+       )
+      )
+     );
+
+   if(
+    Number.isFinite(
+     data.day
+    )
+   )
+    this.day=
+     Math.max(
+      1,
+      Math.floor(
+       data.day
+      )
+     );
+
+   if(
+    Number.isFinite(
+     data.weatherIndex
+    )
+   )
+    this.weatherIndex=
+     Math.max(
+      0,
+      Math.min(
+       this.weatherList.length-1,
+       Math.floor(
+        data.weatherIndex
+       )
+      )
+     );
+
+  }
+  catch(error){
+
+   console.log(
+    "V176 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.notificationTimer
+  );
+
+  this.notificationTimer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V176.init();
+
+console.log(
+ "WEBBOUND V176 WEATHER SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
