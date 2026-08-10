@@ -1,0 +1,907 @@
+<!-- =====================================================
+ V243 — SAVE / LOAD SYSTEM
+ Add after V242
+ ===================================================== -->
+
+<style>
+
+#saveHud243{
+
+    position:fixed;
+
+    left:50%;
+
+    top:50%;
+
+    transform:
+        translate(-50%,-50%);
+
+    width:min(360px,85vw);
+
+    padding:16px;
+
+    background:#03070df7;
+
+    border:1px solid #ffffff30;
+
+    border-radius:12px;
+
+    z-index:9500;
+
+    display:none;
+
+}
+
+#saveHud243.open{
+
+    display:block;
+
+}
+
+.saveTitle243{
+
+    text-align:center;
+
+    font-size:13px;
+
+    font-weight:bold;
+
+    margin-bottom:12px;
+
+}
+
+.saveSlot243{
+
+    margin-top:7px;
+
+    padding:10px;
+
+    background:#111f2a;
+
+    border:1px solid #ffffff20;
+
+    border-radius:7px;
+
+    cursor:pointer;
+
+    font-size:8px;
+
+}
+
+.saveSlot243:hover{
+
+    background:#182b39;
+
+}
+
+.saveInfo243{
+
+    margin-top:10px;
+
+    text-align:center;
+
+    font-size:8px;
+
+    min-height:18px;
+
+}
+
+.saveButtons243{
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:6px;
+
+    margin-top:10px;
+
+}
+
+.saveButtons243 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ SAVE MENU
+ ===================================================== -->
+
+<div id="saveHud243">
+
+    <div class="saveTitle243">
+        💾 SAVE / LOAD — V243
+    </div>
+
+    <div
+        class="saveSlot243"
+        onclick="SpiderSave243.save(1)">
+        SLOT 1 — SAVE
+    </div>
+
+    <div
+        class="saveSlot243"
+        onclick="SpiderSave243.save(2)">
+        SLOT 2 — SAVE
+    </div>
+
+    <div
+        class="saveSlot243"
+        onclick="SpiderSave243.save(3)">
+        SLOT 3 — SAVE
+    </div>
+
+    <div
+        class="saveSlot243"
+        onclick="SpiderSave243.load(1)">
+        SLOT 1 — LOAD
+    </div>
+
+    <div
+        class="saveSlot243"
+        onclick="SpiderSave243.load(2)">
+        SLOT 2 — LOAD
+    </div>
+
+    <div
+        class="saveSlot243"
+        onclick="SpiderSave243.load(3)">
+        SLOT 3 — LOAD
+    </div>
+
+    <div
+        id="saveInfo243"
+        class="saveInfo243">
+        Select a slot.
+    </div>
+
+    <div class="saveButtons243">
+
+        <button
+            onclick="SpiderSave243.autoSave()">
+            AUTO SAVE
+        </button>
+
+        <button
+            onclick="SpiderSave243.close()">
+            CLOSE
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V243 SAVE ENGINE
+ ===================================================== */
+
+const SpiderSave243={
+
+    prefix:
+        "spiderman_game_v243_slot_",
+
+    autoKey:
+        "spiderman_game_v243_auto",
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.startAutoSave();
+
+        this.message(
+            "💾 Save system online."
+        );
+
+    },
+
+
+    /* =========================
+       OPEN
+    ========================= */
+
+    open(){
+
+        const menu=
+            document.getElementById(
+                "saveHud243"
+            );
+
+        if(menu){
+
+            menu.classList.add(
+                "open"
+            );
+
+        }
+
+        this.showSlots();
+
+    },
+
+
+    /* =========================
+       CLOSE
+    ========================= */
+
+    close(){
+
+        const menu=
+            document.getElementById(
+                "saveHud243"
+            );
+
+        if(menu){
+
+            menu.classList.remove(
+                "open"
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       COLLECT GAME STATE
+       ========================= */
+
+    getState(){
+
+        const state={
+
+            version:"V243",
+
+            timestamp:
+                new Date()
+                    .toISOString(),
+
+            player:{},
+
+            world:{},
+
+            map:{},
+
+            collectibles:{},
+
+            missions:{},
+
+            progression:{},
+
+            wanted:{}
+
+        };
+
+
+        /* =====================
+           WORLD
+           ===================== */
+
+        if(
+            typeof SpiderWorld240!==
+            "undefined"
+        ){
+
+            state.world={
+
+                hour:
+                    SpiderWorld240.hour,
+
+                minute:
+                    SpiderWorld240.minute,
+
+                weatherIndex:
+                    SpiderWorld240.weatherIndex,
+
+                rainActive:
+                    SpiderWorld240.rainActive
+
+            };
+
+        }
+
+
+        /* =====================
+           MAP
+           ===================== */
+
+        if(
+            typeof SpiderMap241!==
+            "undefined"
+        ){
+
+            state.map={
+
+                currentLocation:
+                    SpiderMap241
+                        .currentLocation,
+
+                waypoint:
+                    SpiderMap241
+                        .waypoint,
+
+                discovered:
+                    SpiderMap241
+                        .discovered
+
+            };
+
+        }
+
+
+        /* =====================
+           COLLECTIBLES
+           ===================== */
+
+        if(
+            typeof SpiderCollect242!==
+            "undefined"
+        ){
+
+            state.collectibles={
+
+                collected:
+                    SpiderCollect242
+                        .collected,
+
+                tokens:
+                    SpiderCollect242
+                        .tokens
+
+            };
+
+        }
+
+
+        /* =====================
+           PROGRESSION
+           ===================== */
+
+        if(
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            state.progression={
+
+                level:
+                    SpiderProgress239.level,
+
+                xp:
+                    SpiderProgress239.xp,
+
+                xpRequired:
+                    SpiderProgress239
+                        .xpRequired,
+
+                skillPoints:
+                    SpiderProgress239
+                        .skillPoints,
+
+                skills:
+                    {
+                        ...SpiderProgress239
+                            .skills
+                    }
+
+            };
+
+        }
+
+
+        /* =====================
+           WANTED
+           ===================== */
+
+        if(
+            typeof SpiderPolice237!==
+            "undefined"
+        ){
+
+            state.wanted={
+
+                wantedLevel:
+                    SpiderPolice237
+                        .wantedLevel
+
+            };
+
+        }
+
+
+        /* =====================
+           MISSIONS
+           ===================== */
+
+        if(
+            typeof SpiderMission236!==
+            "undefined"
+        ){
+
+            state.missions={
+
+                xp:
+                    SpiderMission236.xp,
+
+                progress:
+                    SpiderMission236
+                        .progress
+
+            };
+
+        }
+
+
+        return state;
+
+    },
+
+
+    /* =========================
+       SAVE
+    ========================= */
+
+    save(slot){
+
+        const state=
+            this.getState();
+
+
+        try{
+
+            localStorage.setItem(
+
+                this.prefix+
+                slot,
+
+                JSON.stringify(
+                    state
+                )
+
+            );
+
+
+            this.message(
+                "💾 Saved to Slot "+
+                slot
+            );
+
+
+            this.showInfo(
+                "Saved Slot "+
+                slot
+            );
+
+        }catch(error){
+
+            this.message(
+                "⚠️ Save failed."
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       LOAD
+    ========================= */
+
+    load(slot){
+
+        const raw=
+            localStorage.getItem(
+                this.prefix+
+                slot
+            );
+
+
+        if(!raw){
+
+            this.message(
+                "❌ Slot "+
+                slot+
+                " is empty."
+            );
+
+            return;
+
+        }
+
+
+        try{
+
+            const state=
+                JSON.parse(raw);
+
+
+            this.applyState(
+                state
+            );
+
+
+            this.message(
+                "📂 Loaded Slot "+
+                slot
+            );
+
+
+            this.showInfo(
+                "Loaded Slot "+
+                slot
+            );
+
+        }catch(error){
+
+            this.message(
+                "⚠️ Load failed."
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       APPLY STATE
+       ========================= */
+
+    applyState(state){
+
+        /* =====================
+           WORLD
+           ===================== */
+
+        if(
+            state.world &&
+            typeof SpiderWorld240!==
+            "undefined"
+        ){
+
+            SpiderWorld240.hour=
+                state.world.hour;
+
+            SpiderWorld240.minute=
+                state.world.minute;
+
+            SpiderWorld240.weatherIndex=
+                state.world.weatherIndex;
+
+            if(
+                state.world.rainActive
+            ){
+
+                SpiderWorld240
+                    .startRain();
+
+            }else{
+
+                SpiderWorld240
+                    .stopRain();
+
+            }
+
+            SpiderWorld240
+                .updateWorld();
+
+        }
+
+
+        /* =====================
+           MAP
+           ===================== */
+
+        if(
+            state.map &&
+            typeof SpiderMap241!==
+            "undefined"
+        ){
+
+            SpiderMap241.currentLocation=
+                state.map.currentLocation;
+
+            SpiderMap241.waypoint=
+                state.map.waypoint;
+
+            SpiderMap241.discovered=
+                Array.isArray(
+                    state.map.discovered
+                )
+                ?state.map.discovered
+                :[];
+
+            SpiderMap241.updateHUD();
+
+        }
+
+
+        /* =====================
+           COLLECTIBLES
+           ===================== */
+
+        if(
+            state.collectibles &&
+            typeof SpiderCollect242!==
+            "undefined"
+        ){
+
+            SpiderCollect242.collected=
+                state.collectibles
+                    .collected;
+
+            SpiderCollect242.tokens=
+                state.collectibles
+                    .tokens;
+
+            SpiderCollect242.updateHUD();
+
+        }
+
+
+        /* =====================
+           PROGRESSION
+           ===================== */
+
+        if(
+            state.progression &&
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            SpiderProgress239.level=
+                state.progression.level;
+
+            SpiderProgress239.xp=
+                state.progression.xp;
+
+            SpiderProgress239.xpRequired=
+                state.progression.xpRequired;
+
+            SpiderProgress239.skillPoints=
+                state.progression.skillPoints;
+
+            SpiderProgress239.skills=
+                {
+                    ...state.progression.skills
+                };
+
+            SpiderProgress239.updateHUD();
+
+        }
+
+
+        /* =====================
+           WANTED
+       ===================== */
+
+        if(
+            state.wanted &&
+            typeof SpiderPolice237!==
+            "undefined"
+        ){
+
+            SpiderPolice237.wantedLevel=
+                state.wanted.wantedLevel;
+
+            SpiderPolice237.updateHUD();
+
+        }
+
+
+        /* =====================
+           MISSIONS
+           ===================== */
+
+        if(
+            state.missions &&
+            typeof SpiderMission236!==
+            "undefined"
+        ){
+
+            if(
+                typeof state.missions.xp===
+                "number"
+            ){
+
+                SpiderMission236.xp=
+                    state.missions.xp;
+
+            }
+
+            if(
+                typeof state.missions.progress===
+                "number"
+            ){
+
+                SpiderMission236.progress=
+                    state.missions.progress;
+
+            }
+
+        }
+
+    },
+
+
+    /* =========================
+       AUTO SAVE
+       ========================= */
+
+    autoSave(){
+
+        const state=
+            this.getState();
+
+
+        try{
+
+            localStorage.setItem(
+
+                this.autoKey,
+
+                JSON.stringify(
+                    state
+                )
+
+            );
+
+
+            this.message(
+                "💾 Auto-save complete."
+            );
+
+        }catch(error){
+
+            this.message(
+                "⚠️ Auto-save failed."
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       AUTO SAVE TIMER
+       ========================= */
+
+    startAutoSave(){
+
+        setInterval(
+            ()=>{
+
+                this.autoSave();
+
+            },
+            30000
+        );
+
+    },
+
+
+    /* =========================
+       SHOW SLOTS
+       ========================= */
+
+    showSlots(){
+
+        for(
+            let i=1;
+            i<=3;
+            i++
+        ){
+
+            const raw=
+                localStorage.getItem(
+                    this.prefix+i
+                );
+
+
+            if(raw){
+
+                this.showInfo(
+                    "Slot "+
+                    i+
+                    ": Available"
+                );
+
+            }
+
+        }
+
+    },
+
+
+    /* =========================
+       INFO
+       ========================= */
+
+    showInfo(text){
+
+        const info=
+            document.getElementById(
+                "saveInfo243"
+            );
+
+        if(info){
+
+            info.textContent=text;
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V243
+ ===================================================== */
+
+SpiderSave243.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="k")
+            SpiderSave243.open();
+
+        if(key==="f5")
+            SpiderSave243.save(1);
+
+        if(key==="f9")
+            SpiderSave243.load(1);
+
+    }
+);
