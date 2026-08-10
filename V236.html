@@ -1,0 +1,796 @@
+<!-- =====================================================
+ V236 — MISSION + OBJECTIVE TRACKER
+ ===================================================== -->
+
+<style>
+
+#missionHud236{
+
+    position:fixed;
+
+    right:12px;
+    top:12px;
+
+    width:min(280px,55vw);
+
+    padding:12px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:5200;
+
+}
+
+.missionTitle236{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#missionName236{
+
+    margin-top:8px;
+    font-size:9px;
+    font-weight:bold;
+
+}
+
+#missionObjective236{
+
+    margin-top:6px;
+    font-size:8px;
+    line-height:1.5;
+
+}
+
+#missionProgress236{
+
+    margin-top:7px;
+    font-size:8px;
+
+}
+
+#missionReward236{
+
+    margin-top:5px;
+    font-size:8px;
+
+}
+
+#missionBar236{
+
+    margin-top:7px;
+
+    width:100%;
+    height:5px;
+
+    background:#202830;
+
+    border-radius:5px;
+
+    overflow:hidden;
+
+}
+
+#missionFill236{
+
+    width:0%;
+    height:100%;
+
+    background:#ffffff;
+
+    transition:
+        width .3s;
+
+}
+
+
+/* ================= MESSAGE ================= */
+
+#missionMessage236{
+
+    position:fixed;
+
+    left:50%;
+    top:22%;
+
+    transform:
+        translateX(-50%);
+
+    padding:11px 18px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff30;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    z-index:6000;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#missionMessage236.show{
+
+    animation:
+        missionPopup236 1s forwards;
+
+}
+
+@keyframes missionPopup236{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            translateY(-8px);
+    }
+
+    20%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            translateY(0);
+    }
+
+    80%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#missionControls236{
+
+    position:fixed;
+
+    right:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5200;
+
+}
+
+#missionControls236 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="missionHud236">
+
+    <div class="missionTitle236">
+        🎯 MISSION TRACKER — V236
+    </div>
+
+    <div id="missionName236">
+        Mission: Patrol
+    </div>
+
+    <div id="missionObjective236">
+        Objective: Defeat enemies
+    </div>
+
+    <div id="missionProgress236">
+        Progress: 0 / 3
+    </div>
+
+    <div id="missionBar236">
+
+        <div id="missionFill236"></div>
+
+    </div>
+
+    <div id="missionReward236">
+        Reward: 100 XP
+    </div>
+
+</div>
+
+
+<div id="missionMessage236">
+    MISSION
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="missionControls236">
+
+    <button onclick="SpiderMission236.nextMission()">
+        🎯 MISSION
+    </button>
+
+    <button onclick="SpiderMission236.addProgress()">
+        ✓ OBJECTIVE
+    </button>
+
+    <button onclick="SpiderMission236.complete()">
+        🏆 COMPLETE
+    </button>
+
+    <button onclick="SpiderMission236.reset()">
+        ↻ RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V236 MISSION ENGINE
+ ===================================================== */
+
+const SpiderMission236={
+
+    missions:[
+
+        {
+            name:"City Patrol",
+
+            objective:
+                "Defeat 3 enemies",
+
+            target:3,
+
+            progress:0,
+
+            reward:100
+        },
+
+        {
+            name:"Street Rescue",
+
+            objective:
+                "Complete 5 city actions",
+
+            target:5,
+
+            progress:0,
+
+            reward:150
+        },
+
+        {
+            name:"Rooftop Pursuit",
+
+            objective:
+                "Reach maximum traversal speed",
+
+            target:1,
+
+            progress:0,
+
+            reward:200
+        },
+
+        {
+            name:"Danger Zone",
+
+            objective:
+                "Survive a high-alert event",
+
+            target:1,
+
+            progress:0,
+
+            reward:250
+        }
+
+    ],
+
+    missionIndex:0,
+
+    completed:0,
+
+    xp:0,
+
+
+    /* =========================
+       INIT
+       ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.message(
+            "🎯 Mission system online."
+        );
+
+    },
+
+
+    /* =========================
+       CURRENT MISSION
+       ========================= */
+
+    current(){
+
+        return this.missions[
+            this.missionIndex
+        ];
+
+    },
+
+
+    /* =========================
+       NEXT MISSION
+       ========================= */
+
+    nextMission(){
+
+        this.missionIndex=
+            (
+                this.missionIndex+
+                1
+            )%
+            this.missions.length;
+
+
+        this.current().progress=0;
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "🎯 New mission: "+
+            this.current().name
+        );
+
+    },
+
+
+    /* =========================
+       ADD PROGRESS
+       ========================= */
+
+    addProgress(amount=1){
+
+        const mission=
+            this.current();
+
+
+        mission.progress=
+            Math.min(
+                mission.target,
+                mission.progress+
+                amount
+            );
+
+
+        this.updateHUD();
+
+
+        if(
+            mission.progress>=
+            mission.target
+        ){
+
+            this.complete();
+
+        }
+
+    },
+
+
+    /* =========================
+       COMPLETE
+       ========================= */
+
+    complete(){
+
+        const mission=
+            this.current();
+
+
+        if(
+            mission.progress<
+            mission.target
+        ){
+
+            this.message(
+                "🎯 Objective not complete."
+            );
+
+            return;
+
+        }
+
+
+        this.completed++;
+
+        this.xp+=
+            mission.reward;
+
+
+        this.message(
+            "🏆 Mission complete! +"+
+            mission.reward+
+            " XP"
+        );
+
+
+        mission.progress=0;
+
+
+        setTimeout(
+            ()=>{
+
+                this.nextMission();
+
+            },
+            1200
+        );
+
+    },
+
+
+    /* =========================
+       RESET
+       ========================= */
+
+    reset(){
+
+        this.current().progress=0;
+
+        this.updateHUD();
+
+        this.message(
+            "↻ Mission reset."
+        );
+
+    },
+
+
+    /* =========================
+       CONNECT COMBAT
+       ========================= */
+
+    connectCombat(){
+
+        if(
+            typeof SpiderCombat233===
+            "undefined"
+        )
+            return;
+
+
+        /*
+         * Check defeated enemies.
+         */
+
+        const defeated=
+            SpiderCombat233
+                .enemies
+                .filter(
+                    e=>
+                        !e.active
+                )
+                .length;
+
+
+        const mission=
+            this.current();
+
+
+        if(
+            mission.name===
+            "City Patrol"
+        ){
+
+            mission.progress=
+                Math.min(
+                    mission.target,
+                    defeated
+                );
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CONNECT TRAFFIC
+       ========================= */
+
+    connectTraffic(){
+
+        const mission=
+            this.current();
+
+
+        if(
+            mission.name===
+            "Street Rescue"
+        ){
+
+            this.addProgress();
+
+        }
+
+    },
+
+
+    /* =========================
+       CONNECT TRAVERSAL
+       ========================= */
+
+    connectTraversal(){
+
+        if(
+            typeof SpiderTraversal234===
+            "undefined"
+        )
+            return;
+
+
+        if(
+            SpiderTraversal234.speed>=
+            SpiderTraversal234.maxSpeed
+        ){
+
+            const mission=
+                this.current();
+
+
+            if(
+                mission.name===
+                "Rooftop Pursuit"
+            ){
+
+                this.addProgress();
+
+            }
+
+        }
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const mission=
+            this.current();
+
+
+        const name=
+            document.getElementById(
+                "missionName236"
+            );
+
+
+        const objective=
+            document.getElementById(
+                "missionObjective236"
+            );
+
+
+        const progress=
+            document.getElementById(
+                "missionProgress236"
+            );
+
+
+        const reward=
+            document.getElementById(
+                "missionReward236"
+            );
+
+
+        const fill=
+            document.getElementById(
+                "missionFill236"
+            );
+
+
+        if(name){
+
+            name.textContent=
+                "Mission: "+
+                mission.name;
+
+        }
+
+
+        if(objective){
+
+            objective.textContent=
+                "Objective: "+
+                mission.objective;
+
+        }
+
+
+        if(progress){
+
+            progress.textContent=
+                "Progress: "+
+                mission.progress+
+                " / "+
+                mission.target;
+
+        }
+
+
+        if(reward){
+
+            reward.textContent=
+                "Reward: "+
+                mission.reward+
+                " XP | Total XP: "+
+                this.xp;
+
+        }
+
+
+        if(fill){
+
+            const percent=
+                (
+                    mission.progress/
+                    mission.target
+                )*100;
+
+
+            fill.style.width=
+                Math.min(
+                    100,
+                    percent
+                )+"%";
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "missionMessage236"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V236
+ ===================================================== */
+
+SpiderMission236.init();
+
+
+/* =====================================================
+ AUTO CONNECTIONS
+ ===================================================== */
+
+setInterval(
+    ()=>{
+
+        SpiderMission236
+            .connectCombat();
+
+        SpiderMission236
+            .connectTraversal();
+
+    },
+    1500
+);
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="m")
+            SpiderMission236.nextMission();
+
+
+        if(key==="k")
+            SpiderMission236.addProgress();
+
+
+        if(key==="j")
+            SpiderMission236.complete();
+
+
+        if(key==="u")
+            SpiderMission236.reset();
+
+    }
+);
