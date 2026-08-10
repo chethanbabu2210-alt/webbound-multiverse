@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V161 — MISSION SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.lane{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.laneH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.laneV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(570px,89vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#missionInfo{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.6;
+}
+
+.progress{
+ height:8px;
+ background:#ffffff12;
+ border-radius:7px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+.progressFill{
+ height:100%;
+ width:0%;
+ background:#d2a54e;
+ transition:.3s;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+button:disabled{
+ opacity:.4;
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(800px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(165px,1fr));
+ gap:7px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ min-height:145px;
+ font-size:10px;
+ line-height:1.5;
+}
+
+.card b{
+ display:block;
+ margin-bottom:7px;
+}
+
+.badge{
+ display:inline-block;
+ padding:3px 6px;
+ background:#ffffff12;
+ border-radius:5px;
+ font-size:8px;
+}
+
+.objective{
+ padding:7px;
+ margin-top:5px;
+ background:#ffffff08;
+ border-radius:6px;
+}
+
+.done{
+ opacity:.5;
+ text-decoration:line-through;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="lane laneH"></div>
+  <div class="lane laneV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🌳 PARK</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   📜 WEBBOUND V161 — MISSIONS
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    📜 MISSIONS<br>
+    <span id="missionCount">0</span>
+   </div>
+
+   <div class="stat">
+    ✅ COMPLETED<br>
+    <span id="completedCount">0</span>
+   </div>
+
+   <div class="stat">
+    ⭐ XP<br>
+    <span id="xp">0</span>
+   </div>
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cash">0</span>
+   </div>
+
+  </div>
+
+  <div id="missionInfo">
+
+   <b>ACTIVE MISSION</b><br>
+
+   <span id="activeMission">
+    No mission selected.
+   </span>
+
+   <br>
+
+   <span id="missionProgress">
+    Progress: —
+   </span>
+
+   <div class="progress">
+    <div
+     id="missionBar"
+     class="progressFill">
+    </div>
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V161.missions()">
+   📜 MISSIONS
+  </button>
+
+  <button onclick="V161.selectNext()">
+   ▶️ SELECT
+  </button>
+
+  <button onclick="V161.objective()">
+   🎯 OBJECTIVE
+  </button>
+
+  <button onclick="V161.completeAction()">
+   ⚡ ACTION
+  </button>
+
+  <button onclick="V161.claim()">
+   🎁 CLAIM
+  </button>
+
+  <button onclick="V161.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V161.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V161={
+
+ saveKey:"WEBBOUND_V161",
+
+ cash:0,
+
+ xp:0,
+
+ selected:null,
+
+ missionsData:{
+
+  intro:{
+   icon:"🕵️",
+   title:"A Strange Lead",
+   description:
+    "Investigate a mysterious lead reported in the city.",
+   objectives:[
+    {
+     text:"Search the city",
+     required:3,
+     progress:0
+    },
+    {
+     text:"Speak with a contact",
+     required:1,
+     progress:0
+    },
+    {
+     text:"Report your findings",
+     required:1,
+     progress:0
+    }
+   ],
+   rewardCash:500,
+   rewardXP:100,
+   status:"available",
+   claimed:false
+  },
+
+  hospital:{
+   icon:"🏥",
+   title:"Emergency Support",
+   description:
+    "Help organize a response near the hospital.",
+   objectives:[
+    {
+     text:"Visit the hospital",
+     required:2,
+     progress:0
+    },
+    {
+     text:"Collect information",
+     required:2,
+     progress:0
+    },
+    {
+     text:"Complete the report",
+     required:1,
+     progress:0
+    }
+   ],
+   rewardCash:800,
+   rewardXP:150,
+   status:"available",
+   claimed:false
+  },
+
+  technology:{
+   icon:"💻",
+   title:"Digital Trail",
+   description:
+    "Follow a technology-related trail across the city.",
+   objectives:[
+    {
+     text:"Inspect technology clues",
+     required:3,
+     progress:0
+    },
+    {
+     text:"Visit the corporate area",
+     required:1,
+     progress:0
+    },
+    {
+     text:"Analyze the trail",
+     required:2,
+     progress:0
+    }
+   ],
+   rewardCash:1200,
+   rewardXP:220,
+   status:"available",
+   claimed:false
+  },
+
+  warehouse:{
+   icon:"🏭",
+   title:"Warehouse Mystery",
+   description:
+    "Investigate unusual activity near the warehouse.",
+   objectives:[
+    {
+     text:"Reach the warehouse",
+     required:1,
+     progress:0
+    },
+    {
+     text:"Search for evidence",
+     required:4,
+     progress:0
+    },
+    {
+     text:"Complete investigation",
+     required:1,
+     progress:0
+    }
+   ],
+   rewardCash:1600,
+   rewardXP:300,
+   status:"available",
+   claimed:false
+  },
+
+  city:{
+   icon:"🌆",
+   title:"City Network",
+   description:
+    "Complete a broad investigation across the city.",
+   objectives:[
+    {
+     text:"Visit different areas",
+     required:5,
+     progress:0
+    },
+    {
+     text:"Gather information",
+     required:5,
+     progress:0
+    },
+    {
+     text:"Solve the case",
+     required:1,
+     progress:0
+    }
+   ],
+   rewardCash:3000,
+   rewardXP:500,
+   status:"available",
+   claimed:false
+  }
+
+ },
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "📜 V161 Mission System ready"
+  );
+
+ },
+
+ /* =========================
+    MISSION LIST
+ ========================= */
+
+ missions(){
+
+  let html=`
+
+   <div class="card">
+
+    <b>📜 CITY MISSIONS</b>
+
+    Complete objectives to earn
+    cash and XP.
+
+    <br><br>
+
+    Select a mission and use
+    OBJECTIVE/ACTION to progress.
+
+   </div>
+
+   <div class="grid">
+
+  `;
+
+  Object.keys(
+   this.missionsData
+  ).forEach(
+   id=>{
+
+    const m=
+     this.missionsData[id];
+
+    const progress=
+     this.progress(id);
+
+    const percent=
+     this.percent(id);
+
+    let status="AVAILABLE";
+
+    if(m.status==="active")
+     status="ACTIVE";
+
+    if(m.status==="completed")
+     status="COMPLETED";
+
+    if(m.claimed)
+     status="REWARD CLAIMED";
+
+    html+=`
+
+     <div class="card">
+
+      <b>
+       ${m.icon}
+       ${m.title}
+      </b>
+
+      <span class="badge">
+       ${status}
+      </span>
+
+      <br><br>
+
+      ${m.description}
+
+      <br><br>
+
+      Progress:
+      ${progress.done}/${progress.total}
+
+      <div class="progress">
+
+       <div
+        class="progressFill"
+        style="
+         width:${percent}%;
+        ">
+       </div>
+
+      </div>
+
+      <br>
+
+      💰 ₹${m.rewardCash}
+      <br>
+      ⭐ ${m.rewardXP} XP
+
+      <button
+       onclick=
+       "V161.selectMission('${id}')">
+
+       ${
+        this.selected===id
+        ?"✅ SELECTED"
+        :"SELECT"
+       }
+
+      </button>
+
+     </div>
+
+    `;
+
+   }
+  );
+
+  html+=`</div>`;
+
+  this.open(
+   "📜 MISSIONS",
+   html
+  );
+
+ },
+
+ /* =========================
+    SELECT MISSION
+ ========================= */
+
+ selectMission(id){
+
+  const m=
+   this.missionsData[id];
+
+  if(!m)
+   return;
+
+  if(m.claimed){
+
+   this.notify(
+    "🎁 Reward already claimed."
+   );
+
+   return;
+
+  }
+
+  this.selected=id;
+
+  if(
+   m.status==="available"
+  )
+   m.status="active";
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   m.icon+
+   " "+m.title+
+   " selected."
+  );
+
+  this.missions();
+
+ },
+
+ /* =========================
+    SELECT NEXT
+ ========================= */
+
+ selectNext(){
+
+  const ids=
+   Object.keys(
+    this.missionsData
+   );
+
+  const available=
+   ids.find(
+    id=>
+     !this.missionsData[id].claimed &&
+     this.missionsData[id].status!=="completed"
+   );
+
+  if(!available){
+
+   this.notify(
+    "📜 No unfinished missions."
+   );
+
+   return;
+
+  }
+
+  this.selectMission(
+   available
+  );
+
+ },
+
+ /* =========================
+    OBJECTIVE
+ ========================= */
+
+ objective(){
+
+  if(!this.requireSelected())
+   return;
+
+  const m=
+   this.missionsData[
+    this.selected
+   ];
+
+  let html=`
+
+   <div class="card">
+
+    <b>
+     ${m.icon}
+     ${m.title}
+    </b>
+
+    ${m.description}
+
+   </div>
+
+   <div class="grid">
+
+  `;
+
+  m.objectives.forEach(
+   (o,index)=>{
+
+    const done=
+     o.progress>=o.required;
+
+    html+=`
+
+     <div class="card">
+
+      <b>
+       ${
+        done
+        ?"✅"
+        :"🎯"
+       }
+
+       Objective ${index+1}
+      </b>
+
+      <div
+       class="${done?"done":""}">
+       ${o.text}
+      </div>
+
+      <br>
+
+      Progress:
+      ${o.progress}/${o.required}
+
+      <div class="progress">
+
+       <div
+        class="progressFill"
+        style="
+         width:
+         ${Math.min(
+          100,
+          o.progress/
+          o.required*
+          100
+         )}%;
+        ">
+       </div>
+
+      </div>
+
+     </div>
+
+    `;
+
+   }
+  );
+
+  html+=`</div>`;
+
+  this.open(
+   "🎯 OBJECTIVES",
+   html
+  );
+
+ },
+
+ /* =========================
+    ACTION
+ ========================= */
+
+ completeAction(){
+
+  if(!this.requireSelected())
+   return;
+
+  const m=
+   this.missionsData[
+    this.selected
+   ];
+
+  if(
+   m.status==="completed"
+  ){
+
+   this.notify(
+    "🎁 Mission ready for reward."
+   );
+
+   return;
+
+  }
+
+  const objective=
+   m.objectives.find(
+    o=>
+     o.progress<
+     o.required
+   );
+
+  if(!objective){
+
+   this.finishMission();
+
+   return;
+
+  }
+
+  objective.progress++;
+
+  this.xp+=10;
+
+  this.notify(
+   "🎯 Objective progress: "+
+   objective.progress+
+   "/"+
+   objective.required
+  );
+
+  if(
+   this.allObjectivesComplete(
+    m
+   )
+  ){
+
+   this.finishMission();
+
+  }
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    FINISH
+ ========================= */
+
+ finishMission(){
+
+  const m=
+   this.missionsData[
+    this.selected
+   ];
+
+  m.status=
+   "completed";
+
+  this.notify(
+   "✅ Mission complete! Claim your reward."
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    CLAIM
+ ========================= */
+
+ claim(){
+
+  if(!this.requireSelected())
+   return;
+
+  const m=
+   this.missionsData[
+    this.selected
+   ];
+
+  if(
+   m.status!=="completed"
+  ){
+
+   this.notify(
+    "🎯 Complete the mission first."
+   );
+
+   return;
+
+  }
+
+  if(m.claimed){
+
+   this.notify(
+    "🎁 Reward already claimed."
+   );
+
+   return;
+
+  }
+
+  this.cash+=
+   m.rewardCash;
+
+  this.xp+=
+   m.rewardXP;
+
+  m.claimed=true;
+
+  this.notify(
+   "🎁 Reward claimed: ₹"+
+   m.rewardCash+
+   " + "+
+   m.rewardXP+
+   " XP"
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    REQUIRE SELECTED
+ ========================= */
+
+ requireSelected(){
+
+  if(
+   !this.selected ||
+   !this.missionsData[
+    this.selected
+   ]
+  ){
+
+   this.notify(
+    "📜 Select a mission first."
+   );
+
+   return false;
+
+  }
+
+  return true;
+
+ },
+
+ /* =========================
+    PROGRESS
+ ========================= */
+
+ progress(id){
+
+  const m=
+   this.missionsData[id];
+
+  let done=0;
+  let total=0;
+
+  m.objectives.forEach(
+   o=>{
+
+    done+=
+     Math.min(
+      o.progress,
+      o.required
+     );
+
+    total+=
+     o.required;
+
+   }
+  );
+
+  return{
+   done,
+   total
+  };
+
+ },
+
+ percent(id){
+
+  const p=
+   this.progress(id);
+
+  if(!p.total)
+   return 0;
+
+  return(
+   p.done/
+   p.total*
+   100
+  );
+
+ },
+
+ allObjectivesComplete(m){
+
+  return m.objectives.every(
+   o=>
+    o.progress>=
+    o.required
+  );
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const missions=
+   Object.values(
+    this.missionsData
+   );
+
+  const completed=
+   missions.filter(
+    m=>
+     m.claimed ||
+     m.status==="completed"
+   ).length;
+
+  document.getElementById(
+   "missionCount"
+  ).textContent=
+   missions.length;
+
+  document.getElementById(
+   "completedCount"
+  ).textContent=
+   completed;
+
+  document.getElementById(
+   "xp"
+  ).textContent=
+   this.xp;
+
+  document.getElementById(
+   "cash"
+  ).textContent=
+   this.cash;
+
+  if(!this.selected){
+
+   document.getElementById(
+    "activeMission"
+   ).textContent=
+    "No mission selected.";
+
+   document.getElementById(
+    "missionProgress"
+   ).textContent=
+    "Progress: —";
+
+   document.getElementById(
+    "missionBar"
+   ).style.width=
+    "0%";
+
+   return;
+
+  }
+
+  const m=
+   this.missionsData[
+    this.selected
+   ];
+
+  const p=
+   this.progress(
+    this.selected
+   );
+
+  document.getElementById(
+   "activeMission"
+  ).textContent=
+   m.icon+
+   " "+
+   m.title;
+
+  document.getElementById(
+   "missionProgress"
+  ).textContent=
+   "Progress: "+
+   p.done+
+   "/"+
+   p.total;
+
+  document.getElementById(
+   "missionBar"
+  ).style.width=
+   this.percent(
+    this.selected
+   )+"%";
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    xp:this.xp,
+
+    selected:this.selected,
+
+    missions:this.missionsData
+
+   })
+  );
+
+  localStorage.setItem(
+   "WEBBOUND_V150_CASH",
+   this.cash
+  );
+
+  this.notify(
+   "💾 V161 saved"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(raw){
+
+    const data=
+     JSON.parse(raw);
+
+    this.cash=
+     Number.isFinite(data.cash)
+     ?data.cash
+     :0;
+
+    this.xp=
+     Number.isFinite(data.xp)
+     ?data.xp
+     :0;
+
+    this.selected=
+     data.selected||
+     null;
+
+    if(data.missions){
+
+     Object.keys(
+      this.missionsData
+     ).forEach(
+      id=>{
+
+       if(
+        data.missions[id]
+       ){
+
+        this.missionsData[id]=
+         {
+          ...this.missionsData[id],
+          ...data.missions[id]
+         };
+
+       }
+
+      }
+     );
+
+    }
+
+    return;
+
+   }
+
+   /*
+    Continue from V159.
+   */
+
+   const old=
+    localStorage.getItem(
+     "WEBBOUND_V159"
+    );
+
+   if(old){
+
+    const data=
+     JSON.parse(old);
+
+    this.cash=
+     Number.isFinite(data.cash)
+     ?data.cash
+     :0;
+
+    this.xp=
+     Number.isFinite(data.xp)
+     ?data.xp
+     :0;
+
+   }
+
+  }
+  catch(error){
+
+   console.log(
+    "V161 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V161.init();
+
+console.log(
+ "WEBBOUND V161 MISSION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
