@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Spider-Man Game — V63</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+    color:white;
+    background:#080a0f;
+}
+
+#game{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    background:linear-gradient(#304a70 0%,#7088a5 55%,#171717 55%);
+}
+
+/* CITY */
+
+.city{
+    position:absolute;
+    bottom:0;
+    width:100%;
+    height:45%;
+    display:flex;
+    align-items:end;
+    gap:7px;
+}
+
+.building{
+    width:10%;
+    background:#242930;
+    border:1px solid #3e444c;
+}
+
+.building:nth-child(1){height:55%}
+.building:nth-child(2){height:78%}
+.building:nth-child(3){height:65%}
+.building:nth-child(4){height:93%}
+.building:nth-child(5){height:72%}
+.building:nth-child(6){height:85%}
+.building:nth-child(7){height:62%}
+.building:nth-child(8){height:88%}
+.building:nth-child(9){height:69%}
+.building:nth-child(10){height:96%}
+
+.windows{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:7px;
+    padding:10px;
+}
+
+.windows span{
+    height:11px;
+    background:#d4bd68;
+}
+
+/* PLAYER */
+
+#player{
+    position:absolute;
+    width:45px;
+    height:70px;
+    z-index:40;
+    transition:filter .15s;
+}
+
+.head{
+    width:25px;
+    height:25px;
+    margin:auto;
+    border-radius:50%;
+    background:#dfad85;
+}
+
+.body{
+    width:34px;
+    height:40px;
+    margin:auto;
+    border-radius:10px;
+    background:#c8212c;
+}
+
+.spider{
+    margin-top:-30px;
+    text-align:center;
+    font-size:19px;
+}
+
+.attackAnim{
+    animation:attack .18s;
+}
+
+@keyframes attack{
+    0%{transform:translateX(0)}
+    50%{transform:translateX(18px) rotate(10deg)}
+    100%{transform:translateX(0)}
+}
+
+.dodgeAnim{
+    animation:dodge .35s;
+}
+
+@keyframes dodge{
+    0%{transform:translateX(0)}
+    50%{transform:translateX(45px)}
+    100%{transform:translateX(0)}
+}
+
+.visionBlur{
+    filter:blur(2px);
+}
+
+.sense{
+    filter:brightness(1.5) contrast(1.4);
+}
+
+/* ENEMY */
+
+.enemy{
+    position:absolute;
+    width:42px;
+    height:58px;
+    z-index:30;
+}
+
+.enemyHead{
+    width:22px;
+    height:22px;
+    margin:auto;
+    border-radius:50%;
+    background:#9a9a9a;
+}
+
+.enemyBody{
+    width:34px;
+    height:34px;
+    margin:auto;
+    border-radius:8px;
+    background:#292929;
+}
+
+.enemyHealth{
+    position:absolute;
+    top:-13px;
+    left:0;
+    width:42px;
+    height:6px;
+    background:#333;
+    border-radius:5px;
+    overflow:hidden;
+}
+
+.enemyHealthBar{
+    width:100%;
+    height:100%;
+    background:#e33;
+}
+
+.enemy.hit{
+    filter:brightness(1.8);
+}
+
+/* HUD */
+
+#hud{
+    position:absolute;
+    top:15px;
+    left:15px;
+    z-index:100;
+}
+
+.panel{
+    min-width:245px;
+    padding:12px;
+    margin-bottom:8px;
+    border-radius:12px;
+    background:rgba(0,0,0,.75);
+}
+
+button{
+    padding:8px 11px;
+    margin:3px;
+    border:0;
+    border-radius:8px;
+    color:white;
+    background:#363636;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#555;
+}
+
+/* MISSION */
+
+#missionBox{
+    position:absolute;
+    right:15px;
+    top:15px;
+    width:280px;
+    z-index:100;
+}
+
+#mission{
+    margin-top:7px;
+    color:#7dd3fc;
+}
+
+/* COMBAT */
+
+#combatBox{
+    position:absolute;
+    left:50%;
+    bottom:20px;
+    transform:translateX(-50%);
+    z-index:100;
+    text-align:center;
+}
+
+.combatButton{
+    font-size:16px;
+    padding:10px 15px;
+}
+
+/* TARGET */
+
+#target{
+    position:absolute;
+    width:42px;
+    height:42px;
+    border:3px solid #ff4444;
+    border-radius:50%;
+    display:none;
+    z-index:25;
+    animation:pulse .7s infinite alternate;
+}
+
+@keyframes pulse{
+    from{transform:scale(.8)}
+    to{transform:scale(1.15)}
+}
+
+/* HOME */
+
+#home{
+    display:none;
+    position:absolute;
+    inset:0;
+    z-index:200;
+    background:linear-gradient(#444047,#16161a);
+}
+
+.room{
+    position:absolute;
+    inset:8%;
+    padding:25px;
+    border:2px solid #666;
+    border-radius:20px;
+    background:rgba(20,20,24,.96);
+}
+
+.object{
+    display:inline-block;
+    width:145px;
+    height:110px;
+    margin:8px;
+    padding:12px;
+    border:1px solid #555;
+    border-radius:15px;
+    background:rgba(255,255,255,.07);
+    text-align:center;
+}
+
+/* MENUS */
+
+.menu{
+    display:none;
+    position:absolute;
+    inset:13%;
+    z-index:300;
+    padding:25px;
+    border:2px solid #555;
+    border-radius:20px;
+    background:rgba(8,8,12,.97);
+}
+
+.close{
+    float:right;
+    background:#922;
+}
+
+/* MESSAGE */
+
+#message{
+    position:absolute;
+    left:50%;
+    bottom:90px;
+    z-index:500;
+    transform:translateX(-50%);
+    padding:12px 20px;
+    border-radius:12px;
+    background:rgba(0,0,0,.9);
+    opacity:0;
+    transition:.25s;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<!-- CITY -->
+
+<div class="city">
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+</div>
+
+<!-- PLAYER -->
+
+<div id="player">
+<div class="head"></div>
+<div class="body"></div>
+<div class="spider">🕷️</div>
+</div>
+
+<!-- TARGET -->
+
+<div id="target"></div>
+
+<!-- HUD -->
+
+<div id="hud">
+
+<div class="panel">
+
+❤️ Health:
+<span id="health">100</span>
+
+<br>
+
+⚡ Energy:
+<span id="energy">100</span>
+
+<br>
+
+⭐ XP:
+<span id="xp">0</span>
+
+<br>
+
+🏆 Level:
+<span id="level">1</span>
+
+<br>
+
+🕷️ Suit:
+<span id="suit">Classic</span>
+
+<br>
+
+🧪 Gadget:
+<span id="gadget">1</span>
+
+</div>
+
+<div class="panel">
+
+<button onclick="enterHome()">🏠 Home</button>
+<button onclick="toggleVision()">👓 Vision</button>
+<button onclick="spiderSense()">🕷️ Sense</button>
+<button onclick="startCombatMission()">⚔️ Mission</button>
+
+</div>
+
+</div>
+
+<!-- MISSION -->
+
+<div id="missionBox" class="panel">
+
+<b>📋 Mission</b>
+
+<div id="mission">
+No active mission
+</div>
+
+</div>
+
+<!-- COMBAT CONTROLS -->
+
+<div id="combatBox">
+
+<button class="combatButton" onclick="attack()">
+🥊 Attack
+</button>
+
+<button class="combatButton" onclick="heavyAttack()">
+💥 Heavy
+</button>
+
+<button class="combatButton" onclick="dodge()">
+↪️ Dodge
+</button>
+
+<button class="combatButton" onclick="webAttack()">
+🕸️ Web
+</button>
+
+</div>
+
+<!-- HOME -->
+
+<div id="home">
+
+<div class="room">
+
+<button class="close" onclick="leaveHome()">
+Exit
+</button>
+
+<h1>🏠 Peter's Home</h1>
+
+<br>
+
+<div class="object">
+🛏️<br>
+Bedroom
+<br>
+<button onclick="rest()">Rest</button>
+</div>
+
+<div class="object">
+👕<br>
+Wardrobe
+<br>
+<button onclick="openWardrobe()">Change</button>
+</div>
+
+<div class="object">
+🕷️<br>
+Suit Area
+<br>
+<button onclick="openSuits()">Suits</button>
+</div>
+
+<div class="object">
+💻<br>
+Computer
+<br>
+<button onclick="openComputer()">Use</button>
+</div>
+
+<div class="object">
+🧪<br>
+Workbench
+<br>
+<button onclick="upgradeGadget()">Upgrade</button>
+</div>
+
+<div class="object">
+💾<br>
+Save
+<br>
+<button onclick="saveGame()">Save</button>
+</div>
+
+</div>
+
+</div>
+
+<!-- WARDROBE -->
+
+<div id="wardrobe" class="menu">
+
+<button class="close" onclick="closeMenus()">Close</button>
+
+<h1>👕 Wardrobe</h1>
+
+<br>
+
+<button onclick="changeOutfit('Casual')">Casual</button>
+<button onclick="changeOutfit('School')">School</button>
+<button onclick="changeOutfit('Jacket')">Jacket</button>
+<button onclick="changeOutfit('Formal')">Formal</button>
+<button onclick="changeOutfit('Sport')">Sport</button>
+
+</div>
+
+<!-- SUITS -->
+
+<div id="suits" class="menu">
+
+<button class="close" onclick="closeMenus()">Close</button>
+
+<h1>🕷️ Suit Collection</h1>
+
+<br>
+
+<button onclick="changeSuit('Classic')">Classic</button>
+<button onclick="changeSuit('Stealth')">Stealth</button>
+<button onclick="changeSuit('Advanced')">Advanced</button>
+<button onclick="changeSuit('Tech')">Tech</button>
+
+</div>
+
+<!-- COMPUTER -->
+
+<div id="computer" class="menu">
+
+<button class="close" onclick="closeMenus()">Close</button>
+
+<h1>💻 Computer</h1>
+
+<br>
+
+<p>📨 Messages: 3 new</p>
+<br>
+<p>🗺️ City map: Online</p>
+<br>
+<p>📋 Mission database: Online</p>
+
+</div>
+
+<div id="message"></div>
+
+</div>
+
+<script>
+
+/* =========================
+   STATE
+========================= */
+
+const player=document.getElementById("player");
+const target=document.getElementById("target");
+
+let x=innerWidth/2;
+let y=innerHeight*.55;
+
+let health=100;
+let energy=100;
+
+let xp=0;
+let level=1;
+
+let gadgetLevel=1;
+let suit="Classic";
+let outfit="Casual";
+
+let vision=true;
+let senseActive=false;
+
+let missionActive=false;
+let missionStage=0;
+
+let enemies=[];
+let lastTime=0;
+
+const keys={};
+
+
+/* =========================
+   INPUT
+========================= */
+
+document.addEventListener("keydown",e=>{
+
+    keys[e.key.toLowerCase()]=true;
+
+    if(e.key===" "){
+        e.preventDefault();
+        jump();
+    }
+
+    if(e.key.toLowerCase()==="q"){
+        attack();
+    }
+
+    if(e.key.toLowerCase()==="r"){
+        webAttack();
+    }
+
+    if(e.key.toLowerCase()==="f"){
+        heavyAttack();
+    }
+
+    if(e.key.toLowerCase()==="shift"){
+        dodge();
+    }
+
+    if(e.key.toLowerCase()==="e"){
+        spiderSense();
+    }
+
+});
+
+document.addEventListener("keyup",e=>{
+    keys[e.key.toLowerCase()]=false;
+});
+
+
+/* =========================
+   GAME LOOP
+========================= */
+
+function loop(time){
+
+    if(!lastTime){
+        lastTime=time;
+    }
+
+    const delta=Math.min(
+        (time-lastTime)/1000,
+        .05
+    );
+
+    lastTime=time;
+
+    updatePlayer(delta);
+    updateEnemies(delta);
+    checkMission();
+
+    requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+
+
+/* =========================
+   PLAYER MOVEMENT
+========================= */
+
+function updatePlayer(delta){
+
+    if(
+        document.getElementById("home").style.display==="block"
+    ){
+        return;
+    }
+
+    let speed=220;
+
+    if(keys["shift"] && energy>0){
+
+        speed=360;
+
+        energy=Math.max(
+            0,
+            energy-30*delta
+        );
+
+    }else{
+
+        energy=Math.min(
+            100,
+            energy+10*delta
+        );
+
+    }
+
+    if(keys["w"]||keys["arrowup"])
+        y-=speed*delta;
+
+    if(keys["s"]||keys["arrowdown"])
+        y+=speed*delta;
+
+    if(keys["a"]||keys["arrowleft"])
+        x-=speed*delta;
+
+    if(keys["d"]||keys["arrowright"])
+        x+=speed*delta;
+
+    x=Math.max(
+        20,
+        Math.min(innerWidth-65,x)
+    );
+
+    y=Math.max(
+        70,
+        Math.min(innerHeight-100,y)
+    );
+
+    player.style.left=x+"px";
+    player.style.top=y+"px";
+
+    updateHUD();
+
+}
+
+
+/* =========================
+   JUMP
+========================= */
+
+function jump(){
+
+    const startY=y;
+
+    let start=performance.now();
+
+    function animate(now){
+
+        const p=Math.min(
+            (now-start)/500,
+            1
+        );
+
+        y=
+            startY-
+            Math.sin(p*Math.PI)*100;
+
+        player.style.top=y+"px";
+
+        if(p<1){
+            requestAnimationFrame(animate);
+        }
+
+    }
+
+    requestAnimationFrame(animate);
+
+}
+
+
+/* =========================
+   ATTACK
+========================= */
+
+function attack(){
+
+    if(energy<5){
+
+        showMessage(
+            "⚡ Not enough energy"
+        );
+
+        return;
+    }
+
+    energy-=5;
+
+    player.classList.remove(
+        "attackAnim"
+    );
+
+    void player.offsetWidth;
+
+    player.classList.add(
+        "attackAnim"
+    );
+
+    const enemy=
+        getNearestEnemy(110);
+
+    if(enemy){
+
+        damageEnemy(
+            enemy,
+            20
+        );
+
+        showMessage(
+            "🥊 Punch hit!"
+        );
+
+    }else{
+
+        showMessage(
+            "🥊 Attack missed"
+        );
+
+    }
+
+}
+
+
+/* =========================
+   HEAVY ATTACK
+========================= */
+
+function heavyAttack(){
+
+    if(energy<15){
+
+        showMessage(
+            "⚡ Not enough energy"
+        );
+
+        return;
+    }
+
+    energy-=15;
+
+    const enemy=
+        getNearestEnemy(140);
+
+    if(enemy){
+
+        damageEnemy(
+            enemy,
+            45
+        );
+
+        showMessage(
+            "💥 Heavy attack!"
+        );
+
+    }else{
+
+        showMessage(
+            "💥 Heavy attack missed"
+        );
+
+    }
+
+}
+
+
+/* =========================
+   WEB ATTACK
+========================= */
+
+function webAttack(){
+
+    const enemy=
+        getNearestEnemy(260);
+
+    if(!enemy){
+
+        showMessage(
+            "🕸️ No enemy in range"
+        );
+
+        return;
+    }
+
+    damageEnemy(
+        enemy,
+        10
+    );
+
+    enemy.webbed=2;
+
+    showMessage(
+        "🕸️ Enemy webbed!"
+    );
+
+}
+
+
+/* =========================
+   DODGE
+========================= */
+
+function dodge(){
+
+    if(energy<10){
+
+        return;
+    }
+
+    energy-=10;
+
+    player.classList.add(
+        "dodgeAnim"
+    );
+
+    setTimeout(()=>{
+        player.classList.remove(
+            "dodgeAnim"
+        );
+    },350);
+
+    showMessage(
+        "↪️ Dodge!"
+    );
+
+}
+
+
+/* =========================
+   ENEMY CREATION
+========================= */
+
+function spawnEnemy(){
+
+    const enemyElement=
+        document.createElement("div");
+
+    enemyElement.className="enemy";
+
+    enemyElement.innerHTML=`
+
+        <div class="enemyHealth">
+            <div class="enemyHealthBar"></div>
+        </div>
+
+        <div class="enemyHead"></div>
+        <div class="enemyBody"></div>
+    `;
+
+    const enemy={
+        element:enemyElement,
+        x:Math.random()*
+            (innerWidth-100)+50,
+        y:Math.random()*
+            (innerHeight*.4)+
+            innerHeight*.3,
+
+        health:100,
+        maxHealth:100,
+        webbed:0
+    };
+
+    enemyElement.style.left=
+        enemy.x+"px";
+
+    enemyElement.style.top=
+        enemy.y+"px";
+
+    document
+        .getElementById("game")
+        .appendChild(enemyElement);
+
+    enemies.push(enemy);
+
+}
+
+
+/* =========================
+   ENEMY AI
+========================= */
+
+function updateEnemies(delta){
+
+    enemies.forEach(enemy=>{
+
+        if(enemy.health<=0){
+            return;
+        }
+
+        if(enemy.webbed>0){
+
+            enemy.webbed-=delta;
+
+            return;
+        }
+
+        const dx=x-enemy.x;
+        const dy=y-enemy.y;
+
+        const distance=
+            Math.hypot(dx,dy);
+
+        if(distance>65){
+
+            enemy.x+=
+                (dx/distance)*
+                45*
+                delta;
+
+            enemy.y+=
+                (dy/distance)*
+                45*
+                delta;
+
+        }else{
+
+            enemyAttack(enemy);
+
+        }
+
+        enemy.element.style.left=
+            enemy.x+"px";
+
+        enemy.element.style.top=
+            enemy.y+"px";
+
+    });
+
+}
+
+
+/* =========================
+   ENEMY ATTACK
+========================= */
+
+let lastEnemyAttack=0;
+
+function enemyAttack(enemy){
+
+    const now=performance.now();
+
+    if(now-lastEnemyAttack<1000){
+        return;
+    }
+
+    lastEnemyAttack=now;
+
+    health-=8;
+
+    if(health<0){
+        health=0;
+    }
+
+    updateHUD();
+
+    showMessage(
+        "⚠️ You were hit!"
+    );
+
+    if(health===0){
+
+        playerDefeated();
+
+    }
+
+}
+
+
+/* =========================
+   DAMAGE ENEMY
+========================= */
+
+function damageEnemy(enemy,damage){
+
+    enemy.health-=damage;
+
+    enemy.element.classList.add("hit");
+
+    setTimeout(()=>{
+        enemy.element.classList.remove("hit");
+    },120);
+
+    const percentage=
+        Math.max(
+            0,
+            enemy.health/
+            enemy.maxHealth*
+            100
+        );
+
+    enemy.element
+        .querySelector(
+            ".enemyHealthBar"
+        )
+        .style.width=
+        percentage+"%";
+
+    if(enemy.health<=0){
+
+        defeatEnemy(enemy);
+
+    }
+
+}
+
+
+/* =========================
+   DEFEAT ENEMY
+========================= */
+
+function defeatEnemy(enemy){
+
+    enemy.health=0;
+
+    enemy.element.remove();
+
+    enemies=
+        enemies.filter(
+            e=>e!==enemy
+        );
+
+    gainXP(50);
+
+    showMessage(
+        "✅ Enemy defeated! +50 XP"
+    );
+
+}
+
+
+/* =========================
+   NEAREST ENEMY
+========================= */
+
+function getNearestEnemy(maxDistance){
+
+    let closest=null;
+    let closestDistance=maxDistance;
+
+    enemies.forEach(enemy=>{
+
+        if(enemy.health<=0){
+            return;
+        }
+
+        const distance=
+            Math.hypot(
+                x-enemy.x,
+                y-enemy.y
+            );
+
+        if(distance<closestDistance){
+
+            closest=enemy;
+            closestDistance=distance;
+
+        }
+
+    });
+
+    return closest;
+
+}
+
+
+/* =========================
+   XP / LEVEL
+========================= */
+
+function gainXP(amount){
+
+    xp+=amount;
+
+    const required=
+        level*200;
+
+    if(xp>=required){
+
+        xp-=required;
+
+        level++;
+
+        health=100;
+        energy=100;
+
+        showMessage(
+            "⭐ Level Up! Level "
+            +level
+        );
+
+    }
+
+    updateHUD();
+
+}
+
+
+/* =========================
+   COMBAT MISSION
+========================= */
+
+function startCombatMission(){
+
+    missionActive=true;
+    missionStage=0;
+
+    document.getElementById(
+        "mission"
+    ).textContent=
+        "Defeat 3 enemies.";
+
+    target.style.display="block";
+
+    target.style.left=
+        "70%";
+
+    target.style.top=
+        "50%";
+
+    for(let i=0;i<3;i++){
+
+        spawnEnemy();
+
+    }
+
+    showMessage(
+        "⚔️ Enemy encounter!"
+    );
+
+}
+
+
+/* =========================
+   MISSION CHECK
+========================= */
+
+function checkMission(){
+
+    if(!missionActive){
+        return;
+    }
+
+    if(enemies.length===0){
+
+        missionStage++;
+
+        if(missionStage===1){
+
+            document.getElementById(
+                "mission"
+            ).textContent=
+                "Search the area.";
+
+            target.style.display=
+                "none";
+
+            showMessage(
+                "🔎 Area secured"
+            );
+
+            missionActive=false;
+
+        }
+
+    }
+
+}
+
+
+/* =========================
+   SPIDER SENSE
+========================= */
+
+function spiderSense(){
+
+    if(senseActive){
+        return;
+    }
+
+    senseActive=true;
+
+    player.classList.add(
+        "sense"
+    );
+
+    enemies.forEach(enemy=>{
+
+        enemy.element.style.filter=
+            "brightness(1.8)";
+
+    });
+
+    showMessage(
+        "🕷️ Spider-Sense activated"
+    );
+
+    setTimeout(()=>{
+
+        senseActive=false;
+
+        player.classList.remove(
+            "sense"
+        );
+
+        enemies.forEach(enemy=>{
+
+            enemy.element.style.filter=
+                "";
+
+        });
+
+    },4000);
+
+}
+
+
+/* =========================
+   VISION
+========================= */
+
+function toggleVision(){
+
+    vision=!vision;
+
+    document.body.classList.toggle(
+        "visionBlur",
+        !vision
+    );
+
+    showMessage(
+        vision
+        ?"👓 Clear vision"
+        :"👁️ Vision without glasses"
+    );
+
+}
+
+
+/* =========================
+   HOME
+========================= */
+
+function enterHome(){
+
+    document.getElementById(
+        "home"
+    ).style.display="block";
+
+    showMessage(
+        "🏠 Home"
+    );
+
+}
+
+function leaveHome(){
+
+    document.getElementById(
+        "home"
+    ).style.display="none";
+
+}
+
+
+/* =========================
+   REST
+========================= */
+
+function rest(){
+
+    health=100;
+    energy=100;
+
+    updateHUD();
+
+    showMessage(
+        "❤️ Fully rested"
+    );
+
+}
+
+
+/* =========================
+   WARDROBE
+========================= */
+
+function openWardrobe(){
+
+    document.getElementById(
+        "wardrobe"
+    ).style.display="block";
+
+}
+
+function changeOutfit(name){
+
+    outfit=name;
+
+    showMessage(
+        "👕 Outfit: "+name
+    );
+
+}
+
+
+/* =========================
+   SUITS
+========================= */
+
+function openSuits(){
+
+    document.getElementById(
+        "suits"
+    ).style.display="block";
+
+}
+
+function changeSuit(name){
+
+    suit=name;
+
+    document.getElementById(
+        "suit"
+    ).textContent=suit;
+
+    showMessage(
+        "🕷️ Suit: "+name
+    );
+
+}
+
+
+/* =========================
+   COMPUTER
+========================= */
+
+function openComputer(){
+
+    document.getElementById(
+        "computer"
+    ).style.display="block";
+
+}
+
+
+/* =========================
+   GADGET
+========================= */
+
+function upgradeGadget(){
+
+    gadgetLevel++;
+
+    document.getElementById(
+        "gadget"
+    ).textContent=
+        gadgetLevel;
+
+    showMessage(
+        "🧪 Gadget Level "
+        +gadgetLevel
+    );
+
+}
+
+
+/* =========================
+   CLOSE MENUS
+========================= */
+
+function closeMenus(){
+
+    document.getElementById(
+        "wardrobe"
+    ).style.display="none";
+
+    document.getElementById(
+        "suits"
+    ).style.display="none";
+
+    document.getElementById(
+        "computer"
+    ).style.display="none";
+
+}
+
+
+/* =========================
+   SAVE
+========================= */
+
+function saveGame(){
+
+    const data={
+        version:63,
+        x,
+        y,
+        health,
+        energy,
+        xp,
+        level,
+        gadgetLevel,
+        outfit,
+        suit
+    };
+
+    localStorage.setItem(
+        "spidermanV63",
+        JSON.stringify(data)
+    );
+
+    showMessage(
+        "💾 V63 saved"
+    );
+
+}
+
+
+/* =========================
+   LOAD
+========================= */
+
+function loadGame(){
+
+    const saved=
+        localStorage.getItem(
+            "spidermanV63"
+        );
+
+    if(!saved){
+        return;
+    }
+
+    try{
+
+        const data=
+            JSON.parse(saved);
+
+        x=data.x??x;
+        y=data.y??y;
+        health=data.health??100;
+        energy=data.energy??100;
+        xp=data.xp??0;
+        level=data.level??1;
+        gadgetLevel=
+            data.gadgetLevel??1;
+
+        outfit=
+            data.outfit??"Casual";
+
+        suit=
+            data.suit??"Classic";
+
+    }catch(e){
+
+        console.log(
+            "Save load failed"
+        );
+
+    }
+
+}
+
+
+/* =========================
+   DEFEATED
+========================= */
+
+function playerDefeated(){
+
+    health=100;
+    energy=100;
+
+    x=innerWidth/2;
+    y=innerHeight*.55;
+
+    enemies.forEach(
+        enemy=>enemy.element.remove()
+    );
+
+    enemies=[];
+
+    updateHUD();
+
+    showMessage(
+        "💫 Respawned at checkpoint"
+    );
+
+}
+
+
+/* =========================
+   HUD
+========================= */
+
+function updateHUD(){
+
+    document.getElementById(
+        "health"
+    ).textContent=
+        Math.round(health);
+
+    document.getElementById(
+        "energy"
+    ).textContent=
+        Math.round(energy);
+
+    document.getElementById(
+        "xp"
+    ).textContent=
+        xp;
+
+    document.getElementById(
+        "level"
+    ).textContent=
+        level;
+
+    document.getElementById(
+        "gadget"
+    ).textContent=
+        gadgetLevel;
+
+}
+
+
+/* =========================
+   MESSAGE
+========================= */
+
+function showMessage(text){
+
+    const msg=
+        document.getElementById(
+            "message"
+        );
+
+    msg.textContent=text;
+    msg.style.opacity="1";
+
+    setTimeout(()=>{
+
+        msg.style.opacity="0";
+
+    },2000);
+
+}
+
+
+/* =========================
+   START
+========================= */
+
+loadGame();
+updateHUD();
+
+</script>
+
+</body>
+</html>
