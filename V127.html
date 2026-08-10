@@ -1,0 +1,2138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V127</title>
+
+<style>
+
+#v127HUD{
+  position:fixed;
+  left:12px;
+  bottom:15px;
+  z-index:19000;
+  width:min(300px,74vw);
+  padding:14px;
+  background:#05070eeb;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v127Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v127Info{
+  margin-top:9px;
+  font-size:10px;
+  line-height:1.7;
+  opacity:.8;
+}
+
+#v127Controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:10px;
+}
+
+#v127Controls button{
+  flex:1;
+  min-width:80px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v127NPCs{
+  position:fixed;
+  inset:0;
+  z-index:15200;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.v127NPC{
+  position:absolute;
+  width:14px;
+  height:22px;
+  border-radius:7px 7px 4px 4px;
+  background:#666;
+  box-shadow:0 2px 5px #0008;
+  transform-origin:center bottom;
+  transition:filter .2s;
+}
+
+.v127NPC.interacting{
+  filter:brightness(1.5);
+}
+
+.v127Head{
+  position:absolute;
+  width:10px;
+  height:10px;
+  left:2px;
+  top:-8px;
+  border-radius:50%;
+  background:#c49a78;
+}
+
+.v127Name{
+  position:absolute;
+  left:50%;
+  bottom:25px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font:7px Arial,sans-serif;
+  color:white;
+  text-shadow:0 1px 3px black;
+  opacity:.7;
+}
+
+.v127Bubble{
+  position:absolute;
+  left:50%;
+  bottom:37px;
+  transform:translateX(-50%);
+  padding:3px 5px;
+  border-radius:5px;
+  background:#05070eee;
+  color:white;
+  font:8px Arial,sans-serif;
+  white-space:nowrap;
+  display:none;
+}
+
+.v127NPC.interacting .v127Bubble{
+  display:block;
+}
+
+#v127Message{
+  position:fixed;
+  left:50%;
+  top:23%;
+  transform:translateX(-50%);
+  z-index:19500;
+  display:none;
+  max-width:88%;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 11px Arial,sans-serif;
+  text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V127
+     NPC INTERACTION SYSTEM
+     ========================================================= -->
+
+<div id="v127NPCs"></div>
+
+<div id="v127HUD">
+
+  <div id="v127Title">
+    💬 NPC INTERACTION SYSTEM
+  </div>
+
+  <div id="v127Info">
+    NPCs: 0<br>
+    Walking: 0<br>
+    Talking: 0<br>
+    Interactions: 0
+  </div>
+
+  <div id="v127Controls">
+
+    <button onclick="V127.spawnNPC()">
+      🚶 SPAWN
+    </button>
+
+    <button onclick="V127.spawnNPCs(5)">
+      👥 +5 NPCs
+    </button>
+
+    <button onclick="V127.forceInteraction()">
+      💬 TALK
+    </button>
+
+    <button onclick="V127.clearNPCs()">
+      🗑️ CLEAR
+    </button>
+
+    <button onclick="V127.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+  </div>
+
+</div>
+
+<div id="v127Message">
+  V127
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V127
+   NPC INTERACTION SYSTEM
+   ========================================================= */
+
+const V127 = {
+
+  version:"V127",
+
+  saveKey:
+    "WEBBOUND_V127_NPC_INTERACTIONS",
+
+  npcs:[],
+
+  running:true,
+
+  nextId:1,
+
+  timer:null,
+
+  messageTimer:null,
+
+  interactionCount:0,
+
+  interactionDistance:55,
+
+  interactionDuration:2600,
+
+  interactionCooldown:5000,
+
+  lastInteraction:0,
+
+  maxNPCs:30,
+
+  spawnDelay:2200,
+
+  lastSpawn:0,
+
+  density:"medium",
+
+
+  names:[
+    "Alex",
+    "Sam",
+    "Ryan",
+    "Maya",
+    "Arun",
+    "Riya",
+    "Dev",
+    "Asha",
+    "Noah",
+    "Leo",
+    "Avi",
+    "Zara"
+  ],
+
+
+  colors:[
+    "#555",
+    "#777",
+    "#333",
+    "#888",
+    "#666",
+    "#444"
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.renderAll();
+
+    this.updateHUD();
+
+    this.start();
+
+    if(
+      this.npcs.length===0
+    ){
+
+      this.spawnNPCs(
+        this.getDensityCount()
+      );
+
+    }
+
+    console.log(
+      "WEBBOUND V127 NPC INTERACTION SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          this.update();
+
+        },
+        40
+      );
+
+  },
+
+
+  /* =======================================================
+     DENSITY
+     ======================================================= */
+
+  getDensityCount(){
+
+    if(
+      this.density==="low"
+    ){
+
+      return 5;
+
+    }
+
+    if(
+      this.density==="high"
+    ){
+
+      return 16;
+
+    }
+
+    return 9;
+
+  },
+
+
+  /* =======================================================
+     RANDOM NAME
+     ======================================================= */
+
+  randomName(){
+
+    return this.names[
+      Math.floor(
+        Math.random()*
+        this.names.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     SPAWN NPC
+     ======================================================= */
+
+  spawnNPC(silent=false){
+
+    if(
+      this.npcs.length>=
+      this.maxNPCs
+    ){
+
+      if(!silent){
+
+        this.message(
+          "⚠️ NPC limit reached"
+        );
+
+      }
+
+      return null;
+
+    }
+
+
+    const npc={
+
+      id:
+        this.nextId++,
+
+      name:
+        this.randomName(),
+
+      x:
+        40+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerWidth-80
+        ),
+
+      y:
+        180+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerHeight-250
+        ),
+
+      direction:
+        Math.random()<.5
+        ? 1
+        : -1,
+
+      speed:
+        .25+
+        Math.random()*.55,
+
+      color:
+        this.colors[
+          Math.floor(
+            Math.random()*
+            this.colors.length
+          )
+        ],
+
+      state:
+        "walking",
+
+      targetX:null,
+
+      targetY:null,
+
+      interactionWith:null,
+
+      interactionUntil:0,
+
+      cooldownUntil:0,
+
+      element:null
+
+    };
+
+
+    this.chooseTarget(
+      npc
+    );
+
+
+    this.npcs.push(
+      npc
+    );
+
+
+    this.createElement(
+      npc
+    );
+
+
+    this.updateHUD();
+
+
+    if(!silent){
+
+      this.message(
+        "🚶 NPC spawned"
+      );
+
+    }
+
+
+    return npc;
+
+  },
+
+
+  /* =======================================================
+     SPAWN MULTIPLE
+     ======================================================= */
+
+  spawnNPCs(count){
+
+    const amount=
+      Math.max(
+        0,
+        Math.min(
+          this.maxNPCs,
+          Number(count)||0
+        )
+      );
+
+
+    for(
+      let i=0;
+      i<amount;
+      i++
+    ){
+
+      this.spawnNPC(
+        true
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     TARGET
+     ======================================================= */
+
+  chooseTarget(npc){
+
+    npc.targetX=
+      40+
+      Math.random()*
+      Math.max(
+        1,
+        window.innerWidth-80
+      );
+
+
+    npc.targetY=
+      180+
+      Math.random()*
+      Math.max(
+        1,
+        window.innerHeight-250
+      );
+
+  },
+
+
+  /* =======================================================
+     CREATE ELEMENT
+     ======================================================= */
+
+  createElement(npc){
+
+    const layer=
+      document.getElementById(
+        "v127NPCs"
+      );
+
+
+    if(!layer){
+
+      return;
+
+    }
+
+
+    const element=
+      document.createElement(
+        "div"
+      );
+
+
+    element.className=
+      "v127NPC";
+
+
+    element.style.background=
+      npc.color;
+
+
+    const head=
+      document.createElement(
+        "div"
+      );
+
+
+    head.className=
+      "v127Head";
+
+
+    const name=
+      document.createElement(
+        "div"
+      );
+
+
+    name.className=
+      "v127Name";
+
+
+    name.textContent=
+      npc.name;
+
+
+    const bubble=
+      document.createElement(
+        "div"
+      );
+
+
+    bubble.className=
+      "v127Bubble";
+
+
+    bubble.textContent=
+      "Hello!";
+
+
+    element.appendChild(
+      head
+    );
+
+
+    element.appendChild(
+      name
+    );
+
+
+    element.appendChild(
+      bubble
+    );
+
+
+    npc.element=
+      element;
+
+
+    layer.appendChild(
+      element
+    );
+
+
+    this.renderNPC(
+      npc
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
+  renderNPC(npc){
+
+    if(
+      !npc.element
+    ){
+
+      return;
+
+    }
+
+
+    npc.element.style.left=
+      npc.x+
+      "px";
+
+
+    npc.element.style.top=
+      npc.y+
+      "px";
+
+
+    npc.element.style.transform=
+      npc.direction<0
+      ? "scaleX(-1)"
+      : "scaleX(1)";
+
+
+    if(
+      npc.state==="talking"
+    ){
+
+      npc.element.classList.add(
+        "interacting"
+      );
+
+    }
+    else{
+
+      npc.element.classList.remove(
+        "interacting"
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    if(
+      !this.running
+    ){
+
+      return;
+
+    }
+
+
+    const now=
+      Date.now();
+
+
+    /*
+      Automatic NPC spawning.
+    */
+
+    if(
+      this.npcs.length<
+      this.getDensityCount() &&
+      now-this.lastSpawn>
+      this.spawnDelay
+    ){
+
+      this.spawnNPC(
+        true
+      );
+
+      this.lastSpawn=
+        now;
+
+    }
+
+
+    /*
+      Update each NPC.
+    */
+
+    this.npcs.forEach(
+      npc=>{
+
+        this.updateNPC(
+          npc,
+          now
+        );
+
+      }
+    );
+
+
+    /*
+      Search for interactions.
+    */
+
+    if(
+      now-this.lastInteraction>
+      700
+    ){
+
+      this.findInteraction();
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     UPDATE NPC
+     ======================================================= */
+
+  updateNPC(npc,now){
+
+    /*
+      Talking NPCs stay in place
+      until their interaction ends.
+    */
+
+    if(
+      npc.state==="talking"
+    ){
+
+      if(
+        now>=npc.interactionUntil
+      ){
+
+        npc.state=
+          "walking";
+
+        npc.interactionWith=
+          null;
+
+        npc.cooldownUntil=
+          now+
+          this.interactionCooldown;
+
+        this.chooseTarget(
+          npc
+        );
+
+      }
+
+      this.renderNPC(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    const dx=
+      npc.targetX-
+      npc.x;
+
+
+    const dy=
+      npc.targetY-
+      npc.y;
+
+
+    const distance=
+      Math.sqrt(
+        dx*dx+
+        dy*dy
+      );
+
+
+    if(
+      distance<8
+    ){
+
+      this.chooseTarget(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    const vx=
+      dx/
+      distance;
+
+
+    const vy=
+      dy/
+      distance;
+
+
+    npc.direction=
+      dx>=0
+      ? 1
+      : -1;
+
+
+    npc.x+=
+      vx*
+      npc.speed;
+
+
+    npc.y+=
+      vy*
+      npc.speed;
+
+
+    /*
+      Keep inside screen.
+    */
+
+    const minX=20;
+
+    const maxX=
+      Math.max(
+        20,
+        window.innerWidth-30
+      );
+
+
+    const minY=170;
+
+    const maxY=
+      Math.max(
+        180,
+        window.innerHeight-60
+      );
+
+
+    if(
+      npc.x<minX ||
+      npc.x>maxX ||
+      npc.y<minY ||
+      npc.y>maxY
+    ){
+
+      npc.x=
+        Math.min(
+          maxX,
+          Math.max(
+            minX,
+            npc.x
+          )
+        );
+
+
+      npc.y=
+        Math.min(
+          maxY,
+          Math.max(
+            minY,
+            npc.y
+          )
+        );
+
+
+      this.chooseTarget(
+        npc
+      );
+
+    }
+
+
+    this.renderNPC(
+      npc
+    );
+
+  },
+
+
+  /* =======================================================
+     FIND INTERACTION
+     ======================================================= */
+
+  findInteraction(){
+
+    const now=
+      Date.now();
+
+
+    for(
+      let i=0;
+      i<this.npcs.length;
+      i++
+    ){
+
+      const a=
+        this.npcs[i];
+
+
+      if(
+        a.state!=="walking" ||
+        now<a.cooldownUntil
+      ){
+
+        continue;
+
+      }
+
+
+      for(
+        let j=i+1;
+        j<this.npcs.length;
+        j++
+      ){
+
+        const b=
+          this.npcs[j];
+
+
+        if(
+          b.state!=="walking" ||
+          now<b.cooldownUntil
+        ){
+
+          continue;
+
+        }
+
+
+        const dx=
+          a.x-b.x;
+
+
+        const dy=
+          a.y-b.y;
+
+
+        const distance=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+
+        if(
+          distance<=
+          this.interactionDistance
+        ){
+
+          this.startInteraction(
+            a,
+            b
+          );
+
+          return;
+
+        }
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     START INTERACTION
+     ======================================================= */
+
+  startInteraction(a,b){
+
+    const now=
+      Date.now();
+
+
+    a.state=
+      "talking";
+
+
+    b.state=
+      "talking";
+
+
+    a.interactionWith=
+      b.id;
+
+
+    b.interactionWith=
+      a.id;
+
+
+    a.interactionUntil=
+      now+
+      this.interactionDuration;
+
+
+    b.interactionUntil=
+      now+
+      this.interactionDuration;
+
+
+    a.cooldownUntil=
+      now+
+      this.interactionDuration+
+      this.interactionCooldown;
+
+
+    b.cooldownUntil=
+      now+
+      this.interactionDuration+
+      this.interactionCooldown;
+
+
+    a.targetX=
+      b.x;
+
+
+    a.targetY=
+      b.y;
+
+
+    b.targetX=
+      a.x;
+
+
+    b.targetY=
+      a.y;
+
+
+    this.interactionCount++;
+
+    this.lastInteraction=
+      now;
+
+
+    this.renderNPC(
+      a
+    );
+
+
+    this.renderNPC(
+      b
+    );
+
+
+    this.message(
+      "💬 "+
+      a.name+
+      " is talking to "+
+      b.name
+    );
+
+
+    this.callHook(
+      "npcInteraction",
+      {
+        npcA:a.id,
+        npcB:b.id,
+        nameA:a.name,
+        nameB:b.name
+      }
+    );
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     FORCE INTERACTION
+     ======================================================= */
+
+  forceInteraction(){
+
+    if(
+      this.npcs.length<2
+    ){
+
+      this.spawnNPCs(
+        2-this.npcs.length
+      );
+
+    }
+
+
+    const a=
+      this.npcs[0];
+
+
+    const b=
+      this.npcs[1];
+
+
+    if(
+      a &&
+      b
+    ){
+
+      a.x=
+        window.innerWidth*.45;
+
+      b.x=
+        window.innerWidth*.45+
+        30;
+
+
+      a.y=
+        window.innerHeight*.5;
+
+      b.y=
+        window.innerHeight*.5;
+
+
+      this.startInteraction(
+        a,
+        b
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     REMOVE NPC
+     ======================================================= */
+
+  removeNPC(id){
+
+    const index=
+      this.npcs.findIndex(
+        npc=>
+          npc.id===
+          id
+      );
+
+
+    if(
+      index===-1
+    ){
+
+      return;
+
+    }
+
+
+    const npc=
+      this.npcs[index];
+
+
+    if(
+      npc.element &&
+      npc.element.parentNode
+    ){
+
+      npc.element.parentNode.removeChild(
+        npc.element
+      );
+
+    }
+
+
+    this.npcs.splice(
+      index,
+      1
+    );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  clearNPCs(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.element &&
+          npc.element.parentNode
+        ){
+
+          npc.element.parentNode.removeChild(
+            npc.element
+          );
+
+        }
+
+      }
+    );
+
+
+    this.npcs=[];
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🗑️ NPCs cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER ALL
+     ======================================================= */
+
+  renderAll(){
+
+    const layer=
+      document.getElementById(
+        "v127NPCs"
+      );
+
+
+    if(layer){
+
+      layer.innerHTML="";
+
+    }
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        npc.element=
+          null;
+
+        this.createElement(
+          npc
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.running=
+      !this.running;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      this.running
+      ? "▶️ NPC simulation resumed"
+      : "⏸️ NPC simulation paused"
+    );
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      running:
+        this.running,
+
+      density:
+        this.density,
+
+      nextId:
+        this.nextId,
+
+      interactionCount:
+        this.interactionCount,
+
+      npcs:
+        this.npcs.map(
+          npc=>({
+
+            id:
+              npc.id,
+
+            name:
+              npc.name,
+
+            x:
+              npc.x,
+
+            y:
+              npc.y,
+
+            direction:
+              npc.direction,
+
+            speed:
+              npc.speed,
+
+            color:
+              npc.color,
+
+            state:
+              npc.state,
+
+            targetX:
+              npc.targetX,
+
+            targetY:
+              npc.targetY,
+
+            interactionWith:
+              npc.interactionWith,
+
+            interactionUntil:
+              npc.interactionUntil,
+
+            cooldownUntil:
+              npc.cooldownUntil
+
+          })
+        ),
+
+      savedAt:
+        new Date().toISOString()
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V127 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(
+          raw
+        );
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      this.running=
+        typeof data.running===
+        "boolean"
+        ? data.running
+        : true;
+
+
+      if(
+        data.density===
+        "low" ||
+        data.density===
+        "medium" ||
+        data.density===
+        "high"
+      ){
+
+        this.density=
+          data.density;
+
+      }
+
+
+      this.nextId=
+        Number(
+          data.nextId
+        )||
+        1;
+
+
+      this.interactionCount=
+        Number(
+          data.interactionCount
+        )||
+        0;
+
+
+      if(
+        !Array.isArray(
+          data.npcs
+        )
+      ){
+
+        return;
+
+      }
+
+
+      this.npcs=
+        data.npcs
+          .filter(
+            npc=>
+              npc &&
+              Number.isFinite(
+                Number(npc.x)
+              ) &&
+              Number.isFinite(
+                Number(npc.y)
+              )
+          )
+          .slice(
+            0,
+            this.maxNPCs
+          )
+          .map(
+            npc=>({
+
+              id:
+                Number(
+                  npc.id
+                )||
+                this.nextId++,
+
+              name:
+                typeof npc.name===
+                "string"
+                ? npc.name
+                : this.randomName(),
+
+              x:
+                Number(
+                  npc.x
+                ),
+
+              y:
+                Number(
+                  npc.y
+                ),
+
+              direction:
+                Number(
+                  npc.direction
+                )>=0
+                ? 1
+                : -1,
+
+              speed:
+                Math.max(
+                  .1,
+                  Number(
+                    npc.speed
+                  )||
+                  .5
+                ),
+
+              color:
+                typeof npc.color===
+                "string"
+                ? npc.color
+                : "#666",
+
+              state:
+                npc.state==="talking"
+                ? "talking"
+                : "walking",
+
+              targetX:
+                Number(
+                  npc.targetX
+                ),
+
+              targetY:
+                Number(
+                  npc.targetY
+                ),
+
+              interactionWith:
+                npc.interactionWith||
+                null,
+
+              interactionUntil:
+                Number(
+                  npc.interactionUntil
+                )||
+                0,
+
+              cooldownUntil:
+                Number(
+                  npc.cooldownUntil
+                )||
+                0,
+
+              element:null
+
+            })
+          );
+
+    }
+    catch(error){
+
+      console.error(
+        "V127 LOAD ERROR:",
+        error
+      );
+
+      this.npcs=[];
+
+    }
+
+  },
+
+
+  /* =======================================================
+     EVENT HOOK
+     ======================================================= */
+
+  callHook(
+    event,
+    data
+  ){
+
+    if(
+      typeof window.onWebboundNPCEvent===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundNPCEvent({
+
+          event:
+            event,
+
+          data:
+            data,
+
+          npcs:
+            this.npcs.length
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V127 NPC CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.clearNPCs();
+
+
+    this.running=
+      typeof data.running===
+      "boolean"
+      ? data.running
+      : true;
+
+
+    if(
+      data.density===
+      "low" ||
+      data.density===
+      "medium" ||
+      data.density===
+      "high"
+    ){
+
+      this.density=
+        data.density;
+
+    }
+
+
+    this.nextId=
+      Number(
+        data.nextId
+      )||
+      1;
+
+
+    this.interactionCount=
+      Number(
+        data.interactionCount
+      )||
+      0;
+
+
+    if(
+      Array.isArray(
+        data.npcs
+      )
+    ){
+
+      data.npcs
+        .slice(
+          0,
+          this.maxNPCs
+        )
+        .forEach(
+          item=>{
+
+            if(!item){
+
+              return;
+
+            }
+
+
+            const npc={
+
+              id:
+                Number(
+                  item.id
+                )||
+                this.nextId++,
+
+              name:
+                typeof item.name===
+                "string"
+                ? item.name
+                : this.randomName(),
+
+              x:
+                Number(
+                  item.x
+                )||
+                100,
+
+              y:
+                Number(
+                  item.y
+                )||
+                200,
+
+              direction:
+                Number(
+                  item.direction
+                )>=0
+                ? 1
+                : -1,
+
+              speed:
+                Math.max(
+                  .1,
+                  Number(
+                    item.speed
+                  )||
+                  .5
+                ),
+
+              color:
+                typeof item.color===
+                "string"
+                ? item.color
+                : "#666",
+
+              state:
+                item.state==="talking"
+                ? "talking"
+                : "walking",
+
+              targetX:
+                Number(
+                  item.targetX
+                ),
+
+              targetY:
+                Number(
+                  item.targetY
+                ),
+
+              interactionWith:
+                item.interactionWith||
+                null,
+
+              interactionUntil:
+                Number(
+                  item.interactionUntil
+                )||
+                0,
+
+              cooldownUntil:
+                Number(
+                  item.cooldownUntil
+                )||
+                0,
+
+              element:null
+
+            };
+
+
+            if(
+              !Number.isFinite(
+                npc.targetX
+              ) ||
+              !Number.isFinite(
+                npc.targetY
+              )
+            ){
+
+              this.chooseTarget(
+                npc
+              );
+
+            }
+
+
+            /*
+              Do not restore stale
+              conversations.
+            */
+
+            if(
+              npc.interactionUntil<
+              Date.now()
+            ){
+
+              npc.state=
+                "walking";
+
+              npc.interactionWith=
+                null;
+
+            }
+
+
+            this.npcs.push(
+              npc
+            );
+
+          }
+        );
+
+    }
+
+
+    this.renderAll();
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const info=
+      document.getElementById(
+        "v127Info"
+      );
+
+
+    if(!info){
+
+      return;
+
+    }
+
+
+    let walking=0;
+
+    let talking=0;
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.state==="talking"
+        ){
+
+          talking++;
+
+        }
+        else{
+
+          walking++;
+
+        }
+
+      }
+    );
+
+
+    info.innerHTML=
+      "NPCs: "+
+      this.npcs.length+
+      "<br>"+
+      "Walking: "+
+      walking+
+      "<br>"+
+      "Talking: "+
+      talking+
+      "<br>"+
+      "Interactions: "+
+      this.interactionCount;
+
+  },
+
+
+  /* =======================================================
+     KEYBOARD
+     ======================================================= */
+
+  handleKey(event){
+
+    if(
+      event.code==="KeyP"
+    ){
+
+      this.toggle();
+
+    }
+
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      this.spawnNPC();
+
+    }
+
+
+    if(
+      event.code==="KeyI"
+    ){
+
+      this.forceInteraction();
+
+    }
+
+
+    if(
+      event.code==="KeyX"
+    ){
+
+      this.clearNPCs();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v127Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(
+        text
+      );
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    V127.handleKey(
+      event
+    );
+
+  }
+);
+
+
+/* =========================================================
+   RESIZE
+   ========================================================= */
+
+window.addEventListener(
+  "resize",
+  ()=>{
+
+    V127.npcs.forEach(
+      npc=>{
+
+        npc.x=
+          Math.min(
+            Math.max(
+              20,
+              npc.x
+            ),
+            Math.max(
+              20,
+              window.innerWidth-30
+            )
+          );
+
+
+        npc.y=
+          Math.min(
+            Math.max(
+              170,
+              npc.y
+            ),
+            Math.max(
+              180,
+              window.innerHeight-60
+            )
+          );
+
+
+        V127.chooseTarget(
+          npc
+        );
+
+
+        V127.renderNPC(
+          npc
+        );
+
+      }
+    );
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V127.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V127.init();
+
+
+console.log(
+  "WEBBOUND V127 NPC INTERACTION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
