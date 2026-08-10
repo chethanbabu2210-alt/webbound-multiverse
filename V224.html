@@ -1,0 +1,775 @@
+<!-- =====================================================
+ V224 — WEB SWING PHYSICS & AIR CONTROL
+ Add after V223
+ ===================================================== -->
+
+<style>
+
+#webPhysicsHud224{
+    position:fixed;
+    left:12px;
+    top:460px;
+    width:min(225px,46vw);
+
+    padding:10px;
+
+    background:#03070de8;
+    border:1px solid #ffffff25;
+    border-radius:10px;
+
+    z-index:3400;
+    pointer-events:none;
+}
+
+.webPhysicsTitle224{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#webPhysicsState224,
+#webVelocity224,
+#webAltitude224{
+    margin-top:5px;
+    font-size:8px;
+}
+
+#webPhysicsControls224{
+    position:fixed;
+    left:12px;
+    bottom:20px;
+
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:5px;
+
+    z-index:3500;
+}
+
+#webPhysicsControls224 button{
+    padding:8px;
+
+    background:#111f2a;
+    color:white;
+
+    border:1px solid #ffffff25;
+    border-radius:7px;
+
+    font-size:8px;
+    cursor:pointer;
+}
+
+.webSpeedLine224{
+    position:fixed;
+
+    width:2px;
+    height:25px;
+
+    background:#ffffff55;
+
+    z-index:1700;
+    pointer-events:none;
+
+    transform-origin:center;
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="webPhysicsHud224">
+
+    <div class="webPhysicsTitle224">
+        🕷️ WEB PHYSICS — V224
+    </div>
+
+    <div id="webPhysicsState224">
+        State: GROUNDED
+    </div>
+
+    <div id="webVelocity224">
+        Velocity: 0
+    </div>
+
+    <div id="webAltitude224">
+        Altitude: 0
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="webPhysicsControls224">
+
+    <button onclick="SpiderWebPhysics224.swing()">
+        🕸️ SWING
+    </button>
+
+    <button onclick="SpiderWebPhysics224.jump()">
+        ⬆️ JUMP
+    </button>
+
+    <button onclick="SpiderWebPhysics224.left()">
+        ◀️ LEFT
+    </button>
+
+    <button onclick="SpiderWebPhysics224.right()">
+        ▶️ RIGHT
+    </button>
+
+    <button onclick="SpiderWebPhysics224.release()">
+        💨 RELEASE
+    </button>
+
+    <button onclick="SpiderWebPhysics224.land()">
+        ⬇️ LAND
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V224 WEB PHYSICS ENGINE
+ ===================================================== */
+
+const SpiderWebPhysics224={
+
+    state:"GROUNDED",
+
+    velocityX:0,
+
+    velocityY:0,
+
+    altitude:0,
+
+    swingSpeed:1,
+
+    direction:1,
+
+    gravity:.35,
+
+    friction:.96,
+
+    swingTimer:null,
+
+    airTimer:null,
+
+    running:true,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.message(
+            "🕷️ Web physics initialized."
+        );
+
+    },
+
+
+    /* =========================
+       SWING
+    ========================= */
+
+    swing(){
+
+        if(
+            typeof SpiderWeb222!=="undefined" &&
+            !SpiderWeb222.anchor
+        ){
+
+            SpiderWeb222.shoot();
+
+        }
+
+
+        if(
+            typeof SpiderWeb222==="undefined" ||
+            !SpiderWeb222.anchor
+        ){
+
+            this.message(
+                "🕸️ No swing anchor."
+            );
+
+            return;
+
+        }
+
+
+        this.state="SWINGING";
+
+        this.swingSpeed=
+            Math.max(
+                1,
+                this.swingSpeed
+            );
+
+
+        clearInterval(
+            this.swingTimer
+        );
+
+
+        this.swingTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        this.state!=="SWINGING"
+                    )
+                        return;
+
+
+                    this.swingSpeed+=.025;
+
+                    this.swingSpeed=
+                        Math.min(
+                            3,
+                            this.swingSpeed
+                        );
+
+
+                    this.velocityX=
+                        this.direction*
+                        this.swingSpeed;
+
+
+                    this.updatePlayerHorizontal();
+
+                    this.updateHUD();
+
+
+                },
+                40
+            );
+
+
+        this.message(
+            "🕸️ Swing momentum active."
+        );
+
+    },
+
+
+    /* =========================
+       HORIZONTAL MOVEMENT
+       ========================= */
+
+    updatePlayerHorizontal(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+
+        let left=
+            parseFloat(
+                player.style.left
+            );
+
+
+        if(
+            Number.isNaN(left)
+        ){
+
+            const rect=
+                player.getBoundingClientRect();
+
+            left=
+                rect.left;
+
+        }
+
+
+        left+=
+            this.velocityX;
+
+
+        left=
+            Math.max(
+                10,
+                Math.min(
+                    window.innerWidth-30,
+                    left
+                )
+            );
+
+
+        player.style.left=
+            left+"px";
+
+
+        if(
+            typeof SpiderWeb222!=="undefined"
+        ){
+
+            SpiderWeb222.drawLine();
+
+        }
+
+    },
+
+
+    /* =========================
+       LEFT
+       ========================= */
+
+    left(){
+
+        this.direction=-1;
+
+        this.velocityX=
+            Math.max(
+                -3,
+                this.velocityX-.5
+            );
+
+        this.message(
+            "◀️ Swinging left."
+        );
+
+    },
+
+
+    /* =========================
+       RIGHT
+       ========================= */
+
+    right(){
+
+        this.direction=1;
+
+        this.velocityX=
+            Math.min(
+                3,
+                this.velocityX+.5
+            );
+
+        this.message(
+            "▶️ Swinging right."
+        );
+
+    },
+
+
+    /* =========================
+       JUMP
+       ========================= */
+
+    jump(){
+
+        if(
+            this.state==="AIRBORNE"
+        )
+            return;
+
+
+        this.state="AIRBORNE";
+
+        this.velocityY=-8;
+
+        this.altitude=1;
+
+
+        clearInterval(
+            this.airTimer
+        );
+
+
+        this.airTimer=
+            setInterval(
+                ()=>{
+
+                    this.velocityY+=
+                        this.gravity;
+
+
+                    this.altitude+=
+                        this.velocityY*.08;
+
+
+                    this.moveAirborne();
+
+
+                    if(
+                        this.altitude<=0
+                    ){
+
+                        this.altitude=0;
+
+                        this.land();
+
+                    }
+
+
+                    this.updateHUD();
+
+                },
+                40
+            );
+
+
+        this.message(
+            "⬆️ Airborne!"
+        );
+
+    },
+
+
+    /* =========================
+       AIR MOVEMENT
+       ========================= */
+
+    moveAirborne(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+
+        let left=
+            parseFloat(
+                player.style.left
+            );
+
+
+        if(
+            Number.isNaN(left)
+        )
+            left=window.innerWidth/2;
+
+
+        left+=
+            this.velocityX;
+
+
+        left=
+            Math.max(
+                10,
+                Math.min(
+                    window.innerWidth-30,
+                    left
+                )
+            );
+
+
+        player.style.left=
+            left+"px";
+
+
+        /*
+         * Visual vertical movement.
+         */
+
+        const base=
+            window.innerHeight*.5;
+
+
+        const vertical=
+            base-
+            this.altitude*
+            40;
+
+
+        player.style.top=
+            vertical+"px";
+
+    },
+
+
+    /* =========================
+       RELEASE
+       ========================= */
+
+    release(){
+
+        if(
+            this.state!=="SWINGING"
+        ){
+
+            this.message(
+                "🕸️ Not currently swinging."
+            );
+
+            return;
+
+        }
+
+
+        clearInterval(
+            this.swingTimer
+        );
+
+
+        this.swingTimer=null;
+
+
+        this.state="AIRBORNE";
+
+
+        this.velocityY=
+            -(
+                5+
+                this.swingSpeed*
+                1.5
+            );
+
+
+        this.altitude=
+            Math.max(
+                1,
+                this.altitude
+            );
+
+
+        clearInterval(
+            this.airTimer
+        );
+
+
+        this.airTimer=
+            setInterval(
+                ()=>{
+
+                    this.velocityY+=
+                        this.gravity;
+
+
+                    this.altitude+=
+                        this.velocityY*.08;
+
+
+                    this.velocityX*=
+                        this.friction;
+
+
+                    this.moveAirborne();
+
+
+                    if(
+                        this.altitude<=0
+                    ){
+
+                        this.land();
+
+                    }
+
+
+                    this.updateHUD();
+
+                },
+                40
+            );
+
+
+        if(
+            typeof SpiderWeb222!=="undefined"
+        ){
+
+            SpiderWeb222.reset();
+
+        }
+
+
+        this.message(
+            "💨 Web released!"
+        );
+
+    },
+
+
+    /* =========================
+       LAND
+       ========================= */
+
+    land(){
+
+        clearInterval(
+            this.airTimer
+        );
+
+        clearInterval(
+            this.swingTimer
+        );
+
+
+        this.airTimer=null;
+
+        this.swingTimer=null;
+
+
+        this.state="GROUNDED";
+
+        this.altitude=0;
+
+        this.velocityY=0;
+
+        this.velocityX*=.4;
+
+        this.swingSpeed=1;
+
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+
+        if(player){
+
+            player.style.top=
+                (
+                    window.innerHeight*.5
+                )+
+                "px";
+
+        }
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "⬇️ Landing complete."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const state=
+            document.getElementById(
+                "webPhysicsState224"
+            );
+
+        const velocity=
+            document.getElementById(
+                "webVelocity224"
+            );
+
+        const altitude=
+            document.getElementById(
+                "webAltitude224"
+            );
+
+
+        if(state){
+
+            state.textContent=
+                "State: "+
+                this.state;
+
+        }
+
+
+        if(velocity){
+
+            velocity.textContent=
+                "Velocity: "+
+                this.velocityX.toFixed(2);
+
+        }
+
+
+        if(altitude){
+
+            altitude.textContent=
+                "Altitude: "+
+                this.altitude.toFixed(2);
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!=="undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V224
+ ===================================================== */
+
+SpiderWebPhysics224.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="g")
+            SpiderWebPhysics224.swing();
+
+
+        if(key===" ")
+            SpiderWebPhysics224.jump();
+
+
+        if(key==="arrowleft")
+            SpiderWebPhysics224.left();
+
+
+        if(key==="arrowright")
+            SpiderWebPhysics224.right();
+
+
+        if(key==="v")
+            SpiderWebPhysics224.release();
+
+
+        if(key==="l")
+            SpiderWebPhysics224.land();
+
+    }
+);
