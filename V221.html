@@ -1,0 +1,873 @@
+<!-- =====================================================
+ V221 — SPIDER-MAN COMBAT SYSTEM
+ Add after V220
+ ===================================================== -->
+
+<style>
+
+#combatHud221{
+    position:fixed;
+    left:50%;
+    bottom:20px;
+    transform:translateX(-50%);
+
+    width:min(300px,70vw);
+
+    padding:10px;
+
+    background:#03070df0;
+    border:1px solid #ffffff25;
+    border-radius:10px;
+
+    z-index:4000;
+    pointer-events:none;
+}
+
+.combatTitle221{
+    text-align:center;
+    font-size:10px;
+    font-weight:bold;
+}
+
+#combatCombo221{
+    margin-top:5px;
+    text-align:center;
+    font-size:18px;
+}
+
+#combatState221{
+    margin-top:4px;
+    text-align:center;
+    font-size:8px;
+}
+
+#combatStamina221{
+    margin-top:7px;
+    height:5px;
+
+    background:#172128;
+    border-radius:5px;
+
+    overflow:hidden;
+}
+
+#combatStaminaBar221{
+    width:100%;
+    height:100%;
+
+    background:#d9dddf;
+
+    transition:width .2s;
+}
+
+
+/* ================= COMBAT FLASH ================= */
+
+#combatFlash221{
+
+    position:fixed;
+    inset:0;
+
+    z-index:3900;
+
+    pointer-events:none;
+
+    background:#ffffff;
+
+    opacity:0;
+
+}
+
+#combatFlash221.active{
+
+    animation:
+        combatFlash221 .12s;
+
+}
+
+@keyframes combatFlash221{
+
+    0%{
+        opacity:.2;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+
+/* ================= COMBAT CONTROLS ================= */
+
+#combatControls221{
+
+    position:fixed;
+
+    right:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:4100;
+
+}
+
+#combatControls221 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ COMBAT HUD
+ ===================================================== -->
+
+<div id="combatHud221">
+
+    <div class="combatTitle221">
+        🕷️ SPIDER-MAN COMBAT — V221
+    </div>
+
+    <div id="combatCombo221">
+        COMBO ×0
+    </div>
+
+    <div id="combatState221">
+        State: READY
+    </div>
+
+    <div id="combatStamina221">
+
+        <div id="combatStaminaBar221"></div>
+
+    </div>
+
+</div>
+
+
+<div id="combatFlash221"></div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="combatControls221">
+
+    <button onclick="SpiderCombat221.punch()">
+        👊 PUNCH
+    </button>
+
+    <button onclick="SpiderCombat221.kick()">
+        🦵 KICK
+    </button>
+
+    <button onclick="SpiderCombat221.webAttack()">
+        🕸️ WEB
+    </button>
+
+    <button onclick="SpiderCombat221.dodge()">
+        💨 DODGE
+    </button>
+
+    <button onclick="SpiderCombat221.targetNearest()">
+        🎯 TARGET
+    </button>
+
+    <button onclick="SpiderCombat221.reset()">
+        🔄 RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V221 COMBAT ENGINE
+ ===================================================== */
+
+const SpiderCombat221={
+
+    combo:0,
+
+    stamina:100,
+
+    maxStamina:100,
+
+    state:"READY",
+
+    target:null,
+
+    comboTimer:null,
+
+    staminaTimer:null,
+
+    attackLocked:false,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.startStaminaRecovery();
+
+        this.updateHUD();
+
+        this.message(
+            "🕷️ Combat system ready."
+        );
+
+    },
+
+
+    /* =========================
+       PUNCH
+    ========================= */
+
+    punch(){
+
+        if(!this.canAttack(10))
+            return;
+
+        this.attack(
+            "PUNCH",
+            25
+        );
+
+    },
+
+
+    /* =========================
+       KICK
+    ========================= */
+
+    kick(){
+
+        if(!this.canAttack(15))
+            return;
+
+        this.attack(
+            "KICK",
+            35
+        );
+
+    },
+
+
+    /* =========================
+       WEB ATTACK
+    ========================= */
+
+    webAttack(){
+
+        if(!this.canAttack(20))
+            return;
+
+        this.state=
+            "WEB ATTACK";
+
+        this.stamina-=20;
+
+        this.addCombo();
+
+        this.flash();
+
+        this.message(
+            "🕸️ Web attack!"
+        );
+
+
+        if(this.target){
+
+            this.damageTarget(
+                40
+            );
+
+        }
+
+
+        this.updateHUD();
+
+        this.unlockLater(
+            350
+        );
+
+    },
+
+
+    /* =========================
+       BASIC ATTACK
+    ========================= */
+
+    attack(type,damage){
+
+        this.attackLocked=true;
+
+        this.state=
+            type;
+
+
+        this.stamina=
+            Math.max(
+                0,
+                this.stamina-
+                (
+                    type==="KICK"
+                    ?15
+                    :10
+                )
+            );
+
+
+        this.addCombo();
+
+        this.flash();
+
+
+        if(this.target){
+
+            this.damageTarget(
+                damage
+            );
+
+        }
+
+
+        this.message(
+            type==="PUNCH"
+            ?"👊 Punch!"
+            :"🦵 Kick!"
+        );
+
+
+        this.updateHUD();
+
+
+        this.unlockLater(
+            300
+        );
+
+    },
+
+
+    /* =========================
+       CAN ATTACK
+    ========================= */
+
+    canAttack(cost){
+
+        if(
+            this.attackLocked
+        ){
+
+            return false;
+
+        }
+
+
+        if(
+            this.stamina<
+            cost
+        ){
+
+            this.message(
+                "⚡ Not enough stamina."
+            );
+
+            return false;
+
+        }
+
+
+        return true;
+
+    },
+
+
+    /* =========================
+       DODGE
+    ========================= */
+
+    dodge(){
+
+        if(
+            this.stamina<
+            12
+        ){
+
+            this.message(
+                "⚡ Not enough stamina."
+            );
+
+            return;
+
+        }
+
+
+        this.stamina-=12;
+
+        this.state=
+            "DODGE";
+
+
+        this.message(
+            "💨 Dodge!"
+        );
+
+
+        this.updateHUD();
+
+
+        setTimeout(
+            ()=>{
+
+                this.state=
+                    "READY";
+
+                this.updateHUD();
+
+            },
+            450
+        );
+
+    },
+
+
+    /* =========================
+       TARGET NEAREST
+    ========================= */
+
+    targetNearest(){
+
+        if(
+            typeof SpiderEnemy220===
+            "undefined"
+        ){
+
+            this.message(
+                "🎯 No enemy system found."
+            );
+
+            return;
+
+        }
+
+
+        const enemies=
+            Object.values(
+                SpiderEnemy220.enemies
+            ).filter(
+                e=>e.active
+            );
+
+
+        if(
+            !enemies.length
+        ){
+
+            this.target=null;
+
+            this.message(
+                "🎯 No active enemies."
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * Select first active enemy.
+         */
+
+        this.target=
+            enemies[0];
+
+
+        this.message(
+            "🎯 Enemy "+
+
+            this.target.id+
+
+            " targeted."
+        );
+
+
+        this.state=
+            "TARGETING";
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       DAMAGE TARGET
+    ========================= */
+
+    damageTarget(damage){
+
+        if(
+            !this.target
+        )
+            return;
+
+
+        if(
+            typeof SpiderEnemy220===
+            "undefined"
+        )
+            return;
+
+
+        const enemy=
+            SpiderEnemy220.enemies[
+                this.target.id
+            ];
+
+
+        if(
+            !enemy ||
+            !enemy.active
+        ){
+
+            this.target=null;
+
+            return;
+
+        }
+
+
+        /*
+         * Use V220 enemy health.
+         */
+
+        enemy.health=
+            Math.max(
+                0,
+                enemy.health-
+                damage
+            );
+
+
+        SpiderEnemy220.updateHealth(
+            enemy.id,
+            enemy.health
+        );
+
+
+        enemy.state=
+            "ALERT";
+
+
+        SpiderEnemy220.updateEnemyClass(
+            enemy
+        );
+
+
+        if(
+            enemy.health<=0
+        ){
+
+            SpiderEnemy220.defeat(
+                enemy.id
+            );
+
+            this.target=null;
+
+        }
+
+    },
+
+
+    /* =========================
+       COMBO
+    ========================= */
+
+    addCombo(){
+
+        this.combo++;
+
+        clearTimeout(
+            this.comboTimer
+        );
+
+
+        this.comboTimer=
+            setTimeout(
+                ()=>{
+
+                    this.combo=0;
+
+                    this.updateHUD();
+
+                },
+                2200
+            );
+
+    },
+
+
+    /* =========================
+       STAMINA RECOVERY
+    ========================= */
+
+    startStaminaRecovery(){
+
+        clearInterval(
+            this.staminaTimer
+        );
+
+
+        this.staminaTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        this.stamina<
+                        this.maxStamina
+                    ){
+
+                        this.stamina=
+                            Math.min(
+                                this.maxStamina,
+                                this.stamina+
+                                2
+                            );
+
+                        this.updateHUD();
+
+                    }
+
+                },
+                250
+            );
+
+    },
+
+
+    /* =========================
+       UNLOCK
+    ========================= */
+
+    unlockLater(time){
+
+        clearTimeout(
+            this.unlockTimer
+        );
+
+
+        this.unlockTimer=
+            setTimeout(
+                ()=>{
+
+                    this.attackLocked=false;
+
+                    this.state=
+                        "READY";
+
+                    this.updateHUD();
+
+                },
+                time
+            );
+
+    },
+
+
+    /* =========================
+       FLASH
+    ========================= */
+
+    flash(){
+
+        const flash=
+            document.getElementById(
+                "combatFlash221"
+            );
+
+
+        if(!flash)
+            return;
+
+
+        flash.classList.remove(
+            "active"
+        );
+
+
+        void flash.offsetWidth;
+
+
+        flash.classList.add(
+            "active"
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const combo=
+            document.getElementById(
+                "combatCombo221"
+            );
+
+        const state=
+            document.getElementById(
+                "combatState221"
+            );
+
+        const bar=
+            document.getElementById(
+                "combatStaminaBar221"
+            );
+
+
+        if(combo){
+
+            combo.textContent=
+                "COMBO ×"+
+                this.combo;
+
+        }
+
+
+        if(state){
+
+            state.textContent=
+                "State: "+
+                this.state;
+
+        }
+
+
+        if(bar){
+
+            bar.style.width=
+                this.stamina+
+                "%";
+
+        }
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    reset(){
+
+        this.combo=0;
+
+        this.stamina=
+            this.maxStamina;
+
+        this.state=
+            "READY";
+
+        this.target=null;
+
+        this.attackLocked=false;
+
+        this.updateHUD();
+
+        this.message(
+            "🔄 Combat reset."
+        );
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V221
+ ===================================================== */
+
+SpiderCombat221.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="j")
+            SpiderCombat221.punch();
+
+
+        if(key==="k")
+            SpiderCombat221.kick();
+
+
+        if(key==="w")
+            SpiderCombat221.webAttack();
+
+
+        if(key==="shift")
+            SpiderCombat221.dodge();
+
+
+        if(key==="t")
+            SpiderCombat221.targetNearest();
+
+    }
+);
