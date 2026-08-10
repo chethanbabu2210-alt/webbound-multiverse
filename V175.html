@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V175 — SKILL SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(740px,92vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#skillHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.7;
+}
+
+.bar{
+ height:8px;
+ background:#ffffff12;
+ border-radius:7px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+.fill{
+ height:100%;
+ width:0%;
+ background:#8fb8df;
+ transition:.3s;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+.locked{
+ opacity:.45;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="line lineH"></div>
+  <div class="line lineV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🎓 TRAINING CENTER</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🎓 WEBBOUND V175 — SKILL SYSTEM
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    ⭐ LEVEL<br>
+    <span id="levelText">1</span>
+   </div>
+
+   <div class="stat">
+    ✨ XP<br>
+    <span id="xpText">0</span>
+   </div>
+
+   <div class="stat">
+    🎯 SKILL POINTS<br>
+    <span id="pointsText">0</span>
+   </div>
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cashText">5000</span>
+   </div>
+
+  </div>
+
+  <div id="skillHud">
+
+   <b>🎓 PLAYER PROGRESSION</b>
+
+   <br>
+
+   Next Level:
+   <span id="nextLevelText">100</span> XP
+
+   <div class="bar">
+    <div id="xpFill" class="fill"></div>
+   </div>
+
+   Active Skill:
+   <span id="activeSkill">
+    None
+   </span>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V175.skills()">
+   🎓 SKILLS
+  </button>
+
+  <button onclick="V175.addXP(25)">
+   ✨ +25 XP
+  </button>
+
+  <button onclick="V175.addXP(100)">
+   🚀 +100 XP
+  </button>
+
+  <button onclick="V175.usePoint()">
+   🎯 USE POINT
+  </button>
+
+  <button onclick="V175.training()">
+   🏋️ TRAIN
+  </button>
+
+  <button onclick="V175.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V175
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V175.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V175={
+
+ saveKey:"WEBBOUND_V175",
+
+ level:1,
+
+ xp:0,
+
+ skillPoints:0,
+
+ cash:5000,
+
+ activeSkill:null,
+
+ skillsData:[
+
+  {
+   id:"driving",
+   name:"🚗 Driving",
+   description:
+    "Improves vehicle performance.",
+   level:0,
+   max:10,
+   cost:1
+  },
+
+  {
+   id:"business",
+   name:"💼 Business",
+   description:
+    "Improves income from jobs.",
+   level:0,
+   max:10,
+   cost:1
+  },
+
+  {
+   id:"tech",
+   name:"💻 Technology",
+   description:
+    "Improves technical activities.",
+   level:0,
+   max:10,
+   cost:1
+  },
+
+  {
+   id:"fitness",
+   name:"🏃 Fitness",
+   description:
+    "Improves stamina and activity efficiency.",
+   level:0,
+   max:10,
+   cost:1
+  },
+
+  {
+   id:"social",
+   name:"🗣️ Social",
+   description:
+    "Improves reputation gains.",
+   level:0,
+   max:10,
+   cost:1
+  },
+
+  {
+   id:"exploration",
+   name:"🧭 Exploration",
+   description:
+    "Improves exploration rewards.",
+   level:0,
+   max:10,
+   cost:1
+  }
+
+ ],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🎓 V175 Skill System ready"
+  );
+
+ },
+
+ /* =========================
+    XP
+ ========================= */
+
+ addXP(amount){
+
+  amount=
+   Math.max(
+    0,
+    Math.floor(amount)
+   );
+
+  this.xp+=amount;
+
+  let leveled=false;
+
+  while(
+   this.xp>=this.xpNeeded()
+  ){
+
+   this.xp-=
+    this.xpNeeded();
+
+   this.level++;
+
+   this.skillPoints++;
+
+   leveled=true;
+
+  }
+
+  this.update();
+
+  this.save();
+
+  if(leveled){
+
+   this.notify(
+    "🎉 Level up! Level "+
+    this.level+
+    " — +1 Skill Point"
+   );
+
+  }
+  else{
+
+   this.notify(
+    "✨ +"+amount+" XP"
+   );
+
+  }
+
+ },
+
+ /* =========================
+    XP REQUIREMENT
+ ========================= */
+
+ xpNeeded(){
+
+  return 100+
+   (this.level-1)*50;
+
+ },
+
+ /* =========================
+    SKILLS MENU
+ ========================= */
+
+ skills(){
+
+  let html="";
+
+  this.skillsData.forEach(
+   skill=>{
+
+    const maxed=
+     skill.level>=skill.max;
+
+    html+=`
+
+    <div class="card ${
+     maxed
+     ?""
+     :""
+    }">
+
+     <b>${skill.name}</b>
+
+     <br>
+
+     ${skill.description}
+
+     <br><br>
+
+     Level:
+     ${skill.level}
+     /
+     ${skill.max}
+
+     <div class="bar">
+
+      <div
+       class="fill"
+       style="
+        width:${skill.level/
+        skill.max*100}%
+       ">
+      </div>
+
+     </div>
+
+     <br>
+
+     ${
+      maxed
+      ?"🏆 MAX LEVEL"
+      :`
+       Cost:
+       ${skill.cost} Skill Point
+
+       <button
+        onclick="
+         V175.upgrade('${skill.id}')
+        ">
+
+        ⬆️ UPGRADE
+
+       </button>
+      `
+     }
+
+    </div>
+
+    `;
+
+  });
+
+  this.open(
+   "🎓 SKILL TREE",
+   html
+  );
+
+ },
+
+ /* =========================
+    UPGRADE
+ ========================= */
+
+ upgrade(id){
+
+  const skill=
+   this.skillsData.find(
+    s=>s.id===id
+   );
+
+  if(!skill)
+   return;
+
+  if(
+   skill.level>=skill.max
+  ){
+
+   this.notify(
+    "🏆 Skill already maxed."
+   );
+
+   return;
+
+  }
+
+  if(
+   this.skillPoints<
+   skill.cost
+  ){
+
+   this.notify(
+    "❌ Not enough Skill Points."
+   );
+
+   return;
+
+  }
+
+  this.skillPoints-=
+   skill.cost;
+
+  skill.level++;
+
+  this.activeSkill=
+   skill.name;
+
+  this.update();
+
+  this.save();
+
+  this.skills();
+
+  this.notify(
+   "⬆️ "+skill.name+
+   " upgraded to level "+
+   skill.level
+  );
+
+ },
+
+ /* =========================
+    QUICK POINT USE
+ ========================= */
+
+ usePoint(){
+
+  if(
+   this.skillPoints<=0
+  ){
+
+   this.notify(
+    "🎯 No Skill Points available."
+   );
+
+   return;
+
+  }
+
+  const available=
+   this.skillsData.filter(
+    skill=>
+     skill.level<skill.max
+   );
+
+  if(!available.length){
+
+   this.notify(
+    "🏆 All skills are maxed."
+   );
+
+   return;
+
+  }
+
+  const skill=
+   available[
+    Math.floor(
+     Math.random()*
+     available.length
+    )
+   ];
+
+  this.upgrade(
+   skill.id
+  );
+
+ },
+
+ /* =========================
+    TRAINING
+ ========================= */
+
+ training(){
+
+  const reward=
+   15+
+   Math.floor(
+    Math.random()*31
+   );
+
+  this.addXP(reward);
+
+  this.cash+=
+   50+
+   Math.floor(
+    Math.random()*101
+   );
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🏋️ Training completed! +"+
+   reward+
+   " XP"
+  );
+
+ },
+
+ /* =========================
+    SKILL BONUS
+ ========================= */
+
+ getSkillLevel(id){
+
+  const skill=
+   this.skillsData.find(
+    s=>s.id===id
+   );
+
+  return skill
+   ?skill.level
+   :0;
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  document.getElementById(
+   "levelText"
+  ).textContent=
+   this.level;
+
+  document.getElementById(
+   "xpText"
+  ).textContent=
+   this.xp;
+
+  document.getElementById(
+   "pointsText"
+  ).textContent=
+   this.skillPoints;
+
+  document.getElementById(
+   "cashText"
+  ).textContent=
+   this.cash.toLocaleString();
+
+  document.getElementById(
+   "nextLevelText"
+  ).textContent=
+   this.xpNeeded();
+
+  document.getElementById(
+   "activeSkill"
+  ).textContent=
+   this.activeSkill||
+   "None";
+
+  document.getElementById(
+   "xpFill"
+  ).style.width=
+   Math.min(
+    100,
+    this.xp/
+    this.xpNeeded()*
+    100
+   )+"%";
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    level:this.level,
+
+    xp:this.xp,
+
+    skillPoints:
+     this.skillPoints,
+
+    cash:this.cash,
+
+    activeSkill:
+     this.activeSkill,
+
+    skills:this.skillsData
+
+   })
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(
+    Number.isFinite(
+     data.level
+    )
+   )
+    this.level=
+     Math.max(
+      1,
+      Math.floor(data.level)
+     );
+
+   if(
+    Number.isFinite(
+     data.xp
+    )
+   )
+    this.xp=
+     Math.max(
+      0,
+      data.xp
+    );
+
+   if(
+    Number.isFinite(
+     data.skillPoints
+    )
+   )
+    this.skillPoints=
+     Math.max(
+      0,
+      Math.floor(
+       data.skillPoints
+      )
+     );
+
+   if(
+    Number.isFinite(
+     data.cash
+    )
+   )
+    this.cash=
+     Math.max(
+      0,
+      data.cash
+     );
+
+   if(
+    typeof data.activeSkill===
+    "string"
+   )
+    this.activeSkill=
+     data.activeSkill;
+
+   if(
+    Array.isArray(
+     data.skills
+    )
+   ){
+
+    data.skills.forEach(
+     saved=>{
+
+      const skill=
+       this.skillsData.find(
+        s=>s.id===saved.id
+       );
+
+      if(
+       skill &&
+       Number.isFinite(
+        saved.level
+       )
+      ){
+
+       skill.level=
+        Math.max(
+         0,
+         Math.min(
+          skill.max,
+          Math.floor(
+           saved.level
+          )
+         )
+        );
+
+      }
+
+     }
+    );
+
+   }
+
+  }
+  catch(error){
+
+   console.log(
+    "V175 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V175.init();
+
+console.log(
+ "WEBBOUND V175 SKILL SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
