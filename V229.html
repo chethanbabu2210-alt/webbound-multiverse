@@ -1,0 +1,1105 @@
+<!-- =====================================================
+ V229 — OPEN WORLD CITY SYSTEM
+ Add after V228
+ ===================================================== -->
+
+<style>
+
+/* ================= CITY HUD ================= */
+
+#cityHud229{
+
+    position:fixed;
+
+    right:12px;
+    top:160px;
+
+    width:min(250px,50vw);
+
+    padding:11px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:11px;
+
+    z-index:4700;
+
+}
+
+.cityTitle229{
+
+    font-size:11px;
+    font-weight:bold;
+
+}
+
+#district229,
+#location229,
+#cityActivity229{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= MINIMAP ================= */
+
+#cityMap229{
+
+    position:fixed;
+
+    right:12px;
+    top:285px;
+
+    width:150px;
+    height:150px;
+
+    background:#071018e8;
+
+    border:1px solid #ffffff35;
+
+    border-radius:50%;
+
+    z-index:4700;
+
+    overflow:hidden;
+
+}
+
+
+/* ================= ROADS ================= */
+
+.cityRoad229{
+
+    position:absolute;
+
+    background:#26343c;
+
+    opacity:.8;
+
+}
+
+
+/* ================= BUILDINGS ================= */
+
+.cityBuilding229{
+
+    position:absolute;
+
+    background:#121d25;
+
+    border:1px solid #ffffff12;
+
+    border-radius:3px;
+
+}
+
+
+/* ================= ROOFTOPS ================= */
+
+.cityRooftop229{
+
+    position:absolute;
+
+    background:#1a2931;
+
+    border:1px solid #ffffff15;
+
+}
+
+
+/* ================= LANDMARK ================= */
+
+.cityLandmark229{
+
+    position:absolute;
+
+    width:9px;
+    height:9px;
+
+    border-radius:50%;
+
+    background:white;
+
+    box-shadow:
+        0 0 8px #ffffff77;
+
+}
+
+
+/* ================= PLAYER MAP DOT ================= */
+
+#cityPlayerDot229{
+
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:7px;
+    height:7px;
+
+    transform:
+        translate(-50%,-50%);
+
+    border-radius:50%;
+
+    background:white;
+
+    z-index:20;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#cityControls229{
+
+    position:fixed;
+
+    right:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5000;
+
+}
+
+#cityControls229 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+
+/* ================= LOCATION MESSAGE ================= */
+
+#cityLocationPopup229{
+
+    position:fixed;
+
+    left:50%;
+    top:35%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 16px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff30;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    z-index:5200;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#cityLocationPopup229.show{
+
+    animation:
+        cityPopup229 .9s forwards;
+
+}
+
+@keyframes cityPopup229{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            translateY(10px);
+    }
+
+    20%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            translateY(0);
+    }
+
+    80%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ CITY HUD
+ ===================================================== -->
+
+<div id="cityHud229">
+
+    <div class="cityTitle229">
+        🏙️ OPEN CITY — V229
+    </div>
+
+    <div id="district229">
+        District: Central
+    </div>
+
+    <div id="location229">
+        Location: Street
+    </div>
+
+    <div id="cityActivity229">
+        Activity: Exploring
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ MINIMAP
+ ===================================================== -->
+
+<div id="cityMap229">
+
+    <div id="cityPlayerDot229"></div>
+
+</div>
+
+
+<div id="cityLocationPopup229"></div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="cityControls229">
+
+    <button onclick="SpiderCity229.move('north')">
+        ⬆️ NORTH
+    </button>
+
+    <button onclick="SpiderCity229.move('south')">
+        ⬇️ SOUTH
+    </button>
+
+    <button onclick="SpiderCity229.move('west')">
+        ◀️ WEST
+    </button>
+
+    <button onclick="SpiderCity229.move('east')">
+        ▶️ EAST
+    </button>
+
+    <button onclick="SpiderCity229.openMap()">
+        🗺️ MAP
+    </button>
+
+    <button onclick="SpiderCity229.randomLocation()">
+        📍 LOCATION
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V229 CITY ENGINE
+ ===================================================== */
+
+const SpiderCity229={
+
+    /* =========================
+       CITY DATA
+    ========================= */
+
+    districts:[
+
+        {
+            id:"central",
+
+            name:"Central District",
+
+            x:0,
+            y:0,
+
+            locations:[
+                "Main Street",
+                "City Plaza",
+                "Police Station",
+                "Central Rooftops"
+            ]
+
+        },
+
+
+        {
+            id:"financial",
+
+            name:"Financial District",
+
+            x:1,
+            y:0,
+
+            locations:[
+                "Business Avenue",
+                "Tower Block",
+                "Bank Street",
+                "High Rooftops"
+            ]
+
+        },
+
+
+        {
+            id:"harbor",
+
+            name:"Harbor District",
+
+            x:0,
+            y:1,
+
+            locations:[
+                "Harbor Road",
+                "Docks",
+                "Warehouse Zone",
+                "Waterfront"
+            ]
+
+        },
+
+
+        {
+            id:"residential",
+
+            name:"Residential District",
+
+            x:-1,
+            y:0,
+
+            locations:[
+                "Residential Street",
+                "Apartments",
+                "School Zone",
+                "Community Park"
+            ]
+
+        },
+
+
+        {
+            id:"industrial",
+
+            name:"Industrial District",
+
+            x:0,
+            y:-1,
+
+            locations:[
+                "Factory Road",
+                "Industrial Yard",
+                "Warehouse",
+                "Rail Zone"
+            ]
+
+        }
+
+    ],
+
+
+    /* =========================
+       PLAYER POSITION
+    ========================= */
+
+    playerX:0,
+
+    playerY:0,
+
+    gridSize:500,
+
+
+    currentDistrict:"central",
+
+    currentLocation:"Main Street",
+
+    activity:"Exploring",
+
+
+    /* =========================
+       CITY OBJECTS
+    ========================= */
+
+    buildings:[],
+
+    roads:[],
+
+    rooftops:[],
+
+    landmarks:[],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.generateCity();
+
+        this.updateDistrict();
+
+        this.updateHUD();
+
+        this.message(
+            "🏙️ Open city loaded."
+        );
+
+    },
+
+
+    /* =========================
+       GENERATE CITY
+    ========================= */
+
+    generateCity(){
+
+        const map=
+            document.getElementById(
+                "cityMap229"
+            );
+
+
+        if(!map)
+            return;
+
+
+        /*
+         * Roads
+         */
+
+        for(
+            let i=0;
+            i<5;
+            i++
+        ){
+
+            const road=
+                document.createElement(
+                    "div"
+                );
+
+            road.className=
+                "cityRoad229";
+
+
+            if(
+                i%2===0
+            ){
+
+                road.style.width="100%";
+
+                road.style.height="3px";
+
+                road.style.top=
+                    (
+                        20+
+                        i*28
+                    )+"%";
+
+            }else{
+
+                road.style.height="100%";
+
+                road.style.width="3px";
+
+                road.style.left=
+                    (
+                        20+
+                        i*20
+                    )+"%";
+
+            }
+
+
+            map.appendChild(
+                road
+            );
+
+            this.roads.push(
+                road
+            );
+
+        }
+
+
+        /*
+         * Buildings
+         */
+
+        for(
+            let i=0;
+            i<12;
+            i++
+        ){
+
+            const building=
+                document.createElement(
+                    "div"
+                );
+
+            building.className=
+                "cityBuilding229";
+
+
+            building.style.width=
+                (8+
+                Math.random()*12)+"%";
+
+
+            building.style.height=
+                (7+
+                Math.random()*12)+"%";
+
+
+            building.style.left=
+                (5+
+                Math.random()*85)+"%";
+
+
+            building.style.top=
+                (5+
+                Math.random()*85)+"%";
+
+
+            map.appendChild(
+                building
+            );
+
+
+            this.buildings.push(
+                building
+            );
+
+        }
+
+
+        /*
+         * Rooftops
+         */
+
+        for(
+            let i=0;
+            i<5;
+            i++
+        ){
+
+            const rooftop=
+                document.createElement(
+                    "div"
+                );
+
+
+            rooftop.className=
+                "cityRooftop229";
+
+
+            rooftop.style.width="15%";
+
+            rooftop.style.height="8%";
+
+            rooftop.style.left=
+                (10+
+                i*18)+"%";
+
+            rooftop.style.top=
+                (10+
+                (
+                    i%2
+                    ?50
+                    :25
+                ))+"%";
+
+
+            map.appendChild(
+                rooftop
+            );
+
+
+            this.rooftops.push(
+                rooftop
+            );
+
+        }
+
+
+        /*
+         * Landmarks
+         */
+
+        for(
+            let i=0;
+            i<4;
+            i++
+        ){
+
+            const landmark=
+                document.createElement(
+                    "div"
+                );
+
+
+            landmark.className=
+                "cityLandmark229";
+
+
+            landmark.style.left=
+                (15+
+                Math.random()*70)+"%";
+
+
+            landmark.style.top=
+                (15+
+                Math.random()*70)+"%";
+
+
+            map.appendChild(
+                landmark
+            );
+
+
+            this.landmarks.push(
+                landmark
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       MOVE
+    ========================= */
+
+    move(direction){
+
+        switch(direction){
+
+            case "north":
+
+                this.playerY--;
+
+                break;
+
+
+            case "south":
+
+                this.playerY++;
+
+                break;
+
+
+            case "west":
+
+                this.playerX--;
+
+                break;
+
+
+            case "east":
+
+                this.playerX++;
+
+                break;
+
+        }
+
+
+        /*
+         * Keep the world bounded.
+         */
+
+        this.playerX=
+            Math.max(
+                -2,
+                Math.min(
+                    2,
+                    this.playerX
+                )
+            );
+
+
+        this.playerY=
+            Math.max(
+                -2,
+                Math.min(
+                    2,
+                    this.playerY
+                )
+            );
+
+
+        this.updateDistrict();
+
+        this.updateHUD();
+
+
+        this.message(
+            "🏃 Moving "+
+            direction+"."
+        );
+
+    },
+
+
+    /* =========================
+       DISTRICT
+    ========================= */
+
+    updateDistrict(){
+
+        let district=
+            this.districts.find(
+                d=>
+                    d.x===
+                    this.playerX &&
+                    d.y===
+                    this.playerY
+            );
+
+
+        if(!district){
+
+            /*
+             * Outer city areas.
+             */
+
+            district={
+                name:
+                    "Outer City",
+                locations:[
+                    "Back Street",
+                    "Rooftops",
+                    "Side Road"
+                ]
+            };
+
+        }
+
+
+        this.currentDistrict=
+            district.name;
+
+
+        const locations=
+            district.locations ||
+            [
+                "Street"
+            ];
+
+
+        this.currentLocation=
+            locations[
+                Math.floor(
+                    Math.random()*
+                    locations.length
+                )
+            ];
+
+
+        this.showLocation(
+            this.currentDistrict,
+            this.currentLocation
+        );
+
+    },
+
+
+    /* =========================
+       RANDOM LOCATION
+    ========================= */
+
+    randomLocation(){
+
+        const district=
+            this.currentDistrict;
+
+
+        const locations=
+            this.districts.find(
+                d=>
+                    d.name===
+                    district
+            );
+
+
+        if(
+            locations
+        ){
+
+            this.currentLocation=
+                locations.locations[
+                    Math.floor(
+                        Math.random()*
+                        locations.locations.length
+                    )
+                ];
+
+        }else{
+
+            this.currentLocation=
+                "Rooftops";
+
+        }
+
+
+        this.updateHUD();
+
+
+        this.showLocation(
+            this.currentDistrict,
+            this.currentLocation
+        );
+
+    },
+
+
+    /* =========================
+       LOCATION POPUP
+    ========================= */
+
+    showLocation(
+        district,
+        location
+    ){
+
+        const popup=
+            document.getElementById(
+                "cityLocationPopup229"
+            );
+
+
+        if(!popup)
+            return;
+
+
+        popup.textContent=
+            "📍 "+
+            district+
+            " — "+
+            location;
+
+
+        popup.classList.remove(
+            "show"
+        );
+
+
+        void popup.offsetWidth;
+
+
+        popup.classList.add(
+            "show"
+        );
+
+    },
+
+
+    /* =========================
+       MAP
+    ========================= */
+
+    openMap(){
+
+        const map=
+            document.getElementById(
+                "cityMap229"
+            );
+
+
+        if(!map)
+            return;
+
+
+        if(
+            map.dataset.open==="true"
+        ){
+
+            map.dataset.open="false";
+
+            map.style.display=
+                "none";
+
+        }else{
+
+            map.dataset.open="true";
+
+            map.style.display=
+                "block";
+
+        }
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const district=
+            document.getElementById(
+                "district229"
+            );
+
+        const location=
+            document.getElementById(
+                "location229"
+            );
+
+        const activity=
+            document.getElementById(
+                "cityActivity229"
+            );
+
+
+        if(district){
+
+            district.textContent=
+                "District: "+
+                this.currentDistrict;
+
+        }
+
+
+        if(location){
+
+            location.textContent=
+                "Location: "+
+                this.currentLocation;
+
+        }
+
+
+        if(activity){
+
+            activity.textContent=
+                "Activity: "+
+                this.activity;
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V229
+ ===================================================== */
+
+SpiderCity229.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="arrowup")
+            SpiderCity229.move(
+                "north"
+            );
+
+
+        if(key==="arrowdown")
+            SpiderCity229.move(
+                "south"
+            );
+
+
+        if(key==="arrowleft")
+            SpiderCity229.move(
+                "west"
+            );
+
+
+        if(key==="arrowright")
+            SpiderCity229.move(
+                "east"
+            );
+
+
+        if(key==="tab"){
+
+            e.preventDefault();
+
+            SpiderCity229.openMap();
+
+        }
+
+
+        if(key==="p")
+            SpiderCity229.randomLocation();
+
+    }
+
+);
