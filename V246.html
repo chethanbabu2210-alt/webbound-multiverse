@@ -1,0 +1,835 @@
+<!-- =====================================================
+ V246 — POLICE AI + WANTED SYSTEM
+ Add after V245
+ ===================================================== -->
+
+<style>
+
+#policeHud246{
+
+    position:fixed;
+
+    right:12px;
+    top:800px;
+
+    width:min(240px,48vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:9px;
+
+    z-index:5500;
+
+}
+
+.policeTitle246{
+
+    font-size:9px;
+    font-weight:bold;
+
+}
+
+#wanted246,
+#policeCount246,
+#policeStatus246{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= WANTED BAR ================= */
+
+#wantedBar246{
+
+    width:100%;
+
+    height:6px;
+
+    margin-top:7px;
+
+    background:#202830;
+
+    border-radius:6px;
+
+    overflow:hidden;
+
+}
+
+#wantedFill246{
+
+    width:0%;
+
+    height:100%;
+
+    background:#ffffff;
+
+    transition:
+        width .3s;
+
+}
+
+
+/* ================= POLICE ================= */
+
+.policeUnit246{
+
+    position:absolute;
+
+    width:28px;
+    height:18px;
+
+    background:#ffffff12;
+
+    border:1px solid #ffffff50;
+
+    border-radius:4px;
+
+    z-index:3300;
+
+    transition:
+        left .5s,
+        top .5s;
+
+}
+
+.policeUnit246::before{
+
+    content:"";
+
+    position:absolute;
+
+    left:5px;
+    right:5px;
+    top:-4px;
+
+    height:3px;
+
+    background:#ffffff50;
+
+    border-radius:3px;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#policeControls246{
+
+    position:fixed;
+
+    right:12px;
+
+    bottom:115px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5600;
+
+}
+
+#policeControls246 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= MESSAGE ================= */
+
+#policeMessage246{
+
+    position:fixed;
+
+    left:50%;
+
+    top:30%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 16px;
+
+    background:#03070df5;
+
+    border:1px solid #ffffff35;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    z-index:7000;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#policeMessage246.show{
+
+    animation:
+        policePopup246 1.2s forwards;
+
+}
+
+@keyframes policePopup246{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(.8);
+    }
+
+    20%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1);
+    }
+
+    80%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ POLICE HUD
+ ===================================================== -->
+
+<div id="policeHud246">
+
+    <div class="policeTitle246">
+        🚓 POLICE RESPONSE — V246
+    </div>
+
+    <div id="wanted246">
+        Wanted Level: 0 / 5
+    </div>
+
+    <div id="wantedBar246">
+
+        <div id="wantedFill246"></div>
+
+    </div>
+
+    <div id="policeCount246">
+        Police Units: 0
+    </div>
+
+    <div id="policeStatus246">
+        Status: CALM
+    </div>
+
+</div>
+
+
+<div id="policeMessage246">
+    POLICE
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="policeControls246">
+
+    <button onclick="SpiderPolice246.addWanted()">
+        🚨 WANTED +
+    </button>
+
+    <button onclick="SpiderPolice246.spawn()">
+        🚓 POLICE
+    </button>
+
+    <button onclick="SpiderPolice246.clearWanted()">
+        🕊️ CLEAR
+    </button>
+
+    <button onclick="SpiderPolice246.clearUnits()">
+        ✕ CLEAR UNITS
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V246 POLICE ENGINE
+ ===================================================== */
+
+const SpiderPolice246={
+
+    wantedLevel:0,
+
+    maxWanted:5,
+
+    units:[],
+
+    nextId:1,
+
+    active:true,
+
+    decayTimer:0,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.startAI();
+
+        this.startWantedDecay();
+
+        this.updateHUD();
+
+        this.message(
+            "🚓 Police response system online."
+        );
+
+    },
+
+
+    /* =========================
+       ADD WANTED
+       ========================= */
+
+    addWanted(amount=1){
+
+        this.wantedLevel=
+            Math.min(
+                this.maxWanted,
+                this.wantedLevel+
+                amount
+            );
+
+
+        this.message(
+            "🚨 Wanted Level "+
+            this.wantedLevel
+        );
+
+
+        this.spawnForWanted();
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       SPAWN POLICE
+       ========================= */
+
+    spawn(){
+
+        if(
+            this.units.length>=15
+        ){
+
+            this.message(
+                "🚓 Maximum police units active."
+            );
+
+            return;
+
+        }
+
+
+        const unit=
+            document.createElement(
+                "div"
+            );
+
+
+        unit.id=
+            "police246_"+
+            this.nextId++;
+
+
+        unit.className=
+            "policeUnit246";
+
+
+        unit.style.left=
+            (
+                10+
+                Math.random()*75
+            )+"vw";
+
+
+        unit.style.top=
+            (
+                20+
+                Math.random()*65
+            )+"vh";
+
+
+        document.body.appendChild(
+            unit
+        );
+
+
+        this.units.push({
+
+            id:unit.id,
+
+            element:unit,
+
+            speed:
+                1+
+                this.wantedLevel*.35,
+
+            active:true
+
+        });
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       WANTED SPAWN
+       ========================= */
+
+    spawnForWanted(){
+
+        const desired=
+            this.wantedLevel*2;
+
+
+        while(
+            this.units.length<
+            desired &&
+            this.units.length<15
+        ){
+
+            this.spawn();
+
+        }
+
+    },
+
+
+    /* =========================
+       POLICE AI
+       ========================= */
+
+    startAI(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    !this.active
+                )
+                    return;
+
+
+                this.units.forEach(
+                    unit=>{
+
+                        if(
+                            !unit.active ||
+                            !unit.element
+                        )
+                            return;
+
+
+                        const element=
+                            unit.element;
+
+
+                        let left=
+                            parseFloat(
+                                element.style.left
+                            );
+
+
+                        let top=
+                            parseFloat(
+                                element.style.top
+                            );
+
+
+                        /*
+                         * Simple pursuit
+                         * toward screen center.
+                         */
+
+                        const targetX=50;
+
+                        const targetY=50;
+
+
+                        if(
+                            left<targetX
+                        )
+                            left+=
+                                unit.speed;
+                        else
+                            left-=
+                                unit.speed;
+
+
+                        if(
+                            top<targetY
+                        )
+                            top+=
+                                unit.speed*.5;
+                        else
+                            top-=
+                                unit.speed*.5;
+
+
+                        left=
+                            Math.max(
+                                2,
+                                Math.min(
+                                    95,
+                                    left
+                                )
+                            );
+
+
+                        top=
+                            Math.max(
+                                15,
+                                Math.min(
+                                    90,
+                                    top
+                                )
+                            );
+
+
+                        element.style.left=
+                            left+"vw";
+
+
+                        element.style.top=
+                            top+"vh";
+
+                    }
+                );
+
+
+            },
+            500
+        );
+
+    },
+
+
+    /* =========================
+       WANTED DECAY
+       ========================= */
+
+    startWantedDecay(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    this.wantedLevel<=0
+                )
+                    return;
+
+
+                /*
+                 * Slowly reduce wanted
+                 * level when police
+                 * units are absent.
+                 */
+
+                if(
+                    this.units.length===0
+                ){
+
+                    this.wantedLevel=
+                        Math.max(
+                            0,
+                            this.wantedLevel-1
+                        );
+
+
+                    this.updateHUD();
+
+                }
+
+            },
+            15000
+        );
+
+    },
+
+
+    /* =========================
+       CLEAR WANTED
+       ========================= */
+
+    clearWanted(){
+
+        this.wantedLevel=0;
+
+        this.clearUnits();
+
+
+        this.message(
+            "🕊️ Wanted level cleared."
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CLEAR UNITS
+       ========================= */
+
+    clearUnits(){
+
+        this.units.forEach(
+            unit=>{
+
+                if(
+                    unit.element &&
+                    unit.element.parentNode
+                ){
+
+                    unit.element
+                        .parentNode
+                        .removeChild(
+                            unit.element
+                        );
+
+                }
+
+            }
+        );
+
+
+        this.units=[];
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       TOGGLE
+       ========================= */
+
+    toggle(){
+
+        this.active=
+            !this.active;
+
+
+        this.message(
+            this.active
+            ?"▶️ Police AI active."
+            :"⏸️ Police AI paused."
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const wanted=
+            document.getElementById(
+                "wanted246"
+            );
+
+
+        const fill=
+            document.getElementById(
+                "wantedFill246"
+            );
+
+
+        const count=
+            document.getElementById(
+                "policeCount246"
+            );
+
+
+        const status=
+            document.getElementById(
+                "policeStatus246"
+            );
+
+
+        if(wanted){
+
+            wanted.textContent=
+                "Wanted Level: "+
+                this.wantedLevel+
+                " / "+
+                this.maxWanted;
+
+        }
+
+
+        if(fill){
+
+            fill.style.width=
+                (
+                    this.wantedLevel/
+                    this.maxWanted*
+                    100
+                )+"%";
+
+        }
+
+
+        if(count){
+
+            count.textContent=
+                "Police Units: "+
+                this.units.length;
+
+        }
+
+
+        if(status){
+
+            status.textContent=
+                "Status: "+
+                (
+                    this.wantedLevel===0
+                    ?"CALM"
+                    :"PURSUIT"
+                );
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "policeMessage246"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V246
+ ===================================================== */
+
+SpiderPolice246.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="q")
+            SpiderPolice246.addWanted();
+
+
+        if(key==="p")
+            SpiderPolice246.spawn();
+
+
+        if(key==="c")
+            SpiderPolice246.clearWanted();
+
+
+        if(key==="x")
+            SpiderPolice246.clearUnits();
+
+    }
+);
