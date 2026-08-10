@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Spider-Man Game V204</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+    background:#081018;
+    color:white;
+}
+
+#game{
+    position:fixed;
+    inset:0;
+    overflow:hidden;
+    background:#789eaa;
+}
+
+/* SKY */
+
+#sky{
+    position:absolute;
+    inset:0;
+    background:linear-gradient(
+        #558da2 0%,
+        #a8c5ca 58%,
+        #d6dad7 100%
+    );
+}
+
+#sun{
+    position:absolute;
+    width:75px;
+    height:75px;
+    right:10%;
+    top:8%;
+    border-radius:50%;
+    background:#fff0aa;
+    box-shadow:0 0 50px #fff0aa;
+}
+
+/* BUILDINGS */
+
+.building{
+    position:absolute;
+    bottom:0;
+    background:#273840;
+    border:1px solid #ffffff18;
+    box-shadow:0 0 20px #0005;
+}
+
+.building:after{
+    content:"";
+    position:absolute;
+    inset:9px;
+
+    background:
+        repeating-linear-gradient(
+            90deg,
+            #dce7e733 0 7px,
+            transparent 7px 17px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            #dce7e733 0 7px,
+            transparent 7px 18px
+        );
+}
+
+.b1{
+    left:0;
+    width:11%;
+    height:45%;
+}
+
+.b2{
+    left:12%;
+    width:13%;
+    height:70%;
+}
+
+.b3{
+    left:27%;
+    width:10%;
+    height:52%;
+}
+
+.b4{
+    left:39%;
+    width:16%;
+    height:83%;
+}
+
+.b5{
+    left:57%;
+    width:11%;
+    height:60%;
+}
+
+.b6{
+    left:70%;
+    width:14%;
+    height:76%;
+}
+
+.b7{
+    right:0;
+    width:13%;
+    height:50%;
+}
+
+/* WALL SURFACES */
+
+.wall{
+    position:absolute;
+    background:#354a53;
+    border:2px solid #18272e;
+    box-shadow:inset 0 0 30px #0004;
+}
+
+.wall1{
+    left:12%;
+    top:18%;
+    width:13%;
+    height:52%;
+}
+
+.wall2{
+    left:39%;
+    top:8%;
+    width:16%;
+    height:73%;
+}
+
+.wall3{
+    left:70%;
+    top:14%;
+    width:14%;
+    height:62%;
+}
+
+/* WINDOWS */
+
+.window{
+    position:absolute;
+    width:7px;
+    height:11px;
+    background:#dce7a7;
+    box-shadow:0 0 8px #dce7a7;
+}
+
+/* ROADS */
+
+#roadH{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:16%;
+    height:90px;
+    background:#242a2f;
+    border-top:3px solid #555;
+    border-bottom:3px solid #555;
+}
+
+#roadH:after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:43px;
+    border-top:4px dashed #d8c85d;
+}
+
+/* WALL MODE GLOW */
+
+#wallModeGlow{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    border:0 solid transparent;
+    z-index:450;
+    transition:.2s;
+}
+
+#wallModeGlow.active{
+    border:5px solid #69d5ff55;
+    box-shadow:inset 0 0 50px #69d5ff22;
+}
+
+/* SPIDER-MAN */
+
+#spiderman{
+    position:absolute;
+    width:34px;
+    height:48px;
+    left:50%;
+    top:50%;
+    z-index:200;
+    transform:translate(-50%,-50%);
+    transition:transform .12s;
+}
+
+.body{
+    position:absolute;
+    width:30px;
+    height:35px;
+    left:2px;
+    top:12px;
+
+    border-radius:12px 12px 6px 6px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #8b0b13 0 44%,
+            #d51622 45%,
+            #0b2b72 46%,
+            #071a49
+        );
+
+    border:2px solid #050b15;
+}
+
+.head{
+    position:absolute;
+    width:25px;
+    height:25px;
+    left:4px;
+    top:-5px;
+    border-radius:50%;
+    background:#c91522;
+    border:2px solid #080c15;
+}
+
+.head:before,
+.head:after{
+    content:"";
+    position:absolute;
+    width:8px;
+    height:4px;
+    top:9px;
+    background:white;
+    border:1px solid #111;
+}
+
+.head:before{
+    left:2px;
+    transform:rotate(25deg);
+}
+
+.head:after{
+    right:2px;
+    transform:rotate(-25deg);
+}
+
+.body:after{
+    content:"";
+    position:absolute;
+    inset:5px;
+    border-radius:8px;
+
+    background:
+        repeating-linear-gradient(
+            45deg,
+            transparent 0 7px,
+            #ffffff20 8px 9px
+        );
+}
+
+/* WALL CONTACT MARKER */
+
+#wallMarker{
+    position:absolute;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#75ddff;
+    box-shadow:0 0 15px #75ddff;
+    display:none;
+    z-index:150;
+}
+
+/* HUD */
+
+#hud{
+    position:fixed;
+    top:12px;
+    left:12px;
+
+    width:min(530px,93vw);
+
+    padding:12px;
+
+    background:#03070ddd;
+    border:1px solid #ffffff25;
+    border-radius:13px;
+
+    z-index:500;
+}
+
+.title{
+    font-size:14px;
+    font-weight:bold;
+}
+
+.subtitle{
+    margin-top:4px;
+    font-size:9px;
+    color:#aebfc7;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:6px;
+    margin-top:10px;
+}
+
+.stat{
+    background:#101b23;
+    padding:8px 4px;
+    border-radius:7px;
+    text-align:center;
+    font-size:9px;
+}
+
+#status{
+    margin-top:8px;
+    padding:8px;
+
+    background:#101b23;
+    border-radius:7px;
+
+    font-size:9px;
+    line-height:1.7;
+}
+
+/* CONTROLS */
+
+#controls{
+    position:fixed;
+    left:50%;
+    bottom:12px;
+
+    transform:translateX(-50%);
+
+    width:min(700px,95vw);
+
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:7px;
+
+    z-index:600;
+}
+
+button{
+    padding:11px 5px;
+
+    background:#111f2a;
+
+    border:1px solid #ffffff25;
+    border-radius:9px;
+
+    color:white;
+    font-size:10px;
+
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.95);
+}
+
+/* MESSAGE */
+
+#message{
+    position:fixed;
+
+    left:50%;
+    top:24%;
+
+    transform:translateX(-50%);
+
+    padding:10px 16px;
+
+    background:#03070cf5;
+
+    border:1px solid #ffffff25;
+    border-radius:9px;
+
+    font-size:10px;
+
+    display:none;
+
+    z-index:1500;
+
+    text-align:center;
+}
+
+/* MAP */
+
+#map{
+    display:none;
+
+    position:fixed;
+    inset:0;
+
+    background:#02060aee;
+
+    z-index:1000;
+
+    align-items:center;
+    justify-content:center;
+
+    padding:20px;
+}
+
+.mapbox{
+    width:min(700px,95vw);
+
+    background:#0b141b;
+
+    border:1px solid #ffffff22;
+    border-radius:14px;
+
+    padding:16px;
+}
+
+.mapgrid{
+    position:relative;
+
+    height:360px;
+
+    margin-top:12px;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent 48%,
+            #d7c86e55 49% 51%,
+            transparent 52%
+        ),
+        linear-gradient(
+            transparent 48%,
+            #d7c86e55 49% 51%,
+            transparent 52%
+        ),
+        #1c2c34;
+
+    border-radius:10px;
+}
+
+.mapPlayer{
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:12px;
+    height:12px;
+
+    border-radius:50%;
+
+    background:#e21b2b;
+
+    box-shadow:0 0 15px #e21b2b;
+}
+
+/* MOBILE */
+
+#mobileControls{
+    position:fixed;
+    left:15px;
+    bottom:28px;
+
+    z-index:700;
+}
+
+#joystick{
+    width:100px;
+    height:100px;
+
+    border-radius:50%;
+
+    background:#ffffff12;
+
+    border:2px solid #ffffff22;
+}
+
+#stick{
+    position:absolute;
+
+    width:42px;
+    height:42px;
+
+    margin:27px;
+
+    border-radius:50%;
+
+    background:#ffffff35;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="sky"></div>
+<div id="sun"></div>
+
+<!-- BUILDINGS -->
+
+<div class="building b1"></div>
+<div class="building b2"></div>
+<div class="building b3"></div>
+<div class="building b4"></div>
+<div class="building b5"></div>
+<div class="building b6"></div>
+<div class="building b7"></div>
+
+<!-- CLIMBABLE WALLS -->
+
+<div class="wall wall1"></div>
+<div class="wall wall2"></div>
+<div class="wall wall3"></div>
+
+<div id="roadH"></div>
+
+<div id="wallMarker"></div>
+
+<!-- PLAYER -->
+
+<div id="spiderman">
+
+<div class="head"></div>
+<div class="body"></div>
+
+</div>
+
+<div id="wallModeGlow"></div>
+
+<!-- HUD -->
+
+<div id="hud">
+
+<div class="title">
+🕷️ SPIDER-MAN — V204
+</div>
+
+<div class="subtitle">
+WALL-CRAWLING & CLIMBING SYSTEM
+</div>
+
+<div class="stats">
+
+<div class="stat">
+❤️ HEALTH<br>
+<span id="health">100</span>
+</div>
+
+<div class="stat">
+⚡ POWER<br>
+<span id="power">100</span>
+</div>
+
+<div class="stat">
+🕸️ WEBS<br>
+<span id="webs">30</span>
+</div>
+
+<div class="stat">
+⭐ LEVEL<br>
+<span id="level">1</span>
+</div>
+
+</div>
+
+<div id="status">
+
+📍 Location:
+<b id="locationText">Downtown</b>
+
+<br>
+
+🧱 Wall Mode:
+<span id="wallStatus">OFF</span>
+
+<br>
+
+🧗 Surface:
+<span id="surfaceStatus">Ground</span>
+
+<br>
+
+⬆️ Height:
+<span id="height">0</span> m
+
+</div>
+
+</div>
+
+<div id="message"></div>
+
+<!-- CONTROLS -->
+
+<div id="controls">
+
+<button onclick="Spider.wallToggle()">
+🧱 WALL MODE
+</button>
+
+<button onclick="Spider.climbUp()">
+⬆️ CLIMB
+</button>
+
+<button onclick="Spider.climbDown()">
+⬇️ CLIMB
+</button>
+
+<button onclick="Spider.wallLeft()">
+⬅️ LEFT
+</button>
+
+<button onclick="Spider.wallRight()">
+➡️ RIGHT
+</button>
+
+<button onclick="Spider.wallJump()">
+🕷️ WALL JUMP
+</button>
+
+<button onclick="Spider.webAttach()">
+🕸️ WEB
+</button>
+
+<button onclick="Spider.sense()">
+🕷️ SENSE
+</button>
+
+<button onclick="Spider.jump()">
+🦘 JUMP
+</button>
+
+<button onclick="Spider.map()">
+🗺️ MAP
+</button>
+
+<button onclick="Spider.rest()">
+❤️ RESTORE
+</button>
+
+<button onclick="Spider.save()">
+💾 SAVE
+</button>
+
+</div>
+
+<!-- MAP -->
+
+<div id="map">
+
+<div class="mapbox">
+
+<h2>🗺️ CITY MAP</h2>
+
+<div class="mapgrid">
+
+<div
+id="mapPlayer"
+class="mapPlayer">
+</div>
+
+</div>
+
+<br>
+
+<button onclick="Spider.map()">
+CLOSE MAP
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const Spider={
+
+saveKey:"SPIDERMAN_V204",
+
+x:0,
+y:0,
+
+health:100,
+power:100,
+webs:30,
+level:1,
+
+height:0,
+
+wallMode:false,
+onWall:false,
+
+wallSide:"front",
+
+wallX:0,
+wallY:0,
+
+speed:4,
+
+keys:{},
+
+init(){
+
+this.load();
+
+this.keyboard();
+
+this.update();
+
+this.render();
+
+this.message(
+"🕷️ V204 Wall-Crawling ready!"
+);
+
+},
+
+/* KEYBOARD */
+
+keyboard(){
+
+document.addEventListener(
+"keydown",
+e=>{
+
+const k=e.key.toLowerCase();
+
+this.keys[k]=true;
+
+if(k==="f")
+this.wallToggle();
+
+if(k==="w"||k==="arrowup")
+this.climbUp();
+
+if(k==="s"||k==="arrowdown")
+this.climbDown();
+
+if(k==="a"||k==="arrowleft")
+this.wallLeft();
+
+if(k==="d"||k==="arrowright")
+this.wallRight();
+
+if(k===" ")
+this.wallJump();
+
+if(k==="e")
+this.webAttach();
+
+});
+
+},
+
+/* TOGGLE WALL MODE */
+
+wallToggle(){
+
+if(this.wallMode){
+
+this.wallMode=false;
+this.onWall=false;
+
+this.height=0;
+
+this.wallVisual(false);
+
+this.message(
+"🚶 Ground movement restored."
+);
+
+}else{
+
+if(this.detectWall()){
+
+this.wallMode=true;
+this.onWall=true;
+
+this.wallVisual(true);
+
+this.message(
+"🧱 Wall crawling activated!"
+);
+
+}else{
+
+this.message(
+"🧱 Move closer to a wall first."
+);
+
+}
+
+}
+
+this.update();
+
+},
+
+/* DETECT WALL */
+
+detectWall(){
+
+/*
+    The game uses several predefined
+    climbable wall zones.
+*/
+
+const zones=[
+
+{
+left:12,
+right:25,
+top:18,
+bottom:70
+},
+
+{
+left:39,
+right:55,
+top:8,
+bottom:81
+},
+
+{
+left:70,
+right:84,
+top:14,
+bottom:76
+}
+
+];
+
+const sx=
+50+this.x*.25;
+
+const sy=
+50+this.y*.18;
+
+return zones.some(
+z=>
+sx>=z.left-4 &&
+sx<=z.right+4 &&
+sy>=z.top-5 &&
+sy<=z.bottom+5
+);
+
+},
+
+/* CLIMB UP */
+
+climbUp(){
+
+if(!this.wallMode){
+
+this.message(
+"🧱 Activate Wall Mode first."
+);
+
+return;
+
+}
+
+if(this.power<1){
+
+this.message(
+"⚡ Too tired to climb."
+);
+
+return;
+
+}
+
+this.onWall=true;
+
+this.height+=2;
+
+this.power-=1;
+
+this.y-=3;
+
+this.y=
+Math.max(
+-100,
+Math.min(100,this.y)
+);
+
+this.renderWall();
+
+this.update();
+
+},
+
+/* CLIMB DOWN */
+
+climbDown(){
+
+if(!this.wallMode){
+
+this.message(
+"🧱 Activate Wall Mode first."
+);
+
+return;
+
+}
+
+this.height=
+Math.max(
+0,
+this.height-2
+);
+
+this.power=
+Math.max(
+0,
+this.power-0.5
+);
+
+this.y+=3;
+
+this.y=
+Math.max(
+-100,
+Math.min(100,this.y)
+);
+
+this.renderWall();
+
+this.update();
+
+},
+
+/* MOVE LEFT */
+
+wallLeft(){
+
+if(!this.wallMode){
+
+this.move(-1,0);
+
+return;
+
+}
+
+this.x-=3;
+
+this.x=
+Math.max(
+-100,
+Math.min(100,this.x)
+);
+
+this.wallSide="left";
+
+this.renderWall();
+
+},
+
+/* MOVE RIGHT */
+
+wallRight(){
+
+if(!this.wallMode){
+
+this.move(1,0);
+
+return;
+
+}
+
+this.x+=3;
+
+this.x=
+Math.max(
+-100,
+Math.min(100,this.x)
+);
+
+this.wallSide="right";
+
+this.renderWall();
+
+},
+
+/* WALL JUMP */
+
+wallJump(){
+
+if(!this.wallMode){
+
+this.jump();
+
+return;
+
+}
+
+if(this.power<8){
+
+this.message(
+"⚡ Not enough power."
+);
+
+return;
+
+}
+
+this.power-=8;
+
+this.wallMode=false;
+this.onWall=false;
+
+this.x+=
+this.wallSide==="left"
+?
+10:
+-10;
+
+this.height+=15;
+
+const player=
+document.getElementById(
+"spiderman"
+);
+
+player.animate(
+
+[
+{
+transform:
+"translate(-50%,-50%)"
+},
+
+{
+transform:
+"translate(-50%,-180%)"
+},
+
+{
+transform:
+"translate(-50%,-50%)"
+}
+
+],
+
+{
+duration:600,
+easing:"ease-out"
+}
+
+);
+
+this.wallVisual(false);
+
+this.message(
+"🕷️ WALL JUMP!"
+);
+
+this.update();
+
+},
+
+/* NORMAL MOVEMENT */
+
+move(dx,dy){
+
+if(this.wallMode)
+return;
+
+this.x+=dx*4;
+this.y+=dy*4;
+
+this.x=
+Math.max(
+-100,
+Math.min(100,this.x)
+);
+
+this.y=
+Math.max(
+-100,
+Math.min(100,this.y)
+);
+
+this.render();
+
+this.location();
+
+},
+
+/* WALL RENDER */
+
+renderWall(){
+
+const player=
+document.getElementById(
+"spiderman"
+);
+
+let sx=
+50+this.x*.25;
+
+let sy=
+50+this.y*.18;
+
+sy-=this.height*.25;
+
+player.style.left=
+sx+"%";
+
+player.style.top=
+sy+"%";
+
+if(this.wallSide==="left"){
+
+player.style.transform=
+"translate(-50%,-50%) rotate(-90deg)";
+
+}
+
+else if(this.wallSide==="right"){
+
+player.style.transform=
+"translate(-50%,-50%) rotate(90deg)";
+
+}
+
+else{
+
+player.style.transform=
+"translate(-50%,-50%)";
+
+}
+
+this.location();
+
+},
+
+/* NORMAL RENDER */
+
+render(){
+
+const player=
+document.getElementById(
+"spiderman"
+);
+
+player.style.left=
+(50+this.x*.25)+"%";
+
+player.style.top=
+(50+this.y*.18)+"%";
+
+player.style.transform=
+"translate(-50%,-50%)";
+
+},
+
+/* WEB */
+
+webAttach(){
+
+if(this.webs<=0){
+
+this.message(
+"🕸️ No webs remaining."
+);
+
+return;
+
+}
+
+if(this.power<2){
+
+this.message(
+"⚡ Not enough power."
+);
+
+return;
+
+}
+
+this.webs--;
+
+this.power-=2;
+
+this.message(
+"🕸️ Web attached to wall!"
+);
+
+this.update();
+
+},
+
+/* SPIDER SENSE */
+
+sense(){
+
+if(this.power<8){
+
+this.message(
+"⚡ Spider-Sense unavailable."
+);
+
+return;
+
+}
+
+this.power-=8;
+
+this.message(
+"🕷️ Wall route detected!"
+);
+
+this.update();
+
+},
+
+/* JUMP */
+
+jump(){
+
+if(this.wallMode){
+
+this.wallJump();
+
+return;
+
+}
+
+if(this.power<5){
+
+this.message(
+"⚡ Not enough power."
+);
+
+return;
+
+}
+
+this.power-=5;
+
+const player=
+document.getElementById(
+"spiderman"
+);
+
+player.animate(
+
+[
+{
+transform:
+"translate(-50%,-50%)"
+},
+
+{
+transform:
+"translate(-50%,-150%)"
+},
+
+{
+transform:
+"translate(-50%,-50%)"
+}
+
+],
+
+{
+duration:450,
+easing:"ease-out"
+}
+);
+
+this.update();
+
+},
+
+/* WALL VISUAL */
+
+wallVisual(active){
+
+const glow=
+document.getElementById(
+"wallModeGlow"
+);
+
+if(active)
+glow.classList.add("active");
+else
+glow.classList.remove("active");
+
+},
+
+/* LOCATION */
+
+location(){
+
+let place="Downtown";
+
+if(this.x>50)
+place="Financial District";
+
+else if(this.x<-50)
+place="Residential District";
+
+else if(this.y>50)
+place="Industrial District";
+
+else if(this.y<-50)
+place="City Center";
+
+document.getElementById(
+"locationText"
+).textContent=
+place;
+
+},
+
+/* MAP */
+
+map(){
+
+const map=
+document.getElementById(
+"map"
+);
+
+map.style.display=
+map.style.display==="flex"
+?
+"none":
+"flex";
+
+const player=
+document.getElementById(
+"mapPlayer"
+);
+
+player.style.left=
+(50+this.x*.35)+"%";
+
+player.style.top=
+(50+this.y*.35)+"%";
+
+},
+
+/* REST */
+
+rest(){
+
+this.health=
+Math.min(
+100,
+this.health+20
+);
+
+this.power=
+Math.min(
+100,
+this.power+30
+);
+
+this.message(
+"❤️ Recovered."
+);
+
+this.update();
+
+},
+
+/* HUD */
+
+update(){
+
+document.getElementById(
+"health"
+).textContent=
+Math.round(this.health);
+
+document.getElementById(
+"power"
+).textContent=
+Math.round(this.power);
+
+document.getElementById(
+"webs"
+).textContent=
+this.webs;
+
+document.getElementById(
+"level"
+).textContent=
+this.level;
+
+document.getElementById(
+"wallStatus"
+).textContent=
+this.wallMode
+?
+"ON":
+"OFF";
+
+document.getElementById(
+"surfaceStatus"
+).textContent=
+this.wallMode
+?
+"BUILDING WALL":
+"Ground";
+
+document.getElementById(
+"height"
+).textContent=
+Math.round(this.height);
+
+},
+
+/* SAVE */
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+
+x:this.x,
+y:this.y,
+health:this.health,
+power:this.power,
+webs:this.webs,
+level:this.level,
+height:this.height
+
+})
+);
+
+this.message(
+"💾 V204 saved!"
+);
+
+},
+
+/* LOAD */
+
+load(){
+
+try{
+
+const raw=
+localStorage.getItem(
+this.saveKey
+);
+
+if(!raw)return;
+
+const d=
+JSON.parse(raw);
+
+if(Number.isFinite(d.x))
+this.x=d.x;
+
+if(Number.isFinite(d.y))
+this.y=d.y;
+
+if(Number.isFinite(d.health))
+this.health=d.health;
+
+if(Number.isFinite(d.power))
+this.power=d.power;
+
+if(Number.isFinite(d.webs))
+this.webs=d.webs;
+
+if(Number.isFinite(d.level))
+this.level=d.level;
+
+if(Number.isFinite(d.height))
+this.height=d.height;
+
+}
+catch(e){
+
+console.log(
+"Save load error:",
+e
+);
+
+}
+
+},
+
+/* MESSAGE */
+
+message(text){
+
+const box=
+document.getElementById(
+"message"
+);
+
+box.textContent=text;
+
+box.style.display=
+"block";
+
+clearTimeout(
+this.messageTimer
+);
+
+this.messageTimer=
+setTimeout(
+()=>{
+box.style.display="none";
+},
+1800
+);
+
+}
+
+};
+
+Spider.init();
+
+</script>
+
+</body>
+</html>
