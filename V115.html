@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V115</title>
+
+<style>
+
+#v115HUD{
+  position:fixed;
+  left:12px;
+  top:12px;
+  z-index:13800;
+  width:min(225px,58vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v115Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v115Stats{
+  margin-top:7px;
+  font-size:10px;
+  line-height:1.6;
+  opacity:.8;
+}
+
+#v115Prompt{
+  position:fixed;
+  left:50%;
+  bottom:18%;
+  transform:translateX(-50%);
+  z-index:13900;
+  display:none;
+  padding:10px 16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff40;
+  border-radius:11px;
+  font:bold 12px Arial,sans-serif;
+  text-align:center;
+}
+
+#v115Message{
+  position:fixed;
+  left:50%;
+  top:22%;
+  transform:translateX(-50%);
+  z-index:14000;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+#v115Controls{
+  margin-top:9px;
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+}
+
+#v115Controls button{
+  flex:1;
+  min-width:85px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v115Layer{
+  position:fixed;
+  inset:0;
+  z-index:10400;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.v115NPC{
+  position:absolute;
+  width:10px;
+  height:18px;
+  border-radius:5px 5px 3px 3px;
+  background:#aaa;
+  transform-origin:center bottom;
+}
+
+.v115NPC::before{
+  content:"";
+  position:absolute;
+  width:8px;
+  height:8px;
+  left:1px;
+  top:-7px;
+  border-radius:50%;
+  background:#ccc;
+}
+
+.v115NPC.active{
+  outline:2px solid white;
+  box-shadow:0 0 8px #fff8;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V115
+     NPC INTERACTION SYSTEM
+     ========================================================= -->
+
+<div id="v115HUD">
+
+  <div id="v115Title">
+    👥 NPC SYSTEM
+  </div>
+
+  <div id="v115Stats">
+    NPCs: 0<br>
+    Nearby: None<br>
+    Interactions: 0<br>
+    Status: Active
+  </div>
+
+  <div id="v115Controls">
+
+    <button onclick="V115.spawnNPC()">
+      👤 SPAWN NPC
+    </button>
+
+    <button onclick="V115.spawnCrowd()">
+      👥 CROWD
+    </button>
+
+    <button onclick="V115.clear()">
+      🧹 CLEAR
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="v115Layer"></div>
+
+
+<div id="v115Prompt">
+  Press E to interact
+</div>
+
+
+<div id="v115Message">
+  V115
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V115
+   NPC INTERACTION SYSTEM
+   ========================================================= */
+
+const V115 = {
+
+  version:"V115",
+
+  saveKey:
+    "WEBBOUND_V115_NPCS",
+
+  npcs:[],
+
+  nearbyNPC:null,
+
+  interactions:0,
+
+  nextId:1,
+
+  running:true,
+
+  timer:null,
+
+  messageTimer:null,
+
+  interactionDistance:18,
+
+
+  /* =======================================================
+     NPC TYPES
+     ======================================================= */
+
+  npcTypes:[
+
+    {
+      type:"civilian",
+      name:"Civilian"
+    },
+
+    {
+      type:"student",
+      name:"Student"
+    },
+
+    {
+      type:"worker",
+      name:"Worker"
+    },
+
+    {
+      type:"tourist",
+      name:"Tourist"
+    },
+
+    {
+      type:"shopper",
+      name:"Shopper"
+    },
+
+    {
+      type:"police",
+      name:"Police Officer"
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.start();
+
+    console.log(
+      "WEBBOUND V115 NPC SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          if(
+            !this.running
+          ){
+
+            return;
+
+          }
+
+          this.updateNPCs();
+
+          this.findNearby();
+
+          this.updateHUD();
+
+        },
+        100
+      );
+
+  },
+
+
+  /* =======================================================
+     SPAWN NPC
+     ======================================================= */
+
+  spawnNPC(type){
+
+    const layer=
+      document.getElementById(
+        "v115Layer"
+      );
+
+
+    if(!layer){
+
+      return null;
+
+    }
+
+
+    let selected;
+
+
+    if(type){
+
+      selected=
+        this.npcTypes.find(
+          npc=>
+            npc.type===type
+        );
+
+    }
+
+
+    if(!selected){
+
+      selected=
+        this.npcTypes[
+          Math.floor(
+            Math.random()*
+            this.npcTypes.length
+          )
+        ];
+
+    }
+
+
+    const element=
+      document.createElement(
+        "div"
+      );
+
+
+    element.className=
+      "v115NPC";
+
+
+    const npc={
+
+      id:
+        this.nextId++,
+
+      type:
+        selected.type,
+
+      name:
+        selected.name,
+
+      element:
+        element,
+
+      x:
+        Math.random()*90+5,
+
+      y:
+        Math.random()*65+20,
+
+      speed:
+        0.006+
+        Math.random()*0.014,
+
+      direction:
+        Math.random()>0.5
+        ? 1
+        : -1,
+
+      wait:
+        Math.random()*50,
+
+      interacted:false
+
+    };
+
+
+    element.style.left=
+      npc.x+
+      "%";
+
+
+    element.style.top=
+      npc.y+
+      "%";
+
+
+    element.title=
+      npc.name;
+
+
+    layer.appendChild(
+      element
+    );
+
+
+    this.npcs.push(
+      npc
+    );
+
+
+    this.save();
+
+    this.updateHUD();
+
+
+    return npc;
+
+  },
+
+
+  /* =======================================================
+     SPAWN CROWD
+     ======================================================= */
+
+  spawnCrowd(){
+
+    for(
+      let i=0;
+      i<8;
+      i++
+    ){
+
+      this.spawnNPC();
+
+    }
+
+
+    this.message(
+      "👥 Crowd spawned"
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE NPCS
+     ======================================================= */
+
+  updateNPCs(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.wait>0
+        ){
+
+          npc.wait--;
+
+          return;
+
+        }
+
+
+        npc.x+=
+          npc.speed*
+          npc.direction;
+
+
+        if(
+          npc.x>102
+        ){
+
+          npc.x=-2;
+
+        }
+
+
+        if(
+          npc.x<-2
+        ){
+
+          npc.x=102;
+
+        }
+
+
+        npc.element.style.left=
+          npc.x+
+          "%";
+
+
+        if(
+          npc.direction<0
+        ){
+
+          npc.element.style.transform=
+            "scaleX(-1)";
+
+        }
+        else{
+
+          npc.element.style.transform=
+            "scaleX(1)";
+
+        }
+
+
+        /*
+          Occasionally stop briefly.
+        */
+
+        if(
+          Math.random()<0.002
+        ){
+
+          npc.wait=
+            20+
+            Math.random()*50;
+
+        }
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     FIND NEARBY NPC
+     ======================================================= */
+
+  findNearby(){
+
+    /*
+      If the existing game has a player,
+      use its position when possible.
+    */
+
+    if(
+      typeof player!=="undefined" &&
+      player &&
+      player.position
+    ){
+
+      /*
+        NPCs in this version use screen
+        coordinates, so this is a simple
+        interaction fallback.
+      */
+
+    }
+
+
+    /*
+      Demo proximity system:
+      select an NPC near the center
+      of the game viewport.
+    */
+
+    let closest=null;
+
+    let closestDistance=999;
+
+
+    const centerX=50;
+
+    const centerY=55;
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        const dx=
+          npc.x-centerX;
+
+        const dy=
+          npc.y-centerY;
+
+        const distance=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+
+        if(
+          distance<
+          closestDistance
+        ){
+
+          closestDistance=
+            distance;
+
+          closest=
+            npc;
+
+        }
+
+      }
+    );
+
+
+    if(
+      closest &&
+      closestDistance<=
+      this.interactionDistance
+    ){
+
+      this.setNearby(
+        closest
+      );
+
+    }
+    else{
+
+      this.setNearby(
+        null
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SET NEARBY
+     ======================================================= */
+
+  setNearby(npc){
+
+    if(
+      this.nearbyNPC===npc
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      this.nearbyNPC &&
+      this.nearbyNPC.element
+    ){
+
+      this.nearbyNPC.element
+        .classList
+        .remove(
+          "active"
+        );
+
+    }
+
+
+    this.nearbyNPC=
+      npc;
+
+
+    const prompt=
+      document.getElementById(
+        "v115Prompt"
+      );
+
+
+    if(
+      npc
+    ){
+
+      npc.element
+        .classList
+        .add(
+          "active"
+        );
+
+
+      if(prompt){
+
+        prompt.textContent=
+          "Press E to talk to "+
+          npc.name;
+
+        prompt.style.display=
+          "block";
+
+      }
+
+    }
+    else{
+
+      if(prompt){
+
+        prompt.style.display=
+          "none";
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     INTERACT
+     ======================================================= */
+
+     interact(){
+
+    const npc=
+      this.nearbyNPC;
+
+
+    if(!npc){
+
+      this.message(
+        "No NPC nearby"
+      );
+
+      return;
+
+    }
+
+
+    this.interactions++;
+
+
+    npc.interacted=true;
+
+
+    this.message(
+      "💬 Talking to "+
+      npc.name
+    );
+
+
+    /*
+      Connect to V111 dialogue system
+      when it exists.
+    */
+
+    if(
+      typeof V111!=="undefined" &&
+      typeof V111.start===
+      "function"
+    ){
+
+      if(
+        npc.type==="police"
+      ){
+
+        V111.start(
+          "policeOfficer"
+        );
+
+      }
+      else if(
+        npc.type==="civilian"
+      ){
+
+        V111.start(
+          "civilian"
+        );
+
+      }
+      else{
+
+        V111.start(
+          "civilian"
+        );
+
+      }
+
+    }
+
+
+    /*
+      External hook for future
+      mission/NPC systems.
+    */
+
+    if(
+      typeof window.onWebboundNPCInteract===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundNPCInteract({
+
+          id:
+            npc.id,
+
+          type:
+            npc.type,
+
+          name:
+            npc.name,
+
+          interactions:
+            this.interactions
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V115 NPC CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+
+    this.save();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  clear(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.element &&
+          npc.element.parentNode
+        ){
+
+          npc.element.parentNode
+            .removeChild(
+              npc.element
+            );
+
+        }
+
+      }
+    );
+
+
+    this.npcs=[];
+
+    this.nearbyNPC=null;
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     GET DATA
+     ======================================================= */
+
+  getData(){
+
+    return{
+
+      version:
+        this.version,
+
+      npcCount:
+        this.npcs.length,
+
+      nearby:
+        this.nearbyNPC
+        ? {
+            id:
+              this.nearbyNPC.id,
+
+            type:
+              this.nearbyNPC.type,
+
+            name:
+              this.nearbyNPC.name
+          }
+        : null,
+
+      interactions:
+        this.interactions,
+
+      running:
+        this.running
+
+    };
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const stats=
+      document.getElementById(
+        "v115Stats"
+      );
+
+
+    if(!stats){
+
+      return;
+
+    }
+
+
+    stats.innerHTML=
+
+      "NPCs: "+
+      this.npcs.length+
+      "<br>"+
+
+      "Nearby: "+
+      (
+        this.nearbyNPC
+        ? this.nearbyNPC.name
+        : "None"
+      )+
+      "<br>"+
+
+      "Interactions: "+
+      this.interactions+
+      "<br>"+
+
+      "Status: "+
+      (
+        this.running
+        ? "Active"
+        : "Paused"
+      );
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:
+          this.version,
+
+        interactions:
+          this.interactions,
+
+        running:
+          this.running,
+
+        npcs:
+          this.npcs.map(
+            npc=>({
+
+              id:
+                npc.id,
+
+              type:
+                npc.type,
+
+              name:
+                npc.name,
+
+              x:
+                npc.x,
+
+              y:
+                npc.y,
+
+              speed:
+                npc.speed,
+
+              direction:
+                npc.direction,
+
+              interacted:
+                npc.interacted
+
+            })
+          )
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V115 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.interactions)
+        )
+      ){
+
+        this.interactions=
+          Math.max(
+            0,
+            Number(
+              data.interactions
+            )
+          );
+
+      }
+
+
+      if(
+        typeof data.running===
+        "boolean"
+      ){
+
+        this.running=
+          data.running;
+
+      }
+
+
+      /*
+        Restore saved NPCs.
+      */
+
+      if(
+        Array.isArray(
+          data.npcs
+        )
+      ){
+
+        data.npcs
+          .slice(0,40)
+          .forEach(
+            saved=>{
+
+              const npc=
+                this.spawnNPC(
+                  saved.type
+                );
+
+
+              if(!npc){
+
+                return;
+
+              }
+
+
+              npc.id=
+                Number(
+                  saved.id
+                )||
+                npc.id;
+
+
+              npc.x=
+                Number(
+                  saved.x
+                )||
+                npc.x;
+
+
+              npc.y=
+                Number(
+                  saved.y
+                )||
+                npc.y;
+
+
+              npc.speed=
+                Number(
+                  saved.speed
+                )||
+                npc.speed;
+
+
+              npc.direction=
+                Number(
+                  saved.direction
+                )||
+                npc.direction;
+
+
+              npc.interacted=
+                !!saved.interacted;
+
+
+              npc.element.style.left=
+                npc.x+
+                "%";
+
+
+              npc.element.style.top=
+                npc.y+
+                "%";
+
+            }
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V115 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      interactions:
+        this.interactions,
+
+      running:
+        this.running,
+
+      npcs:
+        this.npcs.map(
+          npc=>({
+
+            id:
+              npc.id,
+
+            type:
+              npc.type,
+
+            name:
+              npc.name,
+
+            x:
+              npc.x,
+
+            y:
+              npc.y,
+
+            interacted:
+              npc.interacted
+
+          })
+        )
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.clear();
+
+
+    this.interactions=
+      Number(
+        data.interactions
+      )||0;
+
+
+    if(
+      typeof data.running===
+      "boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    if(
+      Array.isArray(
+        data.npcs
+      )
+    ){
+
+      data.npcs
+        .slice(0,40)
+        .forEach(
+          saved=>{
+
+            const npc=
+              this.spawnNPC(
+                saved.type
+              );
+
+
+            if(!npc){
+
+              return;
+
+            }
+
+
+            npc.x=
+              Number(
+                saved.x
+              )||
+              npc.x;
+
+
+            npc.y=
+              Number(
+                saved.y
+              )||
+              npc.y;
+
+
+            npc.interacted=
+              !!saved.interacted;
+
+
+            npc.element.style.left=
+              npc.x+
+              "%";
+
+
+            npc.element.style.top=
+              npc.y+
+              "%";
+
+          }
+        );
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v115Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1700
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      E = interact
+    */
+
+    if(
+      event.code==="KeyE"
+    ){
+
+      V115.interact();
+
+    }
+
+
+    /*
+      C = spawn crowd
+    */
+
+    if(
+      event.code==="KeyC"
+    ){
+
+      V115.spawnCrowd();
+
+    }
+
+
+    /*
+      X = clear NPCs
+    */
+
+    if(
+      event.code==="KeyX"
+    ){
+
+      V115.clear();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V115.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V115.init();
+
+
+console.log(
+  "WEBBOUND V115 NPC INTERACTION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
