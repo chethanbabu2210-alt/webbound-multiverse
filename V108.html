@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V108</title>
+
+<style>
+
+#v108HUD{
+  position:fixed;
+  right:12px;
+  top:700px;
+  z-index:11800;
+  width:min(215px,58vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+}
+
+#v108Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v108Density{
+  margin-top:7px;
+  font-size:15px;
+}
+
+#v108Stats{
+  margin-top:6px;
+  font-size:10px;
+  line-height:1.5;
+  opacity:.75;
+}
+
+#v108Controls{
+  position:fixed;
+  right:12px;
+  top:835px;
+  z-index:11801;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#v108Controls button{
+  padding:8px 11px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:10px;
+}
+
+#v108Message{
+  position:fixed;
+  left:50%;
+  top:18%;
+  transform:translateX(-50%);
+  z-index:11900;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     WEBBOUND V108
+     PEDESTRIAN / CROWD SYSTEM
+     ========================================================= -->
+
+<div id="v108HUD">
+
+  <div id="v108Title">
+    🚶 CITY CROWD
+  </div>
+
+  <div id="v108Density">
+    Density: LOW
+  </div>
+
+  <div id="v108Stats">
+    Pedestrians: 0<br>
+    Walking: Active<br>
+    Area: City
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v108Controls">
+
+  <button onclick="V108.setDensity('low')">
+    🟢 LOW CROWD
+  </button>
+
+  <button onclick="V108.setDensity('medium')">
+    🟡 MEDIUM CROWD
+  </button>
+
+  <button onclick="V108.setDensity('high')">
+    🔴 HIGH CROWD
+  </button>
+
+  <button onclick="V108.toggle()">
+    🚶 PAUSE / PLAY
+  </button>
+
+  <button onclick="V108.clear()">
+    🧹 CLEAR CROWD
+  </button>
+
+</div>
+
+
+<div id="v108Message">
+  V108
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V108
+   PEDESTRIAN SYSTEM
+   ========================================================= */
+
+const V108 = {
+
+  version:"V108",
+
+  saveKey:
+    "WEBBOUND_V108_PEDESTRIANS",
+
+  running:true,
+
+  density:"low",
+
+  pedestrians:[],
+
+  nextPedestrianId:1,
+
+  timer:null,
+
+  updateTimer:null,
+
+  settings:{
+
+    low:{
+      max:12,
+      spawnRate:3500,
+      speed:1.0
+    },
+
+    medium:{
+      max:25,
+      spawnRate:2400,
+      speed:1.15
+    },
+
+    high:{
+      max:45,
+      spawnRate:1500,
+      speed:1.3
+    }
+
+  },
+
+  pedestrianTypes:[
+
+    "student",
+    "worker",
+    "tourist",
+    "shopper",
+    "jogger",
+    "elder"
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.start();
+
+    console.log(
+      "WEBBOUND V108 PEDESTRIAN SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+    clearInterval(
+      this.updateTimer
+    );
+
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          if(
+            this.running
+          ){
+
+            this.spawn();
+
+          }
+
+        },
+        this.settings[
+          this.density
+        ].spawnRate
+      );
+
+
+    this.updateTimer=
+      setInterval(
+        ()=>{
+
+          if(
+            this.running
+          ){
+
+            this.updatePedestrians();
+
+          }
+
+        },
+        1000
+      );
+
+  },
+
+
+  /* =======================================================
+     SET DENSITY
+     ======================================================= */
+
+  setDensity(level){
+
+    if(
+      !this.settings[level]
+    ){
+
+      return;
+
+    }
+
+
+    this.density=
+      level;
+
+
+    this.start();
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🚶 Crowd: "+
+      level.toUpperCase()
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.running=
+      !this.running;
+
+
+    this.message(
+      this.running
+      ? "🚶 Crowd active"
+      : "⏸️ Crowd paused"
+    );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     SPAWN
+     ======================================================= */
+
+  spawn(){
+
+    const config=
+      this.settings[
+        this.density
+      ];
+
+
+    if(
+      this.pedestrians.length>=
+      config.max
+    ){
+
+      return;
+
+    }
+
+
+    const type=
+      this.pedestrianTypes[
+        Math.floor(
+          Math.random()*
+          this.pedestrianTypes.length
+        )
+      ];
+
+
+    const pedestrian={
+
+      id:
+        this.nextPedestrianId++,
+
+      type:type,
+
+      x:
+        Math.random()*2000-1000,
+
+      y:0,
+
+      z:
+        Math.random()*2000-1000,
+
+      direction:
+        Math.random()<.5
+        ? 1
+        : -1,
+
+      speed:
+        config.speed+
+        Math.random()*.5,
+
+      state:"walking",
+
+      spawnedAt:
+        Date.now()
+
+    };
+
+
+    this.pedestrians.push(
+      pedestrian
+    );
+
+
+    if(
+      typeof window.onWebboundPedestrianSpawn===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundPedestrianSpawn(
+          pedestrian
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V108 SPAWN CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     UPDATE PEDESTRIANS
+     ======================================================= */
+
+  updatePedestrians(){
+
+    const delta=
+      1;
+
+
+    this.pedestrians.forEach(
+      pedestrian=>{
+
+        /*
+          Small random behavior changes.
+        */
+
+        if(
+          Math.random()<.03
+        ){
+
+          pedestrian.direction*=-1;
+
+        }
+
+
+        /*
+          Occasionally stop briefly.
+        */
+
+        if(
+          Math.random()<.02
+        ){
+
+          pedestrian.state=
+            "waiting";
+
+        }
+        else if(
+          pedestrian.state===
+          "waiting" &&
+          Math.random()<.15
+        ){
+
+          pedestrian.state=
+            "walking";
+
+        }
+
+
+        if(
+          pedestrian.state===
+          "walking"
+        ){
+
+          pedestrian.x+=
+            pedestrian.direction*
+            pedestrian.speed*
+            delta;
+
+        }
+
+
+        /*
+          Keep pedestrians inside
+          the simulated city.
+        */
+
+        if(
+          pedestrian.x>1200
+        ){
+
+          pedestrian.x=-1200;
+
+        }
+
+
+        if(
+          pedestrian.x<-1200
+        ){
+
+          pedestrian.x=1200;
+
+        }
+
+
+        if(
+          typeof window.onWebboundPedestrianMove===
+          "function"
+        ){
+
+          try{
+
+            window.onWebboundPedestrianMove(
+              pedestrian
+            );
+
+          }
+          catch(error){
+
+            console.warn(
+              "V108 MOVE CALLBACK:",
+              error
+            );
+
+          }
+
+        }
+
+      }
+    );
+
+
+    this.cleanup();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     CLEANUP
+     ======================================================= */
+
+  cleanup(){
+
+    const now=
+      Date.now();
+
+
+    const maxAge=
+      180000;
+
+
+    this.pedestrians=
+      this.pedestrians.filter(
+        pedestrian=>{
+
+          return(
+            now-
+            pedestrian.spawnedAt<
+            maxAge
+          );
+
+        }
+      );
+
+
+    const max=
+      this.settings[
+        this.density
+      ].max;
+
+
+    if(
+      this.pedestrians.length>max
+    ){
+
+      this.pedestrians=
+        this.pedestrians.slice(
+          this.pedestrians.length-max
+        );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  clear(){
+
+    this.pedestrians=[];
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🧹 Crowd cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET PEDESTRIANS
+     ======================================================= */
+
+  getPedestrians(){
+
+    return this.pedestrians;
+
+  },
+
+
+  /* =======================================================
+     COUNT
+     ======================================================= */
+
+  getCount(){
+
+    return this.pedestrians.length;
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const densityBox=
+      document.getElementById(
+        "v108Density"
+      );
+
+    const stats=
+      document.getElementById(
+        "v108Stats"
+      );
+
+
+    const config=
+      this.settings[
+        this.density
+      ];
+
+
+    if(densityBox){
+
+      densityBox.textContent=
+        "Density: "+
+        this.density.toUpperCase();
+
+    }
+
+
+    if(stats){
+
+      stats.innerHTML=
+        "Pedestrians: "+
+        this.pedestrians.length+
+        " / "+
+        config.max+
+        "<br>"+
+        "Walking: "+
+        (
+          this.running
+          ? "Active"
+          : "Paused"
+        )+
+        "<br>"+
+        "Area: City";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     TIME CONNECTION
+     ======================================================= */
+
+  applyTime(time){
+
+    if(!time){
+
+      return;
+
+    }
+
+
+    /*
+      Fewer pedestrians at night.
+    */
+
+    if(
+      time.hour>=22 ||
+      time.hour<6
+    ){
+
+      if(
+        this.density==="high"
+      ){
+
+        this.setDensity(
+          "medium"
+        );
+
+      }
+
+    }
+
+
+    /*
+      Morning and evening
+      increase city activity.
+    */
+
+    if(
+      time.hour>=7 &&
+      time.hour<10
+    ){
+
+      this.setDensity(
+        "high"
+      );
+
+    }
+
+
+    if(
+      time.hour>=17 &&
+      time.hour<20
+    ){
+
+      this.setDensity(
+        "high"
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     WEATHER CONNECTION
+     ======================================================= */
+
+  applyWeather(weather){
+
+    if(!weather){
+
+      return;
+
+    }
+
+
+    /*
+      Rain slows pedestrians.
+    */
+
+    if(
+      weather.type==="rain"
+    ){
+
+      this.pedestrians.forEach(
+        pedestrian=>{
+
+          pedestrian.speed*=.9;
+
+        }
+      );
+
+    }
+
+
+    /*
+      Storm causes some pedestrians
+      to stop or leave.
+    */
+
+    if(
+      weather.type==="storm"
+    ){
+
+      this.pedestrians.forEach(
+        pedestrian=>{
+
+          if(
+            Math.random()<.4
+          ){
+
+            pedestrian.state=
+              "waiting";
+
+          }
+
+        }
+      );
+
+    }
+
+
+    /*
+      Fog reduces movement slightly.
+    */
+
+    if(
+      weather.type==="fog"
+    ){
+
+      this.pedestrians.forEach(
+        pedestrian=>{
+
+          pedestrian.speed*=.95;
+
+        }
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        running:this.running,
+
+        density:this.density,
+
+        nextPedestrianId:
+          this.nextPedestrianId
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V108 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        this.settings[
+          data.density
+        ]
+      ){
+
+        this.density=
+          data.density;
+
+      }
+
+
+      if(
+        typeof data.running===
+        "boolean"
+      ){
+
+        this.running=
+          data.running;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.nextPedestrianId
+          )
+        )
+      ){
+
+        this.nextPedestrianId=
+          Math.max(
+            1,
+            Number(
+              data.nextPedestrianId
+            )
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V108 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      running:this.running,
+
+      density:this.density,
+
+      nextPedestrianId:
+        this.nextPedestrianId
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      this.settings[
+        data.density
+      ]
+    ){
+
+      this.density=
+        data.density;
+
+    }
+
+
+    if(
+      typeof data.running===
+      "boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(
+          data.nextPedestrianId
+        )
+      )
+    ){
+
+      this.nextPedestrianId=
+        Math.max(
+          1,
+          Number(
+            data.nextPedestrianId
+          )
+        );
+
+    }
+
+
+    this.start();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v108Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   V105 TIME HOOK
+   ========================================================= */
+
+if(
+  typeof window.onWebboundTimeChange===
+  "undefined"
+){
+
+  window.onWebboundTimeChange=
+    function(time){
+
+      V108.applyTime(
+        time
+      );
+
+    };
+
+}
+
+
+/* =========================================================
+   V106 WEATHER HOOK
+   ========================================================= */
+
+if(
+  typeof window.onWebboundWeatherChange===
+  "undefined"
+){
+
+  window.onWebboundWeatherChange=
+    function(weather){
+
+      V108.applyWeather(
+        weather
+      );
+
+    };
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      P = change crowd density
+    */
+
+    if(
+      event.code==="KeyP"
+    ){
+
+      const levels=[
+        "low",
+        "medium",
+        "high"
+      ];
+
+      const index=
+        levels.indexOf(
+          V108.density
+        );
+
+
+      V108.setDensity(
+        levels[
+          (index+1)%
+          levels.length
+        ]
+      );
+
+    }
+
+
+    /*
+      O = clear crowd
+    */
+
+    if(
+      event.code==="KeyO"
+    ){
+
+      V108.clear();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V108.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V108.init();
+
+
+console.log(
+  "WEBBOUND V108 PEDESTRIAN SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
