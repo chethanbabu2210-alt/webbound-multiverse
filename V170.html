@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V170 — WORLD SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ transition:background 1s ease;
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.day{
+ background:
+ linear-gradient(
+  #4c8ca5,
+  #203841
+ );
+}
+
+.evening{
+ background:
+ linear-gradient(
+  #825d68,
+  #202b36
+ );
+}
+
+.night{
+ background:
+ linear-gradient(
+  #071325,
+  #03070d
+ );
+}
+
+.rain{
+ position:absolute;
+ inset:0;
+ pointer-events:none;
+ opacity:.5;
+ background-image:
+  linear-gradient(
+   110deg,
+   transparent 45%,
+   #ffffff66 46%,
+   transparent 48%
+  );
+ background-size:18px 24px;
+ animation:rain .35s linear infinite;
+ display:none;
+ z-index:80;
+}
+
+@keyframes rain{
+ from{
+  background-position:0 0;
+ }
+ to{
+  background-position:18px 24px;
+ }
+}
+
+.cloud{
+ position:absolute;
+ width:130px;
+ height:35px;
+ border-radius:30px;
+ background:#ffffff18;
+ filter:blur(2px);
+ animation:cloudMove 35s linear infinite;
+}
+
+.c1{
+ top:13%;
+ left:-150px;
+}
+
+.c2{
+ top:25%;
+ left:-350px;
+ animation-delay:12s;
+}
+
+@keyframes cloudMove{
+ from{
+  transform:translateX(0);
+ }
+ to{
+  transform:translateX(120vw);
+ }
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:100;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(650px,92vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#worldHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.8;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game" class="day">
+
+ <div id="world">
+
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="line lineH"></div>
+  <div class="line lineV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🌦️ WEATHER STATION</div>
+
+  <div id="player"></div>
+
+  <div id="rain" class="rain"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🌍 WEBBOUND V170 — WORLD SYSTEM
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    🕐 TIME<br>
+    <span id="timeText">08:00</span>
+   </div>
+
+   <div class="stat">
+    🌤️ WEATHER<br>
+    <span id="weatherText">CLEAR</span>
+   </div>
+
+   <div class="stat">
+    🌡️ TEMP<br>
+    <span id="tempText">24°C</span>
+   </div>
+
+   <div class="stat">
+    📅 DAY<br>
+    <span id="dayText">1</span>
+   </div>
+
+  </div>
+
+  <div id="worldHud">
+
+   <b id="periodText">
+    ☀️ DAYTIME
+   </b>
+
+   <br>
+
+   Weather:
+   <span id="weatherInfo">
+    Clear skies
+   </span>
+
+   <br>
+
+   Environment:
+   <span id="environmentText">
+    Normal
+   </span>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V170.worldInfo()">
+   🌍 WORLD
+  </button>
+
+  <button onclick="V170.advanceTime(1)">
+   ⏩ +1 HOUR
+  </button>
+
+  <button onclick="V170.advanceTime(6)">
+   ⏩ +6 HOURS
+  </button>
+
+  <button onclick="V170.changeWeather()">
+   🌦️ WEATHER
+  </button>
+
+  <button onclick="V170.nextDay()">
+   📅 NEXT DAY
+  </button>
+
+  <button onclick="V170.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V170
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V170.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V170={
+
+ saveKey:"WEBBOUND_V170",
+
+ hour:8,
+
+ day:1,
+
+ weather:"CLEAR",
+
+ temperature:24,
+
+ /* =========================
+    WEATHER DATA
+ ========================= */
+
+ weatherData:{
+
+  CLEAR:{
+   icon:"☀️",
+   info:"Clear skies",
+   temp:24,
+   environment:"Normal"
+  },
+
+  CLOUDY:{
+   icon:"☁️",
+   info:"Cloudy skies",
+   temp:21,
+   environment:"Reduced visibility"
+  },
+
+  RAIN:{
+   icon:"🌧️",
+   info:"Rain is falling",
+   temp:19,
+   environment:"Wet roads"
+  },
+
+  STORM:{
+   icon:"⛈️",
+   info:"Heavy storm conditions",
+   temp:17,
+   environment:"Poor visibility"
+  },
+
+  FOG:{
+   icon:"🌫️",
+   info:"Dense fog",
+   temp:16,
+   environment:"Low visibility"
+  }
+
+ },
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🌍 V170 World System ready"
+  );
+
+  setInterval(
+   ()=>{
+    this.advanceTime(.25);
+   },
+   15000
+  );
+
+ },
+
+ /* =========================
+    ADVANCE TIME
+ ========================= */
+
+ advanceTime(hours){
+
+  this.hour+=hours;
+
+  while(
+   this.hour>=24
+  ){
+
+   this.hour-=24;
+
+   this.day++;
+
+  }
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    NEXT DAY
+ ========================= */
+
+ nextDay(){
+
+  this.day++;
+
+  this.hour=8;
+
+  this.changeWeather(false);
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "📅 Day "+
+   this.day+
+   " has begun."
+  );
+
+ },
+
+ /* =========================
+    WEATHER
+ ========================= */
+
+ changeWeather(notify=true){
+
+  const types=
+   Object.keys(
+    this.weatherData
+   );
+
+  this.weather=
+   types[
+    Math.floor(
+     Math.random()*
+     types.length
+    )
+   ];
+
+  this.temperature=
+   this.weatherData[
+    this.weather
+   ].temp+
+   Math.floor(
+    Math.random()*5
+   )-2;
+
+  this.update();
+
+  this.save();
+
+  if(notify){
+
+   this.notify(
+    this.weatherData[
+     this.weather
+    ].icon+
+    " Weather changed to "+
+    this.weather
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PERIOD
+ ========================= */
+
+ getPeriod(){
+
+  if(
+   this.hour>=6 &&
+   this.hour<17
+  )
+   return "DAY";
+
+  if(
+   this.hour>=17 &&
+   this.hour<20
+  )
+   return "EVENING";
+
+  return "NIGHT";
+
+ },
+
+ /* =========================
+    FORMAT TIME
+ ========================= */
+
+ formatTime(){
+
+  const h=
+   Math.floor(this.hour);
+
+  const minutes=
+   Math.floor(
+    (this.hour-h)*60
+   );
+
+  return String(h).padStart(2,"0")
+   +":"+
+   String(minutes).padStart(2,"0");
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const period=
+   this.getPeriod();
+
+  const game=
+   document.getElementById(
+    "game"
+   );
+
+  game.className=
+   period.toLowerCase();
+
+  document.getElementById(
+   "timeText"
+  ).textContent=
+   this.formatTime();
+
+  document.getElementById(
+   "weatherText"
+  ).textContent=
+   this.weather;
+
+  document.getElementById(
+   "tempText"
+  ).textContent=
+   this.temperature+
+   "°C";
+
+  document.getElementById(
+   "dayText"
+  ).textContent=
+   this.day;
+
+  const data=
+   this.weatherData[
+    this.weather
+   ];
+
+  document.getElementById(
+   "periodText"
+  ).textContent=
+   period==="DAY"
+   ?"☀️ DAYTIME"
+   :period==="EVENING"
+   ?"🌆 EVENING"
+   :"🌙 NIGHT";
+
+  document.getElementById(
+   "weatherInfo"
+  ).textContent=
+   data.info;
+
+  document.getElementById(
+   "environmentText"
+  ).textContent=
+   data.environment;
+
+  document.getElementById(
+   "rain"
+  ).style.display=
+   this.weather==="RAIN" ||
+   this.weather==="STORM"
+   ?"block"
+   :"none";
+
+ },
+
+ /* =========================
+    WORLD INFO
+ ========================= */
+
+ worldInfo(){
+
+  this.open(
+   "🌍 WORLD INFORMATION",
+   `
+   <div class="card">
+
+    <b>🕐 CURRENT TIME</b>
+
+    <br>
+
+    ${this.formatTime()}
+
+   </div>
+
+   <div class="card">
+
+    <b>📅 CURRENT DAY</b>
+
+    <br>
+
+    Day ${this.day}
+
+   </div>
+
+   <div class="card">
+
+    <b>🌦️ WEATHER</b>
+
+    <br>
+
+    ${this.weatherData[this.weather].icon}
+    ${this.weather}
+
+    <br>
+
+    ${this.weatherData[this.weather].info}
+
+   </div>
+
+   <div class="card">
+
+    <b>🌡️ TEMPERATURE</b>
+
+    <br>
+
+    ${this.temperature}°C
+
+   </div>
+
+   <div class="card">
+
+    <b>🌆 WORLD CYCLE</b>
+
+    <br>
+
+    Day → Evening → Night
+
+    <br><br>
+
+    Time automatically advances
+    while the game is open.
+
+   </div>
+   `
+  );
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    hour:this.hour,
+
+    day:this.day,
+
+    weather:this.weather,
+
+    temperature:
+     this.temperature
+
+   })
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(
+    Number.isFinite(
+     data.hour
+    )
+   )
+    this.hour=
+     Math.max(
+      0,
+      Math.min(
+       23.99,
+       data.hour
+      )
+     );
+
+   if(
+    Number.isFinite(
+     data.day
+    )
+   )
+    this.day=
+     Math.max(
+      1,
+      Math.floor(
+       data.day
+      )
+     );
+
+   if(
+    this.weatherData[
+     data.weather
+    ]
+   )
+    this.weather=
+     data.weather;
+
+   if(
+    Number.isFinite(
+     data.temperature
+    )
+   )
+    this.temperature=
+     data.temperature;
+
+  }
+  catch(error){
+
+   console.log(
+    "V170 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V170.init();
+
+console.log(
+ "WEBBOUND V170 WORLD SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
