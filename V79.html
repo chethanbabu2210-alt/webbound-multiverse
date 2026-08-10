@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V79</title>
+
+<style>
+
+/* =========================================================
+   V79 WEATHER HUD
+   ========================================================= */
+
+#v79WeatherHUD{
+
+  position:fixed;
+
+  top:58px;
+  right:15px;
+
+  z-index:8200;
+
+  padding:10px 13px;
+
+  background:#05070ed9;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:11px;
+
+  font:12px Arial,sans-serif;
+
+}
+
+
+/* =========================================================
+   WEATHER MENU
+   ========================================================= */
+
+#v79WeatherMenu{
+
+  position:fixed;
+
+  left:50%;
+  top:50%;
+
+  transform:translate(-50%,-50%);
+
+  z-index:9960;
+
+  width:min(420px,90%);
+
+  padding:20px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:18px;
+
+  font-family:Arial,sans-serif;
+
+  display:none;
+
+  box-shadow:0 20px 70px #000b;
+
+}
+
+#v79WeatherMenu h2{
+
+  margin-top:0;
+
+}
+
+#v79WeatherMenu button{
+
+  width:100%;
+
+  margin:6px 0;
+
+  padding:11px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+}
+
+
+/* =========================================================
+   RAIN
+   ========================================================= */
+
+#v79Rain{
+
+  position:fixed;
+
+  inset:0;
+
+  z-index:7600;
+
+  pointer-events:none;
+
+  display:none;
+
+  overflow:hidden;
+
+}
+
+.v79Drop{
+
+  position:absolute;
+
+  top:-30px;
+
+  width:1px;
+
+  height:18px;
+
+  background:#ffffff80;
+
+  transform:rotate(15deg);
+
+  animation:v79RainFall linear infinite;
+
+}
+
+@keyframes v79RainFall{
+
+  from{
+
+    transform:
+      translateY(-40px)
+      rotate(15deg);
+
+  }
+
+  to{
+
+    transform:
+      translateY(110vh)
+      rotate(15deg);
+
+  }
+
+}
+
+
+/* =========================================================
+   FOG
+   ========================================================= */
+
+#v79Fog{
+
+  position:fixed;
+
+  inset:0;
+
+  z-index:7550;
+
+  pointer-events:none;
+
+  display:none;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(220,225,235,.05),
+      rgba(160,170,185,.25)
+    );
+
+  backdrop-filter:blur(1px);
+
+}
+
+
+/* =========================================================
+   WEATHER FLASH
+   ========================================================= */
+
+#v79Lightning{
+
+  position:fixed;
+
+  inset:0;
+
+  z-index:7800;
+
+  pointer-events:none;
+
+  background:white;
+
+  opacity:0;
+
+}
+
+.v79Flash{
+
+  animation:v79FlashAnimation .15s linear;
+
+}
+
+@keyframes v79FlashAnimation{
+
+  0%{
+    opacity:0;
+  }
+
+  30%{
+    opacity:.8;
+  }
+
+  100%{
+    opacity:0;
+  }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+     WEATHER EFFECTS
+     ========================================================= -->
+
+<div id="v79Rain"></div>
+
+<div id="v79Fog"></div>
+
+<div id="v79Lightning"></div>
+
+
+<!-- =========================================================
+     HUD
+     ========================================================= -->
+
+<div id="v79WeatherHUD">
+
+  🌤️ Weather:
+  <span id="v79WeatherName">
+    Clear
+  </span>
+
+</div>
+
+
+<!-- =========================================================
+     WEATHER MENU
+     ========================================================= -->
+
+<div id="v79WeatherMenu">
+
+  <h2>🌦️ WEATHER CONTROL</h2>
+
+  <p>
+    Select the current city weather.
+  </p>
+
+
+  <button onclick="V79.setWeather('clear')">
+    ☀️ Clear
+  </button>
+
+
+  <button onclick="V79.setWeather('cloudy')">
+    ☁️ Cloudy
+  </button>
+
+
+  <button onclick="V79.setWeather('rain')">
+    🌧️ Rain
+  </button>
+
+
+  <button onclick="V79.setWeather('storm')">
+    ⛈️ Storm
+  </button>
+
+
+  <button onclick="V79.setWeather('fog')">
+    🌫️ Fog
+  </button>
+
+
+  <button onclick="V79.randomWeather()">
+    🎲 Random Weather
+  </button>
+
+
+  <button onclick="V79.closeMenu()">
+    ❌ CLOSE
+  </button>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V79
+   DYNAMIC WEATHER SYSTEM
+   ========================================================= */
+
+const V79 = {
+
+  version:"V79",
+
+  weather:"clear",
+
+  transitionTime:0,
+
+  saveKey:"WEBBOUND_V79_WEATHER",
+
+  weatherData:{
+
+    clear:{
+      name:"Clear",
+      icon:"☀️"
+    },
+
+    cloudy:{
+      name:"Cloudy",
+      icon:"☁️"
+    },
+
+    rain:{
+      name:"Rain",
+      icon:"🌧️"
+    },
+
+    storm:{
+      name:"Storm",
+      icon:"⛈️"
+    },
+
+    fog:{
+      name:"Fog",
+      icon:"🌫️"
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.applyWeather();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V79 WEATHER SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     SET WEATHER
+     ======================================================= */
+
+  setWeather(type){
+
+    if(
+      !this.weatherData[type]
+    ){
+
+      return;
+
+    }
+
+
+    this.weather=
+      type;
+
+
+    this.transitionTime=
+      Date.now();
+
+
+    this.applyWeather();
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      this.weatherData[type].icon+
+      " Weather changed to "+
+      this.weatherData[type].name
+    );
+
+  },
+
+
+  /* =======================================================
+     RANDOM WEATHER
+     ======================================================= */
+
+  randomWeather(){
+
+    const types=
+      Object.keys(
+        this.weatherData
+      );
+
+
+    const index=
+      Math.floor(
+        Math.random()*
+        types.length
+      );
+
+
+    this.setWeather(
+      types[index]
+    );
+
+  },
+
+
+  /* =======================================================
+     APPLY WEATHER
+     ======================================================= */
+
+  applyWeather(){
+
+    this.clearEffects();
+
+
+    if(
+      this.weather==="rain"
+    ){
+
+      this.startRain(
+        90
+      );
+
+    }
+
+
+    if(
+      this.weather==="storm"
+    ){
+
+      this.startRain(
+        150
+      );
+
+      this.startStorm();
+
+    }
+
+
+    if(
+      this.weather==="fog"
+    ){
+
+      this.startFog();
+
+    }
+
+
+    /*
+      Optional Three.js integration.
+    */
+
+    if(
+      typeof scene!=="undefined" &&
+      scene
+    ){
+
+      scene.userData=
+        scene.userData || {};
+
+      scene.userData.v79Weather=
+        this.weather;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CLEAR EFFECTS
+     ======================================================= */
+
+  clearEffects(){
+
+    const rain=
+      document.getElementById(
+        "v79Rain"
+      );
+
+    const fog=
+      document.getElementById(
+        "v79Fog"
+      );
+
+
+    if(rain){
+
+      rain.style.display=
+        "none";
+
+      rain.innerHTML="";
+
+    }
+
+
+    if(fog){
+
+      fog.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     RAIN
+     ======================================================= */
+
+  startRain(amount){
+
+    const rain=
+      document.getElementById(
+        "v79Rain"
+      );
+
+
+    if(!rain){
+
+      return;
+
+    }
+
+
+    rain.style.display=
+      "block";
+
+
+    for(
+      let i=0;
+      i<amount;
+      i++
+    ){
+
+      const drop=
+        document.createElement(
+          "div"
+        );
+
+
+      drop.className=
+        "v79Drop";
+
+
+      drop.style.left=
+        Math.random()*100+
+        "%";
+
+
+      drop.style.animationDuration=
+        (
+          .35+
+          Math.random()*.55
+        )+
+        "s";
+
+
+      drop.style.animationDelay=
+        (
+          Math.random()*.8
+        )+
+        "s";
+
+
+      drop.style.opacity=
+        (
+          .25+
+          Math.random()*.65
+        );
+
+
+      rain.appendChild(
+        drop
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     FOG
+     ======================================================= */
+
+  startFog(){
+
+    const fog=
+      document.getElementById(
+        "v79Fog"
+      );
+
+
+    if(fog){
+
+      fog.style.display=
+        "block";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     STORM
+     ======================================================= */
+
+  startStorm(){
+
+    /*
+      Lightning happens randomly.
+    */
+
+    const delay=
+      3000+
+      Math.random()*7000;
+
+
+    setTimeout(
+      ()=>{
+
+        if(
+          this.weather!=="storm"
+        ){
+
+          return;
+
+        }
+
+
+        this.lightning();
+
+        this.startStorm();
+
+      },
+      delay
+    );
+
+  },
+
+
+  /* =======================================================
+     LIGHTNING
+     ======================================================= */
+
+  lightning(){
+
+    if(
+      this.weather!=="storm"
+    ){
+
+      return;
+
+    }
+
+
+    const flash=
+      document.getElementById(
+        "v79Lightning"
+      );
+
+
+    if(!flash){
+
+      return;
+
+    }
+
+
+    flash.classList.remove(
+      "v79Flash"
+    );
+
+
+    void flash.offsetWidth;
+
+
+    flash.classList.add(
+      "v79Flash"
+    );
+
+
+    /*
+      Optional game message.
+    */
+
+    if(
+      Math.random()>.6
+    ){
+
+      this.message(
+        "⚡ Lightning!"
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     WEATHER NAME
+     ======================================================= */
+
+  getName(){
+
+    const data=
+      this.weatherData[
+        this.weather
+      ];
+
+
+    if(!data){
+
+      return "Unknown";
+
+    }
+
+
+    return data.icon+
+      " "+
+      data.name;
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const box=
+      document.getElementById(
+        "v79WeatherName"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        this.getName();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MENU
+     ======================================================= */
+
+  openMenu(){
+
+    const menu=
+      document.getElementById(
+        "v79WeatherMenu"
+      );
+
+
+    if(menu){
+
+      menu.style.display=
+        "block";
+
+    }
+
+  },
+
+
+  closeMenu(){
+
+    const menu=
+      document.getElementById(
+        "v79WeatherMenu"
+      );
+
+
+    if(menu){
+
+      menu.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(
+        text
+      );
+
+      return;
+
+    }
+
+
+    console.log(
+      text
+    );
+
+  },
+
+
+  /* =======================================================
+     SAVE DATA
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      weather:
+        this.weather
+
+    };
+
+  },
+
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+        this.saveKey,
+        JSON.stringify(
+          this.collect()
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V79 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD DATA
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        data &&
+        this.weatherData[
+          data.weather
+        ]
+      ){
+
+        this.weather=
+          data.weather;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V79 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY SAVE DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      this.weatherData[
+        data.weather
+      ]
+    ){
+
+      this.weather=
+        data.weather;
+
+      this.applyWeather();
+
+      this.updateHUD();
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   V60 SAVE INTEGRATION
+   ========================================================= */
+
+if(
+  typeof V60!=="undefined" &&
+  typeof V60.collect==="function"
+){
+
+  const v79OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v79OriginalCollect();
+
+
+    data.v79=
+      V79.collect();
+
+
+    return data;
+
+  };
+
+
+  if(
+    typeof V60.apply==="function"
+  ){
+
+    const v79OriginalApply=
+      V60.apply.bind(V60);
+
+
+    V60.apply=function(data){
+
+      v79OriginalApply(
+        data
+      );
+
+
+      if(
+        data &&
+        data.v79
+      ){
+
+        V79.apply(
+          data.v79
+        );
+
+      }
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      W = weather menu
+    */
+
+    if(
+      event.code==="KeyW"
+    ){
+
+      event.preventDefault();
+
+      V79.openMenu();
+
+    }
+
+
+    /*
+      Escape closes menu.
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V79.closeMenu();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V79.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V79.init();
+
+</script>
+
+</body>
+</html>
