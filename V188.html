@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V188 — BUSINESS SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{
+ margin:0;width:100%;height:100%;overflow:hidden;
+ font-family:Arial,sans-serif;background:#05090d;color:#fff
+}
+#game{
+ position:fixed;inset:0;overflow:hidden;
+ background:linear-gradient(#304d59,#091116)
+}
+#sky{
+ position:absolute;inset:0;
+ background:linear-gradient(#6fa4c0,#b9d0d8)
+}
+.road{position:absolute;background:#252d32}
+.rh{left:0;right:0;top:57%;height:70px}
+.rv{top:0;bottom:0;left:68%;width:70px}
+.line{position:absolute;background:#d5c36c;opacity:.4}
+.lineH{left:0;right:0;top:calc(57% + 34px);height:2px}
+.lineV{top:0;bottom:0;left:calc(68% + 34px);width:2px}
+
+.building{
+ position:absolute;display:flex;align-items:center;
+ justify-content:center;text-align:center;
+ background:#14242d;border:1px solid #ffffff18;
+ border-radius:9px;color:#82929b;font-size:10px
+}
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;left:50%;top:53%;
+ width:29px;height:41px;border-radius:10px 10px 5px 5px;
+ background:#2c91da;z-index:50
+}
+#player:before{
+ content:"";position:absolute;left:5.5px;top:-14px;
+ width:18px;height:18px;border-radius:50%;background:#bd8967
+}
+
+#hud{
+ position:fixed;left:10px;top:10px;
+ width:min(950px,94vw);padding:12px;
+ background:#03070cee;border:1px solid #ffffff25;
+ border-radius:13px;z-index:500
+}
+.title{font-size:13px;font-weight:bold}
+.stats{
+ display:grid;grid-template-columns:repeat(6,1fr);
+ gap:5px;margin-top:8px
+}
+.stat{
+ padding:7px 4px;background:#101b23;
+ border-radius:7px;text-align:center;font-size:9px
+}
+#businessHud{
+ margin-top:8px;padding:9px;background:#111d25;
+ border-radius:8px;font-size:9px;line-height:1.8
+}
+.bar{
+ height:7px;background:#ffffff12;
+ border-radius:7px;overflow:hidden;margin-top:4px
+}
+.fill{
+ height:100%;width:0%;
+ background:#8fb8df;transition:.3s
+}
+
+#controls{
+ position:fixed;left:50%;bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;flex-wrap:wrap;gap:6px;z-index:500
+}
+button{
+ flex:1;min-width:105px;padding:10px;
+ background:#142733;border:1px solid #ffffff22;
+ border-radius:8px;color:#fff;font-size:10px;cursor:pointer
+}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+
+#panel{
+ position:fixed;inset:0;display:none;
+ align-items:center;justify-content:center;
+ background:#000c;z-index:1000
+}
+.box{
+ width:min(800px,94vw);max-height:84vh;
+ overflow:auto;padding:17px;background:#050b10;
+ border:1px solid #ffffff28;border-radius:15px
+}
+.card{
+ padding:11px;background:#111d25;
+ border-radius:9px;margin-bottom:7px;
+ font-size:10px;line-height:1.7
+}
+.card button{width:100%;margin-top:8px}
+
+#notification{
+ position:fixed;left:50%;top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;background:#03070cf5;
+ border:1px solid #ffffff25;border-radius:9px;
+ display:none;z-index:1500;font-size:10px;
+ text-align:center
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="sky"></div>
+
+<div class="road rh"></div>
+<div class="road rv"></div>
+<div class="line lineH"></div>
+<div class="line lineV"></div>
+
+<div class="building b1">🏠 RESIDENTIAL</div>
+<div class="building b2">🏢 CORPORATE</div>
+<div class="building b3">🛍️ SHOPPING</div>
+<div class="building b4">💻 TECHNOLOGY PARK</div>
+<div class="building b5">🏭 INDUSTRIAL ZONE</div>
+<div class="building b6">💼 BUSINESS CENTER</div>
+
+<div id="player"></div>
+
+<div id="hud">
+
+<div class="title">
+💼 WEBBOUND V188 — BUSINESS & ENTREPRENEURSHIP
+</div>
+
+<div class="stats">
+
+<div class="stat">
+💰 CASH<br>
+₹<span id="cashText">5000</span>
+</div>
+
+<div class="stat">
+🏢 BUSINESSES<br>
+<span id="businessText">0</span>
+</div>
+
+<div class="stat">
+💵 PROFIT<br>
+₹<span id="profitText">0</span>
+</div>
+
+<div class="stat">
+🏙️ VALUE<br>
+₹<span id="valueText">0</span>
+</div>
+
+<div class="stat">
+👥 STAFF<br>
+<span id="staffText">0</span>
+</div>
+
+<div class="stat">
+⭐ REP<br>
+<span id="repText">0</span>
+</div>
+
+</div>
+
+<div id="businessHud">
+
+<b>🏢 ACTIVE BUSINESS</b><br>
+
+<span id="businessName">
+No business selected
+</span><br>
+
+Level:
+<span id="businessLevel">—</span><br>
+
+Employees:
+<span id="businessEmployees">0</span><br>
+
+Daily Profit:
+₹<span id="businessIncome">0</span>
+
+<div class="bar">
+<div id="businessFill" class="fill"></div>
+</div>
+
+</div>
+
+</div>
+
+<div id="notification"></div>
+
+<div id="controls">
+
+<button onclick="V188.market()">
+🏢 BUSINESS MARKET
+</button>
+
+<button onclick="V188.collectProfit()">
+💵 COLLECT PROFIT
+</button>
+
+<button onclick="V188.upgrade()">
+⬆️ UPGRADE
+</button>
+
+<button onclick="V188.hire()">
+👥 HIRE
+</button>
+
+<button onclick="V188.portfolio()">
+📊 PORTFOLIO
+</button>
+
+<button onclick="V188.save()">
+💾 SAVE
+</button>
+
+</div>
+
+<div id="panel">
+
+<div class="box">
+
+<h2 id="panelTitle">
+WEBBOUND V188
+</h2>
+
+<div id="panelContent"></div>
+
+<button onclick="V188.close()">
+CLOSE
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const V188={
+
+saveKey:"WEBBOUND_V188",
+
+cash:5000,
+
+reputation:0,
+
+totalProfit:0,
+
+businesses:[],
+
+activeBusiness:null,
+
+levels:{},
+
+employees:{},
+
+businessData:{
+
+food:{
+name:"🍔 Food Restaurant",
+price:6000,
+profit:350,
+value:6000,
+employeeCost:250,
+maxLevel:5
+},
+
+retail:{
+name:"🛍️ Retail Store",
+price:10000,
+profit:600,
+value:10000,
+employeeCost:400,
+maxLevel:7
+},
+
+tech:{
+name:"💻 Tech Startup",
+price:18000,
+profit:1100,
+value:18000,
+employeeCost:700,
+maxLevel:10
+},
+
+factory:{
+name:"🏭 Manufacturing Factory",
+price:30000,
+profit:1900,
+value:30000,
+employeeCost:1000,
+maxLevel:10
+},
+
+finance:{
+name:"🏦 Finance Company",
+price:50000,
+profit:3500,
+value:50000,
+employeeCost:1500,
+maxLevel:12
+}
+
+},
+
+init(){
+
+this.load();
+this.update();
+
+this.notify(
+"💼 V188 Business System ready"
+);
+
+},
+
+market(){
+
+let html="";
+
+Object.entries(this.businessData)
+.forEach(([id,b])=>{
+
+const owned=
+this.businesses.includes(id);
+
+const level=
+this.levels[id]||1;
+
+html+=`
+
+<div class="card">
+
+<b>${b.name}</b>
+
+<br><br>
+
+💰 Startup Cost:
+₹${b.price.toLocaleString()}
+
+<br>
+
+💵 Base Daily Profit:
+₹${b.profit.toLocaleString()}
+
+<br>
+
+👥 Employee Cost:
+₹${b.employeeCost.toLocaleString()}
+
+<br>
+
+⬆️ Maximum Level:
+${b.maxLevel}
+
+<br>
+
+⭐ Current Level:
+${owned?level:"—"}
+
+<br><br>
+
+<button
+onclick="V188.buy('${id}')"
+${owned?"disabled":""}>
+
+${owned?
+"✅ ALREADY OWNED":
+"🏢 START BUSINESS"}
+
+</button>
+
+${
+owned?
+`<button onclick="V188.select('${id}')">
+SELECT BUSINESS
+</button>`:""
+}
+
+</div>
+
+`;
+
+});
+
+this.open(
+"🏢 BUSINESS MARKET",
+html
+);
+
+},
+
+buy(id){
+
+const b=this.businessData[id];
+
+if(this.businesses.includes(id)){
+
+this.notify(
+"Already owned."
+);
+
+return;
+
+}
+
+if(this.cash<b.price){
+
+this.notify(
+"❌ Not enough cash."
+);
+
+return;
+
+}
+
+this.cash-=b.price;
+
+this.businesses.push(id);
+
+this.levels[id]=1;
+
+this.employees[id]=0;
+
+this.activeBusiness=id;
+
+this.reputation+=5;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🎉 Started "+b.name
+);
+
+},
+
+select(id){
+
+if(!this.businesses.includes(id))
+return;
+
+this.activeBusiness=id;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🏢 Selected "+
+this.businessData[id].name
+);
+
+},
+
+collectProfit(){
+
+if(!this.activeBusiness){
+
+this.notify(
+"🏢 Select a business first."
+);
+
+return;
+
+}
+
+const id=this.activeBusiness;
+const b=this.businessData[id];
+
+const level=
+this.levels[id]||1;
+
+const staff=
+this.employees[id]||0;
+
+const gross=
+Math.floor(
+b.profit*
+level*
+(1+staff*0.08)
+);
+
+const wages=
+staff*b.employeeCost;
+
+const net=
+Math.max(
+0,
+gross-wages
+);
+
+this.cash+=net;
+
+this.totalProfit+=net;
+
+this.reputation+=1;
+
+this.update();
+this.save();
+
+this.notify(
+"💵 Business profit: +₹"+
+net.toLocaleString()
+);
+
+},
+
+hire(){
+
+if(!this.activeBusiness){
+
+this.notify(
+"🏢 Select a business first."
+);
+
+return;
+
+}
+
+const id=this.activeBusiness;
+const b=this.businessData[id];
+
+const staff=
+this.employees[id]||0;
+
+const maxStaff=
+(this.levels[id]||1)*3;
+
+if(staff>=maxStaff){
+
+this.notify(
+"👥 Maximum employees reached."
+);
+
+return;
+
+}
+
+const cost=
+b.employeeCost*2;
+
+if(this.cash<cost){
+
+this.notify(
+"❌ Hiring cost: ₹"+
+cost.toLocaleString()
+);
+
+return;
+
+}
+
+this.cash-=cost;
+
+this.employees[id]=staff+1;
+
+this.reputation+=1;
+
+this.update();
+this.save();
+
+this.notify(
+"👥 Employee hired!"
+);
+
+},
+
+upgrade(){
+
+if(!this.activeBusiness){
+
+this.notify(
+"🏢 Select a business first."
+);
+
+return;
+
+}
+
+const id=this.activeBusiness;
+const b=this.businessData[id];
+
+const level=
+this.levels[id]||1;
+
+if(level>=b.maxLevel){
+
+this.notify(
+"🏆 Maximum business level."
+);
+
+return;
+
+}
+
+const cost=
+Math.floor(
+b.price*0.35*level
+);
+
+if(this.cash<cost){
+
+this.notify(
+"❌ Upgrade costs ₹"+
+cost.toLocaleString()
+);
+
+return;
+
+}
+
+this.cash-=cost;
+
+this.levels[id]=level+1;
+
+this.reputation+=4;
+
+this.update();
+this.save();
+
+this.notify(
+"⬆️ Business upgraded to Level "+
+(level+1)
+);
+
+},
+
+portfolio(){
+
+let value=0;
+let profit=0;
+let staff=0;
+
+let html="";
+
+this.businesses.forEach(id=>{
+
+const b=this.businessData[id];
+
+if(!b)return;
+
+const level=
+this.levels[id]||1;
+
+const employees=
+this.employees[id]||0;
+
+const businessValue=
+Math.floor(
+b.value*
+(1+(level-1)*0.18)
+);
+
+const gross=
+Math.floor(
+b.profit*
+level*
+(1+employees*0.08)
+);
+
+const wages=
+employees*b.employeeCost;
+
+const net=
+Math.max(
+0,
+gross-wages
+);
+
+value+=businessValue;
+profit+=net;
+staff+=employees;
+
+html+=`
+
+<div class="card">
+
+<b>${b.name}</b>
+
+<br>
+
+⭐ Level:
+${level}
+
+<br>
+
+👥 Employees:
+${employees}
+
+<br>
+
+🏙️ Value:
+₹${businessValue.toLocaleString()}
+
+<br>
+
+💵 Daily Net Profit:
+₹${net.toLocaleString()}
+
+</div>
+
+`;
+
+});
+
+if(!html){
+
+html=`
+
+<div class="card">
+You don't own a business yet.
+</div>
+
+`;
+
+}
+
+html+=`
+
+<div class="card">
+
+<b>📊 BUSINESS EMPIRE</b>
+
+<br><br>
+
+🏢 Businesses:
+${this.businesses.length}
+
+<br>
+
+🏙️ Total Value:
+₹${value.toLocaleString()}
+
+<br>
+
+💵 Daily Profit:
+₹${profit.toLocaleString()}
+
+<br>
+
+👥 Employees:
+${staff}
+
+<br>
+
+⭐ Reputation:
+${this.reputation}
+
+</div>
+
+`;
+
+this.open(
+"📊 BUSINESS PORTFOLIO",
+html
+);
+
+},
+
+update(){
+
+let totalValue=0;
+let totalStaff=0;
+
+this.businesses.forEach(id=>{
+
+const b=this.businessData[id];
+
+if(!b)return;
+
+const level=
+this.levels[id]||1;
+
+const staff=
+this.employees[id]||0;
+
+totalValue+=Math.floor(
+b.value*
+(1+(level-1)*0.18)
+);
+
+totalStaff+=staff;
+
+});
+
+document.getElementById(
+"cashText"
+).textContent=
+this.cash.toLocaleString();
+
+document.getElementById(
+"businessText"
+).textContent=
+this.businesses.length;
+
+document.getElementById(
+"profitText"
+).textContent=
+this.totalProfit.toLocaleString();
+
+document.getElementById(
+"valueText"
+).textContent=
+totalValue.toLocaleString();
+
+document.getElementById(
+"staffText"
+).textContent=
+totalStaff;
+
+document.getElementById(
+"repText"
+).textContent=
+this.reputation;
+
+if(!this.activeBusiness){
+
+document.getElementById(
+"businessName"
+).textContent=
+"No business selected";
+
+document.getElementById(
+"businessLevel"
+).textContent="—";
+
+document.getElementById(
+"businessEmployees"
+).textContent="0";
+
+document.getElementById(
+"businessIncome"
+).textContent="0";
+
+document.getElementById(
+"businessFill"
+).style.width="0%";
+
+return;
+
+}
+
+const id=this.activeBusiness;
+const b=this.businessData[id];
+
+const level=
+this.levels[id]||1;
+
+const staff=
+this.employees[id]||0;
+
+const gross=
+Math.floor(
+b.profit*
+level*
+(1+staff*0.08)
+);
+
+const wages=
+staff*b.employeeCost;
+
+const net=
+Math.max(
+0,
+gross-wages
+);
+
+document.getElementById(
+"businessName"
+).textContent=
+b.name;
+
+document.getElementById(
+"businessLevel"
+).textContent=
+level;
+
+document.getElementById(
+"businessEmployees"
+).textContent=
+staff;
+
+document.getElementById(
+"businessIncome"
+).textContent=
+net.toLocaleString();
+
+document.getElementById(
+"businessFill"
+).style.width=
+Math.min(
+100,
+level/b.maxLevel*100
+)+"%";
+
+},
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+
+cash:this.cash,
+
+reputation:this.reputation,
+
+totalProfit:this.totalProfit,
+
+businesses:this.businesses,
+
+activeBusiness:this.activeBusiness,
+
+levels:this.levels,
+
+employees:this.employees
+
+})
+);
+
+},
+
+load(){
+
+try{
+
+const raw=
+localStorage.getItem(
+this.saveKey
+);
+
+if(!raw)return;
+
+const data=
+JSON.parse(raw);
+
+if(Number.isFinite(data.cash))
+this.cash=Math.max(
+0,data.cash
+);
+
+if(Number.isFinite(data.reputation))
+this.reputation=Math.max(
+0,data.reputation
+);
+
+if(Number.isFinite(data.totalProfit))
+this.totalProfit=Math.max(
+0,data.totalProfit
+);
+
+if(Array.isArray(data.businesses))
+this.businesses=
+data.businesses.filter(
+id=>this.businessData[id]
+);
+
+if(
+typeof data.activeBusiness==="string" &&
+this.businessData[data.activeBusiness]
+)
+this.activeBusiness=
+data.activeBusiness;
+
+if(
+data.levels &&
+typeof data.levels==="object"
+)
+this.levels=data.levels;
+
+if(
+data.employees &&
+typeof data.employees==="object"
+)
+this.employees=data.employees;
+
+}catch(e){
+
+console.log(
+"V188 load error:",
+e
+);
+
+}
+
+},
+
+open(title,content){
+
+document.getElementById(
+"panelTitle"
+).textContent=title;
+
+document.getElementById(
+"panelContent"
+).innerHTML=
+content;
+
+document.getElementById(
+"panel"
+).style.display=
+"flex";
+
+},
+
+close(){
+
+document.getElementById(
+"panel"
+).style.display=
+"none";
+
+},
+
+notify(text){
+
+const el=
+document.getElementById(
+"notification"
+);
+
+el.textContent=text;
+
+el.style.display=
+"block";
+
+clearTimeout(this.timer);
+
+this.timer=
+setTimeout(
+()=>{
+el.style.display=
+"none";
+},
+2400
+);
+
+}
+
+};
+
+V188.init();
+
+console.log(
+"WEBBOUND V188 BUSINESS SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
