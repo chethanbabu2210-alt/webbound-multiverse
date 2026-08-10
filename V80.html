@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V80</title>
+
+<style>
+
+#v80HUD{
+  position:fixed;
+  right:15px;
+  bottom:15px;
+  z-index:8200;
+
+  padding:10px 13px;
+
+  background:#05070ed9;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:11px;
+
+  font:12px Arial,sans-serif;
+}
+
+#v80Menu{
+  position:fixed;
+
+  left:50%;
+  top:50%;
+
+  transform:translate(-50%,-50%);
+
+  width:min(400px,90%);
+
+  z-index:9960;
+
+  padding:20px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff35;
+  border-radius:18px;
+
+  font-family:Arial,sans-serif;
+
+  display:none;
+}
+
+#v80Menu button{
+  width:100%;
+
+  padding:11px;
+  margin:6px 0;
+
+  background:#111827;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:10px;
+}
+
+.v80Entity{
+  position:fixed;
+
+  width:9px;
+  height:9px;
+
+  border-radius:50%;
+
+  background:white;
+
+  pointer-events:none;
+
+  z-index:5000;
+
+  opacity:.75;
+}
+
+.v80Pedestrian{
+  width:7px;
+  height:13px;
+
+  border-radius:4px;
+}
+
+.v80Vehicle{
+  width:18px;
+  height:8px;
+
+  border-radius:3px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="v80HUD">
+
+  🌆 City Life:
+  <span id="v80State">ACTIVE</span>
+
+  |
+  👥 <span id="v80PedCount">0</span>
+
+  |
+  🚗 <span id="v80TrafficCount">0</span>
+
+</div>
+
+
+<div id="v80Menu">
+
+  <h2>🌆 CITY LIFE</h2>
+
+  <p>
+    Ambient pedestrians and traffic.
+  </p>
+
+  <button onclick="V80.setMode('low')">
+    🟢 Low Population
+  </button>
+
+  <button onclick="V80.setMode('normal')">
+    🟡 Normal Population
+  </button>
+
+  <button onclick="V80.setMode('high')">
+    🔴 High Population
+  </button>
+
+  <button onclick="V80.toggle()">
+    ⏯️ Pause / Resume
+  </button>
+
+  <button onclick="V80.clearEntities()">
+    🧹 Clear Ambient Entities
+  </button>
+
+  <button onclick="V80.closeMenu()">
+    ❌ CLOSE
+  </button>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V80
+   CITY TRAFFIC + PEDESTRIAN AMBIENT SYSTEM
+   ========================================================= */
+
+const V80 = {
+
+  version:"V80",
+
+  enabled:true,
+
+  mode:"normal",
+
+  pedestrians:[],
+
+  traffic:[],
+
+  pedestrianTarget:6,
+
+  trafficTarget:4,
+
+  saveKey:"WEBBOUND_V80_CITY",
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateTargets();
+
+    this.updateHUD();
+
+    this.spawnInitial();
+
+    this.loop();
+
+    console.log(
+      "WEBBOUND V80 CITY LIFE READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     MODE
+     ======================================================= */
+
+  setMode(mode){
+
+    if(
+      !["low","normal","high"].includes(mode)
+    ){
+
+      return;
+
+    }
+
+    this.mode=mode;
+
+    this.updateTargets();
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  updateTargets(){
+
+    if(this.mode==="low"){
+
+      this.pedestrianTarget=3;
+      this.trafficTarget=2;
+
+    }
+
+    else if(this.mode==="high"){
+
+      this.pedestrianTarget=12;
+      this.trafficTarget=8;
+
+    }
+
+    else{
+
+      this.pedestrianTarget=6;
+      this.trafficTarget=4;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.enabled=
+      !this.enabled;
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     SPAWN INITIAL
+     ======================================================= */
+
+  spawnInitial(){
+
+    this.clearEntities();
+
+    if(!this.enabled){
+
+      return;
+
+    }
+
+    for(
+      let i=0;
+      i<this.pedestrianTarget;
+      i++
+    ){
+
+      this.spawnPedestrian();
+
+    }
+
+    for(
+      let i=0;
+      i<this.trafficTarget;
+      i++
+    ){
+
+      this.spawnVehicle();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SPAWN PEDESTRIAN
+     ======================================================= */
+
+  spawnPedestrian(){
+
+    const element=
+      document.createElement("div");
+
+    element.className=
+      "v80Entity v80Pedestrian";
+
+
+    element.style.left=
+      Math.random()*95+
+      "%";
+
+
+    element.style.top=
+      (20+
+       Math.random()*70)+
+      "%";
+
+
+    document.body.appendChild(
+      element
+    );
+
+
+    const pedestrian={
+
+      element:element,
+
+      x:parseFloat(
+        element.style.left
+      ),
+
+      y:parseFloat(
+        element.style.top
+      ),
+
+      speed:
+        .015+
+        Math.random()*.035,
+
+      direction:
+        Math.random()>.5
+        ?1
+        :-1
+
+    };
+
+
+    this.pedestrians.push(
+      pedestrian
+    );
+
+  },
+
+
+  /* =======================================================
+     SPAWN VEHICLE
+     ======================================================= */
+
+  spawnVehicle(){
+
+    const element=
+      document.createElement("div");
+
+    element.className=
+      "v80Entity v80Vehicle";
+
+
+    element.style.left=
+      Math.random()*100+
+      "%";
+
+
+    element.style.top=
+      (
+        35+
+        Math.random()*45
+      )+
+      "%";
+
+
+    document.body.appendChild(
+      element
+    );
+
+
+    const vehicle={
+
+      element:element,
+
+      x:parseFloat(
+        element.style.left
+      ),
+
+      y:parseFloat(
+        element.style.top
+      ),
+
+      speed:
+        .03+
+        Math.random()*.08,
+
+      direction:
+        Math.random()>.5
+        ?1
+        :-1
+
+    };
+
+
+    this.traffic.push(
+      vehicle
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE PEDESTRIANS
+     ======================================================= */
+
+  updatePedestrians(){
+
+    for(
+      const pedestrian
+      of this.pedestrians
+    ){
+
+      pedestrian.x+=
+        pedestrian.speed*
+        pedestrian.direction;
+
+
+      if(
+        pedestrian.x>102
+      ){
+
+        pedestrian.x=-2;
+
+      }
+
+
+      if(
+        pedestrian.x<-2
+      ){
+
+        pedestrian.x=102;
+
+      }
+
+
+      pedestrian.element.style.left=
+        pedestrian.x+
+        "%";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE TRAFFIC
+     ======================================================= */
+
+  updateTraffic(){
+
+    for(
+      const vehicle
+      of this.traffic
+    ){
+
+      vehicle.x+=
+        vehicle.speed*
+        vehicle.direction;
+
+
+      if(
+        vehicle.x>105
+      ){
+
+        vehicle.x=-5;
+
+      }
+
+
+      if(
+        vehicle.x<-5
+      ){
+
+        vehicle.x=105;
+
+      }
+
+
+      vehicle.element.style.left=
+        vehicle.x+
+        "%";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MAINTAIN POPULATION
+     ======================================================= */
+
+  maintainPopulation(){
+
+    while(
+      this.pedestrians.length<
+      this.pedestrianTarget
+    ){
+
+      this.spawnPedestrian();
+
+    }
+
+
+    while(
+      this.traffic.length<
+      this.trafficTarget
+    ){
+
+      this.spawnVehicle();
+
+    }
+
+
+    while(
+      this.pedestrians.length>
+      this.pedestrianTarget
+    ){
+
+      const person=
+        this.pedestrians.pop();
+
+      if(person.element){
+
+        person.element.remove();
+
+      }
+
+    }
+
+
+    while(
+      this.traffic.length>
+      this.trafficTarget
+    ){
+
+      const vehicle=
+        this.traffic.pop();
+
+      if(vehicle.element){
+
+        vehicle.element.remove();
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MAIN LOOP
+     ======================================================= */
+
+  loop(){
+
+    if(this.enabled){
+
+      this.updatePedestrians();
+
+      this.updateTraffic();
+
+      this.maintainPopulation();
+
+    }
+
+
+    this.updateHUD();
+
+
+    requestAnimationFrame(
+      ()=>this.loop()
+    );
+
+  },
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  clearEntities(){
+
+    for(
+      const person
+      of this.pedestrians
+    ){
+
+      if(person.element){
+
+        person.element.remove();
+
+      }
+
+    }
+
+
+    for(
+      const vehicle
+      of this.traffic
+    ){
+
+      if(vehicle.element){
+
+        vehicle.element.remove();
+
+      }
+
+    }
+
+
+    this.pedestrians=[];
+
+    this.traffic=[];
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const state=
+      document.getElementById(
+        "v80State"
+      );
+
+    const ped=
+      document.getElementById(
+        "v80PedCount"
+      );
+
+    const traffic=
+      document.getElementById(
+        "v80TrafficCount"
+      );
+
+
+    if(state){
+
+      state.textContent=
+        this.enabled
+        ? this.mode.toUpperCase()
+        : "PAUSED";
+
+    }
+
+
+    if(ped){
+
+      ped.textContent=
+        this.pedestrians.length;
+
+    }
+
+
+    if(traffic){
+
+      traffic.textContent=
+        this.traffic.length;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MENU
+     ======================================================= */
+
+  openMenu(){
+
+    const menu=
+      document.getElementById(
+        "v80Menu"
+      );
+
+    if(menu){
+
+      menu.style.display=
+        "block";
+
+    }
+
+  },
+
+
+  closeMenu(){
+
+    const menu=
+      document.getElementById(
+        "v80Menu"
+      );
+
+    if(menu){
+
+      menu.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      enabled:
+        this.enabled,
+
+      mode:
+        this.mode
+
+    };
+
+  },
+
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V80 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        typeof data.enabled==="boolean"
+      ){
+
+        this.enabled=
+          data.enabled;
+
+      }
+
+
+      if(
+        ["low","normal","high"]
+        .includes(data.mode)
+      ){
+
+        this.mode=
+          data.mode;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V80 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(text);
+
+    }
+    else{
+
+      console.log(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   V60 SAVE COMPATIBILITY
+   ========================================================= */
+
+if(
+  typeof V60!=="undefined" &&
+  typeof V60.collect==="function"
+){
+
+  const originalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      originalCollect();
+
+    data.v80=
+      V80.collect();
+
+    return data;
+
+  };
+
+
+  if(
+    typeof V60.apply==="function"
+  ){
+
+    const originalApply=
+      V60.apply.bind(V60);
+
+
+    V60.apply=function(data){
+
+      originalApply(data);
+
+
+      if(
+        data &&
+        data.v80
+      ){
+
+        if(
+          typeof data.v80.enabled===
+          "boolean"
+        ){
+
+          V80.enabled=
+            data.v80.enabled;
+
+        }
+
+
+        if(
+          ["low","normal","high"]
+          .includes(
+            data.v80.mode
+          )
+        ){
+
+          V80.mode=
+            data.v80.mode;
+
+        }
+
+
+        V80.updateTargets();
+
+        V80.spawnInitial();
+
+      }
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      C = city-life menu
+    */
+
+    if(
+      event.code==="KeyC"
+    ){
+
+      event.preventDefault();
+
+      V80.openMenu();
+
+    }
+
+
+    /*
+      Escape
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V80.closeMenu();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V80.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V80.init();
+
+</script>
+
+</body>
+</html>
