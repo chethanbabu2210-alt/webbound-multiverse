@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WEBBOUND V78</title>
+
+<style>
+#v78Clock{
+  position:fixed;
+  top:15px;
+  right:15px;
+  z-index:8200;
+  padding:10px 13px;
+  background:#05070ed9;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:11px;
+  font:12px Arial,sans-serif;
+}
+
+#v78TimeLabel{
+  font-weight:bold;
+}
+
+#v78WorldOverlay{
+  position:fixed;
+  inset:0;
+  z-index:7000;
+  pointer-events:none;
+  background:rgba(5,10,30,0);
+  transition:background 2s linear;
+}
+
+#v78TimeMenu{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:9950;
+  width:min(400px,90%);
+  padding:20px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:18px;
+  font-family:Arial,sans-serif;
+  display:none;
+}
+
+#v78TimeMenu button{
+  width:100%;
+  margin:6px 0;
+  padding:11px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+}
+
+#v78TimeSlider{
+  width:100%;
+  margin:15px 0;
+}
+</style>
+</head>
+
+<body>
+
+<div id="v78WorldOverlay"></div>
+
+<div id="v78Clock">
+  <span id="v78TimeLabel">08:00</span>
+  |
+  <span id="v78Period">Morning</span>
+</div>
+
+<div id="v78TimeMenu">
+
+  <h2>🌍 WORLD TIME</h2>
+
+  <p>
+    Set the time of day.
+  </p>
+
+  <input
+    id="v78TimeSlider"
+    type="range"
+    min="0"
+    max="1439"
+    value="480"
+  >
+
+  <p>
+    Time:
+    <strong id="v78MenuTime">08:00</strong>
+  </p>
+
+  <button onclick="V78.setTime(360)">
+    🌅 06:00 Sunrise
+  </button>
+
+  <button onclick="V78.setTime(720)">
+    ☀️ 12:00 Noon
+  </button>
+
+  <button onclick="V78.setTime(1080)">
+    🌇 18:00 Evening
+  </button>
+
+  <button onclick="V78.setTime(1320)">
+    🌙 22:00 Night
+  </button>
+
+  <button onclick="V78.togglePause()">
+    ⏸️ Pause / Resume Time
+  </button>
+
+  <button onclick="V78.closeMenu()">
+    ❌ CLOSE
+  </button>
+
+</div>
+
+<script>
+
+/* =========================================================
+   WEBBOUND V78
+   DAY / NIGHT + WORLD TIME SYSTEM
+   ========================================================= */
+
+const V78 = {
+
+  version:"V78",
+
+  minutes:480,
+
+  running:true,
+
+  timeScale:1,
+
+  lastTick:Date.now(),
+
+  saveKey:"WEBBOUND_V78_TIME",
+
+  periods:{
+    night:"Night",
+    dawn:"Dawn",
+    morning:"Morning",
+    afternoon:"Afternoon",
+    evening:"Evening"
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateUI();
+
+    this.applyWorldLighting();
+
+    this.lastTick=Date.now();
+
+    requestAnimationFrame(
+      ()=>this.loop()
+    );
+
+  },
+
+
+  /* =======================================================
+     MAIN LOOP
+     ======================================================= */
+
+  loop(){
+
+    const now=
+      Date.now();
+
+    const delta=
+      now-this.lastTick;
+
+    this.lastTick=
+      now;
+
+
+    if(this.running){
+
+      /*
+       1 real second =
+       timeScale game minutes.
+      */
+
+      this.minutes+=
+        (delta/1000)*
+        this.timeScale;
+
+      this.minutes=
+        this.minutes%1440;
+
+    }
+
+
+    this.updateUI();
+
+    this.applyWorldLighting();
+
+
+    requestAnimationFrame(
+      ()=>this.loop()
+    );
+
+  },
+
+
+  /* =======================================================
+     SET TIME
+     ======================================================= */
+
+  setTime(minutes){
+
+    let value=
+      Number(minutes);
+
+
+    if(!Number.isFinite(value)){
+
+      return;
+
+    }
+
+
+    value=
+      Math.max(
+        0,
+        Math.min(
+          1439,
+          value
+        )
+      );
+
+
+    this.minutes=
+      value;
+
+
+    this.save();
+
+    this.updateUI();
+
+    this.applyWorldLighting();
+
+
+    this.message(
+      "🕐 Time changed to "+
+      this.formatTime()
+    );
+
+  },
+
+
+  /* =======================================================
+     ADD TIME
+     ======================================================= */
+
+  addMinutes(amount){
+
+    const value=
+      Number(amount);
+
+
+    if(!Number.isFinite(value)){
+
+      return;
+
+    }
+
+
+    this.minutes=
+      (
+        this.minutes+
+        value+
+        1440
+      )%1440;
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     PAUSE
+     ======================================================= */
+
+  togglePause(){
+
+    this.running=
+      !this.running;
+
+
+    this.message(
+      this.running
+      ? "▶️ World time resumed."
+      : "⏸️ World time paused."
+    );
+
+  },
+
+
+  /* =======================================================
+     PERIOD
+     ======================================================= */
+
+  getPeriod(){
+
+    const t=
+      this.minutes;
+
+
+    if(
+      t>=0 &&
+      t<300
+    ){
+
+      return this.periods.night;
+
+    }
+
+
+    if(
+      t>=300 &&
+      t<420
+    ){
+
+      return this.periods.dawn;
+
+    }
+
+
+    if(
+      t>=420 &&
+      t<720
+    ){
+
+      return this.periods.morning;
+
+    }
+
+
+    if(
+      t>=720 &&
+      t<1020
+    ){
+
+      return this.periods.afternoon;
+
+    }
+
+
+    if(
+      t>=1020 &&
+      t<1200
+    ){
+
+      return this.periods.evening;
+
+    }
+
+
+    return this.periods.night;
+
+  },
+
+
+  /* =======================================================
+     FORMAT TIME
+     ======================================================= */
+
+  formatTime(){
+
+    const total=
+      Math.floor(
+        this.minutes
+      );
+
+
+    const hours=
+      Math.floor(
+        total/60
+      );
+
+
+    const mins=
+      total%60;
+
+
+    return String(hours)
+      .padStart(2,"0")
+      +":"+
+      String(mins)
+      .padStart(2,"0");
+
+  },
+
+
+  /* =======================================================
+     LIGHTING
+     ======================================================= */
+
+  getLightLevel(){
+
+    const t=
+      this.minutes;
+
+
+    /*
+      0 = darkest
+      1 = brightest
+    */
+
+    if(
+      t>=420 &&
+      t<1020
+    ){
+
+      return 1;
+
+    }
+
+
+    if(
+      t>=300 &&
+      t<420
+    ){
+
+      return (
+        t-300
+      )/120;
+
+    }
+
+
+    if(
+      t>=1020 &&
+      t<1200
+    ){
+
+      return (
+        1200-t
+      )/180;
+
+    }
+
+
+    return 0.18;
+
+  },
+
+
+  /* =======================================================
+     WORLD OVERLAY
+     ======================================================= */
+
+  applyWorldLighting(){
+
+    const overlay=
+      document.getElementById(
+        "v78WorldOverlay"
+      );
+
+
+    if(!overlay){
+
+      return;
+
+    }
+
+
+    const light=
+      this.getLightLevel();
+
+
+    /*
+      Keep daytime almost clear.
+      Increase blue overlay at night.
+    */
+
+    const darkness=
+      1-light;
+
+
+    const alpha=
+      Math.max(
+        0,
+        Math.min(
+          .38,
+          darkness*.38
+        )
+      );
+
+
+    overlay.style.background=
+      "rgba(5,10,30,"+
+      alpha+
+      ")";
+
+
+    /*
+      Optional integration with an
+      existing Three.js scene.
+    */
+
+    if(
+      typeof scene!=="undefined" &&
+      scene
+    ){
+
+      scene.userData=
+        scene.userData || {};
+
+      scene.userData.v78LightLevel=
+        light;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UI
+     ======================================================= */
+
+  updateUI(){
+
+    const time=
+      this.formatTime();
+
+
+    const period=
+      this.getPeriod();
+
+
+    const label=
+      document.getElementById(
+        "v78TimeLabel"
+      );
+
+
+    const periodBox=
+      document.getElementById(
+        "v78Period"
+      );
+
+
+    const slider=
+      document.getElementById(
+        "v78TimeSlider"
+      );
+
+
+    const menuTime=
+      document.getElementById(
+        "v78MenuTime"
+      );
+
+
+    if(label){
+
+      label.textContent=
+        time;
+
+    }
+
+
+    if(periodBox){
+
+      periodBox.textContent=
+        period;
+
+    }
+
+
+    if(slider){
+
+      slider.value=
+        Math.floor(
+          this.minutes
+        );
+
+    }
+
+
+    if(menuTime){
+
+      menuTime.textContent=
+        time;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MENU
+     ======================================================= */
+
+  openMenu(){
+
+    const menu=
+      document.getElementById(
+        "v78TimeMenu"
+      );
+
+
+    if(menu){
+
+      menu.style.display=
+        "block";
+
+    }
+
+  },
+
+
+  closeMenu(){
+
+    const menu=
+      document.getElementById(
+        "v78TimeMenu"
+      );
+
+
+    if(menu){
+
+      menu.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(text);
+
+      return;
+
+    }
+
+
+    console.log(text);
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      minutes:
+        this.minutes,
+
+      running:
+        this.running,
+
+      timeScale:
+        this.timeScale
+
+    };
+
+  },
+
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+        this.saveKey,
+        JSON.stringify(
+          this.collect()
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V78 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        typeof data.minutes==="number"
+      ){
+
+        this.minutes=
+          (
+            data.minutes+
+            1440
+          )%1440;
+
+      }
+
+
+      if(
+        typeof data.running==="boolean"
+      ){
+
+        this.running=
+          data.running;
+
+      }
+
+
+      if(
+        typeof data.timeScale==="number"
+      ){
+
+        this.timeScale=
+          Math.max(
+            .1,
+            data.timeScale
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V78 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY V60 SAVE DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.minutes==="number"
+    ){
+
+      this.minutes=
+        (
+          data.minutes+
+          1440
+        )%1440;
+
+    }
+
+
+    if(
+      typeof data.running==="boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    if(
+      typeof data.timeScale==="number"
+    ){
+
+      this.timeScale=
+        Math.max(
+          .1,
+          data.timeScale
+        );
+
+    }
+
+
+    this.updateUI();
+
+    this.applyWorldLighting();
+
+  }
+
+};
+
+
+/* =========================================================
+   SLIDER
+   ========================================================= */
+
+const v78Slider=
+  document.getElementById(
+    "v78TimeSlider"
+  );
+
+
+if(v78Slider){
+
+  v78Slider.addEventListener(
+    "input",
+    function(){
+
+      V78.setTime(
+        Number(this.value)
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      T = open time menu
+    */
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      event.preventDefault();
+
+      V78.openMenu();
+
+    }
+
+
+    /*
+      Escape = close menu
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V78.closeMenu();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   V60 SAVE INTEGRATION
+   ========================================================= */
+
+if(
+  typeof V60!=="undefined" &&
+  typeof V60.collect==="function"
+){
+
+  const v78OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v78OriginalCollect();
+
+
+    data.v78=
+      V78.collect();
+
+
+    return data;
+
+  };
+
+
+  if(
+    typeof V60.apply==="function"
+  ){
+
+    const v78OriginalApply=
+      V60.apply.bind(V60);
+
+
+    V60.apply=function(data){
+
+      v78OriginalApply(
+        data
+      );
+
+
+      if(
+        data &&
+        data.v78
+      ){
+
+        V78.apply(
+          data.v78
+        );
+
+      }
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V78.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V78.init();
+
+
+console.log(
+  "WEBBOUND V78 DAY/NIGHT SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
