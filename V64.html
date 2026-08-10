@@ -1,0 +1,1561 @@
+<!-- V64 continues the V63 prototype.
+     Keep your V63 file as a backup before replacing it. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0,
+      maximum-scale=1.0,user-scalable=no">
+
+<title>Spider-Man Game — V64</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+    background:#080a0f;
+    color:white;
+    touch-action:none;
+}
+
+#game{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    background:
+      linear-gradient(
+        #304a70 0%,
+        #7088a5 55%,
+        #171717 55%
+      );
+}
+
+/* ================= CITY ================= */
+
+#world{
+    position:absolute;
+    width:2400px;
+    height:1600px;
+    left:0;
+    top:0;
+    transform-origin:top left;
+}
+
+.ground{
+    position:absolute;
+    inset:0;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        #20242a 0,
+        #20242a 180px,
+        #272c32 180px,
+        #272c32 360px
+      );
+}
+
+.road{
+    position:absolute;
+    background:#111418;
+}
+
+.road.horizontal{
+    left:0;
+    width:2400px;
+    height:150px;
+}
+
+.road.vertical{
+    top:0;
+    width:150px;
+    height:1600px;
+}
+
+.r1{top:350px}
+.r2{top:850px}
+.r3{left:500px}
+.r4{left:1450px}
+
+.building{
+    position:absolute;
+    background:#343941;
+    border:3px solid #555c65;
+    box-shadow:0 8px 20px #0008;
+}
+
+.building .windows{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    padding:15px;
+}
+
+.building .windows span{
+    height:14px;
+    background:#d8bd66;
+}
+
+.b1{left:40px;top:60px;width:350px;height:250px}
+.b2{left:650px;top:60px;width:350px;height:250px}
+.b3{left:1100px;top:60px;width:300px;height:250px}
+.b4{left:1600px;top:60px;width:400px;height:250px}
+
+.b5{left:40px;top:550px;width:350px;height:220px}
+.b6{left:650px;top:550px;width:350px;height:220px}
+.b7{left:1100px;top:550px;width:300px;height:220px}
+.b8{left:1600px;top:550px;width:400px;height:220px}
+
+.b9{left:40px;top:1050px;width:350px;height:250px}
+.b10{left:650px;top:1050px;width:350px;height:250px}
+.b11{left:1100px;top:1050px;width:300px;height:250px}
+.b12{left:1600px;top:1050px;width:400px;height:250px}
+
+/* ================= CAMERA ================= */
+
+#camera{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+}
+
+/* ================= PLAYER ================= */
+
+#player{
+    position:absolute;
+    width:45px;
+    height:70px;
+    z-index:50;
+}
+
+.head{
+    width:25px;
+    height:25px;
+    margin:auto;
+    border-radius:50%;
+    background:#dfa982;
+}
+
+.body{
+    width:34px;
+    height:40px;
+    margin:auto;
+    border-radius:10px;
+    background:#c9212c;
+}
+
+.spider{
+    margin-top:-30px;
+    text-align:center;
+    font-size:19px;
+}
+
+.attackAnim{
+    animation:attack .18s;
+}
+
+@keyframes attack{
+    50%{
+        transform:translateX(18px) rotate(10deg)
+    }
+}
+
+.dodgeAnim{
+    animation:dodge .35s;
+}
+
+@keyframes dodge{
+    50%{
+        transform:translateX(45px)
+    }
+}
+
+/* ================= NPC ================= */
+
+.npc{
+    position:absolute;
+    width:32px;
+    height:55px;
+    z-index:35;
+}
+
+.npcHead{
+    width:18px;
+    height:18px;
+    margin:auto;
+    border-radius:50%;
+    background:#dca47e;
+}
+
+.npcBody{
+    width:28px;
+    height:32px;
+    margin:auto;
+    border-radius:7px;
+    background:#6b7480;
+}
+
+.npcName{
+    position:absolute;
+    top:-22px;
+    left:50%;
+    transform:translateX(-50%);
+    white-space:nowrap;
+    font-size:10px;
+    opacity:.75;
+}
+
+.npc.interactable{
+    filter:
+      drop-shadow(0 0 8px #fff)
+      brightness(1.5);
+}
+
+/* ================= INTERACTION ================= */
+
+#interaction{
+    display:none;
+    position:absolute;
+    left:50%;
+    bottom:145px;
+    transform:translateX(-50%);
+    z-index:150;
+    padding:10px 18px;
+    border-radius:12px;
+    background:#000c;
+    border:1px solid #777;
+}
+
+/* ================= TARGET ================= */
+
+#target{
+    position:absolute;
+    width:45px;
+    height:45px;
+    border:3px solid #ff4444;
+    border-radius:50%;
+    display:none;
+    z-index:45;
+}
+
+/* ================= HUD ================= */
+
+#hud{
+    position:absolute;
+    top:15px;
+    left:15px;
+    z-index:200;
+}
+
+.panel{
+    min-width:245px;
+    padding:12px;
+    margin-bottom:8px;
+    border-radius:12px;
+    background:#000b;
+}
+
+button{
+    padding:8px 11px;
+    margin:3px;
+    border:0;
+    border-radius:8px;
+    color:white;
+    background:#363636;
+}
+
+button:active{
+    background:#666;
+}
+
+/* ================= MISSION ================= */
+
+#missionBox{
+    position:absolute;
+    right:15px;
+    top:15px;
+    width:280px;
+    z-index:200;
+}
+
+/* ================= MINIMAP ================= */
+
+#minimap{
+    position:absolute;
+    right:15px;
+    bottom:15px;
+    width:180px;
+    height:120px;
+    border:2px solid white;
+    border-radius:12px;
+    background:#101318dd;
+    z-index:200;
+}
+
+.mapRoad{
+    position:absolute;
+    background:#555;
+}
+
+.mapPlayer{
+    position:absolute;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#fff;
+}
+
+/* ================= MOBILE ================= */
+
+#mobileControls{
+    display:none;
+    position:absolute;
+    inset:0;
+    z-index:300;
+    pointer-events:none;
+}
+
+.touchButton{
+    position:absolute;
+    width:62px;
+    height:62px;
+    border-radius:50%;
+    border:1px solid #aaa;
+    background:#0008;
+    color:white;
+    font-size:20px;
+    pointer-events:auto;
+}
+
+#up{left:85px;bottom:130px}
+#down{left:85px;bottom:10px}
+#left{left:15px;bottom:70px}
+#right{left:155px;bottom:70px}
+
+#attackBtn{right:25px;bottom:100px}
+#webBtn{right:100px;bottom:30px}
+#senseBtn{right:25px;bottom:25px}
+
+/* ================= MESSAGE ================= */
+
+#message{
+    position:absolute;
+    left:50%;
+    bottom:80px;
+    transform:translateX(-50%);
+    z-index:500;
+    padding:12px 20px;
+    border-radius:12px;
+    background:#000e;
+    opacity:0;
+    transition:.25s;
+}
+
+/* ================= HOME ================= */
+
+#home{
+    display:none;
+    position:absolute;
+    inset:0;
+    z-index:400;
+    background:#18181c;
+    padding:30px;
+}
+
+.close{
+    float:right;
+    background:#922;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="camera">
+
+<div id="world">
+
+<div class="ground"></div>
+
+<div class="road horizontal r1"></div>
+<div class="road horizontal r2"></div>
+<div class="road vertical r3"></div>
+<div class="road vertical r4"></div>
+
+<div class="building b1"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b2"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b3"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b4"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b5"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b6"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b7"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b8"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b9"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b10"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b11"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<div class="building b12"><div class="windows">
+<span></span><span></span><span></span><span></span>
+</div></div>
+
+<!-- PLAYER -->
+
+<div id="player">
+<div class="head"></div>
+<div class="body"></div>
+<div class="spider">🕷️</div>
+</div>
+
+<!-- TARGET -->
+
+<div id="target"></div>
+
+</div>
+</div>
+
+<!-- HUD -->
+
+<div id="hud">
+
+<div class="panel">
+
+❤️ Health:
+<span id="health">100</span>
+
+<br>
+
+⚡ Energy:
+<span id="energy">100</span>
+
+<br>
+
+⭐ XP:
+<span id="xp">0</span>
+
+<br>
+
+🏆 Level:
+<span id="level">1</span>
+
+<br>
+
+👕 Outfit:
+<span id="outfit">Casual</span>
+
+<br>
+
+🕷️ Suit:
+<span id="suit">Classic</span>
+
+</div>
+
+<div class="panel">
+
+<button onclick="toggleSense()">
+🕷️ Sense
+</button>
+
+<button onclick="startNPCMission()">
+📋 Mission
+</button>
+
+<button onclick="enterHome()">
+🏠 Home
+</button>
+
+<button onclick="saveGame()">
+💾 Save
+</button>
+
+</div>
+
+</div>
+
+<!-- MISSION -->
+
+<div id="missionBox" class="panel">
+
+<b>📋 Mission</b>
+
+<div id="mission">
+Explore the city.
+</div>
+
+</div>
+
+<!-- INTERACTION -->
+
+<div id="interaction">
+Press <b>E</b> to interact
+</div>
+
+<!-- MINIMAP -->
+
+<div id="minimap">
+
+<div class="mapRoad"
+     style="left:0;top:48px;width:180px;height:18px">
+</div>
+
+<div class="mapRoad"
+     style="left:80px;top:0;width:18px;height:120px">
+</div>
+
+<div id="mapPlayer"
+     class="mapPlayer">
+</div>
+
+</div>
+
+<!-- MOBILE -->
+
+<div id="mobileControls">
+
+<button class="touchButton"
+        id="up">↑</button>
+
+<button class="touchButton"
+        id="down">↓</button>
+
+<button class="touchButton"
+        id="left">←</button>
+
+<button class="touchButton"
+        id="right">→</button>
+
+<button class="touchButton"
+        id="attackBtn">🥊</button>
+
+<button class="touchButton"
+        id="webBtn">🕸️</button>
+
+<button class="touchButton"
+        id="senseBtn">🕷️</button>
+
+</div>
+
+<!-- HOME -->
+
+<div id="home">
+
+<button class="close"
+        onclick="leaveHome()">
+Exit
+</button>
+
+<h1>🏠 Peter's Home</h1>
+
+<br>
+
+<p>Your safe location.</p>
+
+<br>
+
+<button onclick="rest()">
+❤️ Rest
+</button>
+
+<button onclick="changeOutfit()">
+👕 Change Outfit
+</button>
+
+<button onclick="changeSuit()">
+🕷️ Change Suit
+</button>
+
+<button onclick="saveGame()">
+💾 Save
+</button>
+
+</div>
+
+<div id="message"></div>
+
+</div>
+
+<script>
+
+/* =========================
+   STATE
+========================= */
+
+const player=
+    document.getElementById("player");
+
+const world=
+    document.getElementById("world");
+
+const camera=
+    document.getElementById("camera");
+
+let x=1200;
+let y=800;
+
+let health=100;
+let energy=100;
+
+let xp=0;
+let level=1;
+
+let outfit="Casual";
+let suit="Classic";
+
+let sense=false;
+
+let missionActive=false;
+let missionNPCs=0;
+
+let npcs=[];
+
+let keys={};
+
+let lastTime=0;
+
+const WORLD_WIDTH=2400;
+const WORLD_HEIGHT=1600;
+
+
+/* =========================
+   INPUT
+========================= */
+
+document.addEventListener(
+"keydown",
+e=>{
+
+    keys[e.key.toLowerCase()]=true;
+
+    if(e.key.toLowerCase()==="e"){
+        interact();
+    }
+
+    if(e.key.toLowerCase()==="q"){
+        showMessage(
+            "🥊 Combat remains available from V63"
+        );
+    }
+
+    if(e.key.toLowerCase()==="r"){
+        showMessage(
+            "🕸️ Web traversal ready"
+        );
+    }
+
+    if(e.key.toLowerCase()==="f"){
+        toggleSense();
+    }
+
+});
+
+document.addEventListener(
+"keyup",
+e=>{
+    keys[e.key.toLowerCase()]=false;
+});
+
+
+/* =========================
+   NPC CREATION
+========================= */
+
+const npcNames=[
+    "Alex",
+    "Maya",
+    "Sam",
+    "Ravi",
+    "Emma",
+    "Noah",
+    "Aarav",
+    "Liam",
+    "Zara",
+    "Leo",
+    "Anya",
+    "Daniel"
+];
+
+function createNPC(i){
+
+    const el=
+        document.createElement("div");
+
+    el.className="npc";
+
+    el.innerHTML=`
+
+        <div class="npcName">
+            ${npcNames[i]}
+        </div>
+
+        <div class="npcHead"></div>
+        <div class="npcBody"></div>
+    `;
+
+    const npc={
+
+        element:el,
+
+        name:npcNames[i],
+
+        x:100+
+           Math.random()*
+           (WORLD_WIDTH-200),
+
+        y:350+
+           Math.random()*
+           (WORLD_HEIGHT-500),
+
+        dx:Math.random()*2-1,
+
+        dy:Math.random()*2-1,
+
+        speed:20+
+              Math.random()*25
+
+    };
+
+    el.style.left=npc.x+"px";
+    el.style.top=npc.y+"px";
+
+    world.appendChild(el);
+
+    npcs.push(npc);
+
+}
+
+for(let i=0;i<12;i++){
+    createNPC(i);
+}
+
+
+/* =========================
+   GAME LOOP
+========================= */
+
+function gameLoop(timestamp){
+
+    if(!lastTime){
+        lastTime=timestamp;
+    }
+
+    const delta=
+        Math.min(
+            (timestamp-lastTime)/1000,
+            .05
+        );
+
+    lastTime=timestamp;
+
+    updatePlayer(delta);
+    updateNPCs(delta);
+    updateCamera();
+    updateInteraction();
+    updateMinimap();
+
+    requestAnimationFrame(
+        gameLoop
+    );
+}
+
+requestAnimationFrame(
+    gameLoop
+);
+
+
+/* =========================
+   PLAYER
+========================= */
+
+function updatePlayer(delta){
+
+    if(
+        document.getElementById(
+            "home"
+        ).style.display==="block"
+    ){
+        return;
+    }
+
+    let speed=230;
+
+    if(keys["shift"]){
+
+        speed=360;
+
+        energy=Math.max(
+            0,
+            energy-30*delta
+        );
+
+    }else{
+
+        energy=Math.min(
+            100,
+            energy+12*delta
+        );
+
+    }
+
+    if(
+        keys["w"]||
+        keys["arrowup"]
+    ){
+        y-=speed*delta;
+    }
+
+    if(
+        keys["s"]||
+        keys["arrowdown"]
+    ){
+        y+=speed*delta;
+    }
+
+    if(
+        keys["a"]||
+        keys["arrowleft"]
+    ){
+        x-=speed*delta;
+    }
+
+    if(
+        keys["d"]||
+        keys["arrowright"]
+    ){
+        x+=speed*delta;
+    }
+
+    x=Math.max(
+        25,
+        Math.min(
+            WORLD_WIDTH-70,
+            x
+        )
+    );
+
+    y=Math.max(
+        50,
+        Math.min(
+            WORLD_HEIGHT-100,
+            y
+        )
+    );
+
+    player.style.left=x+"px";
+    player.style.top=y+"px";
+
+    updateHUD();
+
+}
+
+
+/* =========================
+   NPC AI
+========================= */
+
+function updateNPCs(delta){
+
+    npcs.forEach(npc=>{
+
+        npc.x+=
+            npc.dx*
+            npc.speed*
+            delta;
+
+        npc.y+=
+            npc.dy*
+            npc.speed*
+            delta;
+
+        if(
+            npc.x<30||
+            npc.x>WORLD_WIDTH-50
+        ){
+            npc.dx*=-1;
+        }
+
+        if(
+            npc.y<40||
+            npc.y>WORLD_HEIGHT-100
+        ){
+            npc.dy*=-1;
+        }
+
+        if(Math.random()<.01){
+
+            npc.dx=
+                Math.random()*2-1;
+
+            npc.dy=
+                Math.random()*2-1;
+
+        }
+
+        npc.element.style.left=
+            npc.x+"px";
+
+        npc.element.style.top=
+            npc.y+"px";
+
+    });
+
+}
+
+
+/* =========================
+   CAMERA
+========================= */
+
+function updateCamera(){
+
+    const cameraX=
+        Math.max(
+            0,
+            Math.min(
+                WORLD_WIDTH-innerWidth,
+                x-innerWidth/2
+            )
+        );
+
+    const cameraY=
+        Math.max(
+            0,
+            Math.min(
+                WORLD_HEIGHT-innerHeight,
+                y-innerHeight/2
+            )
+        );
+
+    world.style.transform=
+        `translate(${-cameraX}px,
+                   ${-cameraY}px)`;
+
+}
+
+
+/* =========================
+   NPC INTERACTION
+========================= */
+
+function getNearestNPC(){
+
+    let closest=null;
+    let distance=90;
+
+    npcs.forEach(npc=>{
+
+        const d=
+            Math.hypot(
+                x-npc.x,
+                y-npc.y
+            );
+
+        if(d<distance){
+
+            closest=npc;
+            distance=d;
+
+        }
+
+    });
+
+    return closest;
+
+}
+
+
+function updateInteraction(){
+
+    const npc=
+        getNearestNPC();
+
+    const box=
+        document.getElementById(
+            "interaction"
+        );
+
+    npcs.forEach(n=>{
+        n.element.classList.remove(
+            "interactable"
+        );
+    });
+
+    if(npc){
+
+        npc.element.classList.add(
+            "interactable"
+        );
+
+        box.style.display="block";
+
+    }else{
+
+        box.style.display="none";
+
+    }
+
+}
+
+
+/* =========================
+   INTERACT
+========================= */
+
+function interact(){
+
+    const npc=
+        getNearestNPC();
+
+    if(!npc){
+        return;
+    }
+
+    const lines=[
+
+        "Hey! Nice day in the city.",
+
+        "Have you seen what's happening downtown?",
+
+        "Thanks for stopping to talk.",
+
+        "The city feels safer today.",
+
+        "I think I saw something strange nearby."
+
+    ];
+
+    const line=
+        lines[
+            Math.floor(
+                Math.random()*
+                lines.length
+            )
+        ];
+
+    showMessage(
+        npc.name+": "+line
+    );
+
+    if(missionActive){
+
+        missionNPCs++;
+
+        if(missionNPCs>=3){
+
+            missionActive=false;
+
+            document.getElementById(
+                "mission"
+            ).textContent=
+                "Mission complete!";
+
+            gainXP(100);
+
+            showMessage(
+                "✅ Mission complete! +100 XP"
+            );
+
+        }else{
+
+            document.getElementById(
+                "mission"
+            ).textContent=
+                "Talk to civilians: "+
+                missionNPCs+
+                "/3";
+
+        }
+
+    }
+
+}
+
+
+/* =========================
+   SPIDER SENSE
+========================= */
+
+function toggleSense(){
+
+    sense=!sense;
+
+    npcs.forEach(npc=>{
+
+        npc.element.classList.toggle(
+            "interactable",
+            sense
+        );
+
+    });
+
+    showMessage(
+        sense
+        ?"🕷️ Spider-Sense ON"
+        :"🕷️ Spider-Sense OFF"
+    );
+
+}
+
+
+/* =========================
+   NPC MISSION
+========================= */
+
+function startNPCMission(){
+
+    missionActive=true;
+    missionNPCs=0;
+
+    document.getElementById(
+        "mission"
+    ).textContent=
+        "Talk to civilians: 0/3";
+
+    showMessage(
+        "📋 New mission: Talk to 3 civilians"
+    );
+
+}
+
+
+/* =========================
+   XP
+========================= */
+
+function gainXP(amount){
+
+    xp+=amount;
+
+    const required=
+        level*200;
+
+    if(xp>=required){
+
+        xp-=required;
+
+        level++;
+
+        health=100;
+        energy=100;
+
+        showMessage(
+            "⭐ Level "+level+
+            " reached!"
+        );
+
+    }
+
+    updateHUD();
+
+}
+
+
+/* =========================
+   HOME
+========================= */
+
+function enterHome(){
+
+    document.getElementById(
+        "home"
+    ).style.display="block";
+
+}
+
+function leaveHome(){
+
+    document.getElementById(
+        "home"
+    ).style.display="none";
+
+}
+
+function rest(){
+
+    health=100;
+    energy=100;
+
+    showMessage(
+        "❤️ Fully rested"
+    );
+
+    updateHUD();
+
+}
+
+function changeOutfit(){
+
+    const outfits=[
+        "Casual",
+        "School",
+        "Jacket",
+        "Sport",
+        "Formal"
+    ];
+
+    let index=
+        outfits.indexOf(outfit);
+
+    index=
+        (index+1)%
+        outfits.length;
+
+    outfit=
+        outfits[index];
+
+    showMessage(
+        "👕 Outfit: "+outfit
+    );
+
+}
+
+function changeSuit(){
+
+    const suits=[
+        "Classic",
+        "Stealth",
+        "Advanced",
+        "Tech"
+    ];
+
+    let index=
+        suits.indexOf(suit);
+
+    index=
+        (index+1)%
+        suits.length;
+
+    suit=
+        suits[index];
+
+    showMessage(
+        "🕷️ Suit: "+suit
+    );
+
+}
+
+
+/* =========================
+   SAVE
+========================= */
+
+function saveGame(){
+
+    const data={
+
+        version:64,
+
+        x,
+        y,
+
+        health,
+        energy,
+
+        xp,
+        level,
+
+        outfit,
+        suit
+
+    };
+
+    localStorage.setItem(
+        "spiderGameV64",
+        JSON.stringify(data)
+    );
+
+    showMessage(
+        "💾 V64 saved"
+    );
+
+}
+
+
+/* =========================
+   LOAD
+========================= */
+
+function loadGame(){
+
+    const saved=
+        localStorage.getItem(
+            "spiderGameV64"
+        );
+
+    if(!saved){
+        return;
+    }
+
+    try{
+
+        const data=
+            JSON.parse(saved);
+
+        x=data.x??x;
+        y=data.y??y;
+
+        health=
+            data.health??100;
+
+        energy=
+            data.energy??100;
+
+        xp=data.xp??0;
+
+        level=
+            data.level??1;
+
+        outfit=
+            data.outfit??
+            "Casual";
+
+        suit=
+            data.suit??
+            "Classic";
+
+    }catch(e){
+
+        console.log(
+            "Could not load V64 save."
+        );
+
+    }
+
+}
+
+
+/* =========================
+   MINIMAP
+========================= */
+
+function updateMinimap(){
+
+    const marker=
+        document.getElementById(
+            "mapPlayer"
+        );
+
+    marker.style.left=
+        (
+            x/
+            WORLD_WIDTH*
+            172
+        )+"px";
+
+    marker.style.top=
+        (
+            y/
+            WORLD_HEIGHT*
+            112
+        )+"px";
+
+}
+
+
+/* =========================
+   HUD
+========================= */
+
+function updateHUD(){
+
+    document.getElementById(
+        "health"
+    ).textContent=
+        Math.round(health);
+
+    document.getElementById(
+        "energy"
+    ).textContent=
+        Math.round(energy);
+
+    document.getElementById(
+        "xp"
+    ).textContent=
+        xp;
+
+    document.getElementById(
+        "level"
+    ).textContent=
+        level;
+
+    document.getElementById(
+        "outfit"
+    ).textContent=
+        outfit;
+
+    document.getElementById(
+        "suit"
+    ).textContent=
+        suit;
+
+}
+
+
+/* =========================
+   MESSAGE
+========================= */
+
+function showMessage(text){
+
+    const message=
+        document.getElementById(
+            "message"
+        );
+
+    message.textContent=text;
+
+    message.style.opacity="1";
+
+    setTimeout(()=>{
+
+        message.style.opacity="0";
+
+    },2300);
+
+}
+
+
+/* =========================
+   MOBILE CONTROLS
+========================= */
+
+function bindTouch(
+    id,
+    key
+){
+
+    const button=
+        document.getElementById(id);
+
+    button.addEventListener(
+        "touchstart",
+        e=>{
+            e.preventDefault();
+            keys[key]=true;
+        }
+    );
+
+    button.addEventListener(
+        "touchend",
+        e=>{
+            e.preventDefault();
+            keys[key]=false;
+        }
+    );
+
+}
+
+bindTouch("up","w");
+bindTouch("down","s");
+bindTouch("left","a");
+bindTouch("right","d");
+
+document
+.getElementById("attackBtn")
+.addEventListener(
+    "touchstart",
+    e=>{
+        e.preventDefault();
+
+        showMessage(
+            "🥊 Attack"
+        );
+    }
+);
+
+document
+.getElementById("webBtn")
+.addEventListener(
+    "touchstart",
+    e=>{
+        e.preventDefault();
+
+        showMessage(
+            "🕸️ Web traversal"
+        );
+    }
+);
+
+document
+.getElementById("senseBtn")
+.addEventListener(
+    "touchstart",
+    e=>{
+        e.preventDefault();
+
+        toggleSense();
+    }
+);
+
+
+/* =========================
+   MOBILE DETECTION
+========================= */
+
+if(
+    "ontouchstart" in window
+){
+
+    document
+    .getElementById(
+        "mobileControls"
+    )
+    .style.display="block";
+
+}
+
+
+/* =========================
+   START
+========================= */
+
+loadGame();
+
+updateHUD();
+
+</script>
+
+</body>
+</html>
