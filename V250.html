@@ -1,0 +1,1239 @@
+<!-- =========================================================
+     V250 — SPIDER-MAN GAME FINAL INTEGRATION
+     FINAL VERSION — NO V251
+     ========================================================= -->
+
+<style>
+
+#finalGameHud250{
+
+    position:fixed;
+
+    left:50%;
+
+    bottom:12px;
+
+    transform:translateX(-50%);
+
+    width:min(520px,92vw);
+
+    padding:12px;
+
+    background:#03070df5;
+
+    border:1px solid #ffffff35;
+
+    border-radius:12px;
+
+    z-index:10000;
+
+    font-size:9px;
+
+}
+
+.finalTitle250{
+
+    text-align:center;
+
+    font-size:12px;
+
+    font-weight:bold;
+
+    margin-bottom:8px;
+
+}
+
+.finalStats250{
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:5px;
+
+}
+
+.finalStat250{
+
+    padding:6px;
+
+    text-align:center;
+
+    background:#ffffff08;
+
+    border:1px solid #ffffff18;
+
+    border-radius:6px;
+
+}
+
+.finalControls250{
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:5px;
+
+    margin-top:8px;
+
+}
+
+.finalControls250 button{
+
+    padding:7px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:6px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+
+/* =========================================================
+   PAUSE SCREEN
+   ========================================================= */
+
+#pauseScreen250{
+
+    position:fixed;
+
+    inset:0;
+
+    background:#03070df2;
+
+    z-index:12000;
+
+    display:none;
+
+    align-items:center;
+
+    justify-content:center;
+
+    text-align:center;
+
+}
+
+.pauseBox250{
+
+    width:min(350px,85vw);
+
+    padding:25px;
+
+    border:1px solid #ffffff35;
+
+    border-radius:12px;
+
+    background:#081019;
+
+}
+
+.pauseBox250 h2{
+
+    font-size:20px;
+
+    margin-bottom:10px;
+
+}
+
+.pauseBox250 button{
+
+    margin-top:12px;
+
+    padding:9px 20px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff30;
+
+    border-radius:7px;
+
+}
+
+
+/* =========================================================
+   COMPLETE SCREEN
+   ========================================================= */
+
+#completeScreen250{
+
+    position:fixed;
+
+    inset:0;
+
+    background:#03070df5;
+
+    z-index:13000;
+
+    display:none;
+
+    align-items:center;
+
+    justify-content:center;
+
+    text-align:center;
+
+}
+
+.completeBox250{
+
+    width:min(450px,88vw);
+
+    padding:30px;
+
+    border:1px solid #ffffff45;
+
+    border-radius:14px;
+
+    background:#081019;
+
+}
+
+.completeBox250 h1{
+
+    font-size:24px;
+
+    margin-bottom:10px;
+
+}
+
+.completeBox250 p{
+
+    font-size:10px;
+
+    line-height:1.6;
+
+}
+
+.completeBox250 button{
+
+    margin-top:15px;
+
+    padding:9px 20px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff30;
+
+    border-radius:7px;
+
+}
+
+
+/* =========================================================
+   FINAL MESSAGE
+   ========================================================= */
+
+#finalMessage250{
+
+    position:fixed;
+
+    left:50%;
+
+    top:15%;
+
+    transform:translateX(-50%);
+
+    padding:10px 18px;
+
+    background:#03070df7;
+
+    border:1px solid #ffffff35;
+
+    border-radius:9px;
+
+    z-index:14000;
+
+    opacity:0;
+
+    pointer-events:none;
+
+    font-size:9px;
+
+}
+
+#finalMessage250.show{
+
+    animation:
+        finalPopup250 1.4s forwards;
+
+}
+
+@keyframes finalPopup250{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+            translateX(-50%)
+            scale(.8);
+
+    }
+
+    20%{
+
+        opacity:1;
+
+        transform:
+            translateX(-50%)
+            scale(1);
+
+    }
+
+    80%{
+
+        opacity:1;
+
+    }
+
+    100%{
+
+        opacity:0;
+
+    }
+
+}
+
+</style>
+
+
+<!-- =========================================================
+     FINAL HUD
+     ========================================================= -->
+
+<div id="finalGameHud250">
+
+    <div class="finalTitle250">
+
+        🕷️ SPIDER-MAN
+        <br>
+        FINAL GAME BUILD — V250
+
+    </div>
+
+
+    <div class="finalStats250">
+
+        <div class="finalStat250">
+
+            LEVEL
+
+            <br>
+
+            <span id="finalLevel250">
+                1
+            </span>
+
+        </div>
+
+
+        <div class="finalStat250">
+
+            XP
+
+            <br>
+
+            <span id="finalXP250">
+                0
+            </span>
+
+        </div>
+
+
+        <div class="finalStat250">
+
+            MISSIONS
+
+            <br>
+
+            <span id="finalMissions250">
+                0
+            </span>
+
+        </div>
+
+
+        <div class="finalStat250">
+
+            EVENTS
+
+            <br>
+
+            <span id="finalEvents250">
+                0
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="finalControls250">
+
+        <button onclick="SpiderFinal250.save()">
+            💾 SAVE
+        </button>
+
+        <button onclick="SpiderFinal250.load()">
+            📂 LOAD
+        </button>
+
+        <button onclick="SpiderFinal250.pause()">
+            ⏸️ PAUSE
+        </button>
+
+        <button onclick="SpiderFinal250.complete()">
+            🏆 FINISH
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     PAUSE
+     ========================================================= -->
+
+<div id="pauseScreen250">
+
+    <div class="pauseBox250">
+
+        <h2>
+            ⏸️ GAME PAUSED
+        </h2>
+
+        <p>
+            Spider-Man is taking a break.
+        </p>
+
+        <button onclick="SpiderFinal250.resume()">
+
+            ▶️ RESUME
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     COMPLETE
+     ========================================================= -->
+
+<div id="completeScreen250">
+
+    <div class="completeBox250">
+
+        <h1>
+            🕷️ GAME COMPLETE
+        </h1>
+
+        <p>
+
+            Congratulations!
+
+            <br><br>
+
+            You reached the final
+            Spider-Man game build.
+
+            <br><br>
+
+            All major systems from
+            V239 to V250 have been
+            integrated into the final
+            game framework.
+
+        </p>
+
+
+        <button onclick="SpiderFinal250.closeComplete()">
+
+            CONTINUE
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<div id="finalMessage250">
+    FINAL SYSTEM
+</div>
+
+
+<script>
+
+/* =========================================================
+   V250 FINAL ENGINE
+   ========================================================= */
+
+const SpiderFinal250={
+
+    version:"V250",
+
+    paused:false,
+
+    completed:false,
+
+    saveKey:
+        "SPIDER_MAN_GAME_V250_SAVE",
+
+
+    stats:{
+
+        level:1,
+
+        xp:0,
+
+        missions:0,
+
+        events:0,
+
+        enemiesDefeated:0,
+
+        villainsDefeated:0,
+
+        vehicles:0,
+
+        policeUnits:0,
+
+        tokens:0
+
+    },
+
+
+    /* =====================================================
+       INIT
+       ===================================================== */
+
+    init(){
+
+        this.connectSystems();
+
+        this.load();
+
+        this.updateHUD();
+
+        this.message(
+            "🕷️ V250 final game build initialized."
+        );
+
+    },
+
+
+    /* =====================================================
+       CONNECT SYSTEMS
+       ===================================================== */
+
+    connectSystems(){
+
+        /*
+         * Existing systems are intentionally
+         * checked before use so V250 can run
+         * even if an earlier module is absent.
+         */
+
+
+        if(
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            this.stats.level=
+                SpiderProgress239.level ||
+                1;
+
+            this.stats.xp=
+                SpiderProgress239.xp ||
+                0;
+
+        }
+
+
+        if(
+            typeof SpiderEvents247!==
+            "undefined"
+        ){
+
+            this.stats.events=
+                SpiderEvents247.completed ||
+                0;
+
+        }
+
+
+        if(
+            typeof SpiderCombat248!==
+            "undefined"
+        ){
+
+            this.stats.enemiesDefeated=
+                SpiderCombat248.totalDefeated ||
+                0;
+
+        }
+
+
+        if(
+            typeof SpiderBoss249!==
+            "undefined"
+        ){
+
+            this.stats.villainsDefeated=
+                SpiderBoss249.defeated ||
+                0;
+
+        }
+
+
+        if(
+            typeof SpiderCollect242!==
+            "undefined"
+        ){
+
+            this.stats.tokens=
+                SpiderCollect242.tokens ||
+                0;
+
+        }
+
+    },
+
+
+    /* =====================================================
+       UPDATE FROM GAME
+       ===================================================== */
+
+    sync(){
+
+        this.connectSystems();
+
+        this.updateHUD();
+
+    },
+
+
+    /* =====================================================
+       SAVE
+       ===================================================== */
+
+    save(){
+
+        this.sync();
+
+
+        const data={
+
+            version:this.version,
+
+            stats:this.stats,
+
+            timestamp:
+                Date.now()
+
+        };
+
+
+        try{
+
+            localStorage.setItem(
+
+                this.saveKey,
+
+                JSON.stringify(data)
+
+            );
+
+
+            this.message(
+                "💾 Game saved successfully."
+            );
+
+        }catch(error){
+
+            this.message(
+                "⚠️ Save failed."
+            );
+
+        }
+
+    },
+
+
+    /* =====================================================
+       LOAD
+       ===================================================== */
+
+    load(){
+
+        try{
+
+            const raw=
+                localStorage.getItem(
+                    this.saveKey
+                );
+
+
+            if(!raw){
+
+                this.updateHUD();
+
+                return;
+
+            }
+
+
+            const data=
+                JSON.parse(raw);
+
+
+            if(
+                data &&
+                data.stats
+            ){
+
+                this.stats={
+
+                    ...this.stats,
+
+                    ...data.stats
+
+                };
+
+            }
+
+
+            this.message(
+                "📂 Save data loaded."
+            );
+
+
+            this.updateHUD();
+
+        }catch(error){
+
+            this.message(
+                "⚠️ Save data unavailable."
+            );
+
+        }
+
+    },
+
+
+    /* =====================================================
+       PAUSE
+       ===================================================== */
+
+    pause(){
+
+        if(
+            this.paused
+        )
+            return;
+
+
+        this.paused=true;
+
+
+        const screen=
+            document.getElementById(
+                "pauseScreen250"
+            );
+
+
+        if(screen){
+
+            screen.style.display=
+                "flex";
+
+        }
+
+
+        /*
+         * Pause supported systems.
+         */
+
+        if(
+            typeof SpiderTraffic245!==
+            "undefined"
+        ){
+
+            SpiderTraffic245.active=
+                false;
+
+        }
+
+
+        if(
+            typeof SpiderPolice246!==
+            "undefined"
+        ){
+
+            SpiderPolice246.active=
+                false;
+
+        }
+
+
+        if(
+            typeof SpiderEvents247!==
+            "undefined"
+        ){
+
+            SpiderEvents247.active=
+                false;
+
+        }
+
+
+        if(
+            typeof SpiderCombat248!==
+            "undefined"
+        ){
+
+            SpiderCombat248.active=
+                false;
+
+        }
+
+
+        this.message(
+            "⏸️ Game paused."
+        );
+
+    },
+
+
+    /* =====================================================
+       RESUME
+       ===================================================== */
+
+    resume(){
+
+        this.paused=false;
+
+
+        const screen=
+            document.getElementById(
+                "pauseScreen250"
+            );
+
+
+        if(screen){
+
+            screen.style.display=
+                "none";
+
+        }
+
+
+        if(
+            typeof SpiderTraffic245!==
+            "undefined"
+        ){
+
+            SpiderTraffic245.active=
+                true;
+
+        }
+
+
+        if(
+            typeof SpiderPolice246!==
+            "undefined"
+        ){
+
+            SpiderPolice246.active=
+                true;
+
+        }
+
+
+        if(
+            typeof SpiderEvents247!==
+            "undefined"
+        ){
+
+            SpiderEvents247.active=
+                true;
+
+        }
+
+
+        if(
+            typeof SpiderCombat248!==
+            "undefined"
+        ){
+
+            SpiderCombat248.active=
+                true;
+
+        }
+
+
+        this.message(
+            "▶️ Game resumed."
+        );
+
+    },
+
+
+    /* =====================================================
+       FINAL COMPLETE
+       ===================================================== */
+
+    complete(){
+
+        this.sync();
+
+
+        this.completed=true;
+
+
+        const screen=
+            document.getElementById(
+                "completeScreen250"
+            );
+
+
+        if(screen){
+
+            screen.style.display=
+                "flex";
+
+        }
+
+
+        this.save();
+
+
+        this.message(
+            "🏆 Spider-Man game completed!"
+        );
+
+    },
+
+
+    /* =====================================================
+       CLOSE COMPLETE
+       ===================================================== */
+
+    closeComplete(){
+
+        const screen=
+            document.getElementById(
+                "completeScreen250"
+            );
+
+
+        if(screen){
+
+            screen.style.display=
+                "none";
+
+        }
+
+    },
+
+
+    /* =====================================================
+       RESET
+       ===================================================== */
+
+    reset(){
+
+        try{
+
+            localStorage.removeItem(
+                this.saveKey
+            );
+
+        }catch(error){}
+
+
+        this.stats={
+
+            level:1,
+
+            xp:0,
+
+            missions:0,
+
+            events:0,
+
+            enemiesDefeated:0,
+
+            villainsDefeated:0,
+
+            vehicles:0,
+
+            policeUnits:0,
+
+            tokens:0
+
+        };
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "🔄 Game data reset."
+        );
+
+    },
+
+
+    /* =====================================================
+       HUD
+       ===================================================== */
+
+    updateHUD(){
+
+        const level=
+            document.getElementById(
+                "finalLevel250"
+            );
+
+
+        const xp=
+            document.getElementById(
+                "finalXP250"
+            );
+
+
+        const missions=
+            document.getElementById(
+                "finalMissions250"
+            );
+
+
+        const events=
+            document.getElementById(
+                "finalEvents250"
+            );
+
+
+        if(level){
+
+            level.textContent=
+                this.stats.level;
+
+        }
+
+
+        if(xp){
+
+            xp.textContent=
+                this.stats.xp;
+
+        }
+
+
+        if(missions){
+
+            missions.textContent=
+                this.stats.missions;
+
+        }
+
+
+        if(events){
+
+            events.textContent=
+                this.stats.events;
+
+        }
+
+    },
+
+
+    /* =====================================================
+       MESSAGE
+       ===================================================== */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "finalMessage250"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =========================================================
+   START V250
+   ========================================================= */
+
+SpiderFinal250.init();
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        /* Pause */
+
+        if(
+            key==="p"
+        ){
+
+            if(
+                SpiderFinal250.paused
+            ){
+
+                SpiderFinal250.resume();
+
+            }else{
+
+                SpiderFinal250.pause();
+
+            }
+
+        }
+
+
+        /* Save */
+
+        if(
+            key==="f5"
+        ){
+
+            e.preventDefault();
+
+            SpiderFinal250.save();
+
+        }
+
+
+        /* Load */
+
+        if(
+            key==="f9"
+        ){
+
+            e.preventDefault();
+
+            SpiderFinal250.load();
+
+        }
+
+
+        /* Complete */
+
+        if(
+            key==="end"
+        ){
+
+            SpiderFinal250.complete();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   AUTO SYNC
+   ========================================================= */
+
+setInterval(
+
+    ()=>{
+
+        if(
+            !SpiderFinal250.paused
+        ){
+
+            SpiderFinal250.sync();
+
+        }
+
+    },
+
+    3000
+
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+
+    ()=>{
+
+        if(
+            !SpiderFinal250.paused
+        ){
+
+            SpiderFinal250.save();
+
+        }
+
+    },
+
+    30000
+
+);
