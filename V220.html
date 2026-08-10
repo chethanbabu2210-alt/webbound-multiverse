@@ -1,0 +1,1329 @@
+<!-- =====================================================
+ V220 — ENEMY AI COMBAT SYSTEM
+ Add after V219
+ ===================================================== -->
+
+<style>
+
+/* ================= ENEMY WORLD ================= */
+
+#enemyWorld220{
+    position:fixed;
+    inset:0;
+    z-index:1100;
+    pointer-events:none;
+    overflow:hidden;
+}
+
+
+/* ================= ENEMY ================= */
+
+.enemy220{
+
+    position:absolute;
+
+    width:16px;
+    height:25px;
+
+    background:#303a40;
+
+    border-radius:6px;
+
+    z-index:1110;
+
+    pointer-events:auto;
+
+    transition:
+        left .35s linear,
+        top .35s linear,
+        transform .2s;
+
+    cursor:pointer;
+
+}
+
+.enemy220:before{
+
+    content:"";
+
+    position:absolute;
+
+    width:11px;
+    height:11px;
+
+    left:2.5px;
+    top:-8px;
+
+    background:#858d91;
+
+    border-radius:50%;
+
+}
+
+
+/* ================= ENEMY STATES ================= */
+
+.enemy220.idle{
+    opacity:.8;
+}
+
+.enemy220.alert{
+
+    transform:scale(1.08);
+
+    box-shadow:
+        0 0 8px #ffffff55;
+
+}
+
+.enemy220.chase{
+
+    transform:scale(1.15);
+
+}
+
+.enemy220.defeated{
+
+    opacity:.25;
+
+    transform:
+        scale(.65);
+
+    pointer-events:none;
+
+}
+
+
+/* ================= HEALTH BAR ================= */
+
+.enemyHealth220{
+
+    position:absolute;
+
+    width:30px;
+    height:4px;
+
+    left:-7px;
+    top:-15px;
+
+    background:#182027;
+
+    border-radius:4px;
+
+    overflow:hidden;
+
+}
+
+.enemyHealthBar220{
+
+    width:100%;
+    height:100%;
+
+    background:#d7dcde;
+
+    transition:
+        width .2s;
+
+}
+
+
+/* ================= ENEMY HUD ================= */
+
+#enemyHud220{
+
+    position:fixed;
+
+    right:12px;
+    top:330px;
+
+    width:min(220px,45vw);
+
+    padding:10px;
+
+    background:#03070de8;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:3000;
+
+}
+
+.enemyTitle220{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#enemyCount220,
+#enemyState220{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= COMBAT MESSAGE ================= */
+
+#enemyMessage220{
+
+    position:fixed;
+
+    left:50%;
+    top:45%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 18px;
+
+    background:#03070df2;
+
+    border:
+        1px solid #ffffff30;
+
+    border-radius:10px;
+
+    z-index:3600;
+
+    display:none;
+
+    font-size:10px;
+
+}
+
+#enemyMessage220.active{
+
+    display:block;
+
+    animation:
+        enemyMessage220 .2s;
+
+}
+
+@keyframes enemyMessage220{
+
+    from{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(.7);
+    }
+
+    to{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1);
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#enemyControls220{
+
+    position:fixed;
+
+    right:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:3100;
+
+}
+
+#enemyControls220 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ ENEMY WORLD
+ ===================================================== -->
+
+<div id="enemyWorld220">
+
+    <div
+        id="enemy220_1"
+        class="enemy220 idle"
+        style="left:35%;top:48%"
+        onclick="SpiderEnemy220.hit(1)">
+
+        <div class="enemyHealth220">
+
+            <div
+                id="enemyHealthBar220_1"
+                class="enemyHealthBar220">
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div
+        id="enemy220_2"
+        class="enemy220 idle"
+        style="left:55%;top:58%"
+        onclick="SpiderEnemy220.hit(2)">
+
+        <div class="enemyHealth220">
+
+            <div
+                id="enemyHealthBar220_2"
+                class="enemyHealthBar220">
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div
+        id="enemy220_3"
+        class="enemy220 idle"
+        style="left:68%;top:42%"
+        onclick="SpiderEnemy220.hit(3)">
+
+        <div class="enemyHealth220">
+
+            <div
+                id="enemyHealthBar220_3"
+                class="enemyHealthBar220">
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="enemyHud220">
+
+    <div class="enemyTitle220">
+        👤 ENEMY AI — V220
+    </div>
+
+    <div id="enemyCount220">
+        Enemies: 3
+    </div>
+
+    <div id="enemyState220">
+        State: IDLE
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ MESSAGE
+ ===================================================== -->
+
+<div id="enemyMessage220">
+    ⚠️ ENEMY ALERT
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="enemyControls220">
+
+    <button
+        onclick="SpiderEnemy220.spawn()">
+        👤 SPAWN
+    </button>
+
+    <button
+        onclick="SpiderEnemy220.alertAll()">
+        ⚠️ ALERT
+    </button>
+
+    <button
+        onclick="SpiderEnemy220.defeatAll()">
+        🕷️ DEFEAT
+    </button>
+
+    <button
+        onclick="SpiderEnemy220.reset()">
+        🔄 RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V220 ENEMY ENGINE
+ ===================================================== */
+
+const SpiderEnemy220={
+
+    enemies:{},
+
+    nextId:4,
+
+    state:"IDLE",
+
+    running:true,
+
+    aiTimer:null,
+
+    attackTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.register(
+            1,
+            100,
+            "IDLE"
+        );
+
+        this.register(
+            2,
+            100,
+            "IDLE"
+        );
+
+        this.register(
+            3,
+            100,
+            "IDLE"
+        );
+
+        this.startAI();
+
+        this.updateHUD();
+
+        this.message(
+            "👤 Enemy AI activated."
+        );
+
+    },
+
+
+    /* =========================
+       REGISTER
+    ========================= */
+
+    register(id,health,state){
+
+        this.enemies[id]={
+
+            id:id,
+
+            health:health,
+
+            state:state,
+
+            active:true
+
+        };
+
+    },
+
+
+    /* =========================
+       AI LOOP
+    ========================= */
+
+    startAI(){
+
+        clearInterval(
+            this.aiTimer
+        );
+
+        this.aiTimer=
+            setInterval(
+                ()=>{
+
+                    if(!this.running)
+                        return;
+
+                    Object.values(
+                        this.enemies
+                    ).forEach(
+                        enemy=>{
+
+                            if(
+                                !enemy.active
+                            )
+                                return;
+
+                            this.runAI(
+                                enemy
+                            );
+
+                        }
+                    );
+
+                },
+                900
+            );
+
+    },
+
+
+    /* =========================
+       RUN AI
+    ========================= */
+
+    runAI(enemy){
+
+        const element=
+            document.getElementById(
+                "enemy220_"+
+                enemy.id
+            );
+
+        if(!element)
+            return;
+
+
+        /*
+         * Random patrol while idle.
+         */
+
+        if(
+            enemy.state==="IDLE"
+        ){
+
+            this.randomMove(
+                element
+            );
+
+        }
+
+
+        /*
+         * Move toward player
+         * when alerted.
+         */
+
+        if(
+            enemy.state==="ALERT" ||
+            enemy.state==="CHASE"
+        ){
+
+            this.chasePlayer(
+                element,
+                enemy
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       RANDOM MOVE
+    ========================= */
+
+    randomMove(element){
+
+        let x=
+            parseFloat(
+                element.style.left
+            )||50;
+
+        let y=
+            parseFloat(
+                element.style.top
+            )||50;
+
+        x+=
+            (
+                Math.random()-
+                .5
+            )*5;
+
+        y+=
+            (
+                Math.random()-
+                .5
+            )*4;
+
+        element.style.left=
+            Math.max(
+                8,
+                Math.min(
+                    92,
+                    x
+                )
+            )+"%";
+
+        element.style.top=
+            Math.max(
+                35,
+                Math.min(
+                    88,
+                    y
+                )
+            )+"%";
+
+    },
+
+
+    /* =========================
+       CHASE PLAYER
+    ========================= */
+
+    chasePlayer(element,enemy){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+
+        const rect=
+            player.getBoundingClientRect();
+
+
+        const px=
+            rect.left/
+            window.innerWidth*
+            100;
+
+        const py=
+            rect.top/
+            window.innerHeight*
+            100;
+
+
+        let ex=
+            parseFloat(
+                element.style.left
+            )||50;
+
+        let ey=
+            parseFloat(
+                element.style.top
+            )||50;
+
+
+        ex+=
+            (px-ex)*.08;
+
+        ey+=
+            (py-ey)*.08;
+
+
+        element.style.left=
+            ex+"%";
+
+        element.style.top=
+            ey+"%";
+
+
+        const distance=
+            Math.sqrt(
+                Math.pow(
+                    px-ex,
+                    2
+                )+
+                Math.pow(
+                    py-ey,
+                    2
+                )
+            );
+
+
+        if(
+            distance<5
+        ){
+
+            enemy.state=
+                "ATTACK";
+
+            this.attack(enemy);
+
+        }else{
+
+            enemy.state=
+                "CHASE";
+
+        }
+
+
+        this.updateEnemyClass(
+            enemy
+        );
+
+    },
+
+
+    /* =========================
+       ATTACK
+    ========================= */
+
+    attack(enemy){
+
+        if(
+            !enemy.active
+        )
+            return;
+
+
+        enemy.state=
+            "ATTACK";
+
+
+        this.updateEnemyClass(
+            enemy
+        );
+
+
+        this.message(
+            "⚠️ Enemy attacking!"
+        );
+
+
+        /*
+         * Connect to player health
+         * if V214/V215 health system exists.
+         */
+
+        if(
+            typeof SpiderPlayer!==
+            "undefined" &&
+            typeof SpiderPlayer.damage===
+            "function"
+        ){
+
+            SpiderPlayer.damage(
+                5
+            );
+
+        }
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    enemy.active
+                ){
+
+                    enemy.state=
+                        "CHASE";
+
+                    this.updateEnemyClass(
+                        enemy
+                    );
+
+                }
+
+            },
+            700
+        );
+
+    },
+
+
+    /* =========================
+       HIT ENEMY
+    ========================= */
+
+    hit(id){
+
+        const enemy=
+            this.enemies[id];
+
+        if(
+            !enemy ||
+            !enemy.active
+        )
+            return;
+
+
+        enemy.health=
+            Math.max(
+                0,
+                enemy.health-25
+            );
+
+
+        this.updateHealth(
+            id,
+            enemy.health
+        );
+
+
+        if(
+            enemy.health===0
+        ){
+
+            this.defeat(
+                id
+            );
+
+            return;
+
+        }
+
+
+        enemy.state=
+            "ALERT";
+
+
+        this.updateEnemyClass(
+            enemy
+        );
+
+
+        this.message(
+            "🕷️ Enemy hit!"
+        );
+
+    },
+
+
+    /* =========================
+       DEFEAT
+    ========================= */
+
+    defeat(id){
+
+        const enemy=
+            this.enemies[id];
+
+        if(!enemy)
+            return;
+
+
+        enemy.health=0;
+
+        enemy.active=false;
+
+        enemy.state=
+            "DEFEATED";
+
+
+        const element=
+            document.getElementById(
+                "enemy220_"+
+                id
+            );
+
+
+        if(element){
+
+            element.classList.remove(
+                "idle",
+                "alert",
+                "chase"
+            );
+
+            element.classList.add(
+                "defeated"
+            );
+
+        }
+
+
+        this.updateHealth(
+            id,
+            0
+        );
+
+
+        this.message(
+            "✅ Enemy defeated."
+        );
+
+
+        /*
+         * Mission integration.
+         */
+
+        if(
+            typeof SpiderMissions!==
+            "undefined"
+        ){
+
+            SpiderMissions.progress=
+                Math.min(
+                    SpiderMissions.total,
+                    SpiderMissions.progress+
+                    .2
+                );
+
+            SpiderMissions.update();
+
+        }
+
+    },
+
+
+    /* =========================
+       ALERT ALL
+    ========================= */
+
+    alertAll(){
+
+        this.state=
+            "ALERT";
+
+
+        Object.values(
+            this.enemies
+        ).forEach(
+            enemy=>{
+
+                if(
+                    enemy.active
+                ){
+
+                    enemy.state=
+                        "ALERT";
+
+                    this.updateEnemyClass(
+                        enemy
+                    );
+
+                }
+
+            }
+        );
+
+
+        this.updateHUD();
+
+        this.message(
+            "⚠️ All enemies alerted!"
+        );
+
+    },
+
+
+    /* =========================
+       DEFEAT ALL
+    ========================= */
+
+    defeatAll(){
+
+        Object.keys(
+            this.enemies
+        ).forEach(
+            id=>{
+
+                this.defeat(
+                    Number(id)
+                );
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       SPAWN
+    ========================= */
+
+    spawn(){
+
+        const id=
+            this.nextId++;
+
+
+        const element=
+            document.createElement(
+                "div"
+            );
+
+
+        element.id=
+            "enemy220_"+id;
+
+        element.className=
+            "enemy220 idle";
+
+
+        element.style.left=
+            (
+                10+
+                Math.random()*80
+            )+
+            "%";
+
+
+        element.style.top=
+            (
+                35+
+                Math.random()*50
+            )+
+            "%";
+
+
+        element.onclick=
+            ()=>{
+                this.hit(id);
+            };
+
+
+        const health=
+            document.createElement(
+                "div"
+            );
+
+        health.className=
+            "enemyHealth220";
+
+
+        const healthBar=
+            document.createElement(
+                "div"
+            );
+
+        healthBar.id=
+            "enemyHealthBar220_"+id;
+
+        healthBar.className=
+            "enemyHealthBar220";
+
+
+        health.appendChild(
+            healthBar
+        );
+
+        element.appendChild(
+            health
+        );
+
+
+        document
+            .getElementById(
+                "enemyWorld220"
+            )
+            .appendChild(
+                element
+            );
+
+
+        this.register(
+            id,
+            100,
+            "IDLE"
+        );
+
+
+        this.updateHUD();
+
+        this.message(
+            "👤 Enemy spawned."
+        );
+
+    },
+
+
+    /* =========================
+       UPDATE CLASS
+    ========================= */
+
+    updateEnemyClass(enemy){
+
+        const element=
+            document.getElementById(
+                "enemy220_"+
+                enemy.id
+            );
+
+        if(!element)
+            return;
+
+
+        element.classList.remove(
+            "idle",
+            "alert",
+            "chase",
+            "defeated"
+        );
+
+
+        if(
+            enemy.state==="IDLE"
+        )
+            element.classList.add(
+                "idle"
+            );
+
+
+        if(
+            enemy.state==="ALERT"
+        )
+            element.classList.add(
+                "alert"
+            );
+
+
+        if(
+            enemy.state==="CHASE" ||
+            enemy.state==="ATTACK"
+        )
+            element.classList.add(
+                "chase"
+            );
+
+
+        if(
+            enemy.state==="DEFEATED"
+        )
+            element.classList.add(
+                "defeated"
+            );
+
+    },
+
+
+    /* =========================
+       HEALTH
+    ========================= */
+
+    updateHealth(id,health){
+
+        const bar=
+            document.getElementById(
+                "enemyHealthBar220_"+id
+            );
+
+        if(bar){
+
+            bar.style.width=
+                health+"%";
+
+        }
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const count=
+            document.getElementById(
+                "enemyCount220"
+            );
+
+        const state=
+            document.getElementById(
+                "enemyState220"
+            );
+
+
+        const active=
+            Object.values(
+                this.enemies
+            ).filter(
+                e=>e.active
+            ).length;
+
+
+        if(count){
+
+            count.textContent=
+                "Enemies: "+
+                active;
+
+        }
+
+
+        if(state){
+
+            state.textContent=
+                "State: "+
+                this.state;
+
+        }
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    reset(){
+
+        Object.values(
+            this.enemies
+        ).forEach(
+            enemy=>{
+
+                enemy.health=100;
+
+                enemy.active=true;
+
+                enemy.state="IDLE";
+
+                const element=
+                    document.getElementById(
+                        "enemy220_"+
+                        enemy.id
+                    );
+
+                if(element){
+
+                    element.className=
+                        "enemy220 idle";
+
+                }
+
+                this.updateHealth(
+                    enemy.id,
+                    100
+                );
+
+            }
+        );
+
+
+        this.state=
+            "IDLE";
+
+
+        this.updateHUD();
+
+        this.message(
+            "🔄 Enemy AI reset."
+        );
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        const message=
+            document.getElementById(
+                "enemyMessage220"
+            );
+
+
+        if(message){
+
+            message.textContent=
+                text;
+
+            message.classList.add(
+                "active"
+            );
+
+
+            clearTimeout(
+                this.messageTimer
+            );
+
+
+            this.messageTimer=
+                setTimeout(
+                    ()=>{
+
+                        message.classList.remove(
+                            "active"
+                        );
+
+                    },
+                    1400
+                );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V220
+ ===================================================== */
+
+SpiderEnemy220.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="z")
+            SpiderEnemy220.spawn();
+
+        if(key==="a")
+            SpiderEnemy220.alertAll();
+
+        if(key==="d")
+            SpiderEnemy220.defeatAll();
+
+    }
+);
