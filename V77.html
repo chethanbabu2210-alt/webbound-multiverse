@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V77</title>
+
+<style>
+
+#v77Sense{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+
+  width:150px;
+  height:150px;
+
+  border-radius:50%;
+
+  border:2px solid #ffffff25;
+
+  pointer-events:none;
+
+  z-index:8000;
+
+  display:none;
+}
+
+#v77Sense.active{
+  display:block;
+  animation:v77Pulse .7s infinite;
+}
+
+@keyframes v77Pulse{
+
+  0%{
+    transform:
+      translate(-50%,-50%)
+      scale(.75);
+
+    opacity:.25;
+  }
+
+  50%{
+    transform:
+      translate(-50%,-50%)
+      scale(1);
+
+    opacity:.9;
+  }
+
+  100%{
+    transform:
+      translate(-50%,-50%)
+      scale(1.15);
+
+    opacity:0;
+  }
+
+}
+
+#v77Warning{
+
+  position:fixed;
+
+  left:50%;
+  top:18%;
+
+  transform:translateX(-50%);
+
+  z-index:8500;
+
+  padding:12px 18px;
+
+  background:#05070ed9;
+
+  color:white;
+
+  border:1px solid #ffffff40;
+
+  border-radius:12px;
+
+  font:bold 14px Arial,sans-serif;
+
+  display:none;
+
+  pointer-events:none;
+
+}
+
+#v77HUD{
+
+  position:fixed;
+
+  left:15px;
+  top:15px;
+
+  z-index:8200;
+
+  padding:9px 12px;
+
+  background:#05070ed9;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:10px;
+
+  font:12px Arial,sans-serif;
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+     V77 SPIDER SENSE VISUAL
+     ========================================================= -->
+
+<div id="v77Sense"></div>
+
+
+<div id="v77Warning">
+  ⚠️ SPIDER-SENSE
+</div>
+
+
+<div id="v77HUD">
+  🕷️ Spider-Sense:
+  <span id="v77State">READY</span>
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V77
+   SPIDER-SENSE SYSTEM
+   ========================================================= */
+
+const V77 = {
+
+  version:"V77",
+
+  enabled:true,
+
+  active:false,
+
+  intensity:0,
+
+  range:35,
+
+  cooldown:false,
+
+  threats:[],
+
+
+  /* =======================================================
+     ENABLE / DISABLE
+     ======================================================= */
+
+  enable(){
+
+    this.enabled=true;
+
+    this.updateHUD();
+
+  },
+
+
+  disable(){
+
+    this.enabled=false;
+
+    this.deactivate();
+
+    this.updateHUD();
+
+  },
+
+
+  toggle(){
+
+    if(this.enabled){
+
+      this.disable();
+
+    }
+    else{
+
+      this.enable();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ACTIVATE SPIDER-SENSE
+     ======================================================= */
+
+  activate(threat=null){
+
+    if(!this.enabled){
+
+      return;
+
+    }
+
+    if(this.cooldown){
+
+      return;
+
+    }
+
+
+    this.active=true;
+
+    this.intensity=1;
+
+
+    if(threat){
+
+      if(
+        !this.threats.includes(threat)
+      ){
+
+        this.threats.push(threat);
+
+      }
+
+    }
+
+
+    const effect=
+      document.getElementById(
+        "v77Sense"
+      );
+
+    const warning=
+      document.getElementById(
+        "v77Warning"
+      );
+
+
+    if(effect){
+
+      effect.classList.add(
+        "active"
+      );
+
+    }
+
+
+    if(warning){
+
+      warning.style.display=
+        "block";
+
+    }
+
+
+    this.updateHUD();
+
+
+    /*
+      Short pulse instead of staying
+      permanently active.
+    */
+
+    setTimeout(
+      ()=>{
+        this.deactivate();
+      },
+      900
+    );
+
+
+    this.cooldown=true;
+
+
+    setTimeout(
+      ()=>{
+        this.cooldown=false;
+      },
+      250
+    );
+
+  },
+
+
+  /* =======================================================
+     DEACTIVATE
+     ======================================================= */
+
+  deactivate(){
+
+    this.active=false;
+
+    this.intensity=0;
+
+
+    const effect=
+      document.getElementById(
+        "v77Sense"
+      );
+
+    const warning=
+      document.getElementById(
+        "v77Warning"
+      );
+
+
+    if(effect){
+
+      effect.classList.remove(
+        "active"
+      );
+
+    }
+
+
+    if(warning){
+
+      warning.style.display=
+        "none";
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     REGISTER THREAT
+     ======================================================= */
+
+  registerThreat(threat){
+
+    if(!threat){
+
+      return;
+
+    }
+
+
+    if(
+      !this.threats.includes(threat)
+    ){
+
+      this.threats.push(
+        threat
+      );
+
+    }
+
+
+    this.activate(
+      threat
+    );
+
+  },
+
+
+  /* =======================================================
+     REMOVE THREAT
+     ======================================================= */
+
+  removeThreat(threat){
+
+    const index=
+      this.threats.indexOf(
+        threat
+      );
+
+
+    if(index!==-1){
+
+      this.threats.splice(
+        index,
+        1
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CLEAR THREATS
+     ======================================================= */
+
+  clearThreats(){
+
+    this.threats=[];
+
+    this.deactivate();
+
+  },
+
+
+  /* =======================================================
+     DISTANCE CHECK
+     ======================================================= */
+
+  checkDistance(
+    x,
+    y,
+    z
+  ){
+
+    if(
+      typeof player==="undefined" ||
+      !player ||
+      !player.position
+    ){
+
+      return false;
+
+    }
+
+
+    const dx=
+      player.position.x-
+      Number(x||0);
+
+    const dy=
+      player.position.y-
+      Number(y||0);
+
+    const dz=
+      player.position.z-
+      Number(z||0);
+
+
+    const distance=
+      Math.sqrt(
+        dx*dx+
+        dy*dy+
+        dz*dz
+      );
+
+
+    if(
+      distance<=this.range
+    ){
+
+      this.activate(
+        "nearby"
+      );
+
+      return true;
+
+    }
+
+
+    return false;
+
+  },
+
+
+  /* =======================================================
+     ATTACK WARNING
+     ======================================================= */
+
+  incomingAttack(){
+
+    this.activate(
+      "attack"
+    );
+
+
+    this.message(
+      "⚠️ Incoming danger!"
+    );
+
+  },
+
+
+  /* =======================================================
+     DANGER WARNING
+     ======================================================= */
+
+  danger(){
+
+    this.activate(
+      "danger"
+    );
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(
+        text
+      );
+
+      return;
+
+    }
+
+
+    console.log(
+      text
+    );
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const state=
+      document.getElementById(
+        "v77State"
+      );
+
+
+    if(!state){
+
+      return;
+
+    }
+
+
+    if(!this.enabled){
+
+      state.textContent=
+        "OFF";
+
+      return;
+
+    }
+
+
+    if(this.active){
+
+      state.textContent=
+        "⚠️ DANGER";
+
+    }
+    else{
+
+      state.textContent=
+        "READY";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE DATA
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      enabled:
+        this.enabled,
+
+      range:
+        this.range
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.enabled==="boolean"
+    ){
+
+      this.enabled=
+        data.enabled;
+
+    }
+
+
+    if(
+      typeof data.range==="number"
+    ){
+
+      this.range=
+        Math.max(
+          1,
+          Math.min(
+            200,
+            data.range
+          )
+        );
+
+    }
+
+
+    this.updateHUD();
+
+  }
+
+};
+
+
+/* =========================================================
+   SAVE / LOAD
+   ========================================================= */
+
+const V77_SAVE_KEY=
+  "WEBBOUND_V77_SPIDER_SENSE";
+
+
+function V77Save(){
+
+  try{
+
+    localStorage.setItem(
+      V77_SAVE_KEY,
+      JSON.stringify(
+        V77.collect()
+      )
+    );
+
+  }
+  catch(error){
+
+    console.error(
+      "V77 SAVE ERROR:",
+      error
+    );
+
+  }
+
+}
+
+
+function V77Load(){
+
+  try{
+
+    const raw=
+      localStorage.getItem(
+        V77_SAVE_KEY
+      );
+
+
+    if(!raw){
+
+      return;
+
+    }
+
+
+    V77.apply(
+      JSON.parse(raw)
+    );
+
+  }
+  catch(error){
+
+    console.error(
+      "V77 LOAD ERROR:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   COMPATIBILITY WITH V60 SAVE SYSTEM
+   ========================================================= */
+
+if(
+  typeof V60!=="undefined" &&
+  typeof V60.collect==="function"
+){
+
+  const originalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      originalCollect();
+
+
+    data.v77=
+      V77.collect();
+
+
+    return data;
+
+  };
+
+
+  if(
+    typeof V60.apply==="function"
+  ){
+
+    const originalApply=
+      V60.apply.bind(V60);
+
+
+    V60.apply=function(data){
+
+      originalApply(
+        data
+      );
+
+
+      if(
+        data &&
+        data.v77
+      ){
+
+        V77.apply(
+          data.v77
+        );
+
+      }
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      B = Spider-Sense toggle
+    */
+
+    if(
+      event.code==="KeyB"
+    ){
+
+      event.preventDefault();
+
+      V77.toggle();
+
+    }
+
+
+    /*
+      Space can trigger a manual
+      danger pulse while playing.
+    */
+
+    if(
+      event.code==="Space" &&
+      !event.repeat
+    ){
+
+      V77.activate(
+        "manual"
+      );
+
+    }
+
+
+    /*
+      Escape clears the current pulse.
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V77.deactivate();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+V77Load();
+
+V77.updateHUD();
+
+
+/* =========================================================
+   PERIODIC SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V77Save();
+  },
+  30000
+);
+
+
+console.log(
+  "WEBBOUND V77 SPIDER-SENSE SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
