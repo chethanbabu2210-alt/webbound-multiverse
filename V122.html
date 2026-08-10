@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V122</title>
+
+<style>
+
+#v122HUD{
+  position:fixed;
+  right:12px;
+  top:120px;
+  z-index:15800;
+  width:min(270px,68vw);
+  padding:14px;
+  background:#05070eeb;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v122Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v122Info{
+  margin-top:8px;
+  font-size:10px;
+  line-height:1.6;
+  opacity:.8;
+}
+
+#v122Controls{
+  display:flex;
+  gap:5px;
+  margin-top:10px;
+}
+
+#v122Controls button{
+  flex:1;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v122Dialogue{
+  position:fixed;
+  left:50%;
+  bottom:5%;
+  transform:translateX(-50%);
+  z-index:16000;
+  width:min(470px,90vw);
+  padding:16px;
+  background:#05070ef8;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:15px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+  display:none;
+}
+
+#v122Speaker{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v122Relationship{
+  margin-top:4px;
+  font-size:9px;
+  opacity:.6;
+}
+
+#v122Text{
+  margin-top:10px;
+  font-size:11px;
+  line-height:1.55;
+}
+
+#v122Choices{
+  margin-top:12px;
+}
+
+.v122Choice{
+  width:100%;
+  padding:9px;
+  margin-top:6px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:9px;
+  text-align:left;
+  font-size:10px;
+}
+
+.v122Choice:active{
+  transform:scale(.98);
+}
+
+#v122Close{
+  width:100%;
+  margin-top:10px;
+  padding:8px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:9px;
+  font-size:9px;
+}
+
+#v122Message{
+  position:fixed;
+  left:50%;
+  top:24%;
+  transform:translateX(-50%);
+  z-index:16100;
+  display:none;
+  max-width:88%;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 11px Arial,sans-serif;
+  text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V122
+     NPC DIALOGUE + CHOICE SYSTEM
+     ========================================================= -->
+
+<div id="v122HUD">
+
+  <div id="v122Title">
+    💬 DIALOGUE SYSTEM
+  </div>
+
+  <div id="v122Info">
+    Conversations: 0<br>
+    Choices Made: 0<br>
+    NPC Relationship: 0
+  </div>
+
+  <div id="v122Controls">
+
+    <button onclick="V122.talkNearby()">
+      💬 TALK
+    </button>
+
+    <button onclick="V122.closeDialogue()">
+      ❌ CLOSE
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="v122Dialogue">
+
+  <div id="v122Speaker">
+    NPC
+  </div>
+
+  <div id="v122Relationship">
+    Relationship: 0
+  </div>
+
+  <div id="v122Text">
+    Hello.
+  </div>
+
+  <div id="v122Choices"></div>
+
+  <button
+    id="v122Close"
+    onclick="V122.closeDialogue()">
+    CLOSE
+  </button>
+
+</div>
+
+
+<div id="v122Message">
+  V122
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V122
+   DIALOGUE SYSTEM
+   ========================================================= */
+
+const V122 = {
+
+  version:"V122",
+
+  saveKey:
+    "WEBBOUND_V122_DIALOGUE",
+
+  conversations:0,
+
+  choicesMade:0,
+
+  currentNPC:null,
+
+  currentNode:null,
+
+  relationship:{},
+
+  history:[],
+
+  messageTimer:null,
+
+
+  /* =======================================================
+     DIALOGUE DATABASE
+     ======================================================= */
+
+  dialogues:{
+
+    Civilian:{
+
+      start:{
+
+        text:
+          "Hey! I don't think I've seen you around here before.",
+
+        choices:[
+
+          {
+            text:
+              "I'm just exploring the city.",
+
+            relationship:1,
+
+            next:
+              "friendly"
+
+          },
+
+          {
+            text:
+              "None of your business.",
+
+            relationship:-1,
+
+            next:
+              "cold"
+
+          },
+
+          {
+            text:
+              "Do you know anything about this area?",
+
+            relationship:2,
+
+            next:
+              "help"
+
+          }
+
+        ]
+
+      },
+
+
+      friendly:{
+
+        text:
+          "That's cool. There are plenty of interesting places around here.",
+
+        choices:[
+
+          {
+            text:
+              "Thanks for the information.",
+
+            relationship:1,
+
+            next:
+              "end"
+
+          },
+
+          {
+            text:
+              "Anything I should avoid?",
+
+            relationship:1,
+
+            next:
+              "warning"
+
+          }
+
+        ]
+
+      },
+
+
+      cold:{
+
+        text:
+          "Alright... I was only trying to help.",
+
+        choices:[
+
+          {
+            text:
+              "Sorry. I didn't mean that.",
+
+            relationship:2,
+
+            next:
+              "friendly"
+
+          },
+
+          {
+            text:
+              "Goodbye.",
+
+            relationship:-1,
+
+            next:
+              "end"
+
+          }
+
+        ]
+
+      },
+
+
+      help:{
+
+        text:
+          "The central district is usually busy. You might find useful people there.",
+
+        choices:[
+
+          {
+            text:
+              "Thanks. I'll check it out.",
+
+            relationship:2,
+
+            next:
+              "end"
+
+          },
+
+          {
+            text:
+              "Can you come with me?",
+
+            relationship:1,
+
+            next:
+              "companion"
+
+          }
+
+        ]
+
+      },
+
+
+      warning:{
+
+        text:
+          "Be careful around places where trouble usually starts.",
+
+        choices:[
+
+          {
+            text:
+              "I'll remember that.",
+
+            relationship:1,
+
+            next:
+              "end"
+
+          }
+
+        ]
+
+      },
+
+
+      companion:{
+
+        text:
+          "Maybe later. I have something I need to finish first.",
+
+        choices:[
+
+          {
+            text:
+              "No problem.",
+
+            relationship:1,
+
+            next:
+              "end"
+
+          }
+
+        ]
+
+      },
+
+
+      end:{
+
+        text:
+          "Take care.",
+
+        choices:[]
+
+      }
+
+    },
+
+
+    Worker:{
+
+      start:{
+
+        text:
+          "I'm busy working right now. What do you need?",
+
+        choices:[
+
+          {
+            text:
+              "I need directions.",
+
+            relationship:1,
+
+            next:
+              "directions"
+
+          },
+
+          {
+            text:
+              "Nothing. Have a good day.",
+
+            relationship:1,
+
+            next:
+              "end"
+
+          }
+
+        ]
+
+      },
+
+
+      directions:{
+
+        text:
+          "Follow the main road and you'll eventually reach the central district.",
+
+        choices:[
+
+          {
+            text:
+              "Thank you.",
+
+            relationship:2,
+
+            next:
+              "end"
+
+          }
+
+        ]
+
+      },
+
+
+      end:{
+
+        text:
+          "Stay safe out there.",
+
+        choices:[]
+
+      }
+
+    },
+
+
+    Student:{
+
+      start:{
+
+        text:
+          "Hey! Are you looking for something?",
+
+        choices:[
+
+          {
+            text:
+              "Just looking around.",
+
+            relationship:1,
+
+            next:
+              "end"
+
+          },
+
+          {
+            text:
+              "Do you know where the shops are?",
+
+            relationship:2,
+
+            next:
+              "shops"
+
+          }
+
+        ]
+
+      },
+
+
+      shops:{
+
+        text:
+          "There are several shops near the main street.",
+
+        choices:[
+
+          {
+            text:
+              "Thanks!",
+
+            relationship:1,
+
+            next:
+              "end"
+
+          }
+
+        ]
+
+      },
+
+
+      end:{
+
+        text:
+          "See you around.",
+
+        choices:[]
+
+      }
+
+    },
+
+
+    Shopkeeper:{
+
+      start:{
+
+        text:
+          "Welcome! Looking for something?",
+
+        choices:[
+
+          {
+            text:
+              "I'm just browsing.",
+
+            relationship:1,
+
+            next:
+              "browse"
+
+          },
+
+          {
+            text:
+              "Can you tell me about this area?",
+
+            relationship:2,
+
+            next:
+              "area"
+
+          }
+
+        ]
+
+      },
+
+
+      browse:{
+
+        text:
+          "Take your time. Let me know if you need anything.",
+
+        choices:[
+
+          {
+            text:
+              "Thanks.",
+
+            relationship:1,
+
+            next:
+              "end"
+
+          }
+
+        ]
+
+      },
+
+
+      area:{
+
+        text:
+          "This part of the city has been growing quickly.",
+
+        choices:[
+
+          {
+            text:
+              "Interesting.",
+
+            relationship:1,
+
+            next:
+              "end"
+
+          }
+
+        ]
+
+      },
+
+
+      end:{
+
+        text:
+          "Come back anytime.",
+
+        choices:[]
+
+      }
+
+    },
+
+
+    Police:{
+
+      start:{
+
+        text:
+          "Everything alright, citizen?",
+
+        choices:[
+
+          {
+            text:
+              "Everything is fine.",
+
+            relationship:1,
+
+            next:
+              "fine"
+
+          },
+
+          {
+            text:
+              "I'm looking for information.",
+
+            relationship:1,
+
+            next:
+              "information"
+
+          }
+
+        ]
+
+      },
+
+
+      fine:{
+
+        text:
+          "Good. Keep the streets peaceful.",
+
+        choices:[]
+
+      },
+
+
+      information:{
+
+        text:
+          "If you need help, report it through the proper channels.",
+
+        choices:[
+
+          {
+            text:
+              "Understood.",
+
+            relationship:1,
+
+            next:
+              "fine"
+
+          }
+
+        ]
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V122 DIALOGUE SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     TALK TO NEARBY NPC
+     ======================================================= */
+
+  talkNearby(){
+
+    let npc=null;
+
+
+    /*
+      Connect to V120.
+    */
+
+    if(
+      typeof V120!=="undefined" &&
+      V120.nearbyNPC
+    ){
+
+      npc=
+        V120.nearbyNPC;
+
+    }
+
+
+    if(!npc){
+
+      this.message(
+        "💬 No NPC nearby."
+      );
+
+      return false;
+
+    }
+
+
+    return this.startConversation(
+      npc
+    );
+
+  },
+
+
+  /* =======================================================
+     START CONVERSATION
+     ======================================================= */
+
+  startConversation(npc){
+
+    if(!npc){
+
+      return false;
+
+    }
+
+
+    this.currentNPC=
+      npc;
+
+
+    this.currentNode=
+      "start";
+
+
+    this.conversations++;
+
+
+    this.addHistory(
+      npc,
+      "START",
+      ""
+    );
+
+
+    this.renderNode();
+
+
+    this.updateHUD();
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     GET DIALOGUE TREE
+     ======================================================= */
+
+  getTree(npc){
+
+    if(
+      !npc
+    ){
+
+      return null;
+
+    }
+
+
+    let tree=
+      this.dialogues[
+        npc.type
+      ];
+
+
+    if(!tree){
+
+      tree=
+        this.dialogues.Civilian;
+
+    }
+
+
+    return tree;
+
+  },
+
+
+  /* =======================================================
+     RENDER NODE
+     ======================================================= */
+
+  renderNode(){
+
+    if(
+      !this.currentNPC
+    ){
+
+      return;
+
+    }
+
+
+    const tree=
+      this.getTree(
+        this.currentNPC
+      );
+
+
+    if(!tree){
+
+      return;
+
+    }
+
+
+    const node=
+      tree[
+        this.currentNode
+      ];
+
+
+    if(!node){
+
+      this.closeDialogue();
+
+      return;
+
+    }
+
+
+    const dialogue=
+      document.getElementById(
+        "v122Dialogue"
+      );
+
+
+    const speaker=
+      document.getElementById(
+        "v122Speaker"
+      );
+
+
+    const relationship=
+      document.getElementById(
+        "v122Relationship"
+      );
+
+
+    const text=
+      document.getElementById(
+        "v122Text"
+      );
+
+
+    const choices=
+      document.getElementById(
+        "v122Choices"
+      );
+
+
+    if(!dialogue){
+
+      return;
+
+    }
+
+
+    if(speaker){
+
+      speaker.textContent=
+        this.currentNPC.name+
+        " • "+
+        this.currentNPC.type;
+
+    }
+
+
+    if(
+      relationship
+    ){
+
+      relationship.textContent=
+        "Relationship: "+
+        this.getRelationship(
+          this.currentNPC.id
+        );
+
+    }
+
+
+    if(text){
+
+      text.textContent=
+        node.text;
+
+    }
+
+
+    if(choices){
+
+      choices.innerHTML="";
+
+
+      if(
+        !node.choices ||
+        node.choices.length===0
+      ){
+
+        const endButton=
+          document.createElement(
+            "button"
+          );
+
+
+        endButton.className=
+          "v122Choice";
+
+
+        endButton.textContent=
+          "End conversation";
+
+
+        endButton.onclick=
+          ()=>{
+            this.closeDialogue();
+          };
+
+
+        choices.appendChild(
+          endButton
+        );
+
+      }
+      else{
+
+        node.choices.forEach(
+          (choice,index)=>{
+
+            const button=
+              document.createElement(
+                "button"
+              );
+
+
+            button.className=
+              "v122Choice";
+
+
+            button.textContent=
+              (
+                index+1
+              )+
+              ". "+
+              choice.text;
+
+
+            button.onclick=
+              ()=>{
+                this.choose(
+                  choice
+                );
+              };
+
+
+            choices.appendChild(
+              button
+            );
+
+          }
+        );
+
+      }
+
+    }
+
+
+    dialogue.style.display=
+      "block";
+
+  },
+
+
+  /* =======================================================
+     CHOOSE DIALOGUE OPTION
+     ======================================================= */
+
+  choose(choice){
+
+    if(
+      !choice ||
+      !this.currentNPC
+    ){
+
+      return false;
+
+    }
+
+
+    const npc=
+      this.currentNPC;
+
+
+    const relationship=
+      Number(
+        choice.relationship
+      )||
+      0;
+
+
+    this.addRelationship(
+      npc.id,
+      relationship
+    );
+
+
+    this.choicesMade++;
+
+
+    this.addHistory(
+      npc,
+      choice.text,
+      relationship
+    );
+
+
+    /*
+      Mission connection.
+    */
+
+    if(
+      typeof V121!=="undefined" &&
+      typeof V121.objective==="function"
+    ){
+
+      V121.objective();
+
+    }
+
+
+    if(
+      choice.next
+    ){
+
+      this.currentNode=
+        choice.next;
+
+    }
+    else{
+
+      this.closeDialogue();
+
+      this.save();
+
+      return true;
+
+    }
+
+
+    this.save();
+
+    this.updateHUD();
+
+    this.renderNode();
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     RELATIONSHIP
+     ======================================================= */
+
+  getRelationship(id){
+
+    const key=
+      String(id);
+
+
+    return(
+      Number(
+        this.relationship[key]
+      )||
+      0
+    );
+
+  },
+
+
+  addRelationship(id,value){
+
+    const key=
+      String(id);
+
+
+    const oldValue=
+      this.getRelationship(
+        id
+      );
+
+
+    this.relationship[key]=
+      Math.max(
+        -100,
+        Math.min(
+          100,
+          oldValue+
+          (
+            Number(value)||
+            0
+          )
+        )
+      );
+
+  },
+
+
+  /* =======================================================
+     HISTORY
+     ======================================================= */
+
+  addHistory(
+    npc,
+    choice,
+    relationship
+  ){
+
+    this.history.push({
+
+      npcId:
+        npc.id,
+
+      npcName:
+        npc.name,
+
+      choice:
+        choice,
+
+      relationship:
+        Number(
+          relationship
+        )||
+        0,
+
+      time:
+        new Date().toISOString()
+
+    });
+
+
+    /*
+      Keep save size reasonable.
+    */
+
+    if(
+      this.history.length>100
+    ){
+
+      this.history=
+        this.history.slice(
+          -100
+        );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CLOSE
+     ======================================================= */
+
+  closeDialogue(){
+
+    const dialogue=
+      document.getElementById(
+        "v122Dialogue"
+      );
+
+
+    if(dialogue){
+
+      dialogue.style.display=
+        "none";
+
+    }
+
+
+    this.currentNPC=
+      null;
+
+    this.currentNode=
+      null;
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const info=
+      document.getElementById(
+        "v122Info"
+      );
+
+
+    if(!info){
+
+      return;
+
+    }
+
+
+    let totalRelationship=0;
+
+
+    Object.keys(
+      this.relationship
+    ).forEach(
+      id=>{
+
+        totalRelationship+=
+          Number(
+            this.relationship[id]
+          )||
+          0;
+
+      }
+    );
+
+
+    info.innerHTML=
+
+      "Conversations: "+
+      this.conversations+
+      "<br>"+
+
+      "Choices Made: "+
+      this.choicesMade+
+      "<br>"+
+
+      "NPC Relationship: "+
+      totalRelationship;
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      conversations:
+        this.conversations,
+
+      choicesMade:
+        this.choicesMade,
+
+      relationship:
+        this.relationship,
+
+      history:
+        this.history
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V122 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(
+          raw
+        );
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      this.conversations=
+        Number(
+          data.conversations
+        )||
+        0;
+
+
+      this.choicesMade=
+        Number(
+          data.choicesMade
+        )||
+        0;
+
+
+      if(
+        data.relationship &&
+        typeof data.relationship==="object"
+      ){
+
+        this.relationship=
+          data.relationship;
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.history
+        )
+      ){
+
+        this.history=
+          data.history.slice(
+            -100
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V122 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.conversations=
+      Number(
+        data.conversations
+      )||
+      0;
+
+
+    this.choicesMade=
+      Number(
+        data.choicesMade
+      )||
+      0;
+
+
+    this.relationship=
+      data.relationship &&
+      typeof data.relationship==="object"
+
+      ? data.relationship
+
+      : {};
+
+
+    this.history=
+      Array.isArray(
+        data.history
+      )
+
+      ? data.history.slice(-100)
+
+      : [];
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v122Message"
+      );
+
+
+    if(box){
+
+      box.textC
