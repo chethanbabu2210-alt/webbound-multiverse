@@ -1,0 +1,948 @@
+<!-- =====================================================
+ V214 — WEB SWINGING & TRAVERSAL SYSTEM
+ Add after V213
+ ===================================================== -->
+
+<style>
+
+/* ================= SWING HUD ================= */
+
+#swingHud{
+    position:fixed;
+
+    right:12px;
+    bottom:120px;
+
+    width:min(230px,48vw);
+
+    padding:9px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:2600;
+}
+
+.swingTitle{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#swingStatus{
+    margin-top:5px;
+    font-size:8px;
+}
+
+#swingDistance{
+    margin-top:4px;
+    font-size:8px;
+    opacity:.7;
+}
+
+
+/* ================= WEB LINE ================= */
+
+.webLine{
+    position:fixed;
+
+    height:2px;
+
+    background:#e7edf0;
+
+    transform-origin:left center;
+
+    z-index:1800;
+
+    pointer-events:none;
+
+    display:none;
+
+    box-shadow:
+        0 0 4px #ffffff88;
+}
+
+
+/* ================= SWING POINT ================= */
+
+.swingPoint{
+    position:absolute;
+
+    width:13px;
+    height:13px;
+
+    border:2px solid #fff;
+
+    border-radius:50%;
+
+    z-index:600;
+
+    animation:
+        swingPointPulse .7s infinite alternate;
+
+    cursor:pointer;
+}
+
+@keyframes swingPointPulse{
+
+    from{
+        transform:scale(.8);
+        opacity:.5;
+    }
+
+    to{
+        transform:scale(1.2);
+        opacity:1;
+    }
+
+}
+
+
+/* ================= SWING EFFECT ================= */
+
+.swinging{
+    animation:
+        swingBody .45s infinite alternate;
+}
+
+@keyframes swingBody{
+
+    from{
+        transform:
+            rotate(-4deg)
+            translateY(-3px);
+    }
+
+    to{
+        transform:
+            rotate(4deg)
+            translateY(3px);
+    }
+
+}
+
+
+/* ================= TRAVERSAL CONTROLS ================= */
+
+#swingControls{
+    position:fixed;
+
+    left:50%;
+    bottom:20px;
+
+    transform:translateX(-50%);
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:5px;
+
+    z-index:2700;
+
+    width:min(420px,90vw);
+}
+
+#swingControls button{
+
+    padding:8px 4px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+}
+
+#swingControls button:active{
+    transform:scale(.93);
+}
+
+</style>
+
+
+<!-- =====================================================
+ SWING HUD
+ ===================================================== -->
+
+<div id="swingHud">
+
+    <div class="swingTitle">
+        🕸️ WEB TRAVERSAL — V214
+    </div>
+
+    <div id="swingStatus">
+        Status: READY
+    </div>
+
+    <div id="swingDistance">
+        Anchor: NONE
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ SWING POINTS
+ ===================================================== -->
+
+<div
+    id="swingPoint1"
+    class="swingPoint"
+    style="left:18%;top:22%"
+    onclick="SpiderTraversal.attach(1)">
+</div>
+
+<div
+    id="swingPoint2"
+    class="swingPoint"
+    style="left:48%;top:15%"
+    onclick="SpiderTraversal.attach(2)">
+</div>
+
+<div
+    id="swingPoint3"
+    class="swingPoint"
+    style="left:78%;top:25%"
+    onclick="SpiderTraversal.attach(3)">
+</div>
+
+
+<!-- =====================================================
+ WEB LINE
+ ===================================================== -->
+
+<div id="webLine" class="webLine"></div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="swingControls">
+
+    <button onclick="SpiderTraversal.attachNearest()">
+        🕸️ SWING
+    </button>
+
+    <button onclick="SpiderTraversal.release()">
+        ✋ RELEASE
+    </button>
+
+    <button onclick="SpiderTraversal.launch()">
+        🚀 LAUNCH
+    </button>
+
+    <button onclick="SpiderTraversal.stop()">
+        ⏹️ STOP
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V214 WEB TRAVERSAL ENGINE
+ ===================================================== */
+
+const SpiderTraversal={
+
+    active:false,
+
+    anchor:null,
+
+    velocityX:0,
+
+    velocityY:0,
+
+    swingPower:1,
+
+    maxSpeed:4,
+
+    tick:null,
+
+    points:{
+
+        1:{
+            x:18,
+            y:22
+        },
+
+        2:{
+            x:48,
+            y:15
+        },
+
+        3:{
+            x:78,
+            y:25
+        }
+
+    },
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateStatus(
+            "Status: READY"
+        );
+
+        this.bindKeys();
+
+    },
+
+
+    /* =========================
+       ATTACH
+    ========================= */
+
+    attach(id){
+
+        const point=
+            this.points[id];
+
+        if(!point)
+            return;
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player){
+
+            this.message(
+                "Spider-Man element not found."
+            );
+
+            return;
+
+        }
+
+        this.anchor=id;
+
+        this.active=true;
+
+        this.velocityX=0;
+
+        this.velocityY=0;
+
+        player.classList.add(
+            "swinging"
+        );
+
+        this.showWebLine();
+
+        this.updateStatus(
+            "Status: SWINGING"
+        );
+
+        this.updateDistance();
+
+        this.startLoop();
+
+        this.message(
+            "🕸️ Web attached!"
+        );
+
+    },
+
+
+    /* =========================
+       NEAREST
+    ========================= */
+
+    attachNearest(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+        const rect=
+            player.getBoundingClientRect();
+
+        const px=
+            rect.left/
+            window.innerWidth*
+            100;
+
+        const py=
+            rect.top/
+            window.innerHeight*
+            100;
+
+        let best=null;
+
+        let bestDistance=
+            Infinity;
+
+        Object.keys(
+            this.points
+        ).forEach(
+            id=>{
+
+                const point=
+                    this.points[id];
+
+                const dx=
+                    point.x-px;
+
+                const dy=
+                    point.y-py;
+
+                const distance=
+                    Math.sqrt(
+                        dx*dx+
+                        dy*dy
+                    );
+
+                if(
+                    distance<
+                    bestDistance
+                ){
+
+                    bestDistance=
+                        distance;
+
+                    best=
+                        Number(id);
+
+                }
+
+            }
+        );
+
+        if(best!==null)
+            this.attach(best);
+
+    },
+
+
+    /* =========================
+       RELEASE
+    ========================= */
+
+    release(){
+
+        if(!this.active){
+
+            this.message(
+                "No active web line."
+            );
+
+            return;
+
+        }
+
+        this.active=false;
+
+        this.anchor=null;
+
+        this.hideWebLine();
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(player){
+
+            player.classList.remove(
+                "swinging"
+            );
+
+        }
+
+        this.velocityX=
+            Math.random()*
+            2-1;
+
+        this.velocityY=
+            -2;
+
+        this.updateStatus(
+            "Status: AIRBORNE"
+        );
+
+        this.message(
+            "🕷️ WEB RELEASE!"
+        );
+
+        this.startAirMovement();
+
+    },
+
+
+    /* =========================
+       LAUNCH
+    ========================= */
+
+    launch(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+        this.velocityY=
+            -4;
+
+        this.velocityX=
+            this.velocityX||
+            2;
+
+        this.updateStatus(
+            "Status: LAUNCHING"
+        );
+
+        this.message(
+            "🚀 WEB LAUNCH!"
+        );
+
+        this.startAirMovement();
+
+    },
+
+
+    /* =========================
+       STOP
+    ========================= */
+
+    stop(){
+
+        this.active=false;
+
+        this.anchor=null;
+
+        this.velocityX=0;
+
+        this.velocityY=0;
+
+        clearInterval(
+            this.tick
+        );
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(player){
+
+            player.classList.remove(
+                "swinging"
+            );
+
+        }
+
+        this.hideWebLine();
+
+        this.updateStatus(
+            "Status: READY"
+        );
+
+    },
+
+
+    /* =========================
+       SWING LOOP
+    ========================= */
+
+    startLoop(){
+
+        clearInterval(
+            this.tick
+        );
+
+        this.tick=
+            setInterval(
+                ()=>{
+
+                    if(!this.active){
+
+                        clearInterval(
+                            this.tick
+                        );
+
+                        return;
+
+                    }
+
+                    this.swingStep();
+
+                },
+                50
+            );
+
+    },
+
+
+    /* =========================
+       SWING STEP
+    ========================= */
+
+    swingStep(){
+
+        this.velocityX+=
+            (
+                Math.random()-
+                .5
+            )*.08;
+
+        this.velocityX=
+            Math.max(
+                -this.maxSpeed,
+                Math.min(
+                    this.maxSpeed,
+                    this.velocityX
+                )
+            );
+
+        this.updateWebLine();
+
+        this.updateDistance();
+
+    },
+
+
+    /* =========================
+       AIR MOVEMENT
+    ========================= */
+
+    startAirMovement(){
+
+        clearInterval(
+            this.tick
+        );
+
+        this.tick=
+            setInterval(
+                ()=>{
+
+                    const player=
+                        document.getElementById(
+                            "spiderman"
+                        );
+
+                    if(!player){
+
+                        clearInterval(
+                            this.tick
+                        );
+
+                        return;
+
+                    }
+
+                    this.velocityY+=
+                        .12;
+
+                    this.velocityY=
+                        Math.min(
+                            this.velocityY,
+                            3
+                        );
+
+                    const left=
+                        parseFloat(
+                            player.style.left
+                        )||50;
+
+                    const top=
+                        parseFloat(
+                            player.style.top
+                        )||60;
+
+                    player.style.left=
+                        Math.max(
+                            2,
+                            Math.min(
+                                98,
+                                left+
+                                this.velocityX*.15
+                            )
+                        )+"%";
+
+                    player.style.top=
+                        Math.max(
+                            10,
+                            Math.min(
+                                88,
+                                top+
+                                this.velocityY*.15
+                            )
+                        )+"%";
+
+                    if(
+                        parseFloat(
+                            player.style.top
+                        )>=88
+                    ){
+
+                        this.stop();
+
+                    }
+
+                },
+                40
+            );
+
+    },
+
+
+    /* =========================
+       WEB LINE
+    ========================= */
+
+    showWebLine(){
+
+        const line=
+            document.getElementById(
+                "webLine"
+            );
+
+        if(line)
+            line.style.display=
+                "block";
+
+        this.updateWebLine();
+
+    },
+
+
+    hideWebLine(){
+
+        const line=
+            document.getElementById(
+                "webLine"
+            );
+
+        if(line)
+            line.style.display=
+                "none";
+
+    },
+
+
+    updateWebLine(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const line=
+            document.getElementById(
+                "webLine"
+            );
+
+        if(
+            !player ||
+            !line ||
+            !this.anchor
+        )
+            return;
+
+        const point=
+            document.getElementById(
+                "swingPoint"+
+                this.anchor
+            );
+
+        if(!point)
+            return;
+
+        const p=
+            player.getBoundingClientRect();
+
+        const a=
+            point.getBoundingClientRect();
+
+        const px=
+            p.left+
+            p.width/2;
+
+        const py=
+            p.top+
+            p.height/2;
+
+        const ax=
+            a.left+
+            a.width/2;
+
+        const ay=
+            a.top+
+            a.height/2;
+
+        const dx=
+            ax-px;
+
+        const dy=
+            ay-py;
+
+        const distance=
+            Math.sqrt(
+                dx*dx+
+                dy*dy
+            );
+
+        const angle=
+            Math.atan2(
+                dy,
+                dx
+            )*
+            180/
+            Math.PI;
+
+        line.style.left=
+            px+"px";
+
+        line.style.top=
+            py+"px";
+
+        line.style.width=
+            distance+"px";
+
+        line.style.transform=
+            "rotate("+
+            angle+
+            "deg)";
+
+    },
+
+
+    /* =========================
+       DISTANCE
+    ========================= */
+
+    updateDistance(){
+
+        const text=
+            document.getElementById(
+                "swingDistance"
+            );
+
+        if(!text)
+            return;
+
+        if(!this.anchor){
+
+            text.textContent=
+                "Anchor: NONE";
+
+            return;
+
+        }
+
+        const point=
+            this.points[
+                this.anchor
+            ];
+
+        text.textContent=
+            "Anchor: "+
+            this.anchor+
+            " • "+
+            Math.round(
+                Math.random()*30+
+                20
+            )+
+            "m";
+
+    },
+
+
+    /* =========================
+       STATUS
+    ========================= */
+
+    updateStatus(text){
+
+        const status=
+            document.getElementById(
+                "swingStatus"
+            );
+
+        if(status)
+            status.textContent=
+                text;
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       KEYBOARD
+    ========================= */
+
+    bindKeys(){
+
+        document.addEventListener(
+            "keydown",
+            e=>{
+
+                const key=
+                    e.key.toLowerCase();
+
+                if(key==="e")
+                    this.attachNearest();
+
+                if(key==="r")
+                    this.release();
+
+                if(key===" ")
+                    this.launch();
+
+            }
+        );
+
+    }
+
+};
+
+
+/* =====================================================
+ START V214
+ ===================================================== */
+
+SpiderTraversal.init();
