@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V196 — VEHICLES</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#071017;color:#fff}
+#game{position:fixed;inset:0;overflow:hidden;background:linear-gradient(#7298a7,#18252b)}
+#sky{position:absolute;inset:0;background:linear-gradient(#7fa9bb,#b9cbd0)}
+.road{position:absolute;background:#272d31}
+.rh{left:0;right:0;top:57%;height:78px}
+.rv{top:0;bottom:0;left:67%;width:78px}
+.line{position:absolute;background:#d7c86e;opacity:.45}
+.lineH{left:0;right:0;top:calc(57% + 38px);height:2px}
+.lineV{top:0;bottom:0;left:calc(67% + 38px);width:2px}
+.building{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;background:#172831;border:1px solid #ffffff18;border-radius:9px;color:#83949c;font-size:10px}
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:15%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+#player{position:absolute;left:50%;top:53%;width:29px;height:41px;border-radius:10px 10px 5px 5px;background:#2c91da;z-index:50}
+#player:before{content:"";position:absolute;left:5.5px;top:-14px;width:18px;height:18px;border-radius:50%;background:#bd8967}
+#hud{position:fixed;left:10px;top:10px;width:min(980px,94vw);padding:12px;background:#03070cee;border:1px solid #ffffff25;border-radius:13px;z-index:500}
+.title{font-size:13px;font-weight:bold}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:8px}
+.stat{padding:7px 4px;background:#101b23;border-radius:7px;text-align:center;font-size:9px}
+#vehicleHud{margin-top:8px;padding:9px;background:#111d25;border-radius:8px;font-size:9px;line-height:1.8}
+.bar{height:7px;background:#ffffff12;border-radius:7px;overflow:hidden;margin-top:4px}
+.fill{height:100%;width:0%;background:#8fb8df;transition:.3s}
+#controls{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);width:min(980px,96vw);display:flex;flex-wrap:wrap;gap:6px;z-index:500}
+button{flex:1;min-width:105px;padding:10px;background:#142733;border:1px solid #ffffff22;border-radius:8px;color:#fff;font-size:10px;cursor:pointer}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+#panel{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000c;z-index:1000}
+.box{width:min(830px,94vw);max-height:84vh;overflow:auto;padding:17px;background:#050b10;border:1px solid #ffffff28;border-radius:15px}
+.card{padding:11px;background:#111d25;border-radius:9px;margin-bottom:7px;font-size:10px;line-height:1.7}
+.card button{width:100%;margin-top:8px}
+#notification{position:fixed;left:50%;top:20%;transform:translateX(-50%);padding:10px 15px;background:#03070cf5;border:1px solid #ffffff25;border-radius:9px;display:none;z-index:1500;font-size:10px;text-align:center}
+</style>
+</head>
+
+<body>
+<div id="game">
+
+<div id="sky"></div>
+<div class="road rh"></div>
+<div class="road rv"></div>
+<div class="line lineH"></div>
+<div class="line lineV"></div>
+
+<div class="building b1">🏠 RESIDENTIAL</div>
+<div class="building b2">🏢 BUSINESS DISTRICT</div>
+<div class="building b3">⛽ SERVICE AREA</div>
+<div class="building b4">🚗 AUTO DISTRICT</div>
+<div class="building b5">📦 LOGISTICS ZONE</div>
+<div class="building b6">🚘 GARAGE CENTER</div>
+
+<div id="player"></div>
+
+<div id="hud">
+<div class="title">🚗 WEBBOUND V196 — TRANSPORTATION</div>
+
+<div class="stats">
+<div class="stat">💰 CASH<br>₹<span id="cashText">5000</span></div>
+<div class="stat">🚗 VEHICLES<br><span id="vehicleText">0</span></div>
+<div class="stat">⛽ FUEL<br><span id="fuelText">0</span></div>
+<div class="stat">🔧 CONDITION<br><span id="conditionText">0</span>%</div>
+<div class="stat">📦 DELIVERIES<br><span id="deliveryText">0</span></div>
+<div class="stat">💵 EARNINGS<br>₹<span id="earningText">0</span></div>
+</div>
+
+<div id="vehicleHud">
+<b>🚗 ACTIVE VEHICLE</b><br>
+<span id="vehicleName">No vehicle selected</span><br>
+Level: <span id="vehicleLevel">—</span><br>
+Fuel: <span id="activeFuel">0</span>%<br>
+Condition: <span id="activeCondition">0</span>%<br>
+Delivery Reward: ₹<span id="activeReward">0</span>
+
+<div class="bar">
+<div id="vehicleFill" class="fill"></div>
+</div>
+</div>
+</div>
+
+<div id="notification"></div>
+
+<div id="controls">
+<button onclick="V196.market()">🚗 VEHICLE MARKET</button>
+<button onclick="V196.drive()">🛣️ DELIVERY</button>
+<button onclick="V196.fuel()">⛽ REFUEL</button>
+<button onclick="V196.repair()">🔧 REPAIR</button>
+<button onclick="V196.upgrade()">⬆️ UPGRADE</button>
+<button onclick="V196.garage()">🚘 GARAGE</button>
+<button onclick="V196.sell()">🏷️ SELL</button>
+<button onclick="V196.save()">💾 SAVE</button>
+</div>
+
+<div id="panel">
+<div class="box">
+<h2 id="panelTitle">WEBBOUND V196</h2>
+<div id="panelContent"></div>
+<button onclick="V196.close()">CLOSE</button>
+</div>
+</div>
+
+</div>
+
+<script>
+const V196={
+
+saveKey:"WEBBOUND_V196",
+
+cash:5000,
+vehicles:[],
+activeVehicle:null,
+
+levels:{},
+fuelData:{},
+conditionData:{},
+
+deliveries:0,
+earnings:0,
+
+vehicleData:{
+
+bike:{
+name:"🏍️ Delivery Bike",
+price:15000,
+fuelCost:120,
+repairCost:600,
+reward:900,
+maxLevel:8
+},
+
+car:{
+name:"🚗 City Car",
+price:55000,
+fuelCost:250,
+repairCost:1200,
+reward:2200,
+maxLevel:10
+},
+
+van:{
+name:"🚐 Delivery Van",
+price:120000,
+fuelCost:450,
+repairCost:2500,
+reward:5200,
+maxLevel:12
+},
+
+truck:{
+name:"🚚 Cargo Truck",
+price:300000,
+fuelCost:900,
+repairCost:5000,
+reward:12000,
+maxLevel:15
+},
+
+bus:{
+name:"🚌 Transport Bus",
+price:450000,
+fuelCost:1100,
+repairCost:6500,
+reward:16000,
+maxLevel:18
+}
+
+},
+
+init(){
+this.load();
+this.update();
+this.notify("🚗 V196 Transportation System ready");
+},
+
+market(){
+
+let html="";
+
+Object.entries(this.vehicleData).forEach(([id,v])=>{
+
+const owned=this.vehicles.includes(id);
+const level=this.levels[id]||1;
+
+html+=`
+
+<div class="card">
+
+<b>${v.name}</b><br><br>
+
+💰 Price:
+₹${v.price.toLocaleString()}<br>
+
+⛽ Refuel Cost:
+₹${v.fuelCost.toLocaleString()}<br>
+
+🔧 Repair Cost:
+₹${v.repairCost.toLocaleString()}<br>
+
+📦 Delivery Reward:
+₹${v.reward.toLocaleString()}<br>
+
+🏆 Maximum Level:
+${v.maxLevel}<br>
+
+Current Level:
+${owned?level:"—"}
+
+<br><br>
+
+<button onclick="V196.buy('${id}')" ${owned?"disabled":""}>
+${owned?"✅ ALREADY OWNED":"🚗 BUY VEHICLE"}
+</button>
+
+${owned?`
+<button onclick="V196.select('${id}')">
+SELECT VEHICLE
+</button>`:""}
+
+</div>
+`;
+});
+
+this.open("🚗 VEHICLE MARKET",html);
+},
+
+buy(id){
+
+const v=this.vehicleData[id];
+
+if(this.vehicles.includes(id)){
+this.notify("Vehicle already owned.");
+return;
+}
+
+if(this.cash<v.price){
+this.notify("❌ Not enough money.");
+return;
+}
+
+this.cash-=v.price;
+
+this.vehicles.push(id);
+this.activeVehicle=id;
+
+this.levels[id]=1;
+this.fuelData[id]=100;
+this.conditionData[id]=100;
+
+this.update();
+this.save();
+this.close();
+
+this.notify("🚗 Purchased "+v.name);
+},
+
+select(id){
+
+if(!this.vehicles.includes(id))return;
+
+this.activeVehicle=id;
+
+this.update();
+this.save();
+this.close();
+
+this.notify("🚗 Selected "+this.vehicleData[id].name);
+},
+
+drive(){
+
+if(!this.activeVehicle){
+this.notify("🚗 Select a vehicle first.");
+return;
+}
+
+const id=this.activeVehicle;
+const v=this.vehicleData[id];
+
+const fuel=this.fuelData[id]??100;
+const condition=this.conditionData[id]??100;
+
+if(fuel<20){
+this.notify("⛽ Not enough fuel.");
+return;
+}
+
+if(condition<25){
+this.notify("🔧 Vehicle needs repair.");
+return;
+}
+
+const level=this.levels[id]||1;
+
+const reward=Math.floor(
+v.reward*(1+(level-1)*0.15)
+);
+
+const fuelUsed=Math.floor(
+15+Math.random()*16
+);
+
+const damage=Math.floor(
+5+Math.random()*8
+);
+
+this.fuelData[id]=Math.max(
+0,fuel-fuelUsed
+);
+
+this.conditionData[id]=Math.max(
+0,condition-damage
+);
+
+this.cash+=reward;
+this.earnings+=reward;
+this.deliveries++;
+
+this.update();
+this.save();
+
+this.notify(
+"📦 Delivery completed! +₹"+
+reward.toLocaleString()
+);
+},
+
+fuel(){
+
+if(!this.activeVehicle){
+this.notify("🚗 Select a vehicle first.");
+return;
+}
+
+const id=this.activeVehicle;
+const v=this.vehicleData[id];
+
+const fuel=this.fuelData[id]??100;
+
+if(fuel>=100){
+this.notify("⛽ Fuel tank is already full.");
+return;
+}
+
+if(this.cash<v.fuelCost){
+this.notify(
+"❌ Refueling costs ₹"+
+v.fuelCost.toLocaleString()
+);
+return;
+}
+
+this.cash-=v.fuelCost;
+this.fuelData[id]=100;
+
+this.update();
+this.save();
+
+this.notify("⛽ Vehicle refueled.");
+},
+
+repair(){
+
+if(!this.activeVehicle){
+this.notify("🚗 Select a vehicle first.");
+return;
+}
+
+const id=this.activeVehicle;
+const v=this.vehicleData[id];
+
+const condition=this.conditionData[id]??100;
+
+if(condition>=100){
+this.notify("🔧 Vehicle is already fully repaired.");
+return;
+}
+
+if(this.cash<v.repairCost){
+this.notify(
+"❌ Repair costs ₹"+
+v.repairCost.toLocaleString()
+);
+return;
+}
+
+this.cash-=v.repairCost;
+this.conditionData[id]=100;
+
+this.update();
+this.save();
+
+this.notify("🔧 Vehicle repaired.");
+},
+
+upgrade(){
+
+if(!this.activeVehicle){
+this.notify("🚗 Select a vehicle first.");
+return;
+}
+
+const id=this.activeVehicle;
+const v=this.vehicleData[id];
+
+const level=this.levels[id]||1;
+
+if(level>=v.maxLevel){
+this.notify("🏆 Maximum vehicle level reached.");
+return;
+}
+
+const cost=Math.floor(
+v.price*0.25*level
+);
+
+if(this.cash<cost){
+this.notify(
+"❌ Upgrade costs ₹"+
+cost.toLocaleString()
+);
+return;
+}
+
+this.cash-=cost;
+this.levels[id]=level+1;
+
+this.update();
+this.save();
+
+this.notify(
+"⬆️ Vehicle upgraded to Level "+
+(level+1)
+);
+},
+
+garage(){
+
+let html="";
+
+let totalValue=0;
+
+this.vehicles.forEach(id=>{
+
+const v=this.vehicleData[id];
+
+const level=this.levels[id]||1;
+const fuel=this.fuelData[id]??100;
+const condition=this.conditionData[id]??100;
+
+const value=Math.floor(
+v.price*(1+(level-1)*0.2)
+);
+
+totalValue+=value;
+
+html+=`
+
+<div class="card">
+
+<b>${v.name}</b><br>
+
+🏆 Level: ${level}<br>
+⛽ Fuel: ${fuel}%<br>
+🔧 Condition: ${condition}%<br>
+📦 Delivery Reward:
+₹${Math.floor(v.reward*(1+(level-1)*0.15)).toLocaleString()}<br>
+💰 Estimated Value:
+₹${value.toLocaleString()}
+
+<br>
+
+<button onclick="V196.select('${id}')">
+SELECT VEHICLE
+</button>
+
+</div>
+`;
+});
+
+if(!html){
+html=`<div class="card">Your garage is empty.</div>`;
+}
+
+html+=`
+
+<div class="card">
+
+<b>🚘 GARAGE SUMMARY</b><br><br>
+
+Vehicles:
+${this.vehicles.length}<br>
+
+Garage Value:
+₹${totalValue.toLocaleString()}<br>
+
+Deliveries:
+${this.deliveries}<br>
+
+Total Earnings:
+₹${this.earnings.toLocaleString()}
+
+</div>
+`;
+
+this.open("🚘 GARAGE",html);
+},
+
+sell(){
+
+if(!this.activeVehicle){
+this.notify("🚗 Select a vehicle first.");
+return;
+}
+
+const id=this.activeVehicle;
+const v=this.vehicleData[id];
+
+const level=this.levels[id]||1;
+
+const value=Math.floor(
+v.price*(1+(level-1)*0.2)
+);
+
+const salePrice=Math.floor(value*0.75);
+
+this.cash+=salePrice;
+
+this.vehicles=this.vehicles.filter(
+x=>x!==id
+);
+
+delete this.levels[id];
+delete this.fuelData[id];
+delete this.conditionData[id];
+
+this.activeVehicle=
+this.vehicles.length?
+this.vehicles[0]:
+null;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🏷️ Vehicle sold for ₹"+
+salePrice.toLocaleString()
+);
+},
+
+update(){
+
+let fuel=0;
+let condition=0;
+
+this.vehicles.forEach(id=>{
+fuel+=this.fuelData[id]??0;
+condition+=this.conditionData[id]??0;
+});
+
+document.getElementById("cashText").textContent=
+this.cash.toLocaleString();
+
+document.getElementById("vehicleText").textContent=
+this.vehicles.length;
+
+document.getElementById("fuelText").textContent=
+this.vehicles.length?
+Math.floor(fuel/this.vehicles.length):0;
+
+document.getElementById("conditionText").textContent=
+this.vehicles.length?
+Math.floor(condition/this.vehicles.length):0;
+
+document.getElementById("deliveryText").textContent=
+this.deliveries;
+
+document.getElementById("earningText").textContent=
+this.earnings.toLocaleString();
+
+if(!this.activeVehicle){
+
+document.getElementById("vehicleName").textContent=
+"No vehicle selected";
+
+document.getElementById("vehicleLevel").textContent="—";
+document.getElementById("activeFuel").textContent="0";
+document.getElementById("activeCondition").textContent="0";
+document.getElementById("activeReward").textContent="0";
+document.getElementById("vehicleFill").style.width="0%";
+
+return;
+}
+
+const id=this.activeVehicle;
+const v=this.vehicleData[id];
+
+const level=this.levels[id]||1;
+const fuelValue=this.fuelData[id]??100;
+const conditionValue=this.conditionData[id]??100;
+
+const reward=Math.floor(
+v.reward*(1+(level-1)*0.15)
+);
+
+document.getElementById("vehicleName").textContent=v.name;
+document.getElementById("vehicleLevel").textContent=level;
+document.getElementById("activeFuel").textContent=fuelValue;
+document.getElementById("activeCondition").textContent=conditionValue;
+document.getElementById("activeReward").textContent=reward.toLocaleString();
+
+document.getElementById("vehicleFill").style.width=
+Math.min(
+100,
+(level/v.maxLevel)*100
+)+"%";
+},
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+cash:this.cash,
+vehicles:this.vehicles,
+activeVehicle:this.activeVehicle,
+levels:this.levels,
+fuelData:this.fuelData,
+conditionData:this.conditionData,
+deliveries:this.deliveries,
+earnings:this.earnings
+})
+);
+},
+
+load(){
+
+try{
+
+const raw=localStorage.getItem(this.saveKey);
+
+if(!raw)return;
+
+const d=JSON.parse(raw);
+
+if(Number.isFinite(d.cash))
+this.cash=Math.max(0,d.cash);
+
+if(Array.isArray(d.vehicles))
+this.vehicles=d.vehicles.filter(
+id=>this.vehicleData[id]
+);
+
+if(typeof d.activeVehicle==="string"&&
+this.vehicleData[d.activeVehicle])
+this.activeVehicle=d.activeVehicle;
+
+if(d.levels)this.levels=d.levels;
+if(d.fuelData)this.fuelData=d.fuelData;
+if(d.conditionData)this.conditionData=d.conditionData;
+
+if(Number.isFinite(d.deliveries))
+this.deliveries=Math.max(0,d.deliveries);
+
+if(Number.isFinite(d.earnings))
+this.earnings=Math.max(0,d.earnings);
+
+}catch(e){
+console.log("V196 load error:",e);
+}
+},
+
+open(title,content){
+
+document.getElementById("panelTitle").textContent=title;
+document.getElementById("panelContent").innerHTML=content;
+document.getElementById("panel").style.display="flex";
+},
+
+close(){
+document.getElementById("panel").style.display="none";
+},
+
+notify(text){
+
+const el=document.getElementById("notification");
+
+el.textContent=text;
+el.style.display="block";
+
+clearTimeout(this.timer);
+
+this.timer=setTimeout(()=>{
+el.style.display="none";
+},2400);
+}
+
+};
+
+V196.init();
+
+console.log("WEBBOUND V196 VEHICLE SYSTEM READY");
+</script>
+</body>
+</html>
