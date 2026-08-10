@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V96</title>
+
+<style>
+
+#v96Clock{
+
+  position:fixed;
+
+  left:12px;
+  top:12px;
+
+  z-index:9600;
+
+  padding:9px 12px;
+
+  background:#05070ee8;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+#v96Clock small{
+
+  display:block;
+
+  margin-top:3px;
+
+  opacity:.65;
+
+  font-weight:normal;
+
+}
+
+#v96Message{
+
+  position:fixed;
+
+  left:50%;
+  top:22%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  display:none;
+
+  padding:10px 15px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+#v96Controls{
+
+  position:fixed;
+
+  left:12px;
+  bottom:18px;
+
+  z-index:9601;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:5px;
+
+}
+
+#v96Controls button{
+
+  padding:8px 11px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+
+  font-size:11px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V96 WORLD CLOCK
+     ========================================================= -->
+
+<div id="v96Clock">
+
+  <span id="v96Time">
+    08:00
+  </span>
+
+  <small id="v96Period">
+    MORNING
+  </small>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v96Controls">
+
+  <button onclick="V96.togglePause()">
+    ⏱️ PAUSE TIME
+  </button>
+
+  <button onclick="V96.skipMinutes(30)">
+    ⏩ +30 MIN
+  </button>
+
+  <button onclick="V96.skipMinutes(120)">
+    🌙 +2 HOURS
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v96Message">
+  V96
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V96
+   DYNAMIC WORLD TIME + DAY/NIGHT SYSTEM
+   ========================================================= */
+
+const V96 = {
+
+  version:"V96",
+
+  saveKey:
+    "WEBBOUND_V96_WORLD_TIME",
+
+  hour:8,
+
+  minute:0,
+
+  day:1,
+
+  paused:false,
+
+  /*
+    Real-time speed.
+
+    1 real second =
+    1 game minute.
+  */
+
+  gameMinutesPerSecond:1,
+
+  lastTime:0,
+
+  accumulator:0,
+
+  updateRate:100,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.applyWorldLighting();
+
+    console.log(
+      "WEBBOUND V96 WORLD TIME SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     NORMALIZE TIME
+     ======================================================= */
+
+  normalizeTime(){
+
+    while(
+      this.minute>=60
+    ){
+
+      this.minute-=60;
+
+      this.hour++;
+
+    }
+
+
+    while(
+      this.minute<0
+    ){
+
+      this.minute+=60;
+
+      this.hour--;
+
+    }
+
+
+    while(
+      this.hour>=24
+    ){
+
+      this.hour-=24;
+
+      this.day++;
+
+    }
+
+
+    while(
+      this.hour<0
+    ){
+
+      this.hour+=24;
+
+      this.day=Math.max(
+        1,
+        this.day-1
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ADD GAME MINUTES
+     ======================================================= */
+
+  skipMinutes(
+    amount
+  ){
+
+    const value=
+      Number(amount);
+
+
+    if(
+      !Number.isFinite(value)
+    ){
+
+      return;
+
+    }
+
+
+    this.minute+=value;
+
+    this.normalizeTime();
+
+    this.updateHUD();
+
+    this.applyWorldLighting();
+
+    this.save();
+
+
+    this.message(
+      "🕒 Time: "+
+      this.getFormattedTime()
+    );
+
+  },
+
+
+  /* =======================================================
+     GET FORMATTED TIME
+     ======================================================= */
+
+  getFormattedTime(){
+
+    const h=
+      String(
+        this.hour
+      ).padStart(
+        2,
+        "0"
+      );
+
+    const m=
+      String(
+        Math.floor(
+          this.minute
+        )
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+    return h+":"+m;
+
+  },
+
+
+  /* =======================================================
+     GET PERIOD
+     ======================================================= */
+
+  getPeriod(){
+
+    if(
+      this.hour>=5 &&
+      this.hour<8
+    ){
+
+      return "SUNRISE";
+
+    }
+
+
+    if(
+      this.hour>=8 &&
+      this.hour<12
+    ){
+
+      return "MORNING";
+
+    }
+
+
+    if(
+      this.hour>=12 &&
+      this.hour<17
+    ){
+
+      return "AFTERNOON";
+
+    }
+
+
+    if(
+      this.hour>=17 &&
+      this.hour<20
+    ){
+
+      return "EVENING";
+
+    }
+
+
+    if(
+      this.hour>=20 ||
+      this.hour<5
+    ){
+
+      return "NIGHT";
+
+    }
+
+
+    return "DAY";
+
+  },
+
+
+  /* =======================================================
+     GET LIGHT LEVEL
+     ======================================================= */
+
+  getLightLevel(){
+
+    /*
+      0 = darkest
+      1 = brightest
+    */
+
+    const h=
+      this.hour+
+      this.minute/60;
+
+
+    /*
+      Sunrise
+    */
+
+    if(
+      h>=5 &&
+      h<7
+    ){
+
+      return(
+        0.15+
+        ((h-5)/2)*0.75
+      );
+
+    }
+
+
+    /*
+      Day
+    */
+
+    if(
+      h>=7 &&
+      h<17
+    ){
+
+      return 1;
+
+    }
+
+
+    /*
+      Sunset
+    */
+
+    if(
+      h>=17 &&
+      h<20
+    ){
+
+      return(
+        1-
+        ((h-17)/3)*0.8
+      );
+
+    }
+
+
+    /*
+      Night
+    */
+
+    return 0.2;
+
+  },
+
+
+  /* =======================================================
+     APPLY WORLD LIGHTING
+     ======================================================= */
+
+  applyWorldLighting(){
+
+    const level=
+      this.getLightLevel();
+
+
+    /*
+      This intentionally does not
+      assume a specific Three.js
+      scene variable.
+
+      If your existing game exposes
+      a compatible scene, V96 will
+      attempt to update it.
+    */
+
+
+    try{
+
+      if(
+        typeof scene!=="undefined" &&
+        scene &&
+        scene.background
+      ){
+
+        /*
+          Keep the existing background
+          untouched unless the engine
+          exposes a compatible color.
+        */
+
+        if(
+          scene.background.isColor
+        ){
+
+          /*
+            Slightly change brightness
+            using HSL where supported.
+          */
+
+          const color=
+            scene.background;
+
+          const hsl={};
+
+          color.getHSL(hsl);
+
+          color.setHSL(
+            hsl.h,
+            hsl.s,
+            Math.min(
+              0.65,
+              Math.max(
+                0.03,
+                hsl.l*
+                (
+                  0.55+
+                  level*0.45
+                )
+              )
+            )
+          );
+
+        }
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V96 LIGHTING:",
+        error
+      );
+
+    }
+
+
+    /*
+      Optional callback for the
+      main game engine.
+    */
+
+    if(
+      typeof window.onWebboundTimeChange===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundTimeChange({
+
+          hour:this.hour,
+
+          minute:this.minute,
+
+          day:this.day,
+
+          period:this.getPeriod(),
+
+          lightLevel:level
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V96 CALLBACK ERROR:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     PAUSE
+     ======================================================= */
+
+  togglePause(){
+
+    this.paused=
+      !this.paused;
+
+
+    this.message(
+
+      this.paused
+      ? "⏸️ World time paused"
+      : "▶️ World time resumed"
+
+    );
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     UPDATE CLOCK
+     ======================================================= */
+
+  update(){
+
+    const now=
+      performance.now();
+
+
+    if(!this.lastTime){
+
+      this.lastTime=
+        now;
+
+      return;
+
+    }
+
+
+    const delta=
+      now-
+      this.lastTime;
+
+
+    this.lastTime=
+      now;
+
+
+    if(this.paused){
+
+      return;
+
+    }
+
+
+    this.accumulator+=
+      delta;
+
+
+    /*
+      Convert real milliseconds
+      into game minutes.
+    */
+
+    const required=
+      1000/
+      this.gameMinutesPerSecond;
+
+
+    if(
+      this.accumulator>=
+      required
+    ){
+
+      const minutes=
+        Math.floor(
+          this.accumulator/
+          required
+        );
+
+
+      this.accumulator%=
+        required;
+
+
+      this.minute+=
+        minutes;
+
+
+      this.normalizeTime();
+
+      this.updateHUD();
+
+      this.applyWorldLighting();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const time=
+      document.getElementById(
+        "v96Time"
+      );
+
+    const period=
+      document.getElementById(
+        "v96Period"
+      );
+
+
+    if(time){
+
+      time.textContent=
+        this.getFormattedTime();
+
+    }
+
+
+    if(period){
+
+      period.textContent=
+        "DAY "+
+        this.day+
+        " • "+
+        this.getPeriod();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v96Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        hour:this.hour,
+
+        minute:this.minute,
+
+        day:this.day,
+
+        paused:this.paused,
+
+        gameMinutesPerSecond:
+          this.gameMinutesPerSecond
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V96 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.hour)
+        )
+      ){
+
+        this.hour=
+          Number(data.hour);
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.minute)
+        )
+      ){
+
+        this.minute=
+          Number(data.minute);
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.day)
+        )
+      ){
+
+        this.day=
+          Math.max(
+            1,
+            Number(data.day)
+          );
+
+      }
+
+
+      if(
+        typeof data.paused===
+        "boolean"
+      ){
+
+        this.paused=
+          data.paused;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.gameMinutesPerSecond
+          )
+        )
+      ){
+
+        this.gameMinutesPerSecond=
+          Math.max(
+            0.1,
+            Number(
+              data.gameMinutesPerSecond
+            )
+          );
+
+      }
+
+
+      this.normalizeTime();
+
+    }
+    catch(error){
+
+      console.error(
+        "V96 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      hour:this.hour,
+
+      minute:this.minute,
+
+      day:this.day,
+
+      paused:this.paused,
+
+      gameMinutesPerSecond:
+        this.gameMinutesPerSecond
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.hour)
+      )
+    ){
+
+      this.hour=
+        Number(data.hour);
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.minute)
+      )
+    ){
+
+      this.minute=
+        Number(data.minute);
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.day)
+      )
+    ){
+
+      this.day=
+        Math.max(
+          1,
+          Number(data.day)
+        );
+
+    }
+
+
+    if(
+      typeof data.paused===
+      "boolean"
+    ){
+
+      this.paused=
+        data.paused;
+
+    }
+
+
+    this.normalizeTime();
+
+    this.updateHUD();
+
+    this.applyWorldLighting();
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    const loop=()=>{
+
+      this.update();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      T = pause/resume time
+    */
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      V96.togglePause();
+
+    }
+
+
+    /*
+      J = advance 30 minutes
+    */
+
+    if(
+      event.code==="KeyJ"
+    ){
+
+      V96.skipMinutes(
+        30
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V96.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V96.init();
+
+V96.start();
+
+
+console.log(
+  "WEBBOUND V96 WORLD TIME SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
