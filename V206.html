@@ -1,0 +1,1284 @@
+<!-- V206 COMBAT SYSTEM
+     Add this combat system to your existing V205 game.
+     It is designed to work with the existing Spider object.
+-->
+
+<style>
+/* =========================
+   V206 COMBAT UI
+========================= */
+
+#combatHud{
+    position:fixed;
+    right:12px;
+    top:12px;
+    width:min(270px,55vw);
+    padding:12px;
+
+    background:#03070ddd;
+    border:1px solid #ffffff25;
+    border-radius:13px;
+
+    z-index:800;
+}
+
+.combatTitle{
+    font-size:13px;
+    font-weight:bold;
+}
+
+.enemyName{
+    margin-top:7px;
+    font-size:10px;
+    color:#ff6973;
+}
+
+.enemyBar{
+    width:100%;
+    height:9px;
+    margin-top:5px;
+
+    background:#252525;
+    border-radius:20px;
+    overflow:hidden;
+}
+
+#enemyHealthBar{
+    width:100%;
+    height:100%;
+    background:#e21d2d;
+    transition:width .2s;
+}
+
+.combatStats{
+    display:grid;
+    grid-template-columns:
+        repeat(3,1fr);
+    gap:5px;
+    margin-top:8px;
+}
+
+.combatStat{
+    padding:7px 3px;
+    background:#101b23;
+    border-radius:7px;
+    text-align:center;
+    font-size:8px;
+}
+
+#comboText{
+    margin-top:8px;
+    text-align:center;
+    font-size:11px;
+    font-weight:bold;
+    color:#ffd34e;
+}
+
+/* =========================
+   ENEMY
+========================= */
+
+#combatEnemy{
+    position:absolute;
+
+    left:63%;
+    top:52%;
+
+    width:38px;
+    height:52px;
+
+    z-index:180;
+
+    transition:
+        left .15s,
+        top .15s,
+        transform .12s;
+}
+
+.enemyHead{
+    position:absolute;
+
+    left:7px;
+    top:0;
+
+    width:24px;
+    height:24px;
+
+    border-radius:50%;
+
+    background:#4a3131;
+
+    border:2px solid #160d0d;
+}
+
+.enemyBody{
+    position:absolute;
+
+    left:4px;
+    top:19px;
+
+    width:30px;
+    height:32px;
+
+    border-radius:
+        9px 9px 5px 5px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #252525,
+            #4b1717,
+            #171717
+        );
+
+    border:2px solid #090909;
+}
+
+#combatEnemy.targeted{
+    filter:
+        drop-shadow(
+            0 0 12px #ff3040
+        );
+}
+
+#combatEnemy.hit{
+    animation:
+        enemyHit .18s;
+}
+
+@keyframes enemyHit{
+
+    0%{
+        transform:translateX(0);
+    }
+
+    30%{
+        transform:translateX(-9px);
+    }
+
+    60%{
+        transform:translateX(9px);
+    }
+
+    100%{
+        transform:translateX(0);
+    }
+
+}
+
+#combatEnemy.defeated{
+    animation:
+        enemyDown .6s forwards;
+}
+
+@keyframes enemyDown{
+
+    to{
+        opacity:0;
+        transform:
+            translateY(35px)
+            rotate(90deg);
+    }
+
+}
+
+/* =========================
+   HIT EFFECT
+========================= */
+
+.hitEffect{
+    position:absolute;
+
+    width:25px;
+    height:25px;
+
+    border-radius:50%;
+
+    border:3px solid #fff;
+
+    z-index:900;
+
+    pointer-events:none;
+
+    animation:
+        hitPop .35s forwards;
+}
+
+@keyframes hitPop{
+
+    from{
+        opacity:1;
+        transform:scale(.3);
+    }
+
+    to{
+        opacity:0;
+        transform:scale(2);
+    }
+
+}
+
+/* =========================
+   COMBAT CONTROLS
+========================= */
+
+#combatControls{
+    position:fixed;
+
+    left:50%;
+    bottom:92px;
+
+    transform:
+        translateX(-50%);
+
+    width:min(650px,94vw);
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(5,1fr);
+
+    gap:6px;
+
+    z-index:900;
+}
+
+#combatControls button{
+    padding:10px 4px;
+
+    background:#111f2a;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:9px;
+
+    color:#fff;
+
+    font-size:9px;
+
+    cursor:pointer;
+}
+
+#combatControls button:active{
+    transform:scale(.94);
+}
+
+.attackButton{
+    background:#48141b !important;
+}
+
+.defendButton{
+    background:#173d4d !important;
+}
+
+.dodgeButton{
+    background:#30321a !important;
+}
+
+/* LOCK ON */
+
+#lockMarker{
+    position:absolute;
+
+    width:55px;
+    height:55px;
+
+    border:
+        2px solid #ff3040;
+
+    border-radius:50%;
+
+    z-index:300;
+
+    display:none;
+
+    pointer-events:none;
+
+    animation:
+        lockPulse .6s infinite alternate;
+}
+
+@keyframes lockPulse{
+
+    from{
+        transform:scale(.9);
+    }
+
+    to{
+        transform:scale(1.08);
+    }
+
+}
+</style>
+
+
+<!-- =========================
+     COMBAT HUD
+========================= -->
+
+<div id="combatHud">
+
+    <div class="combatTitle">
+        ⚔️ COMBAT SYSTEM — V206
+    </div>
+
+    <div class="enemyName">
+        STREET ENFORCER
+    </div>
+
+    <div class="enemyBar">
+        <div id="enemyHealthBar"></div>
+    </div>
+
+    <div class="combatStats">
+
+        <div class="combatStat">
+            ❤️ ENEMY<br>
+            <span id="enemyHealth">
+                100
+            </span>
+        </div>
+
+        <div class="combatStat">
+            🔥 COMBO<br>
+            <span id="combo">
+                0
+            </span>
+        </div>
+
+        <div class="combatStat">
+            🛡️ BLOCK<br>
+            <span id="blockStatus">
+                OFF
+            </span>
+        </div>
+
+    </div>
+
+    <div id="comboText">
+        READY
+    </div>
+
+</div>
+
+
+<!-- =========================
+     ENEMY
+========================= -->
+
+<div id="combatEnemy">
+
+    <div class="enemyHead"></div>
+    <div class="enemyBody"></div>
+
+</div>
+
+<div id="lockMarker"></div>
+
+
+<!-- =========================
+     COMBAT CONTROLS
+========================= -->
+
+<div id="combatControls">
+
+    <button
+        class="attackButton"
+        onclick="SpiderCombat.punch()">
+        👊 PUNCH
+    </button>
+
+    <button
+        class="attackButton"
+        onclick="SpiderCombat.kick()">
+        🦵 KICK
+    </button>
+
+    <button
+        class="defendButton"
+        onclick="SpiderCombat.block()">
+        🛡️ BLOCK
+    </button>
+
+    <button
+        class="dodgeButton"
+        onclick="SpiderCombat.dodge()">
+        💨 DODGE
+    </button>
+
+    <button
+        onclick="SpiderCombat.lockOn()">
+        🎯 LOCK
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   V206 COMBAT ENGINE
+===================================================== */
+
+const SpiderCombat={
+
+    enemyHealth:100,
+
+    enemyMaxHealth:100,
+
+    combo:0,
+
+    blockActive:false,
+
+    locked:false,
+
+    defeated:false,
+
+    attacking:false,
+
+    enemyX:63,
+
+    enemyY:52,
+
+    attackDamage:0,
+
+    lastAttack:0,
+
+    comboTimer:null,
+
+    enemyTimer:null,
+
+
+    /* =========================
+       INITIALIZE
+    ========================= */
+
+    init(){
+
+        this.enemyTimer=
+            setInterval(
+                ()=>{
+                    this.enemyAI();
+                },
+                1200
+            );
+
+        this.update();
+
+        this.message(
+            "⚔️ Combat system ready!"
+        );
+
+    },
+
+
+    /* =========================
+       PUNCH
+    ========================= */
+
+    punch(){
+
+        if(this.defeated)
+            return;
+
+        if(this.attacking)
+            return;
+
+        if(this.distance()>230){
+
+            this.message(
+                "🎯 Enemy is too far away."
+            );
+
+            return;
+        }
+
+        if(!this.usePower(5))
+            return;
+
+        this.attack(
+            10,
+            "👊 PUNCH"
+        );
+
+    },
+
+
+    /* =========================
+       KICK
+    ========================= */
+
+    kick(){
+
+        if(this.defeated)
+            return;
+
+        if(this.attacking)
+            return;
+
+        if(this.distance()>250){
+
+            this.message(
+                "🎯 Move closer to attack."
+            );
+
+            return;
+        }
+
+        if(!this.usePower(7))
+            return;
+
+        this.attack(
+            14,
+            "🦵 KICK"
+        );
+
+    },
+
+
+    /* =========================
+       ATTACK ENGINE
+    ========================= */
+
+    attack(
+        damage,
+        name
+    ){
+
+        this.attacking=true;
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        player.animate(
+
+            [
+                {
+                    transform:
+                    "translate(-50%,-50%)"
+                },
+
+                {
+                    transform:
+                    "translate(-50%,-50%) scale(1.15)"
+                },
+
+                {
+                    transform:
+                    "translate(-50%,-50%)"
+                }
+            ],
+
+            {
+                duration:250
+            }
+
+        );
+
+
+        setTimeout(
+            ()=>{
+
+                this.hit(
+                    damage
+                );
+
+                this.attacking=false;
+
+            },
+            120
+        );
+
+    },
+
+
+    /* =========================
+       HIT
+    ========================= */
+
+    hit(damage){
+
+        if(this.defeated)
+            return;
+
+        this.enemyHealth=
+            Math.max(
+                0,
+                this.enemyHealth-damage
+            );
+
+        this.combo++;
+
+        this.showHit();
+
+        this.enemyFlash();
+
+        this.update();
+
+        this.resetComboTimer();
+
+
+        if(this.enemyHealth<=0){
+
+            this.defeat();
+
+        }
+
+    },
+
+
+    /* =========================
+       BLOCK
+    ========================= */
+
+    block(){
+
+        if(this.defeated)
+            return;
+
+        this.blockActive=true;
+
+        document.getElementById(
+            "blockStatus"
+        ).textContent=
+            "ON";
+
+        this.message(
+            "🛡️ Blocking!"
+        );
+
+        clearTimeout(
+            this.blockTimer
+        );
+
+        this.blockTimer=
+            setTimeout(
+                ()=>{
+
+                    this.blockActive=false;
+
+                    document.getElementById(
+                        "blockStatus"
+                    ).textContent=
+                        "OFF";
+
+                },
+                1000
+            );
+
+    },
+
+
+    /* =========================
+       DODGE
+    ========================= */
+
+    dodge(){
+
+        if(this.defeated)
+            return;
+
+        if(!this.usePower(4))
+            return;
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        player.animate(
+
+            [
+
+                {
+                    transform:
+                    "translate(-50%,-50%)"
+                },
+
+                {
+                    transform:
+                    "translate(-90%,-50%)"
+                },
+
+                {
+                    transform:
+                    "translate(-50%,-50%)"
+                }
+
+            ],
+
+            {
+                duration:350
+            }
+
+        );
+
+        this.message(
+            "💨 DODGE!"
+        );
+
+    },
+
+
+    /* =========================
+       LOCK ON
+    ========================= */
+
+    lockOn(){
+
+        if(this.defeated)
+            return;
+
+        this.locked=
+            !this.locked;
+
+        const marker=
+            document.getElementById(
+                "lockMarker"
+            );
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        if(this.locked){
+
+            enemy.classList.add(
+                "targeted"
+            );
+
+            marker.style.display=
+                "block";
+
+            this.updateLockMarker();
+
+            this.message(
+                "🎯 TARGET LOCKED!"
+            );
+
+        }else{
+
+            enemy.classList.remove(
+                "targeted"
+            );
+
+            marker.style.display=
+                "none";
+
+            this.message(
+                "🎯 TARGET RELEASED"
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       UPDATE LOCK MARKER
+    ========================= */
+
+    updateLockMarker(){
+
+        if(!this.locked)
+            return;
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        const marker=
+            document.getElementById(
+                "lockMarker"
+            );
+
+        const rect=
+            enemy.getBoundingClientRect();
+
+        marker.style.left=
+            (
+                rect.left+
+                rect.width/2-
+                27
+            )+"px";
+
+        marker.style.top=
+            (
+                rect.top+
+                rect.height/2-
+                27
+            )+"px";
+
+    },
+
+
+    /* =========================
+       ENEMY AI
+    ========================= */
+
+    enemyAI(){
+
+        if(this.defeated)
+            return;
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        const pr=
+            player.getBoundingClientRect();
+
+        const er=
+            enemy.getBoundingClientRect();
+
+        const dx=
+            pr.left-er.left;
+
+        const dy=
+            pr.top-er.top;
+
+        const distance=
+            Math.hypot(dx,dy);
+
+
+        /* MOVE TOWARD PLAYER */
+
+        if(distance>130){
+
+            const step=
+                2;
+
+            this.enemyX+=
+                dx>0
+                ? step*.08
+                : -step*.08;
+
+            this.enemyY+=
+                dy>0
+                ? step*.08
+                : -step*.08;
+
+            this.enemyX=
+                Math.max(
+                    5,
+                    Math.min(
+                        92,
+                        this.enemyX
+                    )
+                );
+
+            this.enemyY=
+                Math.max(
+                    20,
+                    Math.min(
+                        78,
+                        this.enemyY
+                    )
+                );
+
+            enemy.style.left=
+                this.enemyX+"%";
+
+            enemy.style.top=
+                this.enemyY+"%";
+
+        }
+
+
+        /* ATTACK */
+
+        if(distance<130){
+
+            this.enemyAttack();
+
+        }
+
+        this.updateLockMarker();
+
+    },
+
+
+    /* =========================
+       ENEMY ATTACK
+    ========================= */
+
+    enemyAttack(){
+
+        if(
+            this.blockActive
+        ){
+
+            this.message(
+                "🛡️ BLOCKED!"
+            );
+
+            return;
+
+        }
+
+        if(
+            Math.random()<0.45
+        ){
+
+            this.message(
+                "⚠️ Enemy attack!"
+            );
+
+            return;
+
+        }
+
+        if(typeof Spider!==
+            "undefined"){
+
+            Spider.health=
+                Math.max(
+                    0,
+                    Spider.health-7
+                );
+
+            if(
+                Spider.health<=0
+            ){
+
+                Spider.health=0;
+
+                this.message(
+                    "💥 Spider-Man needs to recover!"
+                );
+
+            }else{
+
+                this.message(
+                    "💥 You were hit!"
+                );
+
+            }
+
+            Spider.update();
+
+        }
+
+    },
+
+
+    /* =========================
+       DISTANCE
+    ========================= */
+
+    distance(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        const a=
+            player.getBoundingClientRect();
+
+        const b=
+            enemy.getBoundingClientRect();
+
+        return Math.hypot(
+
+            (
+                a.left-
+                b.left
+            ),
+
+            (
+                a.top-
+                b.top
+            )
+
+        );
+
+    },
+
+
+    /* =========================
+       POWER
+    ========================= */
+
+    usePower(amount){
+
+        if(
+            typeof Spider===
+            "undefined"
+        )
+            return true;
+
+        if(
+            Spider.power<amount
+        ){
+
+            this.message(
+                "⚡ Not enough power."
+            );
+
+            return false;
+
+        }
+
+        Spider.power-=amount;
+
+        Spider.update();
+
+        return true;
+
+    },
+
+
+    /* =========================
+       HIT EFFECT
+    ========================= */
+
+    showHit(){
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        const rect=
+            enemy.getBoundingClientRect();
+
+        const effect=
+            document.createElement(
+                "div"
+            );
+
+        effect.className=
+            "hitEffect";
+
+        effect.style.left=
+            (
+                rect.left+
+                rect.width/2-
+                12
+            )+"px";
+
+        effect.style.top=
+            (
+                rect.top+
+                rect.height/2-
+                12
+            )+"px";
+
+        document.body.appendChild(
+            effect
+        );
+
+        setTimeout(
+            ()=>{
+                effect.remove();
+            },
+            400
+        );
+
+    },
+
+
+    /* =========================
+       ENEMY FLASH
+    ========================= */
+
+    enemyFlash(){
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        enemy.classList.add(
+            "hit"
+        );
+
+        setTimeout(
+            ()=>{
+                enemy.classList.remove(
+                    "hit"
+                );
+            },
+            200
+        );
+
+    },
+
+
+    /* =========================
+       COMBO TIMER
+    ========================= */
+
+    resetComboTimer(){
+
+        clearTimeout(
+            this.comboTimer
+        );
+
+        this.comboTimer=
+            setTimeout(
+                ()=>{
+
+                    this.combo=0;
+
+                    this.update();
+
+                },
+                1500
+            );
+
+        if(
+            this.combo===2
+        ){
+
+            this.message(
+                "🔥 COMBO x2!"
+            );
+
+        }
+
+        if(
+            this.combo===3
+        ){
+
+            this.message(
+                "🔥 COMBO x3!"
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       DEFEAT
+    ========================= */
+
+    defeat(){
+
+        this.defeated=true;
+
+        const enemy=
+            document.getElementById(
+                "combatEnemy"
+            );
+
+        enemy.classList.add(
+            "defeated"
+        );
+
+        this.locked=false;
+
+        document.getElementById(
+            "lockMarker"
+        ).style.display=
+            "none";
+
+        if(
+            typeof Spider!==
+            "undefined"
+        ){
+
+            Spider.level=
+                Math.min(
+                    99,
+                    Spider.level+1
+                );
+
+            Spider.power=
+                Math.min(
+                    100,
+                    Spider.power+20
+                );
+
+            Spider.update();
+
+        }
+
+        this.message(
+            "🏆 ENEMY DEFEATED! +XP"
+        );
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    update(){
+
+        document.getElementById(
+            "enemyHealth"
+        ).textContent=
+            this.enemyHealth;
+
+        document.getElementById(
+            "enemyHealthBar"
+        ).style.width=
+            (
+                this.enemyHealth/
+                this.enemyMaxHealth*
+                100
+            )+"%";
+
+        document.getElementById(
+            "combo"
+        ).textContent=
+            this.combo;
+
+        if(this.combo>=3){
+
+            document.getElementById(
+                "comboText"
+            ).textContent=
+                "🔥 COMBO MASTER!";
+
+        }else if(this.combo===2){
+
+            document.getElementById(
+                "comboText"
+            ).textContent=
+                "🔥 COMBO x2";
+
+        }else if(this.combo===1){
+
+            document.getElementById(
+                "comboText"
+            ).textContent=
+                "HIT!";
+
+        }else{
+
+            document.getElementById(
+                "comboText"
+            ).textContent=
+                "READY";
+
+        }
+
+        this.updateLockMarker();
+
+    },
+
+
+    /* ================
