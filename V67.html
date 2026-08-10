@@ -1,0 +1,575 @@
+<!-- =========================================================
+ WEBBOUND V67
+ DYNAMIC DAY / NIGHT + TIME SYSTEM
+ BUILDS ON V60 + V65 + V66
+ ========================================================= -->
+
+<style>
+
+#v67Clock{
+  position:fixed;
+  right:15px;
+  top:145px;
+  z-index:8400;
+  padding:9px 13px;
+  background:#05070ed9;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+  font:13px Arial,sans-serif;
+  pointer-events:none;
+}
+
+#v67TimeName{
+  font-weight:bold;
+}
+
+#v67TimeValue{
+  margin-top:3px;
+  font-size:12px;
+  color:#cbd5e1;
+}
+
+</style>
+
+<div id="v67Clock">
+
+  <div id="v67TimeName">
+    🌅 MORNING
+  </div>
+
+  <div id="v67TimeValue">
+    06:00
+  </div>
+
+</div>
+
+
+<script>
+
+const V67 = {
+
+  version:"V67",
+
+  /*
+    Game clock.
+    0    = midnight
+    360  = 06:00
+    720  = 12:00
+    1080 = 18:00
+    1440 = midnight
+  */
+
+  minutes:360,
+
+  /*
+    How fast game time passes.
+
+    1 real second =
+    2 game minutes.
+  */
+
+  speed:2,
+
+  running:true,
+
+  lastUpdate:0,
+
+
+  /* =======================================================
+     GET HOURS
+     ======================================================= */
+
+  getHours(){
+
+    return Math.floor(
+      this.minutes/60
+    );
+
+  },
+
+
+  /* =======================================================
+     GET MINUTES
+     ======================================================= */
+
+  getMinutes(){
+
+    return Math.floor(
+      this.minutes%60
+    );
+
+  },
+
+
+  /* =======================================================
+     FORMAT TIME
+     ======================================================= */
+
+  formatTime(){
+
+    const h=
+      this.getHours();
+
+    const m=
+      this.getMinutes();
+
+
+    return String(h).padStart(2,"0")
+      +":"+
+      String(m).padStart(2,"0");
+
+  },
+
+
+  /* =======================================================
+     PERIOD
+     ======================================================= */
+
+  getPeriod(){
+
+    const h=
+      this.getHours();
+
+
+    if(h>=5 && h<8){
+
+      return "🌅 MORNING";
+
+    }
+
+    if(h>=8 && h<17){
+
+      return "☀️ DAY";
+
+    }
+
+    if(h>=17 && h<20){
+
+      return "🌇 EVENING";
+
+    }
+
+    return "🌙 NIGHT";
+
+  },
+
+
+  /* =======================================================
+     DAY NUMBER
+     ======================================================= */
+
+  getDay(){
+
+    /*
+      Day 1 starts at 00:00.
+    */
+
+    return Math.floor(
+      this.minutes/1440
+    )+1;
+
+  },
+
+
+  /* =======================================================
+     ADVANCE TIME
+     ======================================================= */
+
+  update(deltaSeconds){
+
+    if(!this.running){
+
+      return;
+
+    }
+
+
+    this.minutes+=
+      deltaSeconds*
+      this.speed;
+
+
+    /*
+      Keep the clock within
+      one 24-hour cycle.
+    */
+
+    if(
+      this.minutes>=1440
+    ){
+
+      this.minutes=
+        this.minutes%1440;
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const name=
+      document.getElementById(
+        "v67TimeName"
+      );
+
+    const value=
+      document.getElementById(
+        "v67TimeValue"
+      );
+
+
+    if(!name || !value){
+
+      return;
+
+    }
+
+
+    name.textContent=
+      this.getPeriod();
+
+
+    value.textContent=
+      this.formatTime()+
+      " • Day "+
+      this.getDay();
+
+  },
+
+
+  /* =======================================================
+     SET TIME
+     ======================================================= */
+
+  setTime(hours,minutes=0){
+
+    hours=
+      Number(hours);
+
+    minutes=
+      Number(minutes);
+
+
+    if(
+      !Number.isFinite(hours) ||
+      !Number.isFinite(minutes)
+    ){
+
+      return;
+
+    }
+
+
+    hours=
+      Math.max(
+        0,
+        Math.min(
+          23,
+          hours
+        )
+      );
+
+
+    minutes=
+      Math.max(
+        0,
+        Math.min(
+          59,
+          minutes
+        )
+      );
+
+
+    this.minutes=
+      hours*60+
+      minutes;
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     PAUSE
+     ======================================================= */
+
+  pause(){
+
+    this.running=false;
+
+  },
+
+
+  /* =======================================================
+     RESUME
+     ======================================================= */
+
+  resume(){
+
+    this.running=true;
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      minutes:
+        this.minutes,
+
+      speed:
+        this.speed,
+
+      running:
+        this.running
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.minutes)
+      )
+    ){
+
+      this.minutes=
+        Number(data.minutes);
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.speed)
+      )
+    ){
+
+      this.speed=
+        Number(data.speed);
+
+    }
+
+
+    if(
+      typeof data.running==="boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    this.updateHUD();
+
+  }
+
+};
+
+
+/* =========================================================
+ V60 SAVE / LOAD INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const v67OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v67OriginalCollect();
+
+    data.v67=
+      V67.collect();
+
+    return data;
+
+  };
+
+
+  const v67OriginalApply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    v67OriginalApply(data);
+
+
+    if(
+      data &&
+      data.v67
+    ){
+
+      V67.apply(
+        data.v67
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ GAME CLOCK LOOP
+ ========================================================= */
+
+V67.lastUpdate=
+  performance.now();
+
+
+function V67_gameClock(){
+
+  const now=
+    performance.now();
+
+
+  const delta=
+    (now-
+     V67.lastUpdate)/
+    1000;
+
+
+  V67.lastUpdate=
+    now;
+
+
+  /*
+    Prevent a huge jump if the
+    browser tab was suspended.
+  */
+
+  const safeDelta=
+    Math.min(
+      delta,
+      1
+    );
+
+
+  V67.update(
+    safeDelta
+  );
+
+
+  requestAnimationFrame(
+    V67_gameClock
+  );
+
+}
+
+
+requestAnimationFrame(
+  V67_gameClock
+);
+
+
+/* =========================================================
+ KEYBOARD CONTROLS
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      L = show current time
+    */
+
+    if(
+      event.code==="KeyL"
+    ){
+
+      event.preventDefault();
+
+      V67.updateHUD();
+
+    }
+
+
+    /*
+      N = advance to night
+    */
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      event.preventDefault();
+
+      V67.setTime(
+        21,
+        0
+      );
+
+    }
+
+
+    /*
+      D = advance to daytime
+    */
+
+    if(
+      event.code==="KeyD"
+    ){
+
+      event.preventDefault();
+
+      V67.setTime(
+        12,
+        0
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V67.updateHUD();
+
+console.log(
+  "WEBBOUND V67 DAY/NIGHT SYSTEM READY"
+);
+
+</script>
