@@ -1,0 +1,848 @@
+<!-- =====================================================
+ V240 — DAY/NIGHT + WEATHER SYSTEM
+ Add after V239
+ ===================================================== -->
+
+<style>
+
+#worldHud240{
+
+    position:fixed;
+
+    right:12px;
+    top:445px;
+
+    width:min(250px,50vw);
+
+    padding:11px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:5400;
+
+}
+
+.worldTitle240{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#worldTime240,
+#worldPeriod240,
+#worldWeather240{
+
+    margin-top:6px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= SKY ================= */
+
+#weatherLayer240{
+
+    position:fixed;
+
+    inset:0;
+
+    pointer-events:none;
+
+    z-index:100;
+
+    overflow:hidden;
+
+}
+
+
+/* ================= RAIN ================= */
+
+.rainDrop240{
+
+    position:absolute;
+
+    top:-30px;
+
+    width:1px;
+
+    height:18px;
+
+    background:#ffffff80;
+
+    animation:
+        rainFall240 linear infinite;
+
+}
+
+@keyframes rainFall240{
+
+    from{
+
+        transform:
+            translateY(-40px)
+            translateX(0);
+
+    }
+
+    to{
+
+        transform:
+            translateY(110vh)
+            translateX(-80px);
+
+    }
+
+}
+
+
+/* ================= CLOUDS ================= */
+
+.cloud240{
+
+    position:absolute;
+
+    width:100px;
+    height:35px;
+
+    border-radius:30px;
+
+    background:#ffffff12;
+
+    filter:blur(2px);
+
+    animation:
+        cloudMove240 25s linear infinite;
+
+}
+
+@keyframes cloudMove240{
+
+    from{
+
+        transform:
+            translateX(-150px);
+
+    }
+
+    to{
+
+        transform:
+            translateX(110vw);
+
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#worldControls240{
+
+    position:fixed;
+
+    right:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5500;
+
+}
+
+#worldControls240 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ WEATHER LAYER
+ ===================================================== -->
+
+<div id="weatherLayer240"></div>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="worldHud240">
+
+    <div class="worldTitle240">
+        🌎 WORLD ATMOSPHERE — V240
+    </div>
+
+    <div id="worldTime240">
+        Time: 08:00
+    </div>
+
+    <div id="worldPeriod240">
+        Period: DAY
+    </div>
+
+    <div id="worldWeather240">
+        Weather: CLEAR
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="worldControls240">
+
+    <button onclick="SpiderWorld240.toggleTime()">
+        🕐 TIME
+    </button>
+
+    <button onclick="SpiderWorld240.nextWeather()">
+        🌦️ WEATHER
+    </button>
+
+    <button onclick="SpiderWorld240.toggleRain()">
+        🌧️ RAIN
+    </button>
+
+    <button onclick="SpiderWorld240.reset()">
+        ↻ RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V240 WORLD ENGINE
+ ===================================================== */
+
+const SpiderWorld240={
+
+    hour:8,
+
+    minute:0,
+
+    timeSpeed:1,
+
+    running:true,
+
+    weatherIndex:0,
+
+    rainActive:false,
+
+    weatherList:[
+
+        "CLEAR",
+
+        "CLOUDY",
+
+        "RAIN",
+
+        "STORM"
+
+    ],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.createClouds();
+
+        this.startClock();
+
+        this.message(
+            "🌎 World atmosphere online."
+        );
+
+    },
+
+
+    /* =========================
+       CLOCK
+    ========================= */
+
+    startClock(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    !this.running
+                )
+                    return;
+
+
+                this.minute+=
+                    this.timeSpeed;
+
+
+                if(
+                    this.minute>=60
+                ){
+
+                    this.minute-=60;
+
+                    this.hour++;
+
+                }
+
+
+                if(
+                    this.hour>=24
+                ){
+
+                    this.hour=0;
+
+                }
+
+
+                this.updateWorld();
+
+            },
+            1000
+        );
+
+    },
+
+
+    /* =========================
+       UPDATE WORLD
+    ========================= */
+
+    updateWorld(){
+
+        this.updatePeriod();
+
+        this.updateLighting();
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       PERIOD
+    ========================= */
+
+    updatePeriod(){
+
+        let period;
+
+
+        if(
+            this.hour>=6 &&
+            this.hour<12
+        ){
+
+            period="MORNING";
+
+        }else if(
+            this.hour>=12 &&
+            this.hour<18
+        ){
+
+            period="DAY";
+
+        }else if(
+            this.hour>=18 &&
+            this.hour<21
+        ){
+
+            period="EVENING";
+
+        }else{
+
+            period="NIGHT";
+
+        }
+
+
+        this.period=period;
+
+    },
+
+
+    /* =========================
+       LIGHTING
+    ========================= */
+
+    updateLighting(){
+
+        let darkness=0;
+
+
+        if(
+            this.hour>=21 ||
+            this.hour<6
+        ){
+
+            darkness=.55;
+
+        }else if(
+            this.hour>=18
+        ){
+
+            darkness=.25;
+
+        }else if(
+            this.hour<8
+        ){
+
+            darkness=.15;
+
+        }
+
+
+        document.body.style.setProperty(
+            "--world-darkness",
+            darkness
+        );
+
+
+        /*
+         * Apply subtle overlay.
+         */
+
+        document.documentElement
+            .style.backgroundColor=
+            darkness>.4
+            ?"rgba(3,7,13,.35)"
+            :"";
+
+    },
+
+
+    /* =========================
+       TIME CONTROL
+    ========================= */
+
+    toggleTime(){
+
+        this.running=
+            !this.running;
+
+
+        this.message(
+            this.running
+            ?"🕐 Time running."
+            :"⏸️ Time paused."
+        );
+
+    },
+
+
+    /* =========================
+       WEATHER
+    ========================= */
+
+    nextWeather(){
+
+        this.weatherIndex=
+            (
+                this.weatherIndex+
+                1
+            )%
+            this.weatherList.length;
+
+
+        const weather=
+            this.weatherList[
+                this.weatherIndex
+            ];
+
+
+        if(
+            weather==="RAIN" ||
+            weather==="STORM"
+        ){
+
+            this.startRain();
+
+        }else{
+
+            this.stopRain();
+
+        }
+
+
+        this.message(
+            "🌦️ Weather: "+
+            weather
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       RAIN
+    ========================= */
+
+    toggleRain(){
+
+        if(
+            this.rainActive
+        ){
+
+            this.stopRain();
+
+            this.weatherIndex=0;
+
+        }else{
+
+            this.startRain();
+
+            this.weatherIndex=2;
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    startRain(){
+
+        this.stopRain();
+
+        this.rainActive=true;
+
+
+        const layer=
+            document.getElementById(
+                "weatherLayer240"
+            );
+
+
+        if(!layer)
+            return;
+
+
+        const count=
+            this.weatherIndex===3
+            ?100
+            :55;
+
+
+        for(
+            let i=0;
+            i<count;
+            i++
+        ){
+
+            const drop=
+                document.createElement(
+                    "div"
+                );
+
+
+            drop.className=
+                "rainDrop240";
+
+
+            drop.style.left=
+                Math.random()*100+
+                "%";
+
+
+            drop.style.animationDuration=
+                (
+                    .35+
+                    Math.random()*.55
+                )+"s";
+
+
+            drop.style.animationDelay=
+                Math.random()+
+                "s";
+
+
+            layer.appendChild(
+                drop
+            );
+
+        }
+
+
+        this.message(
+            "🌧️ Rain started."
+        );
+
+    },
+
+
+    stopRain(){
+
+        this.rainActive=false;
+
+
+        const layer=
+            document.getElementById(
+                "weatherLayer240"
+            );
+
+
+        if(layer){
+
+            layer.innerHTML="";
+
+        }
+
+    },
+
+
+    /* =========================
+       CLOUDS
+    ========================= */
+
+    createClouds(){
+
+        const layer=
+            document.getElementById(
+                "weatherLayer240"
+            );
+
+
+        if(!layer)
+            return;
+
+
+        for(
+            let i=0;
+            i<5;
+            i++
+        ){
+
+            const cloud=
+                document.createElement(
+                    "div"
+                );
+
+
+            cloud.className=
+                "cloud240";
+
+
+            cloud.style.top=
+                (
+                    8+
+                    Math.random()*30
+                )+"%";
+
+
+            cloud.style.left=
+                (
+                    Math.random()*80
+                )+"%";
+
+
+            cloud.style.animationDelay=
+                (
+                    Math.random()*10
+                )+"s";
+
+
+            layer.appendChild(
+                cloud
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    reset(){
+
+        this.hour=8;
+
+        this.minute=0;
+
+        this.weatherIndex=0;
+
+        this.stopRain();
+
+        this.updateWorld();
+
+        this.message(
+            "↻ World reset."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const time=
+            document.getElementById(
+                "worldTime240"
+            );
+
+
+        const period=
+            document.getElementById(
+                "worldPeriod240"
+            );
+
+
+        const weather=
+            document.getElementById(
+                "worldWeather240"
+            );
+
+
+        const hh=
+            String(
+                this.hour
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const mm=
+            String(
+                Math.floor(
+                    this.minute
+                )
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        if(time){
+
+            time.textContent=
+                "Time: "+
+                hh+
+                ":"+
+                mm;
+
+        }
+
+
+        if(period){
+
+            period.textContent=
+                "Period: "+
+                (
+                    this.period ||
+                    "DAY"
+                );
+
+        }
+
+
+        if(weather){
+
+            weather.textContent=
+                "Weather: "+
+                this.weatherList[
+                    this.weatherIndex
+                ];
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V240
+ ===================================================== */
+
+SpiderWorld240.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="t")
+            SpiderWorld240.toggleTime();
+
+
+        if(key==="y")
+            SpiderWorld240.nextWeather();
+
+
+        if(key==="r")
+            SpiderWorld240.toggleRain();
+
+
+        if(key==="0")
+            SpiderWorld240.reset();
+
+    }
+);
