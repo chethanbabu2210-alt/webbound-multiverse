@@ -1,0 +1,833 @@
+<!-- =====================================================
+ V244 — NPC CIVILIAN + PEDESTRIAN SYSTEM
+ Add after V243
+ ===================================================== -->
+
+<style>
+
+#npcHud244{
+
+    position:fixed;
+
+    right:12px;
+    top:570px;
+
+    width:min(240px,48vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:9px;
+
+    z-index:5500;
+
+}
+
+.npcTitle244{
+
+    font-size:9px;
+    font-weight:bold;
+
+}
+
+#npcCount244,
+#npcDistrict244,
+#npcStatus244{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= NPC ================= */
+
+.civilian244{
+
+    position:absolute;
+
+    width:14px;
+    height:25px;
+
+    background:#ffffff18;
+
+    border:1px solid #ffffff40;
+
+    border-radius:6px 6px 3px 3px;
+
+    z-index:2500;
+
+    transition:
+        left .8s,
+        top .8s;
+
+    cursor:pointer;
+
+}
+
+.civilian244::before{
+
+    content:"";
+
+    position:absolute;
+
+    width:8px;
+    height:8px;
+
+    left:2px;
+    top:-8px;
+
+    border-radius:50%;
+
+    background:#ffffff35;
+
+    border:1px solid #ffffff40;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#npcControls244{
+
+    position:fixed;
+
+    right:12px;
+
+    bottom:105px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5600;
+
+}
+
+#npcControls244 button{
+
+    padding:7px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= MESSAGE ================= */
+
+#npcMessage244{
+
+    position:fixed;
+
+    left:50%;
+
+    top:42%;
+
+    transform:
+        translateX(-50%);
+
+    padding:9px 14px;
+
+    background:#03070df5;
+
+    border:1px solid #ffffff30;
+
+    border-radius:8px;
+
+    font-size:8px;
+
+    z-index:6500;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#npcMessage244.show{
+
+    animation:
+        npcPopup244 1s forwards;
+
+}
+
+@keyframes npcPopup244{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(.8);
+    }
+
+    20%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1);
+    }
+
+    80%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ NPC HUD
+ ===================================================== -->
+
+<div id="npcHud244">
+
+    <div class="npcTitle244">
+        👥 CITY LIFE — V244
+    </div>
+
+    <div id="npcCount244">
+        Civilians: 0
+    </div>
+
+    <div id="npcDistrict244">
+        District: Downtown
+    </div>
+
+    <div id="npcStatus244">
+        Status: ACTIVE
+    </div>
+
+</div>
+
+
+<div id="npcMessage244">
+    NPC
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="npcControls244">
+
+    <button onclick="SpiderNPC244.spawn()">
+        👤 SPAWN
+    </button>
+
+    <button onclick="SpiderNPC244.spawnCrowd()">
+        👥 CROWD
+    </button>
+
+    <button onclick="SpiderNPC244.clear()">
+        ✕ CLEAR
+    </button>
+
+    <button onclick="SpiderNPC244.toggle()">
+        ⏸️ PAUSE
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V244 NPC ENGINE
+ ===================================================== */
+
+const SpiderNPC244={
+
+    npcs:[],
+
+    nextId:1,
+
+    active:true,
+
+    maxNPCs:30,
+
+    districts:[
+
+        "Downtown",
+
+        "Midtown",
+
+        "Harbor",
+
+        "Queens",
+
+        "Upper City",
+
+        "Industrial"
+
+    ],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.spawnCrowd();
+
+        this.startAI();
+
+        this.updateHUD();
+
+        this.message(
+            "👥 City population active."
+        );
+
+    },
+
+
+    /* =========================
+       SPAWN
+    ========================= */
+
+    spawn(){
+
+        if(
+            this.npcs.length>=
+            this.maxNPCs
+        ){
+
+            this.message(
+                "👥 Maximum civilians reached."
+            );
+
+            return;
+
+        }
+
+
+        const npc=
+            document.createElement(
+                "div"
+            );
+
+
+        npc.id=
+            "npc244_"+
+            this.nextId++;
+
+
+        npc.className=
+            "civilian244";
+
+
+        npc.style.left=
+            (
+                5+
+                Math.random()*88
+            )+"vw";
+
+
+        npc.style.top=
+            (
+                18+
+                Math.random()*70
+            )+"vh";
+
+
+        const district=
+            this.getDistrict();
+
+
+        npc.dataset.district=
+            district;
+
+
+        npc.title=
+            "Civilian — "+
+            district;
+
+
+        npc.addEventListener(
+            "click",
+            ()=>{
+
+                this.interact(
+                    npc
+                );
+
+            }
+        );
+
+
+        document.body.appendChild(
+            npc
+        );
+
+
+        this.npcs.push({
+
+            id:npc.id,
+
+            element:npc,
+
+            district:district,
+
+            active:true,
+
+            mood:this.randomMood()
+
+        });
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CROWD
+       ========================= */
+
+    spawnCrowd(){
+
+        for(
+            let i=0;
+            i<10;
+            i++
+        ){
+
+            if(
+                this.npcs.length>=
+                this.maxNPCs
+            )
+                break;
+
+
+            this.spawn();
+
+        }
+
+    },
+
+
+    /* =========================
+       MOVEMENT AI
+       ========================= */
+
+    startAI(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    !this.active
+                )
+                    return;
+
+
+                this.npcs.forEach(
+                    npc=>{
+
+                        if(
+                            !npc.active ||
+                            !npc.element
+                        )
+                            return;
+
+
+                        const element=
+                            npc.element;
+
+
+                        let left=
+                            parseFloat(
+                                element.style.left
+                            );
+
+
+                        let top=
+                            parseFloat(
+                                element.style.top
+                            );
+
+
+                        left+=
+                            (
+                                Math.random()*
+                                4
+                            )-2;
+
+
+                        top+=
+                            (
+                                Math.random()*
+                                3
+                            )-1.5;
+
+
+                        left=
+                            Math.max(
+                                3,
+                                Math.min(
+                                    92,
+                                    left
+                                )
+                            );
+
+
+                        top=
+                            Math.max(
+                                15,
+                                Math.min(
+                                    88,
+                                    top
+                                )
+                            );
+
+
+                        element.style.left=
+                            left+"vw";
+
+
+                        element.style.top=
+                            top+"vh";
+
+                    }
+                );
+
+
+            },
+            900
+        );
+
+    },
+
+
+    /* =========================
+       INTERACTION
+       ========================= */
+
+    interact(npc){
+
+        const data=
+            this.npcs.find(
+                n=>
+                    n.element===
+                    npc
+            );
+
+
+        if(!data)
+            return;
+
+
+        const lines=[
+
+            "Nice day in the city.",
+
+            "Did you see Spider-Man?",
+
+            "I hope everything stays safe.",
+
+            "The city is busy today.",
+
+            "I need to get somewhere."
+
+        ];
+
+
+        const line=
+            lines[
+                Math.floor(
+                    Math.random()*
+                    lines.length
+                )
+            ];
+
+
+        this.message(
+            "👤 Civilian: "+
+            line
+        );
+
+
+        if(
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            SpiderProgress239.addXP(
+                5
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       RANDOM MOOD
+       ========================= */
+
+    randomMood(){
+
+        const moods=[
+
+            "calm",
+
+            "happy",
+
+            "busy",
+
+            "worried"
+
+        ];
+
+
+        return moods[
+            Math.floor(
+                Math.random()*
+                moods.length
+            )
+        ];
+
+    },
+
+
+    /* =========================
+       CURRENT DISTRICT
+       ========================= */
+
+    getDistrict(){
+
+        if(
+            typeof SpiderMap241!==
+            "undefined"
+        ){
+
+            return SpiderMap241
+                .currentLocation;
+
+        }
+
+
+        return "Downtown";
+
+    },
+
+
+    /* =========================
+       TOGGLE
+       ========================= */
+
+    toggle(){
+
+        this.active=
+            !this.active;
+
+
+        this.message(
+            this.active
+            ?"▶️ Civilians moving."
+            :"⏸️ Civilians paused."
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CLEAR
+       ========================= */
+
+    clear(){
+
+        this.npcs.forEach(
+            npc=>{
+
+                if(
+                    npc.element &&
+                    npc.element.parentNode
+                ){
+
+                    npc.element
+                        .parentNode
+                        .removeChild(
+                            npc.element
+                        );
+
+                }
+
+            }
+        );
+
+
+        this.npcs=[];
+
+        this.updateHUD();
+
+
+        this.message(
+            "✕ Civilian population cleared."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const count=
+            document.getElementById(
+                "npcCount244"
+            );
+
+
+        const district=
+            document.getElementById(
+                "npcDistrict244"
+            );
+
+
+        const status=
+            document.getElementById(
+                "npcStatus244"
+            );
+
+
+        if(count){
+
+            count.textContent=
+                "Civilians: "+
+                this.npcs.length;
+
+        }
+
+
+        if(district){
+
+            district.textContent=
+                "District: "+
+                this.getDistrict();
+
+        }
+
+
+        if(status){
+
+            status.textContent=
+                "Status: "+
+                (
+                    this.active
+                    ?"ACTIVE"
+                    :"PAUSED"
+                );
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "npcMessage244"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V244
+ ===================================================== */
+
+SpiderNPC244.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="p")
+            SpiderNPC244.spawn();
+
+
+        if(key==="o")
+            SpiderNPC244.spawnCrowd();
+
+
+        if(key==="l")
+            SpiderNPC244.clear();
+
+
+        if(key==="n")
+            SpiderNPC244.toggle();
+
+    }
+);
