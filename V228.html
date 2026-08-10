@@ -1,0 +1,1004 @@
+<!-- =====================================================
+ V228 — MISSION & OBJECTIVE SYSTEM
+ Add after V227
+ ===================================================== -->
+
+<style>
+
+#missionHud228{
+
+    position:fixed;
+
+    left:12px;
+    top:20px;
+
+    width:min(280px,58vw);
+
+    padding:12px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:11px;
+
+    z-index:4800;
+
+}
+
+.missionTitle228{
+
+    font-size:11px;
+    font-weight:bold;
+
+}
+
+#missionName228{
+
+    margin-top:6px;
+
+    font-size:10px;
+
+}
+
+#missionObjective228{
+
+    margin-top:6px;
+
+    font-size:8px;
+
+    line-height:1.5;
+
+}
+
+#missionProgress228{
+
+    margin-top:7px;
+
+    height:6px;
+
+    background:#172128;
+
+    border-radius:6px;
+
+    overflow:hidden;
+
+}
+
+#missionFill228{
+
+    width:0%;
+
+    height:100%;
+
+    background:#d9dddf;
+
+    transition:width .3s;
+
+}
+
+#missionReward228{
+
+    margin-top:6px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= MISSION COMPLETE ================= */
+
+#missionComplete228{
+
+    position:fixed;
+
+    left:50%;
+    top:25%;
+
+    transform:
+        translateX(-50%)
+        scale(.8);
+
+    padding:15px 25px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff35;
+
+    border-radius:12px;
+
+    font-size:12px;
+
+    font-weight:bold;
+
+    z-index:6000;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#missionComplete228.show{
+
+    animation:
+        missionComplete228 .9s forwards;
+
+}
+
+@keyframes missionComplete228{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(.8);
+    }
+
+    25%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1);
+    }
+
+    75%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(1.05);
+    }
+
+}
+
+
+/* ================= CHECKPOINT ================= */
+
+#checkpoint228{
+
+    position:fixed;
+
+    bottom:170px;
+    left:50%;
+
+    transform:
+        translateX(-50%);
+
+    padding:8px 14px;
+
+    background:#03070dcc;
+
+    border:1px solid #ffffff25;
+
+    border-radius:8px;
+
+    font-size:8px;
+
+    z-index:4900;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#checkpoint228.show{
+
+    animation:
+        checkpoint228 .8s forwards;
+
+}
+
+@keyframes checkpoint228{
+
+    0%{opacity:0;}
+    20%{opacity:1;}
+    80%{opacity:1;}
+    100%{opacity:0;}
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#missionControls228{
+
+    position:fixed;
+
+    left:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5000;
+
+}
+
+#missionControls228 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ MISSION HUD
+ ===================================================== -->
+
+<div id="missionHud228">
+
+    <div class="missionTitle228">
+        🕷️ MISSION SYSTEM — V228
+    </div>
+
+    <div id="missionName228">
+        Mission: Loading...
+    </div>
+
+    <div id="missionObjective228">
+        Objective: Loading...
+    </div>
+
+    <div id="missionProgress228">
+
+        <div id="missionFill228"></div>
+
+    </div>
+
+    <div id="missionReward228">
+        Reward: 0 XP
+    </div>
+
+</div>
+
+
+<div id="missionComplete228">
+    🕷️ MISSION COMPLETE
+</div>
+
+
+<div id="checkpoint228">
+    ✓ CHECKPOINT REACHED
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="missionControls228">
+
+    <button onclick="SpiderMission228.startNext()">
+        ▶️ NEXT
+    </button>
+
+    <button onclick="SpiderMission228.checkpoint()">
+        🚩 CHECKPOINT
+    </button>
+
+    <button onclick="SpiderMission228.completeObjective()">
+        ✓ OBJECTIVE
+    </button>
+
+    <button onclick="SpiderMission228.reset()">
+        🔄 RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V228 MISSION ENGINE
+ ===================================================== */
+
+const SpiderMission228={
+
+
+    /* =========================
+       MISSION DATABASE
+    ========================= */
+
+    missions:[
+
+        {
+            id:1,
+
+            name:"First Patrol",
+
+            objectives:[
+                "Reach the patrol area",
+                "Scan the surroundings",
+                "Defeat nearby enemies"
+            ],
+
+            reward:100
+        },
+
+
+        {
+            id:2,
+
+            name:"Web Rescue",
+
+            objectives:[
+                "Reach the rescue zone",
+                "Protect the civilians",
+                "Clear the area"
+            ],
+
+            reward:150
+        },
+
+
+        {
+            id:3,
+
+            name:"Rooftop Pursuit",
+
+            objectives:[
+                "Reach the rooftop",
+                "Follow the target",
+                "Stop the escape"
+            ],
+
+            reward:200
+        },
+
+
+        {
+            id:4,
+
+            name:"Night Watch",
+
+            objectives:[
+                "Activate Spider-Sense",
+                "Avoid detection",
+                "Secure the area"
+            ],
+
+            reward:250
+        },
+
+
+        {
+            id:5,
+
+            name:"City Threat",
+
+            objectives:[
+                "Locate the threat",
+                "Defeat enemy group",
+                "Reach the checkpoint"
+            ],
+
+            reward:300
+        }
+
+    ],
+
+
+    currentMission:0,
+
+    currentObjective:0,
+
+    checkpoints:[],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.loadProgress();
+
+        this.updateHUD();
+
+        this.message(
+            "🕷️ Mission system online."
+        );
+
+    },
+
+
+    /* =========================
+       CURRENT MISSION
+    ========================= */
+
+    getMission(){
+
+        return this.missions[
+            this.currentMission
+        ];
+
+    },
+
+
+    /* =========================
+       START NEXT
+    ========================= */
+
+    startNext(){
+
+        if(
+            this.currentMission>=
+            this.missions.length
+        ){
+
+            this.message(
+                "🏆 All missions completed!"
+            );
+
+            return;
+
+        }
+
+
+        this.currentObjective=0;
+
+        this.checkpoints=[];
+
+        this.saveProgress();
+
+        this.updateHUD();
+
+
+        const mission=
+            this.getMission();
+
+
+        this.message(
+            "▶️ Mission started: "+
+            mission.name
+        );
+
+    },
+
+
+    /* =========================
+       COMPLETE OBJECTIVE
+    ========================= */
+
+    completeObjective(){
+
+        const mission=
+            this.getMission();
+
+
+        if(!mission)
+            return;
+
+
+        if(
+            this.currentObjective>=
+            mission.objectives.length
+        ){
+
+            this.completeMission();
+
+            return;
+
+        }
+
+
+        this.currentObjective++;
+
+
+        this.saveProgress();
+
+        this.updateHUD();
+
+
+        if(
+            this.currentObjective>=
+            mission.objectives.length
+        ){
+
+            this.completeMission();
+
+        }else{
+
+            this.message(
+                "✓ Objective completed."
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       COMPLETE MISSION
+    ========================= */
+
+    completeMission(){
+
+        const mission=
+            this.getMission();
+
+
+        if(!mission)
+            return;
+
+
+        const popup=
+            document.getElementById(
+                "missionComplete228"
+            );
+
+
+        if(popup){
+
+            popup.classList.remove(
+                "show"
+            );
+
+            void popup.offsetWidth;
+
+            popup.classList.add(
+                "show"
+            );
+
+        }
+
+
+        this.message(
+            "🏆 "+
+            mission.name+
+            " completed! +"+
+            mission.reward+
+            " XP"
+        );
+
+
+        /*
+         * Give suit XP when V227
+         * is available.
+         */
+
+        if(
+            typeof SpiderSuit227!==
+            "undefined"
+        ){
+
+            SpiderSuit227.addXP(
+                mission.reward
+            );
+
+        }
+
+
+        this.currentMission++;
+
+        this.currentObjective=0;
+
+        this.checkpoints=[];
+
+
+        this.saveProgress();
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CHECKPOINT
+    ========================= */
+
+    checkpoint(){
+
+        const mission=
+            this.getMission();
+
+
+        if(!mission)
+            return;
+
+
+        const checkpointId=
+            this.currentObjective;
+
+
+        if(
+            !this.checkpoints.includes(
+                checkpointId
+            )
+        ){
+
+            this.checkpoints.push(
+                checkpointId
+            );
+
+        }
+
+
+        const popup=
+            document.getElementById(
+                "checkpoint228"
+            );
+
+
+        if(popup){
+
+            popup.classList.remove(
+                "show"
+            );
+
+            void popup.offsetWidth;
+
+            popup.classList.add(
+                "show"
+            );
+
+        }
+
+
+        this.saveProgress();
+
+
+        this.message(
+            "🚩 Checkpoint saved."
+        );
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    reset(){
+
+        this.currentMission=0;
+
+        this.currentObjective=0;
+
+        this.checkpoints=[];
+
+        this.saveProgress();
+
+        this.updateHUD();
+
+
+        this.message(
+            "🔄 Mission progress reset."
+        );
+
+    },
+
+
+    /* =========================
+       PROGRESS
+    ========================= */
+
+    getProgress(){
+
+        const mission=
+            this.getMission();
+
+
+        if(!mission)
+            return 100;
+
+
+        return Math.min(
+            100,
+            (
+                this.currentObjective/
+                mission.objectives.length
+            )*100
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const mission=
+            this.getMission();
+
+
+        const name=
+            document.getElementById(
+                "missionName228"
+            );
+
+        const objective=
+            document.getElementById(
+                "missionObjective228"
+            );
+
+        const fill=
+            document.getElementById(
+                "missionFill228"
+            );
+
+        const reward=
+            document.getElementById(
+                "missionReward228"
+            );
+
+
+        if(
+            !mission
+        ){
+
+            if(name)
+                name.textContent=
+                    "Mission: COMPLETE";
+
+
+            if(objective)
+                objective.textContent=
+                    "Objective: All missions complete";
+
+
+            if(fill)
+                fill.style.width="100%";
+
+
+            if(reward)
+                reward.textContent=
+                    "Reward: 🏆 ALL COMPLETE";
+
+
+            return;
+
+        }
+
+
+        if(name){
+
+            name.textContent=
+                "Mission "+
+                mission.id+
+                ": "+
+                mission.name;
+
+        }
+
+
+        if(objective){
+
+            if(
+                this.currentObjective<
+                mission.objectives.length
+            ){
+
+                objective.textContent=
+                    "Objective: "+
+                    mission.objectives[
+                        this.currentObjective
+                    ];
+
+            }else{
+
+                objective.textContent=
+                    "Objective: Complete!";
+
+            }
+
+        }
+
+
+        if(fill){
+
+            fill.style.width=
+                this.getProgress()+
+                "%";
+
+        }
+
+
+        if(reward){
+
+            reward.textContent=
+                "Reward: "+
+                mission.reward+
+                " XP";
+
+        }
+
+    },
+
+
+    /* =========================
+       SAVE
+    ========================= */
+
+    saveProgress(){
+
+        try{
+
+            localStorage.setItem(
+                "spiderMission228",
+                JSON.stringify({
+
+                    mission:
+                        this.currentMission,
+
+                    objective:
+                        this.currentObjective,
+
+                    checkpoints:
+                        this.checkpoints
+
+                })
+            );
+
+        }catch(error){
+
+            console.warn(
+                "Mission save unavailable"
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       LOAD
+    ========================= */
+
+    loadProgress(){
+
+        try{
+
+            const saved=
+                localStorage.getItem(
+                    "spiderMission228"
+                );
+
+
+            if(!saved)
+                return;
+
+
+            const data=
+                JSON.parse(saved);
+
+
+            if(
+                Number.isInteger(
+                    data.mission
+                )
+            ){
+
+                this.currentMission=
+                    Math.max(
+                        0,
+                        Math.min(
+                            this.missions.length,
+                            data.mission
+                        )
+                    );
+
+            }
+
+
+            if(
+                Number.isInteger(
+                    data.objective
+                )
+            ){
+
+                this.currentObjective=
+                    Math.max(
+                        0,
+                        data.objective
+                    );
+
+            }
+
+
+            if(
+                Array.isArray(
+                    data.checkpoints
+                )
+            ){
+
+                this.checkpoints=
+                    data.checkpoints;
+
+            }
+
+        }catch(error){
+
+            console.warn(
+                "Mission load unavailable"
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V228
+ ===================================================== */
+
+SpiderMission228.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="m")
+            SpiderMission228.startNext();
+
+
+        if(key==="j")
+            SpiderMission228.completeObjective();
+
+
+        if(key==="k")
+            SpiderMission228.checkpoint();
+
+
+        if(key==="r")
+            SpiderMission228.reset();
+
+    }
+);
