@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V146 — DIALOGUE CINEMATIC</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ overflow:hidden;
+ background:#000;
+ color:#fff;
+ font-family:Arial,sans-serif
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ background:
+ linear-gradient(#243d4b,#081014 70%);
+}
+
+#city{
+ position:absolute;
+ inset:0;
+ overflow:hidden
+}
+
+.building{
+ position:absolute;
+ bottom:0;
+ background:#101b22;
+ border:1px solid #26353d
+}
+
+.b1{left:0;width:15%;height:42%}
+.b2{left:17%;width:12%;height:65%}
+.b3{left:31%;width:15%;height:48%}
+.b4{left:48%;width:12%;height:78%}
+.b5{left:63%;width:15%;height:56%}
+.b6{left:80%;width:18%;height:70%}
+
+.street{
+ position:absolute;
+ bottom:0;
+ left:0;
+ right:0;
+ height:24%;
+ background:#151a1e
+}
+
+#hero,
+#npc{
+ position:absolute;
+ bottom:22%;
+ width:48px;
+ height:100px;
+ border-radius:18px 18px 5px 5px;
+ transition:all .8s ease
+}
+
+#hero{
+ left:28%;
+ background:#1c3445
+}
+
+#npc{
+ right:28%;
+ background:#4b2932
+}
+
+#hero:before,
+#npc:before{
+ content:"";
+ position:absolute;
+ width:32px;
+ height:32px;
+ top:-27px;
+ left:8px;
+ border-radius:50%;
+ background:#bd8967
+}
+
+#dialogue{
+ position:absolute;
+ left:50%;
+ bottom:3%;
+ transform:translateX(-50%);
+ width:min(900px,94vw);
+ padding:15px;
+ background:#030609ef;
+ border:1px solid #ffffff35;
+ border-radius:14px;
+ z-index:20;
+ display:none
+}
+
+#speaker{
+ font-size:15px;
+ font-weight:bold;
+ margin-bottom:7px
+}
+
+#text{
+ min-height:48px;
+ font-size:13px;
+ line-height:1.6;
+ color:#e5ebef
+}
+
+#choices{
+ display:flex;
+ flex-direction:column;
+ gap:6px;
+ margin-top:10px
+}
+
+.choice{
+ padding:10px;
+ text-align:left;
+ border:1px solid #ffffff20;
+ border-radius:8px;
+ background:#14232e;
+ color:#fff;
+ cursor:pointer
+}
+
+.choice:hover{
+ background:#234050
+}
+
+#continue{
+ width:100%;
+ padding:9px;
+ margin-top:8px;
+ border:0;
+ border-radius:8px;
+ background:#21394a;
+ color:white;
+ display:none
+}
+
+#topBar{
+ position:absolute;
+ top:10px;
+ left:10px;
+ right:10px;
+ display:flex;
+ justify-content:space-between;
+ z-index:30;
+ pointer-events:none
+}
+
+.badge{
+ padding:7px 10px;
+ border-radius:8px;
+ background:#030609dd;
+ border:1px solid #ffffff20;
+ font-size:10px
+}
+
+#menu{
+ position:absolute;
+ inset:0;
+ z-index:100;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ background:
+ radial-gradient(circle,#263f4e,#020405 72%)
+}
+
+.menuBox{
+ width:min(540px,92vw);
+ padding:25px;
+ text-align:center;
+ background:#04080bf0;
+ border:1px solid #ffffff25;
+ border-radius:17px
+}
+
+.menuBox h1{
+ margin:0;
+ letter-spacing:4px
+}
+
+.menuBox p{
+ color:#aebbc4;
+ font-size:12px
+}
+
+button{
+ font-family:inherit
+}
+
+.menuBtn{
+ width:100%;
+ margin-top:8px;
+ padding:12px;
+ background:#162936;
+ color:#fff;
+ border:1px solid #ffffff20;
+ border-radius:9px
+}
+
+#result{
+ position:absolute;
+ inset:0;
+ z-index:90;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c
+}
+
+.resultBox{
+ width:min(500px,90vw);
+ padding:25px;
+ text-align:center;
+ background:#071016;
+ border:1px solid #ffffff25;
+ border-radius:15px
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="city">
+  <div class="building b1"></div>
+  <div class="building b2"></div>
+  <div class="building b3"></div>
+  <div class="building b4"></div>
+  <div class="building b5"></div>
+  <div class="building b6"></div>
+  <div class="street"></div>
+ </div>
+
+ <div id="hero"></div>
+ <div id="npc"></div>
+
+ <div id="topBar">
+
+  <div class="badge">
+   🕵️ WEBBOUND V146
+  </div>
+
+  <div class="badge">
+   ⭐ Reputation:
+   <span id="rep">0</span>
+  </div>
+
+ </div>
+
+ <div id="dialogue">
+
+  <div id="speaker">
+   CHARACTER
+  </div>
+
+  <div id="text"></div>
+
+  <div id="choices"></div>
+
+  <button
+   id="continue"
+   onclick="V146.next()">
+   CONTINUE ▶
+  </button>
+
+ </div>
+
+ <div id="result">
+
+  <div class="resultBox">
+
+   <h2 id="resultTitle">
+    Scene Complete
+   </h2>
+
+   <p id="resultText"></p>
+
+   <button
+    class="menuBtn"
+    onclick="V146.closeResult()">
+    CONTINUE
+   </button>
+
+  </div>
+
+ </div>
+
+ <div id="menu">
+
+  <div class="menuBox">
+
+   <h1>WEBBOUND</h1>
+
+   <p>
+    V146 — Cinematic Dialogue & Branching Story
+   </p>
+
+   <button
+    class="menuBtn"
+    onclick="V146.start('intro')">
+    🎬 INTRO CONVERSATION
+   </button>
+
+   <button
+    class="menuBtn"
+    onclick="V146.start('investigation')">
+    🔎 INVESTIGATION
+   </button>
+
+   <button
+    class="menuBtn"
+    onclick="V146.start('suspect')">
+    🕵️ SUSPECT INTERVIEW
+   </button>
+
+   <button
+    class="menuBtn"
+    onclick="V146.start('ending')">
+    🏆 STORY ENDING
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V146={
+
+ reputation:0,
+ scene:null,
+ index:0,
+ waiting:false,
+
+ scenes:{
+
+  /* =========================
+     INTRO
+  ========================= */
+
+  intro:[
+
+   {
+    speaker:"Narrator",
+    text:"Night falls over the city. You receive an unexpected message.",
+    next:true
+   },
+
+   {
+    speaker:"Alex",
+    text:"You're the investigator everyone's talking about, right?",
+    next:true
+   },
+
+   {
+    speaker:"You",
+    text:"That depends. Why are you looking for me?",
+    next:true
+   },
+
+   {
+    speaker:"Alex",
+    text:"Because something strange happened near the market.",
+    next:true
+   },
+
+   {
+    speaker:"You",
+    text:"Tell me everything.",
+    choices:[
+     {
+      text:"I'm listening.",
+      rep:2,
+      next:5
+     },
+     {
+      text:"Get to the point.",
+      rep:-1,
+      next:5
+     },
+     {
+      text:"Why should I trust you?",
+      rep:1,
+      next:5
+     }
+    ]
+   },
+
+   {
+    speaker:"Alex",
+    text:"Someone disappeared after leaving a package behind.",
+    next:true
+   },
+
+   {
+    speaker:"You",
+    text:"Where is the package now?",
+    choices:[
+     {
+      text:"Let's investigate the market.",
+      rep:3,
+      next:7
+     },
+     {
+      text:"Take me to the police station.",
+      rep:1,
+      next:7
+     }
+    ]
+   },
+
+   {
+    speaker:"Narrator",
+    text:"The first clue has been discovered. Your investigation begins.",
+    next:true
+   },
+
+   {
+    speaker:"SYSTEM",
+    text:"MISSION UNLOCKED: Find the missing package.",
+    end:true
+   }
+
+  ],
+
+  /* =========================
+     INVESTIGATION
+  ========================= */
+
+  investigation:[
+
+   {
+    speaker:"Narrator",
+    text:"You arrive at the market. The streets are unusually quiet.",
+    next:true
+   },
+
+   {
+    speaker:"Maya",
+    text:"You shouldn't be here. This place isn't safe tonight.",
+    choices:[
+     {
+      text:"I need information.",
+      rep:2,
+      next:2
+     },
+     {
+      text:"I'm investigating a disappearance.",
+      rep:3,
+      next:2
+     },
+     {
+      text:"Stay out of my way.",
+      rep:-2,
+      next:2
+     }
+    ]
+   },
+
+   {
+    speaker:"Maya",
+    text:"I saw someone carrying a black bag near the old warehouse.",
+    next:true
+   },
+
+   {
+    speaker:"You",
+    text:"Did you see their face?",
+    choices:[
+     {
+      text:"Ask carefully.",
+      rep:2,
+      next:4
+     },
+     {
+      text:"Pressure the witness.",
+      rep:-2,
+      next:4
+     }
+    ]
+   },
+
+   {
+    speaker:"Maya",
+    text:"No. But I remember something important.",
+    next:true
+   },
+
+   {
+    speaker:"Maya",
+    text:"The person was wearing a silver watch.",
+    next:true
+   },
+
+   {
+    speaker:"Narrator",
+    text:"A new clue has been added to the case.",
+    next:true
+   },
+
+   {
+    speaker:"SYSTEM",
+    text:"CLUE FOUND: Silver Watch.",
+    end:true
+   }
+
+  ],
+
+  /* =========================
+     SUSPECT
+  ========================= */
+
+  suspect:[
+
+   {
+    speaker:"Narrator",
+    text:"You sit across from the main suspect.",
+    next:true
+   },
+
+   {
+    speaker:"Suspect",
+    text:"I already told the police everything.",
+    choices:[
+     {
+      text:"Tell me again.",
+      rep:2,
+      next:2
+     },
+     {
+      text:"I know you're hiding something.",
+      rep:-2,
+      next:2
+     },
+     {
+      text:"Let's start with the package.",
+      rep:3,
+      next:2
+     }
+    ]
+   },
+
+   {
+    speaker:"You",
+    text:"Where were you last night?",
+    choices:[
+     {
+      text:"Ask calmly.",
+      rep:2,
+      next:3
+     },
+     {
+      text:"Demand an answer.",
+      rep:-1,
+      next:3
+     }
+    ]
+   },
+
+   {
+    speaker:"Suspect",
+    text:"I was near the warehouse. But I never entered it.",
+    next:true
+   },
+
+   {
+    speaker:"You",
+    text:"Someone saw you there.",
+    choices:[
+     {
+      text:"Show the evidence.",
+      rep:4,
+      next:5
+     },
+     {
+      text:"Bluff.",
+      rep:-2,
+      next:5
+     }
+    ]
+   },
+
+   {
+    speaker:"Suspect",
+    text:"Fine. I saw someone leave the warehouse.",
+    next:true
+   },
+
+   {
+    speaker:"Suspect",
+    text:"They were carrying the same black bag.",
+    next:true
+   },
+
+   {
+    speaker:"SYSTEM",
+    text:"NEW INFORMATION UNLOCKED: Warehouse witness.",
+    end:true
+   }
+
+  ],
+
+  /* =========================
+     ENDING
+  ========================= */
+
+  ending:[
+
+   {
+    speaker:"Narrator",
+    text:"The final evidence has been collected.",
+    next:true
+   },
+
+   {
+    speaker:"You",
+    text:"The truth is finally clear.",
+    next:true
+   },
+
+   {
+    speaker:"Narrator",
+    text:"The city waits for your decision.",
+    choices:[
+     {
+      text:"Choose justice.",
+      rep:5,
+      next:4
+     },
+     {
+      text:"Protect the witness.",
+      rep:3,
+      next:4
+     },
+     {
+      text:"Expose everyone involved.",
+      rep:-1,
+      next:4
+     }
+    ]
+   },
+
+   {
+    speaker:"Narrator",
+    text:"Your decision will shape what happens next.",
+    next:true
+   },
+
+   {
+    speaker:"WEBBOUND",
+    text:"This chapter is complete. The next investigation is waiting.",
+    end:true
+   }
+
+  ]
+
+ },
+
+ /* =========================
+    START
+ ========================= */
+
+ start(type){
+
+  this.scene=
+   JSON.parse(
+    JSON.stringify(
+     this.scenes[type]
+    )
+   );
+
+  this.index=0;
+
+  this.reputation=0;
+
+  document.getElementById(
+   "menu"
+  ).style.display="none";
+
+  document.getElementById(
+   "result"
+  ).style.display="none";
+
+  document.getElementById(
+   "dialogue"
+  ).style.display="block";
+
+  this.updateRep();
+
+  this.show();
+
+ },
+
+ /* =========================
+    SHOW DIALOGUE
+ ========================= */
+
+ show(){
+
+  const line=
+   this.scene[
+    this.index
+   ];
+
+  if(!line)
+   return;
+
+  this.waiting=false;
+
+  document.getElementById(
+   "speaker"
+  ).textContent=
+   line.speaker;
+
+  document.getElementById(
+   "text"
+  ).textContent=
+   "";
+
+  document.getElementById(
+   "choices"
+  ).innerHTML="";
+
+  document.getElementById(
+   "continue"
+  ).style.display="none";
+
+  this.typeText(
+   line.text,
+   line
+  );
+
+  this.animateCharacters(
+   line.speaker
+  );
+
+ },
+
+ /* =========================
+    TYPEWRITER
+ ========================= */
+
+ typeText(text,line){
+
+  const el=
+   document.getElementById(
+    "text"
+   );
+
+  let i=0;
+
+  clearInterval(
+   this.typeTimer
+  );
+
+  this.typeTimer=
+   setInterval(()=>{
+
+    el.textContent=
+     text.substring(
+      0,
+      i
+     );
+
+    i++;
+
+    if(i>text.length){
+
+     clearInterval(
+      this.typeTimer
+     );
+
+     this.waiting=true;
+
+     this.showActions(
+      line
+     );
+
+    }
+
+   },22);
+
+ },
+
+ /* =========================
+    ACTIONS
+ ========================= */
+
+ showActions(line){
+
+  const choices=
+   document.getElementById(
+    "choices"
+   );
+
+  choices.innerHTML="";
+
+  if(line.choices){
+
+   line.choices.forEach(
+    (choice,i)=>{
+
+     const button=
+      document.createElement(
+       "button"
+      );
+
+     button.className=
+      "choice";
+
+     button.textContent=
+      (i+1)+". "+
+      choice.text;
+
+     button.onclick=()=>{
+
+      this.choose(
+       choice
+      );
+
+     };
+
+     choices.appendChild(
+      button
+     );
+
+    }
+   );
+
+  }
+  else if(line.end){
+
+   this.finish();
+
+  }
+  else if(line.next){
+
+   document.getElementById(
+    "continue"
+   ).style.display=
+    "block";
+
+  }
+
+ },
+
+ /* =========================
+    CONTINUE
+ ========================= */
+
+ next(){
+
+  if(!this.waiting)
+   return;
+
+  this.index++;
+
+  if(
+   this.index>=
+   this.scene.length
+  ){
+
+   this.finish();
+
+   return;
+
+  }
+
+  this.show();
+
+ },
+
+ /* =========================
+    CHOICE
+ ========================= */
+
+ choose(choice){
+
+  this.reputation+=
+   choice.rep||0;
+
+  this.updateRep();
+
+  this.index=
+   choice.next;
+
+  this.show();
+
+ },
+
+ /* =========================
+    CHARACTER MOVEMENT
+ ========================= */
+
+ animateCharacters(speaker){
+
+  const hero=
+   document.getElementById(
+    "hero"
+   );
+
+  const npc=
+   document.getElementById(
+    "npc"
+   );
+
+  if(
+   speaker==="You"||
+   speaker==="SYSTEM"
+  ){
+
+   hero.style.left="38%";
+   npc.style.right="22%";
+
+  }
+  else{
+
+   hero.style.left="28%";
+   npc.style.right="32%";
+
+  }
+
+ },
+
+ /* =========================
+    REPUTATION
+ ========================= */
+
+ updateRep(){
+
+  document.getElementById(
+   "rep"
+  ).textContent=
+   this.reputation;
+
+ },
+
+ /* =========================
+    FINISH
+ ========================= */
+
+ finish(){
+
+  clearInterval(
+   this.typeTimer
+  );
+
+  document.getElementById(
+   "dialogue"
+  ).style.display="none";
+
+  const title=
+   document.getElementById(
+    "resultTitle"
+   );
+
+  const text=
+   document.getElementById(
+    "resultText"
+   );
+
+  if(this.reputation>=8){
+
+   title.textContent=
+    "⭐ TRUSTED INVESTIGATOR";
+
+   text.textContent=
+    "Your choices earned the trust of the people.";
+
+  }
+  else if(this.reputation>=3){
+
+   title.textContent=
+    "🕵️ INVESTIGATION COMPLETE";
+
+   text.textContent=
+    "You uncovered valuable information.";
+
+  }
+  else{
+
+   title.textContent=
+    "⚠️ DIFFICULT PATH";
+
+   text.textContent=
+    "Your choices made the investigation harder.";
+
+  }
+
+  document.getElementById(
+   "result"
+  ).style.display="flex";
+
+ },
+
+ /* =========================
+    CLOSE RESULT
+ ========================= */
+
+ closeResult(){
+
+  document.getElementById(
+   "result"
+  ).style.display="none";
+
+  document.getElementById(
+   "menu"
+  ).style.display="flex";
+
+  document.getElementById(
+   "dialogue"
+  ).style.display="none";
+
+ }
+
+};
+
+document.addEventListener(
+ "keydown",
+ e=>{
+
+  if(
+   e.code==="Space"||
+   e.code==="Enter"
+  ){
+
+   if(V146.waiting)
+    V146.next();
+
+  }
+
+  if(
+   e.key>="1"&&
+   e.key<="9"
+  ){
+
+   const n=
+    Number(e.key)-1;
+
+   const buttons=
+    document.querySelectorAll(
+     ".choice"
+    );
+
+   if(buttons[n])
+    buttons[n].click();
+
+  }
+
+ });
+
+console.log(
+ "WEBBOUND V146 DIALOGUE SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
