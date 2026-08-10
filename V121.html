@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V121</title>
+
+<style>
+
+#v121HUD{
+  position:fixed;
+  left:12px;
+  top:360px;
+  z-index:15400;
+  width:min(280px,68vw);
+  padding:14px;
+  background:#05070eeb;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v121Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v121MissionName{
+  margin-top:9px;
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v121Objective{
+  margin-top:7px;
+  font-size:10px;
+  line-height:1.5;
+  opacity:.85;
+}
+
+#v121Progress{
+  height:6px;
+  margin-top:9px;
+  background:#ffffff15;
+  border-radius:5px;
+  overflow:hidden;
+}
+
+#v121ProgressBar{
+  width:0%;
+  height:100%;
+  background:white;
+  transition:width .2s;
+}
+
+#v121Status{
+  margin-top:7px;
+  font-size:9px;
+  opacity:.7;
+}
+
+#v121Controls{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+#v121Controls button{
+  flex:1;
+  min-width:75px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v121Message{
+  position:fixed;
+  left:50%;
+  top:24%;
+  transform:translateX(-50%);
+  z-index:15600;
+  display:none;
+  max-width:88%;
+  padding:11px 16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:11px;
+  font:bold 12px Arial,sans-serif;
+  text-align:center;
+}
+
+#v121Complete{
+  position:fixed;
+  left:50%;
+  top:40%;
+  transform:translate(-50%,-50%);
+  z-index:15700;
+  display:none;
+  width:min(360px,85vw);
+  padding:20px;
+  background:#05070ef8;
+  color:white;
+  border:1px solid #ffffff40;
+  border-radius:16px;
+  font-family:Arial,sans-serif;
+  text-align:center;
+  box-sizing:border-box;
+}
+
+#v121CompleteTitle{
+  font-size:20px;
+  font-weight:bold;
+}
+
+#v121Reward{
+  margin-top:10px;
+  font-size:11px;
+  opacity:.8;
+}
+
+#v121Close{
+  width:100%;
+  margin-top:13px;
+  padding:9px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:9px;
+  color:white;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V121
+     MISSION / QUEST SYSTEM
+     ========================================================= -->
+
+<div id="v121HUD">
+
+  <div id="v121Title">
+    🎯 MISSION SYSTEM
+  </div>
+
+  <div id="v121MissionName">
+    No Active Mission
+  </div>
+
+  <div id="v121Objective">
+    Start a mission to begin.
+  </div>
+
+  <div id="v121Progress">
+    <div id="v121ProgressBar"></div>
+  </div>
+
+  <div id="v121Status">
+    Status: Idle
+  </div>
+
+  <div id="v121Controls">
+
+    <button onclick="V121.startMission()">
+      ▶️ START
+    </button>
+
+    <button onclick="V121.nextObjective()">
+      ➡️ PROGRESS
+    </button>
+
+    <button onclick="V121.abandonMission()">
+      ❌ ABANDON
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="v121Complete">
+
+  <div id="v121CompleteTitle">
+    🏆 MISSION COMPLETE
+  </div>
+
+  <div id="v121Reward">
+    Reward received.
+  </div>
+
+  <button
+    id="v121Close"
+    onclick="V121.closeComplete()">
+    CONTINUE
+  </button>
+
+</div>
+
+
+<div id="v121Message">
+  V121
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V121
+   MISSION SYSTEM
+   ========================================================= */
+
+const V121 = {
+
+  version:"V121",
+
+  saveKey:
+    "WEBBOUND_V121_MISSION",
+
+  activeMission:null,
+
+  completedMissions:[],
+
+  messageTimer:null,
+
+  missionTemplates:[
+
+    {
+      id:"first_patrol",
+
+      name:"City Patrol",
+
+      objectives:[
+
+        "Talk to a citizen",
+
+        "Reach the marked location",
+
+        "Collect the mission item",
+
+        "Return to the city"
+
+      ],
+
+      reward:{
+
+        score:100,
+
+        coins:25,
+
+        item:"Health Pack",
+
+        amount:1
+
+      }
+
+    },
+
+    {
+      id:"lost_package",
+
+      name:"Lost Package",
+
+      objectives:[
+
+        "Find the package",
+
+        "Collect the package",
+
+        "Reach the delivery point",
+
+        "Complete the delivery"
+
+      ],
+
+      reward:{
+
+        score:150,
+
+        coins:50,
+
+        item:"Energy Cell",
+
+        amount:1
+
+      }
+
+    },
+
+    {
+      id:"city_help",
+
+      name:"Help the City",
+
+      objectives:[
+
+        "Speak with an NPC",
+
+        "Visit the waypoint",
+
+        "Collect a useful item",
+
+        "Finish the task"
+
+      ],
+
+      reward:{
+
+        score:200,
+
+        coins:75,
+
+        item:"Web Fluid",
+
+        amount:1
+
+      }
+
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V121 MISSION SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET RANDOM MISSION
+     ======================================================= */
+
+  getRandomMission(){
+
+    const index=
+      Math.floor(
+        Math.random()*
+        this.missionTemplates.length
+      );
+
+
+    return this.missionTemplates[
+      index
+    ];
+
+  },
+
+
+  /* =======================================================
+     START MISSION
+     ======================================================= */
+
+  startMission(template){
+
+    if(
+      this.activeMission
+    ){
+
+      this.message(
+        "⚠️ A mission is already active."
+      );
+
+      return false;
+
+    }
+
+
+    let source=
+      template;
+
+
+    if(
+      !source
+    ){
+
+      source=
+        this.getRandomMission();
+
+    }
+
+
+    if(
+      typeof source==="string"
+    ){
+
+      source=
+        this.missionTemplates.find(
+          mission=>
+            mission.id===
+            source
+        );
+
+    }
+
+
+    if(!source){
+
+      this.message(
+        "❌ Mission not found."
+      );
+
+      return false;
+
+    }
+
+
+    this.activeMission={
+
+      id:
+        source.id,
+
+      name:
+        source.name,
+
+      objectives:
+        source.objectives.map(
+          text=>({
+
+            text:
+              text,
+
+            completed:
+              false
+
+          })
+        ),
+
+      current:
+        0,
+
+      reward:{
+        score:
+          Number(
+            source.reward.score
+          )||0,
+
+        coins:
+          Number(
+            source.reward.coins
+          )||0,
+
+        item:
+          source.reward.item||
+          null,
+
+        amount:
+          Number(
+            source.reward.amount
+          )||0
+
+      },
+
+      startedAt:
+        new Date().toISOString()
+
+    };
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🎯 Mission started: "+
+      source.name
+    );
+
+
+    /*
+      Connect to V117 waypoint.
+    */
+
+    if(
+      typeof V117!=="undefined" &&
+      typeof V117.createWaypoint===
+      "function"
+    ){
+
+      V117.createWaypoint();
+
+    }
+
+
+    this.callHook(
+      "started"
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     GET CURRENT OBJECTIVE
+     ======================================================= */
+
+  getCurrentObjective(){
+
+    if(
+      !this.activeMission
+    ){
+
+      return null;
+
+    }
+
+
+    return(
+      this.activeMission.objectives[
+        this.activeMission.current
+      ]||
+      null
+    );
+
+  },
+
+
+  /* =======================================================
+     COMPLETE OBJECTIVE
+     ======================================================= */
+
+  completeObjective(){
+
+    if(
+      !this.activeMission
+    ){
+
+      this.message(
+        "No active mission."
+      );
+
+      return false;
+
+    }
+
+
+    const objective=
+      this.getCurrentObjective();
+
+
+    if(!objective){
+
+      return this.completeMission();
+
+    }
+
+
+    objective.completed=
+      true;
+
+
+    this.message(
+      "✅ Objective complete"
+    );
+
+
+    this.activeMission.current++;
+
+
+    if(
+      this.activeMission.current>=
+      this.activeMission.objectives.length
+    ){
+
+      this.completeMission();
+
+    }
+    else{
+
+      this.message(
+        "🎯 Next: "+
+        this.getCurrentObjective().text
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.callHook(
+      "objective",
+      objective
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     NEXT OBJECTIVE
+     ======================================================= */
+
+  nextObjective(){
+
+    return this.completeObjective();
+
+  },
+
+
+  /* =======================================================
+     OBJECTIVE ALIAS
+     ======================================================= */
+
+  objective(){
+
+    return this.completeObjective();
+
+  },
+
+
+  /* =======================================================
+     COMPLETE MISSION
+     ======================================================= */
+
+  completeMission(){
+
+    if(
+      !this.activeMission
+    ){
+
+      return false;
+
+    }
+
+
+    const mission=
+      this.activeMission;
+
+
+    /*
+      Prevent duplicate completion.
+    */
+
+    if(
+      this.completedMissions.includes(
+        mission.id
+      )
+    ){
+
+      this.activeMission=
+        null;
+
+      this.updateHUD();
+
+      return false;
+
+    }
+
+
+    this.completedMissions.push(
+      mission.id
+    );
+
+
+    this.giveReward(
+      mission.reward
+    );
+
+
+    const completeBox=
+      document.getElementById(
+        "v121Complete"
+      );
+
+
+    const reward=
+      document.getElementById(
+        "v121Reward"
+      );
+
+
+    if(reward){
+
+      let rewardText=
+        "Score +"+
+        mission.reward.score+
+        " • Coins +"+
+        mission.reward.coins;
+
+
+      if(
+        mission.reward.item
+      ){
+
+        rewardText+=
+          " • "+
+          mission.reward.item+
+          " x"+
+          mission.reward.amount;
+
+      }
+
+
+      reward.textContent=
+        rewardText;
+
+    }
+
+
+    if(completeBox){
+
+      completeBox.style.display=
+        "block";
+
+    }
+
+
+    this.message(
+      "🏆 Mission complete!"
+    );
+
+
+    this.callHook(
+      "completed",
+      mission
+    );
+
+
+    this.activeMission=
+      null;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     GIVE REWARD
+     ======================================================= */
+
+  giveReward(reward){
+
+    if(!reward){
+
+      return;
+
+    }
+
+
+    /*
+      SCORE
+    */
+
+    if(
+      typeof score!=="undefined"
+    ){
+
+      score=
+        (
+          Number(score)||
+          0
+        )+
+        (
+          Number(
+            reward.score
+          )||
+          0
+        );
+
+    }
+
+
+    /*
+      COINS
+    */
+
+    if(
+      reward.coins>0
+    ){
+
+      if(
+        typeof V118!=="undefined" &&
+        typeof V118.addItem==="function"
+      ){
+
+        V118.addItem(
+          "Coin",
+          reward.coins
+        );
+
+      }
+
+    }
+
+
+    /*
+      ITEM
+    */
+
+    if(
+      reward.item &&
+      reward.amount>0
+    ){
+
+      if(
+        typeof V118!=="undefined" &&
+        typeof V118.addItem==="function"
+      ){
+
+        V118.addItem(
+          reward.item,
+          reward.amount
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ABANDON
+     ======================================================= */
+
+  abandonMission(){
+
+    if(
+      !this.activeMission
+    ){
+
+      this.message(
+        "No active mission."
+      );
+
+      return false;
+
+    }
+
+
+    const name=
+      this.activeMission.name;
+
+
+    this.activeMission=
+      null;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "❌ Mission abandoned: "+
+      name
+    );
+
+
+    this.callHook(
+      "abandoned"
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     CLOSE COMPLETE
+     ======================================================= */
+
+  closeComplete(){
+
+    const box=
+      document.getElementById(
+        "v121Complete"
+      );
+
+
+    if(box){
+
+      box.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MISSION PROGRESS
+     ======================================================= */
+
+  getProgress(){
+
+    if(
+      !this.activeMission
+    ){
+
+      return 0;
+
+    }
+
+
+    const total=
+      this.activeMission.objectives.length;
+
+
+    if(
+      total<=0
+    ){
+
+      return 100;
+
+    }
+
+
+    return Math.round(
+
+      (
+        this.activeMission.current/
+        total
+      )*
+      100
+
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const name=
+      document.getElementById(
+        "v121MissionName"
+      );
+
+
+    const objective=
+      document.getElementById(
+        "v121Objective"
+      );
+
+
+    const status=
+      document.getElementById(
+        "v121Status"
+      );
+
+
+    const bar=
+      document.getElementById(
+        "v121ProgressBar"
+      );
+
+
+    if(
+      !this.activeMission
+    ){
+
+      if(name){
+
+        name.textContent=
+          "No Active Mission";
+
+      }
+
+
+      if(objective){
+
+        objective.textContent=
+          "Start a mission to begin.";
+
+      }
+
+
+      if(status){
+
+        status.textContent=
+          "Status: Idle";
+
+      }
+
+
+      if(bar){
+
+        bar.style.width=
+          "0%";
+
+      }
+
+
+      return;
+
+    }
+
+
+    const current=
+      this.getCurrentObjective();
+
+
+    if(name){
+
+      name.textContent=
+        "🎯 "+
+        this.activeMission.name;
+
+    }
+
+
+    if(objective){
+
+      if(current){
+
+        objective.textContent=
+          (
+            this.activeMission.current+
+            1
+          )+
+          "/"+
+          this.activeMission.objectives.length+
+          " • "+
+          current.text;
+
+      }
+      else{
+
+        objective.textContent=
+          "All objectives complete.";
+
+      }
+
+    }
+
+
+    if(status){
+
+      status.textContent=
+        "Status: "+
+        this.getProgress()+
+        "%";
+
+    }
+
+
+    if(bar){
+
+      bar.style.width=
+        this.getProgress()+
+        "%";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     GET MISSION DATA
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      activeMission:
+        this.activeMission,
+
+      completedMissions:
+        [
+          ...this.completedMissions
+        ]
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V121 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(
+          raw
+        );
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        data.activeMission &&
+        typeof data.activeMission==="object"
+      ){
+
+        this.activeMission=
+          data.activeMission;
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.completedMissions
+        )
+      ){
+
+        this.completedMissions=
+          data.completedMissions
+            .filter(
+              id=>
+                typeof id==="string"
+            );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V121 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.activeMission=
+      data.activeMission||
+      null;
+
+
+    this.completedMissions=
+      Array.isArray(
+        data.completedMissions
+      )
+      ? data.completedMissions
+          .filter(
+            id=>
+              typeof id==="string"
+          )
+      : [];
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     EVENT HOOK
+     ======================================================= */
+
+  callHook(event,data){
+
+    if(
+      typeof window.onWebboundMissionEvent===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundMissionEvent({
+
+          event:
+            event,
+
+          mission:
+            this.activeMission,
+
+          data:
+            data||
+
+            this.collect()
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V121 MISSION CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v121Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1900
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(
+        text
+      );
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      M = start mission
+    */
+
+    if(
+      event.code==="KeyM"
+    ){
+
+      V121.startMission();
+
+    }
+
+
+    /*
+      J = complete current objective
+    */
+
+    if(
+      event.code==="KeyJ"
+    ){
+
+      V121.nextObjective();
+
+    }
+
+
+    /*
+      Escape = close completion panel
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V121.closeComplete();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V121.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V121.init();
+
+
+console.log(
+  "WEBBOUND V121 MISSION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
