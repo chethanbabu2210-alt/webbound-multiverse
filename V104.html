@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V104</title>
+
+<style>
+
+#v104HUD{
+  position:fixed;
+  right:12px;
+  top:500px;
+  z-index:10600;
+  width:min(280px,75vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+}
+
+#v104Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v104NPC{
+  margin-top:5px;
+  font-size:12px;
+}
+
+#v104Relationship{
+  margin-top:8px;
+  font-size:11px;
+}
+
+#v104Bar{
+  margin-top:6px;
+  height:6px;
+  background:#ffffff18;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+#v104BarFill{
+  width:0%;
+  height:100%;
+  background:white;
+  transition:width .25s ease;
+}
+
+#v104Stats{
+  margin-top:7px;
+  font-size:10px;
+  opacity:.7;
+}
+
+#v104Controls{
+  position:fixed;
+  right:12px;
+  top:620px;
+  z-index:10601;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#v104Controls button{
+  padding:8px 11px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:10px;
+}
+
+#v104Message{
+  position:fixed;
+  left:50%;
+  top:20%;
+  transform:translateX(-50%);
+  z-index:10700;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V104 RELATIONSHIP HUD
+     ========================================================= -->
+
+<div id="v104HUD">
+
+  <div id="v104Title">
+    🤝 RELATIONSHIP
+  </div>
+
+  <div id="v104NPC">
+    No NPC selected
+  </div>
+
+  <div id="v104Relationship">
+    Neutral
+  </div>
+
+  <div id="v104Bar">
+    <div id="v104BarFill"></div>
+  </div>
+
+  <div id="v104Stats">
+    Trust: 0 • Interactions: 0
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v104Controls">
+
+  <button onclick="V104.improve(5)">
+    ❤️ BUILD TRUST
+  </button>
+
+  <button onclick="V104.improve(10)">
+    ⭐ HELP NPC
+  </button>
+
+  <button onclick="V104.improve(-5)">
+    ⚠️ LOSE TRUST
+  </button>
+
+  <button onclick="V104.nextNPC()">
+    👤 NEXT NPC
+  </button>
+
+</div>
+
+
+<div id="v104Message">
+  V104
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V104
+   NPC RELATIONSHIP SYSTEM
+   ========================================================= */
+
+const V104 = {
+
+  version:"V104",
+
+  saveKey:
+    "WEBBOUND_V104_RELATIONSHIPS",
+
+  currentNPC:0,
+
+  relationships:{},
+
+  npcs:[
+
+    {
+      id:"shopkeeper",
+      name:"Local Shopkeeper"
+    },
+
+    {
+      id:"student",
+      name:"College Student"
+    },
+
+    {
+      id:"police",
+      name:"Police Officer"
+    },
+
+    {
+      id:"scientist",
+      name:"Research Scientist"
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.ensureData();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V104 RELATIONSHIP SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     ENSURE RELATIONSHIP DATA
+     ======================================================= */
+
+  ensureData(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          !this.relationships[npc.id]
+        ){
+
+          this.relationships[npc.id]={
+
+            trust:0,
+
+            interactions:0,
+
+            positive:0,
+
+            negative:0
+
+          };
+
+        }
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     GET CURRENT NPC
+     ======================================================= */
+
+  getNPC(){
+
+    return this.npcs[
+      this.currentNPC
+    ] || null;
+
+  },
+
+
+  /* =======================================================
+     GET RELATIONSHIP
+     ======================================================= */
+
+  getRelationship(){
+
+    const npc=
+      this.getNPC();
+
+    if(!npc){
+
+      return null;
+
+    }
+
+    this.ensureData();
+
+    return this.relationships[
+      npc.id
+    ];
+
+  },
+
+
+  /* =======================================================
+     NEXT NPC
+     ======================================================= */
+
+  nextNPC(){
+
+    this.currentNPC++;
+
+    if(
+      this.currentNPC>=
+      this.npcs.length
+    ){
+
+      this.currentNPC=0;
+
+    }
+
+    this.updateHUD();
+
+    this.save();
+
+
+    const npc=
+      this.getNPC();
+
+    if(npc){
+
+      this.message(
+        "👤 "+
+        npc.name
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CHANGE TRUST
+     ======================================================= */
+
+  improve(amount){
+
+    const npc=
+      this.getNPC();
+
+    const relationship=
+      this.getRelationship();
+
+
+    if(
+      !npc ||
+      !relationship
+    ){
+
+      return;
+
+    }
+
+
+    const value=
+      Number(amount);
+
+
+    if(
+      !Number.isFinite(value)
+    ){
+
+      return;
+
+    }
+
+
+    relationship.trust+=
+      value;
+
+
+    relationship.trust=
+      Math.max(
+        -100,
+        Math.min(
+          100,
+          relationship.trust
+        )
+      );
+
+
+    relationship.interactions++;
+
+
+    if(
+      value>0
+    ){
+
+      relationship.positive++;
+
+      this.message(
+        "❤️ Trust increased"
+      );
+
+    }
+    else if(
+      value<0
+    ){
+
+      relationship.negative++;
+
+      this.message(
+        "⚠️ Trust decreased"
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    /*
+      Optional connection to
+      the V103 dialogue system.
+    */
+
+    if(
+      typeof window.onWebboundRelationshipChange===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundRelationshipChange(
+
+          npc,
+
+          relationship
+
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V104 RELATIONSHIP CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     GET RELATIONSHIP LEVEL
+     ======================================================= */
+
+  getLevel(trust){
+
+    if(
+      trust>=75
+    ){
+
+      return "BEST FRIEND";
+
+    }
+
+    if(
+      trust>=40
+    ){
+
+      return "FRIENDLY";
+
+    }
+
+    if(
+      trust>=15
+    ){
+
+      return "TRUSTING";
+
+    }
+
+    if(
+      trust>-15
+    ){
+
+      return "NEUTRAL";
+
+    }
+
+    if(
+      trust>-40
+    ){
+
+      return "UNSURE";
+
+    }
+
+    if(
+      trust>-75
+    ){
+
+      return "HOSTILE";
+
+    }
+
+    return "ENEMY";
+
+  },
+
+
+  /* =======================================================
+     GET RELATIONSHIP COLOR DATA
+     ======================================================= */
+
+  getReaction(){
+
+    const relationship=
+      this.getRelationship();
+
+
+    if(!relationship){
+
+      return "NEUTRAL";
+
+    }
+
+
+    const trust=
+      relationship.trust;
+
+
+    if(
+      trust>=75
+    ){
+
+      return "You are very close friends.";
+
+    }
+
+
+    if(
+      trust>=40
+    ){
+
+      return "This NPC trusts you.";
+
+    }
+
+
+    if(
+      trust>=15
+    ){
+
+      return "This NPC is beginning to trust you.";
+
+    }
+
+
+    if(
+      trust>-15
+    ){
+
+      return "This NPC remains neutral.";
+
+    }
+
+
+    if(
+      trust>-40
+    ){
+
+      return "This NPC is uncertain about you.";
+
+    }
+
+
+    if(
+      trust>-75
+    ){
+
+      return "This NPC does not trust you.";
+
+    }
+
+
+    return "This NPC strongly dislikes you.";
+
+  },
+
+
+  /* =======================================================
+     INTERACTION FROM V103
+     ======================================================= */
+
+  registerInteraction(
+    npcId,
+    amount=1
+  ){
+
+    if(
+      !npcId
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      !this.relationships[npcId]
+    ){
+
+      this.relationships[npcId]={
+
+        trust:0,
+
+        interactions:0,
+
+        positive:0,
+
+        negative:0
+
+      };
+
+    }
+
+
+    this.relationships[
+      npcId
+    ].interactions+=
+      Math.max(
+        1,
+        Number(amount)||1
+      );
+
+
+    this.save();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     SET TRUST
+     ======================================================= */
+
+  setTrust(
+    npcId,
+    value
+  ){
+
+    if(
+      !npcId
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      !this.relationships[npcId]
+    ){
+
+      this.relationships[npcId]={
+
+        trust:0,
+
+        interactions:0,
+
+        positive:0,
+
+        negative:0
+
+      };
+
+    }
+
+
+    this.relationships[
+      npcId
+    ].trust=
+      Math.max(
+        -100,
+        Math.min(
+          100,
+          Number(value)||0
+        )
+      );
+
+
+    this.save();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const npc=
+      this.getNPC();
+
+    const relationship=
+      this.getRelationship();
+
+
+    const npcBox=
+      document.getElementById(
+        "v104NPC"
+      );
+
+    const relationshipBox=
+      document.getElementById(
+        "v104Relationship"
+      );
+
+    const fill=
+      document.getElementById(
+        "v104BarFill"
+      );
+
+    const stats=
+      document.getElementById(
+        "v104Stats"
+      );
+
+
+    if(
+      !npc ||
+      !relationship
+    ){
+
+      return;
+
+    }
+
+
+    if(npcBox){
+
+      npcBox.textContent=
+        npc.name;
+
+    }
+
+
+    if(relationshipBox){
+
+      relationshipBox.textContent=
+        this.getLevel(
+          relationship.trust
+        );
+
+    }
+
+
+    /*
+      Convert -100...100
+      to 0...100 for the bar.
+    */
+
+    const percentage=
+      (
+        relationship.trust+
+        100
+      )/2;
+
+
+    if(fill){
+
+      fill.style.width=
+        percentage+
+        "%";
+
+    }
+
+
+    if(stats){
+
+      stats.textContent=
+        "Trust: "+
+        relationship.trust+
+        " • Interactions: "+
+        relationship.interactions+
+        " • "+
+        this.getReaction();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        currentNPC:
+          this.currentNPC,
+
+        relationships:
+          this.relationships
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V104 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.currentNPC
+          )
+        )
+      ){
+
+        this.currentNPC=
+          Math.max(
+            0,
+            Math.min(
+              this.npcs.length-1,
+              Number(
+                data.currentNPC
+              )
+            )
+          );
+
+      }
+
+
+      if(
+        data.relationships &&
+        typeof data.relationships===
+        "object"
+      ){
+
+        this.relationships=
+          data.relationships;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V104 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      currentNPC:
+        this.currentNPC,
+
+      relationships:
+        this.relationships
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(
+          data.currentNPC
+        )
+      )
+    ){
+
+      this.currentNPC=
+        Math.max(
+          0,
+          Math.min(
+            this.npcs.length-1,
+            Number(
+              data.currentNPC
+            )
+          )
+        );
+
+    }
+
+
+    if(
+      data.relationships &&
+      typeof data.relationships===
+      "object"
+    ){
+
+      this.relationships=
+        data.relationships;
+
+    }
+
+
+    this.ensureData();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v104Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   CONNECT V103
+   ========================================================= */
+
+if(
+  typeof window.onWebboundNPCDialogue===
+  "undefined"
+){
+
+  window.onWebboundNPCDialogue=
+    function(npc,choice){
+
+      if(
+        !npc ||
+        !npc.id
+      ){
+
+        return;
+
+      }
+
+
+      V104.registerInteraction(
+        npc.id,
+        1
+      );
+
+
+      if(
+        choice &&
+        Number(
+          choice.reputation
+        )>0
+      ){
+
+        V104.setTrust(
+
+          npc.id,
+
+          Math.min(
+            100,
+            (
+              V104.relationships[
+                npc.id
+              ].trust+
+              Number(
+                choice.reputation
+              )*
+              2
+            )
+          )
+
+        );
+
+      }
+
+    };
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      H = build trust
+    */
+
+    if(
+      event.code==="KeyH"
+    ){
+
+      V104.improve(5);
+
+    }
+
+
+    /*
+      J = next NPC
+    */
+
+    if(
+      event.code==="KeyJ"
+    ){
+
+      V104.nextNPC();
+
+    }
+
+
+    /*
+      K = lose trust
+    */
+
+    if(
+      event.code==="KeyK"
+    ){
+
+      V104.improve(-5);
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V104.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V104.init();
+
+
+console.log(
+  "WEBBOUND V104 RELATIONSHIP SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
