@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V87</title>
+
+<style>
+
+#v87Waypoint{
+  position:fixed;
+
+  left:50%;
+  top:90px;
+
+  transform:translateX(-50%);
+
+  z-index:8700;
+
+  min-width:180px;
+
+  padding:10px 14px;
+
+  background:#05070ee8;
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:12px;
+
+  text-align:center;
+
+  font:12px Arial,sans-serif;
+
+  display:none;
+}
+
+#v87Arrow{
+  font-size:24px;
+  line-height:24px;
+
+  margin-bottom:3px;
+}
+
+#v87Objective{
+  font-weight:bold;
+}
+
+#v87Distance{
+  margin-top:3px;
+  opacity:.7;
+}
+
+#v87TargetMarker{
+
+  position:fixed;
+
+  left:50%;
+  top:50%;
+
+  transform:
+    translate(-50%,-50%);
+
+  z-index:8600;
+
+  width:38px;
+  height:38px;
+
+  border:2px solid white;
+
+  border-radius:50%;
+
+  pointer-events:none;
+
+  display:none;
+
+  animation:
+    v87Pulse 1.2s infinite;
+
+}
+
+@keyframes v87Pulse{
+
+  0%{
+    transform:
+      translate(-50%,-50%)
+      scale(.8);
+
+    opacity:.4;
+  }
+
+  50%{
+    transform:
+      translate(-50%,-50%)
+      scale(1.15);
+
+    opacity:1;
+  }
+
+  100%{
+    transform:
+      translate(-50%,-50%)
+      scale(.8);
+
+    opacity:.4;
+  }
+
+}
+
+#v87Message{
+
+  position:fixed;
+
+  left:50%;
+  top:20%;
+
+  transform:translateX(-50%);
+
+  z-index:9800;
+
+  padding:11px 17px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+  display:none;
+
+}
+
+#v87Debug{
+
+  position:fixed;
+
+  right:12px;
+  bottom:12px;
+
+  z-index:8500;
+
+  padding:8px 10px;
+
+  background:#05070ec9;
+  color:white;
+
+  border-radius:9px;
+
+  font:10px monospace;
+
+  display:none;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     WAYPOINT HUD
+     ========================================================= -->
+
+<div id="v87Waypoint">
+
+  <div id="v87Arrow">
+    ▲
+  </div>
+
+  <div id="v87Objective">
+    OBJECTIVE
+  </div>
+
+  <div id="v87Distance">
+    0 m
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     TARGET MARKER
+     ========================================================= -->
+
+<div id="v87TargetMarker"></div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v87Message">
+  Waypoint
+</div>
+
+
+<!-- =========================================================
+     DEBUG
+     ========================================================= -->
+
+<div id="v87Debug">
+  V87
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V87
+   MISSION WAYPOINT SYSTEM
+   ========================================================= */
+
+const V87 = {
+
+  version:"V87",
+
+  saveKey:"WEBBOUND_V87_WAYPOINT",
+
+  active:false,
+
+  title:"",
+
+  target:{
+    x:0,
+    y:0,
+    z:0
+  },
+
+  player:{
+    x:0,
+    y:0,
+    z:0
+  },
+
+  distance:0,
+
+  direction:0,
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.update();
+
+    console.log(
+      "WEBBOUND V87 WAYPOINT SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     SET WAYPOINT
+     ======================================================= */
+
+  setWaypoint(
+    x,
+    y,
+    z,
+    title="OBJECTIVE"
+  ){
+
+    const nx=Number(x);
+    const ny=Number(y);
+    const nz=Number(z);
+
+    if(
+      !Number.isFinite(nx) ||
+      !Number.isFinite(ny) ||
+      !Number.isFinite(nz)
+    ){
+
+      console.warn(
+        "V87: Invalid waypoint."
+      );
+
+      return false;
+
+    }
+
+
+    this.target.x=nx;
+    this.target.y=ny;
+    this.target.z=nz;
+
+    this.title=
+      String(title || "OBJECTIVE");
+
+    this.active=true;
+
+    this.save();
+
+    this.show();
+
+    this.update();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     CLEAR WAYPOINT
+     ======================================================= */
+
+  clearWaypoint(){
+
+    this.active=false;
+
+    this.title="";
+
+    this.hide();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     SET PLAYER POSITION
+     ======================================================= */
+
+  setPlayerPosition(
+    x,
+    y,
+    z
+  ){
+
+    const nx=Number(x);
+    const ny=Number(y);
+    const nz=Number(z);
+
+    if(
+      !Number.isFinite(nx) ||
+      !Number.isFinite(ny) ||
+      !Number.isFinite(nz)
+    ){
+
+      return false;
+
+    }
+
+
+    this.player.x=nx;
+    this.player.y=ny;
+    this.player.z=nz;
+
+    this.update();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     READ EXISTING THREE.JS PLAYER
+     ======================================================= */
+
+  readGamePlayer(){
+
+    try{
+
+      if(
+        typeof player!=="undefined" &&
+        player &&
+        player.position
+      ){
+
+        this.player.x=
+          Number(player.position.x) || 0;
+
+        this.player.y=
+          Number(player.position.y) || 0;
+
+        this.player.z=
+          Number(player.position.z) || 0;
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V87 PLAYER READ ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CALCULATE DISTANCE
+     ======================================================= */
+
+  calculateDistance(){
+
+    const dx=
+      this.target.x-
+      this.player.x;
+
+    const dy=
+      this.target.y-
+      this.player.y;
+
+    const dz=
+      this.target.z-
+      this.player.z;
+
+
+    this.distance=
+      Math.sqrt(
+        dx*dx+
+        dy*dy+
+        dz*dz
+      );
+
+
+    return this.distance;
+
+  },
+
+
+  /* =======================================================
+     CALCULATE DIRECTION
+     ======================================================= */
+
+  calculateDirection(){
+
+    const dx=
+      this.target.x-
+      this.player.x;
+
+    const dz=
+      this.target.z-
+      this.player.z;
+
+
+    this.direction=
+      Math.atan2(
+        dx,
+        dz
+      ) *
+      180 /
+      Math.PI;
+
+
+    return this.direction;
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  update(){
+
+    if(!this.active){
+
+      return;
+
+    }
+
+
+    this.readGamePlayer();
+
+    this.calculateDistance();
+
+    this.calculateDirection();
+
+
+    const waypoint=
+      document.getElementById(
+        "v87Waypoint"
+      );
+
+    const objective=
+      document.getElementById(
+        "v87Objective"
+      );
+
+    const distance=
+      document.getElementById(
+        "v87Distance"
+      );
+
+    const arrow=
+      document.getElementById(
+        "v87Arrow"
+      );
+
+    const marker=
+      document.getElementById(
+        "v87TargetMarker"
+      );
+
+
+    if(waypoint){
+
+      waypoint.style.display=
+        "block";
+
+    }
+
+
+    if(objective){
+
+      objective.textContent=
+        this.title ||
+        "OBJECTIVE";
+
+    }
+
+
+    if(distance){
+
+      distance.textContent=
+        this.formatDistance(
+          this.distance
+        );
+
+    }
+
+
+    if(arrow){
+
+      arrow.style.transform=
+        "rotate("+
+        this.direction+
+        "deg)";
+
+    }
+
+
+    if(marker){
+
+      marker.style.display=
+        "block";
+
+    }
+
+
+    /*
+      Automatic objective completion
+      when the player reaches the target.
+    */
+
+    if(
+      this.distance<=3
+    ){
+
+      this.message(
+        "🎯 OBJECTIVE REACHED"
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     DISTANCE FORMAT
+     ======================================================= */
+
+  formatDistance(distance){
+
+    if(
+      !Number.isFinite(distance)
+    ){
+
+      return "—";
+
+    }
+
+
+    if(distance<1000){
+
+      return Math.round(
+        distance
+      )+
+      " m";
+
+    }
+
+
+    return (
+      distance/1000
+    ).toFixed(2)+
+    " km";
+
+  },
+
+
+  /* =======================================================
+     SHOW
+     ======================================================= */
+
+  show(){
+
+    const waypoint=
+      document.getElementById(
+        "v87Waypoint"
+      );
+
+    const marker=
+      document.getElementById(
+        "v87TargetMarker"
+      );
+
+
+    if(waypoint){
+
+      waypoint.style.display=
+        "block";
+
+    }
+
+
+    if(marker){
+
+      marker.style.display=
+        "block";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     HIDE
+     ======================================================= */
+
+  hide(){
+
+    const waypoint=
+      document.getElementById(
+        "v87Waypoint"
+      );
+
+    const marker=
+      document.getElementById(
+        "v87TargetMarker"
+      );
+
+
+    if(waypoint){
+
+      waypoint.style.display=
+        "none";
+
+    }
+
+
+    if(marker){
+
+      marker.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v87Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          2200
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT SAVE DATA
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      active:
+        this.active,
+
+      title:
+        this.title,
+
+      target:{
+        x:this.target.x,
+        y:this.target.y,
+        z:this.target.z
+      }
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V87 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        data &&
+        data.target
+      ){
+
+        const x=
+          Number(data.target.x);
+
+        const y=
+          Number(data.target.y);
+
+        const z=
+          Number(data.target.z);
+
+
+        if(
+          Number.isFinite(x) &&
+          Number.isFinite(y) &&
+          Number.isFinite(z)
+        ){
+
+          this.target.x=x;
+          this.target.y=y;
+          this.target.z=z;
+
+        }
+
+      }
+
+
+      if(
+        data &&
+        typeof data.title===
+        "string"
+      ){
+
+        this.title=
+          data.title;
+
+      }
+
+
+      if(
+        data &&
+        typeof data.active===
+        "boolean"
+      ){
+
+        this.active=
+          data.active;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V87 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY SAVE DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      data.target
+    ){
+
+      const x=
+        Number(data.target.x);
+
+      const y=
+        Number(data.target.y);
+
+      const z=
+        Number(data.target.z);
+
+
+      if(
+        Number.isFinite(x) &&
+        Number.isFinite(y) &&
+        Number.isFinite(z)
+      ){
+
+        this.target.x=x;
+        this.target.y=y;
+        this.target.z=z;
+
+      }
+
+    }
+
+
+    if(
+      typeof data.title===
+      "string"
+    ){
+
+      this.title=
+        data.title;
+
+    }
+
+
+    if(
+      typeof data.active===
+      "boolean"
+    ){
+
+      this.active=
+        data.active;
+
+    }
+
+
+    if(this.active){
+
+      this.show();
+
+    }
+    else{
+
+      this.hide();
+
+    }
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     V86 COMPATIBILITY
+     ======================================================= */
+
+  installV86Compatibility(){
+
+    if(
+      typeof V86==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V86.__v87CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    /*
+      When a V86 mission becomes active,
+      V87 can be used by future mission code.
+    */
+
+    V86.__v87CompatibilityInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     ANIMATION LOOP
+     ======================================================= */
+
+  start(){
+
+    const loop=()=>{
+
+      if(this.active){
+
+        this.update();
+
+      }
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      W = hide/show waypoint
+    */
+
+    if(
+      event.code==="KeyW"
+    ){
+
+      if(V87.active){
+
+        const waypoint=
+          document.getElementById(
+            "v87Waypoint"
+          );
+
+        if(
+          waypoint &&
+          waypoint.style.display===
+          "none"
+        ){
+
+          V87.show();
+
+        }
+        else{
+
+          V87.hide();
+
+        }
+
+      }
+
+    }
+
+
+    /*
+      X = clear waypoint
+    */
+
+    if(
+      event.code==="KeyX"
+    ){
+
+      V87.clearWaypoint();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V87.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V87.init();
+
+V87.installV86Compatibility();
+
+V87.start();
+
+
+/* =========================================================
+   FUTURE API
+   =========================================================
+
+   Set a mission waypoint:
+
+   V87.setWaypoint(
+     50,
+     2,
+     -100,
+     "Reach the rooftop"
+   );
+
+
+   Update player position:
+
+   V87.setPlayerPosition(
+     player.position.x,
+     player.position.y,
+     player.position.z
+   );
+
+
+   Remove waypoint:
+
+   V87.clearWaypoint();
+
+   ========================================================= */
+
+</script>
+
+</body>
+</html>
