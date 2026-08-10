@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V82</title>
+
+<style>
+
+#v82HUD{
+  position:fixed;
+  left:15px;
+  top:15px;
+  z-index:9000;
+
+  width:min(330px,82vw);
+
+  padding:13px;
+
+  background:#05070ee8;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:13px;
+
+  font-family:Arial,sans-serif;
+}
+
+#v82Title{
+  font-size:15px;
+  font-weight:bold;
+  margin-bottom:7px;
+}
+
+#v82Objective{
+  font-size:13px;
+  line-height:1.4;
+}
+
+#v82Progress{
+  height:6px;
+
+  margin-top:9px;
+
+  background:#ffffff18;
+
+  border-radius:10px;
+
+  overflow:hidden;
+}
+
+#v82ProgressBar{
+  height:100%;
+  width:0%;
+
+  background:#ffffff;
+
+  transition:width .25s;
+}
+
+#v82MissionMenu{
+  position:fixed;
+
+  left:50%;
+  top:50%;
+
+  transform:translate(-50%,-50%);
+
+  z-index:9970;
+
+  width:min(450px,90%);
+
+  max-height:80vh;
+
+  overflow:auto;
+
+  padding:20px;
+
+  background:#05070ef7;
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:18px;
+
+  font-family:Arial,sans-serif;
+
+  display:none;
+
+  box-shadow:0 20px 70px #000b;
+}
+
+.v82Mission{
+
+  padding:12px;
+
+  margin:8px 0;
+
+  background:#111827;
+
+  border:1px solid #ffffff20;
+
+  border-radius:10px;
+
+}
+
+.v82Mission.active{
+  border-color:#ffffff70;
+}
+
+.v82Mission.completed{
+  opacity:.55;
+}
+
+#v82MissionMenu button{
+
+  width:100%;
+
+  padding:11px;
+
+  margin-top:6px;
+
+  background:#111827;
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:9px;
+}
+
+#v82Notification{
+
+  position:fixed;
+
+  left:50%;
+  top:22%;
+
+  transform:translateX(-50%);
+
+  z-index:9980;
+
+  padding:13px 18px;
+
+  background:#05070ef2;
+
+  color:white;
+
+  border:1px solid #ffffff40;
+
+  border-radius:12px;
+
+  font:bold 13px Arial,sans-serif;
+
+  display:none;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     MISSION HUD
+     ========================================================= -->
+
+<div id="v82HUD">
+
+  <div id="v82Title">
+    🎯 No Active Mission
+  </div>
+
+  <div id="v82Objective">
+    Open the mission menu to begin.
+  </div>
+
+  <div id="v82Progress">
+    <div id="v82ProgressBar"></div>
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     NOTIFICATION
+     ========================================================= -->
+
+<div id="v82Notification">
+  Mission Updated
+</div>
+
+
+<!-- =========================================================
+     MISSION MENU
+     ========================================================= -->
+
+<div id="v82MissionMenu">
+
+  <h2>🎯 MISSIONS</h2>
+
+  <div id="v82MissionList"></div>
+
+  <button onclick="V82.closeMenu()">
+    ❌ CLOSE
+  </button>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V82
+   MISSION + OBJECTIVE SYSTEM
+   ========================================================= */
+
+const V82 = {
+
+  version:"V82",
+
+  saveKey:"WEBBOUND_V82_MISSIONS",
+
+  activeMission:null,
+
+  missions:{
+
+
+    /* =====================================================
+       MISSION 1
+       ===================================================== */
+
+    patrol_city:{
+
+      id:"patrol_city",
+
+      title:"City Patrol",
+
+      description:
+        "Check several locations around the city.",
+
+      objective:
+        "Visit 3 patrol locations.",
+
+      target:3,
+
+      progress:0,
+
+      reward:100,
+
+      completed:false
+
+    },
+
+
+    /* =====================================================
+       MISSION 2
+       ===================================================== */
+
+    stop_crime:{
+
+      id:"stop_crime",
+
+      title:"Stop the Crime",
+
+      description:
+        "Help keep the streets safe.",
+
+      objective:
+        "Complete 5 crime events.",
+
+      target:5,
+
+      progress:0,
+
+      reward:250,
+
+      completed:false
+
+    },
+
+
+    /* =====================================================
+       MISSION 3
+       ===================================================== */
+
+    rooftop_run:{
+
+      id:"rooftop_run",
+
+      title:"Rooftop Run",
+
+      description:
+        "Cross the city using rooftop traversal.",
+
+      objective:
+        "Reach 10 traversal checkpoints.",
+
+      target:10,
+
+      progress:0,
+
+      reward:300,
+
+      completed:false
+
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.renderMenu();
+
+    console.log(
+      "WEBBOUND V82 MISSION SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET ACTIVE MISSION
+     ======================================================= */
+
+  getActive(){
+
+    if(
+      !this.activeMission
+    ){
+
+      return null;
+
+    }
+
+    return this.missions[
+      this.activeMission
+    ] || null;
+
+  },
+
+
+  /* =======================================================
+     START MISSION
+     ======================================================= */
+
+  start(id){
+
+    const mission=
+      this.missions[id];
+
+
+    if(!mission){
+
+      return;
+
+    }
+
+
+    if(mission.completed){
+
+      this.message(
+        "✅ Mission already completed."
+      );
+
+      return;
+
+    }
+
+
+    this.activeMission=
+      id;
+
+
+    this.updateHUD();
+
+    this.renderMenu();
+
+    this.save();
+
+
+    this.message(
+      "🎯 Mission started: "+
+      mission.title
+    );
+
+  },
+
+
+  /* =======================================================
+     ADD PROGRESS
+     ======================================================= */
+
+  progress(amount=1){
+
+    const mission=
+      this.getActive();
+
+
+    if(!mission){
+
+      return;
+
+    }
+
+
+    if(mission.completed){
+
+      return;
+
+    }
+
+
+    const value=
+      Number(amount);
+
+
+    if(
+      !Number.isFinite(value) ||
+      value<=0
+    ){
+
+      return;
+
+    }
+
+
+    mission.progress+=
+      value;
+
+
+    if(
+      mission.progress>=
+      mission.target
+    ){
+
+      mission.progress=
+        mission.target;
+
+      this.complete();
+
+    }
+    else{
+
+      this.updateHUD();
+
+      this.save();
+
+      this.message(
+        "🎯 Objective progress: "+
+        mission.progress+
+        "/"+
+        mission.target
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COMPLETE
+     ======================================================= */
+
+  complete(){
+
+    const mission=
+      this.getActive();
+
+
+    if(!mission){
+
+      return;
+
+    }
+
+
+    mission.completed=true;
+
+
+    this.updateHUD();
+
+    this.renderMenu();
+
+    this.save();
+
+
+    /*
+      Give reward to the existing
+      score variable when available.
+    */
+
+    if(
+      typeof score!=="undefined"
+    ){
+
+      score+=
+        mission.reward;
+
+    }
+
+
+    this.message(
+      "🏆 Mission Complete! +"+
+      mission.reward+
+      " reward"
+    );
+
+  },
+
+
+  /* =======================================================
+     CANCEL
+     ======================================================= */
+
+  cancel(){
+
+    this.activeMission=null;
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     RESET MISSION
+     ======================================================= */
+
+  reset(id){
+
+    const mission=
+      this.missions[id];
+
+
+    if(!mission){
+
+      return;
+
+    }
+
+
+    mission.progress=0;
+
+    mission.completed=false;
+
+
+    if(
+      this.activeMission===id
+    ){
+
+      this.updateHUD();
+
+    }
+
+
+    this.renderMenu();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const title=
+      document.getElementById(
+        "v82Title"
+      );
+
+    const objective=
+      document.getElementById(
+        "v82Objective"
+      );
+
+    const bar=
+      document.getElementById(
+        "v82ProgressBar"
+      );
+
+
+    const mission=
+      this.getActive();
+
+
+    if(!mission){
+
+      if(title){
+
+        title.textContent=
+          "🎯 No Active Mission";
+
+      }
+
+
+      if(objective){
+
+        objective.textContent=
+          "Open the mission menu to begin.";
+
+      }
+
+
+      if(bar){
+
+        bar.style.width=
+          "0%";
+
+      }
+
+
+      return;
+
+    }
+
+
+    if(title){
+
+      title.textContent=
+        "🎯 "+
+        mission.title;
+
+    }
+
+
+    if(objective){
+
+      objective.textContent=
+        mission.objective+
+        " ("+
+        mission.progress+
+        "/"+
+        mission.target+
+        ")";
+
+    }
+
+
+    if(bar){
+
+      const percent=
+        Math.min(
+          100,
+          (
+            mission.progress/
+            mission.target
+          )*100
+        );
+
+
+      bar.style.width=
+        percent+
+        "%";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MENU
+     ======================================================= */
+
+  openMenu(){
+
+    const menu=
+      document.getElementById(
+        "v82MissionMenu"
+      );
+
+
+    if(menu){
+
+      menu.style.display=
+        "block";
+
+    }
+
+
+    this.renderMenu();
+
+  },
+
+
+  closeMenu(){
+
+    const menu=
+      document.getElementById(
+        "v82MissionMenu"
+      );
+
+
+    if(menu){
+
+      menu.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     RENDER MISSIONS
+     ======================================================= */
+
+  renderMenu(){
+
+    const list=
+      document.getElementById(
+        "v82MissionList"
+      );
+
+
+    if(!list){
+
+      return;
+
+    }
+
+
+    list.innerHTML="";
+
+
+    Object.values(
+      this.missions
+    ).forEach(
+      mission=>{
+
+        const item=
+          document.createElement(
+            "div"
+          );
+
+
+        item.className=
+          "v82Mission";
+
+
+        if(
+          mission.id===
+          this.activeMission
+        ){
+
+          item.classList.add(
+            "active"
+          );
+
+        }
+
+
+        if(
+          mission.completed
+        ){
+
+          item.classList.add(
+            "completed"
+          );
+
+        }
+
+
+        item.innerHTML=
+          `
+          <strong>
+            ${mission.completed
+              ? "✅ "
+              : "🎯 "
+            }${mission.title}
+          </strong>
+
+          <p>
+            ${mission.description}
+          </p>
+
+          <small>
+            Progress:
+            ${mission.progress}/${mission.target}
+            |
+            Reward:
+            ${mission.reward}
+          </small>
+          `;
+
+
+        const button=
+          document.createElement(
+            "button"
+          );
+
+
+        if(mission.completed){
+
+          button.textContent=
+            "✅ COMPLETED";
+
+          button.disabled=true;
+
+        }
+        else if(
+          mission.id===
+          this.activeMission
+        ){
+
+          button.textContent=
+            "📍 ACTIVE";
+
+          button.onclick=
+            ()=>{
+              this.closeMenu();
+            };
+
+        }
+        else{
+
+          button.textContent=
+            "▶️ START";
+
+          button.onclick=
+            ()=>{
+              this.start(
+                mission.id
+              );
+            };
+
+        }
+
+
+        item.appendChild(
+          button
+        );
+
+
+        list.appendChild(
+          item
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     NOTIFICATION
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v82Notification"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      setTimeout(
+        ()=>{
+
+          box.style.display=
+            "none";
+
+        },
+        2200
+      );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(
+        text
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    const missions={};
+
+
+    Object.keys(
+      this.missions
+    ).forEach(
+      id=>{
+
+        const mission=
+          this.missions[id];
+
+
+        missions[id]={
+
+          progress:
+            mission.progress,
+
+          completed:
+            mission.completed
+
+        };
+
+      }
+    );
+
+
+    return{
+
+      activeMission:
+        this.activeMission,
+
+      missions:
+        missions
+
+    };
+
+  },
+
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V82 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        data &&
+        typeof data.activeMission===
+        "string" &&
+        this.missions[
+          data.activeMission
+        ]
+      ){
+
+        this.activeMission=
+          data.activeMission;
+
+      }
+
+
+      if(
+        data &&
+        data.missions
+      ){
+
+        Object.keys(
+          this.missions
+        ).forEach(
+          id=>{
+
+            if(
+              data.missions[id]
+            ){
+
+              this.missions[id].progress=
+                Math.max(
+                  0,
+                  Number(
+                    data.missions[id].progress
+                  ) || 0
+                );
+
+
+              this.missions[id].completed=
+                data.missions[id].completed===
+                true;
+
+            }
+
+          }
+        );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V82 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY SAVE DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      data.activeMission &&
+      this.missions[
+        data.activeMission
+      ]
+    ){
+
+      this.activeMission=
+        data.activeMission;
+
+    }
+
+
+    if(data.missions){
+
+      Object.keys(
+        this.missions
+      ).forEach(
+        id=>{
+
+          if(
+            data.missions[id]
+          ){
+
+            this.missions[id].progress=
+              Number(
+                data.missions[id].progress
+              ) || 0;
+
+
+            this.missions[id].completed=
+              data.missions[id].completed===
+              true;
+
+          }
+
+        }
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.renderMenu();
+
+  }
+
+};
+
+
+/* =========================================================
+   V60 SAVE COMPATIBILITY
+   ========================================================= */
+
+if(
+  typeof V60!=="undefined" &&
+  typeof V60.collect==="function"
+){
+
+  const originalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      originalCollect();
+
+
+    data.v82=
+      V82.collect();
+
+
+    return data;
+
+  };
+
+
+  if(
+    typeof V60.apply==="function"
+  ){
+
+    const originalApply=
+      V60.apply.bind(V60);
+
+
+    V60.apply=function(data){
+
+      originalApply(
+        data
+      );
+
+
+      if(
+        data &&
+        data.v82
+      ){
+
+        V82.apply(
+          data.v82
+        );
+
+      }
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      M = mission menu
+    */
+
+    if(
+      event.code==="KeyM"
+    ){
+
+      event.preventDefault();
+
+      V82.openMenu();
+
+    }
+
+
+    /*
+      Escape = close menu
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V82.closeMenu();
+
+    }
+
+
+    /*
+      Test objective progress.
+      Remove this later when real
+      gameplay events are connected.
+    */
+
+    if(
+      event.code==="KeyO"
+    ){
+
+      V82.progress(1);
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V82.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V82.init();
+
+</script>
+
+</body>
+</html>
