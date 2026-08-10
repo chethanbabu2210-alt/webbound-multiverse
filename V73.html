@@ -1,0 +1,714 @@
+<!-- =========================================================
+ WEBBOUND V73
+ BRANCHING DIALOGUE + PLAYER CHOICES + NPC RELATIONSHIPS
+ BUILDS ON V60 - V72
+ ========================================================= -->
+
+<style>
+
+#v73ChoiceBox{
+  position:fixed;
+  left:50%;
+  bottom:25px;
+  transform:translateX(-50%);
+  z-index:9850;
+  width:min(620px,90%);
+  padding:18px;
+  background:#05070ef7;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:17px;
+  font-family:Arial,sans-serif;
+  display:none;
+  box-shadow:0 15px 50px #000b;
+}
+
+#v73ChoiceTitle{
+  font-weight:bold;
+  margin-bottom:12px;
+}
+
+.v73Choice{
+  width:100%;
+  padding:11px;
+  margin:6px 0;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+  text-align:left;
+}
+
+#v73ChoiceResult{
+  margin-top:10px;
+  font-size:12px;
+  color:#cbd5e1;
+}
+
+</style>
+
+
+<!-- =========================================================
+ CHOICE DIALOGUE
+ ========================================================= -->
+
+<div id="v73ChoiceBox">
+
+  <div id="v73ChoiceTitle">
+    Choose a response
+  </div>
+
+  <div id="v73Choices"></div>
+
+  <div id="v73ChoiceResult"></div>
+
+</div>
+
+
+<script>
+
+const V73 = {
+
+  version:"V73",
+
+  active:false,
+
+  npc:null,
+
+  conversation:0,
+
+  lastChoice:null,
+
+
+  /* =======================================================
+     BRANCHING DIALOGUE DATABASE
+     ======================================================= */
+
+  conversations:{
+
+    friend:{
+
+      opening:
+        "Alex looks at you and waits for your response.",
+
+      choices:[
+
+        {
+          text:"I'll help you.",
+          relationship:5,
+          response:
+            "Alex smiles. I knew I could count on you."
+        },
+
+        {
+          text:"Tell me what happened.",
+          relationship:3,
+          response:
+            "Alex explains what has been happening around the city."
+        },
+
+        {
+          text:"I have to go.",
+          relationship:-2,
+          response:
+            "Alex nods. Alright. Maybe later."
+        }
+
+      ]
+
+    },
+
+
+    mentor:{
+
+      opening:
+        "Dr. Morgan looks over the equipment.",
+
+      choices:[
+
+        {
+          text:"What should I improve?",
+          relationship:5,
+          response:
+            "Focus on control and precision."
+        },
+
+        {
+          text:"I can handle it.",
+          relationship:1,
+          response:
+            "Confidence is useful. Just don't let it become carelessness."
+        },
+
+        {
+          text:"I'll come back later.",
+          relationship:-1,
+          response:
+            "Very well. I'll be here."
+        }
+
+      ]
+
+    },
+
+
+    civilian:{
+
+      opening:
+        "The resident notices you nearby.",
+
+      choices:[
+
+        {
+          text:"Are you okay?",
+          relationship:5,
+          response:
+            "Thanks for asking. I'm alright."
+        },
+
+        {
+          text:"What happened here?",
+          relationship:3,
+          response:
+            "The neighborhood has been unusually busy."
+        },
+
+        {
+          text:"Goodbye.",
+          relationship:0,
+          response:
+            "Take care."
+        }
+
+      ]
+
+    }
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(id){
+
+    const data=
+      this.conversations[id];
+
+
+    if(!data){
+
+      this.message(
+        "❌ Conversation unavailable."
+      );
+
+      return;
+
+    }
+
+
+    this.npc=id;
+
+    this.active=true;
+
+    this.conversation=0;
+
+    this.lastChoice=null;
+
+
+    this.show();
+
+  },
+
+
+  /* =======================================================
+     SHOW CHOICES
+     ======================================================= */
+
+  show(){
+
+    const data=
+      this.conversations[
+        this.npc
+      ];
+
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    const box=
+      document.getElementById(
+        "v73ChoiceBox"
+      );
+
+
+    const title=
+      document.getElementById(
+        "v73ChoiceTitle"
+      );
+
+
+    const choices=
+      document.getElementById(
+        "v73Choices"
+      );
+
+
+    const result=
+      document.getElementById(
+        "v73ChoiceResult"
+      );
+
+
+    if(
+      !box ||
+      !title ||
+      !choices
+    ){
+
+      return;
+
+    }
+
+
+    title.textContent=
+      data.opening;
+
+
+    choices.innerHTML="";
+
+
+    data.choices.forEach(
+      (choice,index)=>{
+
+        const button=
+          document.createElement(
+            "button"
+          );
+
+
+        button.className=
+          "v73Choice";
+
+
+        button.textContent=
+          choice.text;
+
+
+        button.onclick=
+          ()=>{
+            this.choose(index);
+          };
+
+
+        choices.appendChild(
+          button
+        );
+
+      }
+    );
+
+
+    if(result){
+
+      result.textContent=
+        "";
+
+    }
+
+
+    box.style.display=
+      "block";
+
+  },
+
+
+  /* =======================================================
+     CHOOSE
+     ======================================================= */
+
+  choose(index){
+
+    const data=
+      this.conversations[
+        this.npc
+      ];
+
+
+    if(
+      !data ||
+      !data.choices[index]
+    ){
+
+      return;
+
+    }
+
+
+    const choice=
+      data.choices[index];
+
+
+    this.lastChoice=
+      choice.text;
+
+
+    /*
+      Change V72 relationship.
+    */
+
+    if(
+      typeof V72 !== "undefined" &&
+      typeof V72.changeRelationship==="function"
+    ){
+
+      V72.changeRelationship(
+        this.npc,
+        choice.relationship
+      );
+
+    }
+
+
+    const result=
+      document.getElementById(
+        "v73ChoiceResult"
+      );
+
+
+    if(result){
+
+      result.textContent=
+        choice.response+
+        "  Relationship change: "+
+        (
+          choice.relationship>=0
+          ? "+"
+          : ""
+        )+
+        choice.relationship;
+
+    }
+
+
+    /*
+      Disable choices after selection.
+    */
+
+    const buttons=
+      document.querySelectorAll(
+        ".v73Choice"
+      );
+
+
+    buttons.forEach(
+      button=>{
+
+        button.disabled=true;
+
+        button.style.opacity=
+          ".55";
+
+      }
+    );
+
+
+    /*
+      Save immediately.
+    */
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save==="function"
+    ){
+
+      V60.save();
+
+    }
+
+
+    setTimeout(
+      ()=>{
+
+        this.close();
+
+      },
+      1800
+    );
+
+  },
+
+
+  /* =======================================================
+     CLOSE
+     ======================================================= */
+
+  close(){
+
+    const box=
+      document.getElementById(
+        "v73ChoiceBox"
+      );
+
+
+    if(box){
+
+      box.style.display=
+        "none";
+
+    }
+
+
+    this.active=false;
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof V68 !== "undefined" &&
+      typeof V68.message==="function"
+    ){
+
+      V68.message(text);
+
+      return;
+
+    }
+
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      npc:
+        this.npc,
+
+      conversation:
+        this.conversation,
+
+      lastChoice:
+        this.lastChoice
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.npc=
+      data.npc ||
+      null;
+
+
+    this.conversation=
+      Number(
+        data.conversation
+      ) || 0;
+
+
+    this.lastChoice=
+      data.lastChoice ||
+      null;
+
+  }
+
+};
+
+
+/* =========================================================
+ V72 INTERACTION INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V72 !== "undefined"
+){
+
+  const v72OriginalInteract=
+    V72.interact.bind(V72);
+
+
+  V72.interact=function(){
+
+    /*
+      Keep the original V72 interaction
+      available.
+    */
+
+    v72OriginalInteract();
+
+
+    /*
+      Start V73 choices after the
+      selected NPC is known.
+    */
+
+    if(
+      V72.selectedNPC &&
+      V73.conversations[
+        V72.selectedNPC
+      ]
+    ){
+
+      setTimeout(
+        ()=>{
+
+          V73.start(
+            V72.selectedNPC
+          );
+
+        },
+        300
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ V60 SAVE / LOAD
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const v73OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v73OriginalCollect();
+
+    data.v73=
+      V73.collect();
+
+    return data;
+
+  };
+
+
+  const v73OriginalApply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    v73OriginalApply(data);
+
+
+    if(
+      data &&
+      data.v73
+    ){
+
+      V73.apply(
+        data.v73
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      E = interact with selected NPC
+    */
+
+    if(
+      event.code==="KeyE" &&
+      !V73.active
+    ){
+
+      event.preventDefault();
+
+      if(
+        typeof V72 !== "undefined" &&
+        V72.selectedNPC
+      ){
+
+        V73.start(
+          V72.selectedNPC
+        );
+
+      }
+
+    }
+
+
+    /*
+      Escape = close choices
+    */
+
+    if(
+      event.code==="Escape" &&
+      V73.active
+    ){
+
+      event.preventDefault();
+
+      V73.close();
+
+    }
+
+  }
+);
+
+
+console.log(
+  "WEBBOUND V73 BRANCHING DIALOGUE SYSTEM READY"
+);
+
+</script>
