@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V159 — NPC & REPUTATION</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:64px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:64px;
+}
+
+.lane{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.laneH{
+ left:0;
+ right:0;
+ top:calc(57% + 31px);
+ height:2px;
+}
+
+.laneV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 31px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+.npc{
+ position:absolute;
+ padding:7px 9px;
+ background:#03080ddd;
+ border:1px solid #ffffff20;
+ border-radius:7px;
+ font-size:9px;
+ z-index:40;
+}
+
+#detective{
+ left:9%;
+ top:40%;
+}
+
+#doctor{
+ left:54%;
+ top:39%;
+}
+
+#engineer{
+ right:6%;
+ top:39%;
+}
+
+#guard{
+ left:8%;
+ top:70%;
+}
+
+#journalist{
+ left:37%;
+ top:78%;
+}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:57%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(540px,88vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#contactInfo{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.6;
+}
+
+.repBar{
+ height:7px;
+ background:#ffffff12;
+ border-radius:6px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+.repFill{
+ height:100%;
+ width:0%;
+ background:#b895d5;
+ transition:.3s;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(900px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+button:disabled{
+ opacity:.4;
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:
+ repeat(auto-fit,minmax(155px,1fr));
+ gap:7px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ min-height:130px;
+ font-size:10px;
+ line-height:1.5;
+}
+
+.card b{
+ display:block;
+ margin-bottom:7px;
+}
+
+.badge{
+ display:inline-block;
+ padding:3px 6px;
+ background:#ffffff12;
+ border-radius:5px;
+ font-size:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="lane laneH"></div>
+  <div class="lane laneV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🌳 PARK</div>
+
+  <div id="detective" class="npc">
+   🕵️ DETECTIVE RAY
+  </div>
+
+  <div id="doctor" class="npc">
+   👩‍⚕️ DR. MAYA
+  </div>
+
+  <div id="engineer" class="npc">
+   👨‍💻 ENGINEER ARUN
+  </div>
+
+  <div id="guard" class="npc">
+   🛡️ GUARD SAM
+  </div>
+
+  <div id="journalist" class="npc">
+   📰 JOURNALIST LEO
+  </div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🤝 WEBBOUND V159 — CONTACTS
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    👥 CONTACTS<br>
+    <span id="contactCount">0</span>
+   </div>
+
+   <div class="stat">
+    🤝 TRUST<br>
+    <span id="totalTrust">0</span>
+   </div>
+
+   <div class="stat">
+    ⭐ LEVEL<br>
+    <span id="level">1</span>
+   </div>
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cash">0</span>
+   </div>
+
+  </div>
+
+  <div id="contactInfo">
+
+   <b>SELECTED CONTACT</b><br>
+
+   <span id="selectedName">
+    No contact selected.
+   </span>
+
+   <br>
+
+   <span id="selectedRep">
+    Reputation: —
+   </span>
+
+   <div class="repBar">
+    <div
+     id="selectedRepBar"
+     class="repFill">
+    </div>
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V159.contacts()">
+   👥 CONTACTS
+  </button>
+
+  <button onclick="V159.talkSelected()">
+   💬 TALK
+  </button>
+
+  <button onclick="V159.helpSelected()">
+   🤝 HELP
+  </button>
+
+  <button onclick="V159.giftSelected()">
+   🎁 GIFT
+  </button>
+
+  <button onclick="V159.askInfo()">
+   🔎 ASK INFO
+  </button>
+
+  <button onclick="V159.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V159.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V159={
+
+ saveKey:"WEBBOUND_V159",
+
+ cash:0,
+
+ xp:0,
+
+ level:1,
+
+ selected:null,
+
+ contactsData:{
+
+  ray:{
+   icon:"🕵️",
+   name:"Detective Ray",
+   role:"Detective",
+   reputation:0,
+   description:
+    "An experienced detective who knows the city's cases."
+  },
+
+  maya:{
+   icon:"👩‍⚕️",
+   name:"Dr. Maya",
+   role:"Doctor",
+   reputation:0,
+   description:
+    "A doctor who can provide useful medical knowledge."
+  },
+
+  arun:{
+   icon:"👨‍💻",
+   name:"Engineer Arun",
+   role:"Engineer",
+   reputation:0,
+   description:
+    "A technology expert with access to useful information."
+  },
+
+  sam:{
+   icon:"🛡️",
+   name:"Guard Sam",
+   role:"Security Guard",
+   reputation:0,
+   description:
+    "A security guard who knows the city's restricted areas."
+  },
+
+  leo:{
+   icon:"📰",
+   name:"Journalist Leo",
+   role:"Journalist",
+   reputation:0,
+   description:
+    "A journalist who follows unusual stories around the city."
+  }
+
+ },
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🤝 V159 Contact System ready"
+  );
+
+ },
+
+ /* =========================
+    CONTACT LIST
+ ========================= */
+
+ contacts(){
+
+  let html=`
+
+   <div class="card">
+
+    <b>👥 CITY CONTACTS</b>
+
+    Build relationships with people
+    around the city.
+
+    <br><br>
+
+    Higher reputation can unlock
+    additional information and rewards.
+
+   </div>
+
+   <div class="grid">
+
+  `;
+
+  Object.keys(
+   this.contactsData
+  ).forEach(
+   id=>{
+
+    const npc=
+     this.contactsData[id];
+
+    const rep=
+     npc.reputation;
+
+    const rank=
+     this.rank(rep);
+
+    html+=`
+
+     <div class="card">
+
+      <b>
+       ${npc.icon}
+       ${npc.name}
+      </b>
+
+      <span class="badge">
+       ${npc.role}
+      </span>
+
+      <br><br>
+
+      ${npc.description}
+
+      <br><br>
+
+      Reputation:
+      ${rep}
+
+      <br>
+
+      Rank:
+      ${rank}
+
+      <div class="repBar">
+
+       <div
+        class="repFill"
+        style="
+         width:
+         ${this.repPercent(rep)}%;
+        ">
+       </div>
+
+      </div>
+
+      <button
+       onclick=
+       "V159.select('${id}')">
+
+       ${
+        this.selected===id
+        ?"✅ SELECTED"
+        :"SELECT"
+       }
+
+      </button>
+
+     </div>
+
+    `;
+
+   }
+  );
+
+  html+=`</div>`;
+
+  this.open(
+   "👥 CONTACTS",
+   html
+  );
+
+ },
+
+ /* =========================
+    SELECT
+ ========================= */
+
+ select(id){
+
+  if(
+   !this.contactsData[id]
+  )
+   return;
+
+  this.selected=id;
+
+  const npc=
+   this.contactsData[id];
+
+  document.getElementById(
+   "selectedName"
+  ).textContent=
+   npc.icon+
+   " "+
+   npc.name;
+
+  document.getElementById(
+   "selectedRep"
+  ).textContent=
+   "Reputation: "+
+   npc.reputation+
+   " — "+
+   this.rank(
+    npc.reputation
+   );
+
+  document.getElementById(
+   "selectedRepBar"
+  ).style.width=
+   this.repPercent(
+    npc.reputation
+   )+"%";
+
+  this.close();
+
+  this.notify(
+   npc.icon+
+   " "+npc.name+
+   " selected."
+  );
+
+  this.save();
+
+ },
+
+ /* =========================
+    TALK
+ ========================= */
+
+ talkSelected(){
+
+  if(!this.requireSelected())
+   return;
+
+  const npc=
+   this.contactsData[
+    this.selected
+   ];
+
+  const rep=
+   npc.reputation;
+
+  let text=
+   "Hello. What can I help you with?";
+
+  if(rep>=25)
+   text=
+    "Good to see you again. I may have something useful for you.";
+
+  if(rep>=50)
+   text=
+    "You're becoming a trusted contact. I'll share what I know.";
+
+  if(rep>=75)
+   text=
+    "You've earned my full trust. Let's work together.";
+
+  const html=`
+
+   <div class="card">
+
+    <b>
+     ${npc.icon}
+     ${npc.name}
+    </b>
+
+    "${text}"
+
+    <br><br>
+
+    Current reputation:
+    ${rep}
+
+   </div>
+
+   <div class="grid">
+
+    <div class="card">
+
+     <b>💬 Friendly Conversation</b>
+
+     Talk respectfully and build trust.
+
+     <button
+      onclick=
+      "V159.changeRep(5)">
+
+      👍 BE FRIENDLY
+
+     </button>
+
+    </div>
+
+    <div class="card">
+
+     <b>🔎 Professional Discussion</b>
+
+     Ask about work and investigations.
+
+     <button
+      onclick=
+      "V159.changeRep(3)">
+
+      🕵️ DISCUSS CASE
+
+     </button>
+
+    </div>
+
+    <div class="card">
+
+     <b>🤔 Ask Carefully</b>
+
+     Ask a neutral question.
+
+     <button
+      onclick=
+      "V159.changeRep(1)">
+
+      💬 ASK
+
+     </button>
+
+    </div>
+
+   </div>
+
+  `;
+
+  this.open(
+   "💬 "+
+   npc.name,
+   html
+  );
+
+ },
+
+ /* =========================
+    HELP
+ ========================= */
+
+ helpSelected(){
+
+  if(!this.requireSelected())
+   return;
+
+  const npc=
+   this.contactsData[
+    this.selected
+   ];
+
+  const cost=20;
+
+  if(this.cash<cost){
+
+   this.notify(
+    "💰 You need ₹"+cost+
+    " to provide assistance."
+   );
+
+   return;
+
+  }
+
+  this.cash-=cost;
+
+  this.changeRep(10,false);
+
+  this.addXP(15);
+
+  this.notify(
+   "🤝 You helped "+
+   npc.name+
+   ". Reputation increased."
+  );
+
+ },
+
+ /* =========================
+    GIFT
+ ========================= */
+
+ giftSelected(){
+
+  if(!this.requireSelected())
+   return;
+
+  const npc=
+   this.contactsData[
+    this.selected
+   ];
+
+  const cost=50;
+
+  if(this.cash<cost){
+
+   this.notify(
+    "💰 You need ₹"+cost+
+    " for a gift."
+   );
+
+   return;
+
+  }
+
+  this.cash-=cost;
+
+  this.changeRep(7,false);
+
+  this.notify(
+   "🎁 Gift given to "+
+   npc.name
+  );
+
+ },
+
+ /* =========================
+    INFORMATION
+ ========================= */
+
+ askInfo(){
+
+  if(!this.requireSelected())
+   return;
+
+  const npc=
+   this.contactsData[
+    this.selected
+   ];
+
+  const rep=
+   npc.reputation;
+
+  let info=
+   "They don't have much information to share yet.";
+
+  if(rep>=15)
+   info=
+    "They mention an unusual event somewhere in the city.";
+
+  if(rep>=35)
+   info=
+    "They reveal that several people have been asking questions about the same case.";
+
+  if(rep>=60)
+   info=
+    "They provide a useful lead connected to a future investigation.";
+
+  if(rep>=85)
+   info=
+    "They trust you enough to share a confidential lead.";
+
+  this.addXP(10);
+
+  this.open(
+   "🔎 INFORMATION",
+   `
+    <div class="card">
+     <b>
+      ${npc.icon}
+      ${npc.name}
+     </b>
+
+     ${info}
+
+     <br><br>
+
+     Reputation:
+     ${rep}
+    </div>
+   `
+  );
+
+ },
+
+ /* =========================
+    CHANGE REP
+ ========================= */
+
+ changeRep(amount,show=true){
+
+  if(!this.requireSelected())
+   return;
+
+  const npc=
+   this.contactsData[
+    this.selected
+   ];
+
+  npc.reputation=
+   Math.max(
+    0,
+    Math.min(
+     100,
+     npc.reputation+
+     amount
+    )
+   );
+
+  this.addXP(
+   Math.max(
+    1,
+    Math.floor(
+     Math.abs(amount)
+    )
+   );
+
+  this.update();
+
+  this.save();
+
+  if(show){
+
+   this.close();
+
+   this.notify(
+    "🤝 Reputation +"+
+    amount
+   );
+
+  }
+
+ },
+
+ /* =========================
+    XP
+ ========================= */
+
+ addXP(amount){
+
+  this.xp+=amount;
+
+  const required=
+   this.level*250;
+
+  if(
+   this.xp>=required
+  ){
+
+   this.xp-=required;
+
+   this.level++;
+
+   this.notify(
+    "⭐ Contact experience increased your level!"
+   );
+
+  }
+
+ },
+
+ /* =========================
+    REPUTATION RANK
+ ========================= */
+
+ rank(rep){
+
+  if(rep>=85)
+   return "Trusted Ally";
+
+  if(rep>=60)
+   return "Close Contact";
+
+  if(rep>=35)
+   return "Reliable";
+
+  if(rep>=15)
+   return "Acquaintance";
+
+  return "Stranger";
+
+ },
+
+ repPercent(rep){
+
+  return Math.max(
+   0,
+   Math.min(
+    100,
+    rep
+   )
+  );
+
+ },
+
+ /* =========================
+    REQUIRE SELECTED
+ ========================= */
+
+ requireSelected(){
+
+  if(
+   !this.selected ||
+   !this.contactsData[
+    this.selected
+   ]
+  ){
+
+   this.notify(
+    "👥 Select a contact first."
+   );
+
+   return false;
+
+  }
+
+  return true;
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const contacts=
+   Object.values(
+    this.contactsData
+   );
+
+  const totalTrust=
+   contacts.reduce(
+    (sum,npc)=>
+     sum+npc.reputation,
+    0
+   );
+
+  document.getElementById(
+   "contactCount"
+  ).textContent=
+   contacts.length;
+
+  document.getElementById(
+   "totalTrust"
+  ).textContent=
+   totalTrust;
+
+  document.getElementById(
+   "level"
+  ).textContent=
+   this.level;
+
+  document.getElementById(
+   "cash"
+  ).textContent=
+   this.cash;
+
+  if(this.selected){
+
+   const npc=
+    this.contactsData[
+     this.selected
+    ];
+
+   document.getElementById(
+    "selectedName"
+   ).textContent=
+    npc.icon+
+    " "+
+    npc.name;
+
+   document.getElementById(
+    "selectedRep"
+   ).textContent=
+    "Reputation: "+
+    npc.reputation+
+    " — "+
+    this.rank(
+     npc.reputation
+    );
+
+   document.getElementById(
+    "selectedRepBar"
+   ).style.width=
+    this.repPercent(
+     npc.reputation
+    )+"%";
+
+  }
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    xp:this.xp,
+
+    level:this.level,
+
+    selected:this.selected,
+
+    contacts:
+     this.contactsData
+
+   })
+  );
+
+  /*
+   Preserve the shared cash slot.
+  */
+
+  localStorage.setItem(
+   "WEBBOUND_V150_CASH",
+   this.cash
+  );
+
+  this.notify(
+   "💾 V159 saved"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw){
+
+    /*
+     Continue from V157
+     if V159 is opened directly.
+    */
+
+    const old=
+     localStorage.getItem(
+      "WEBBOUND_V157"
+     );
+
+    if(old){
+
+     const data=
+      JSON.parse(old);
+
+     this.cash=
+      Number.isFinite(
+       data.cash
+      )
+      ?data.cash
+      :0;
+
+     this.xp=
+      Number.isFinite(
+       data.xp
+      )
+      ?data.xp
+      :0;
+
+     this.level=
+      Number.isFinite(
+       data.level
+      )
+      ?data.level
+      :1;
+
+    }
+
+    return;
+
+   }
+
+   const data=
+    JSON.parse(raw);
+
+   this.cash=
+    Number.isFinite(
+     data.cash
+    )
+    ?data.cash
+    :0;
+
+   this.xp=
+    Number.isFinite(
+     data.xp
+    )
+    ?data.xp
+    :0;
+
+   this.level=
+    Number.isFinite(
+     data.level
+    )
+    ?data.level
+    :1;
+
+   this.selected=
+    data.selected||
+    null;
+
+   if(
+    data.contacts
+   ){
+
+    Object.keys(
+     this.contactsData
+    ).forEach(
+     id=>{
+
+      if(
+       data.contacts[id]
+      ){
+
+       this.contactsData[id]
+        .reputation=
+        Number.isFinite(
+         data.contacts[id]
+          .reputation
+        )
+        ?data.contacts[id]
+          .reputation
+        :0;
+
+      }
+
+     }
+    );
+
+   }
+
+  }
+  catch(error){
+
+   console.log(
+    "V159 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V159.init();
+
+console.log(
+ "WEBBOUND V159 NPC & REPUTATION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
