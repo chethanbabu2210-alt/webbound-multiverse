@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Spider-Man Game V205</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+    background:#070d13;
+    color:white;
+}
+
+#game{
+    position:fixed;
+    inset:0;
+    overflow:hidden;
+    background:#789da9;
+}
+
+/* SKY */
+
+#sky{
+    position:absolute;
+    inset:0;
+
+    background:
+        linear-gradient(
+            #568ea3 0%,
+            #a8c5ca 58%,
+            #d6dad7 100%
+        );
+}
+
+#sun{
+    position:absolute;
+    width:75px;
+    height:75px;
+    right:10%;
+    top:8%;
+
+    border-radius:50%;
+
+    background:#fff0aa;
+
+    box-shadow:
+        0 0 50px #fff0aa;
+}
+
+/* CITY */
+
+.building{
+    position:absolute;
+    bottom:0;
+
+    background:#273840;
+
+    border:1px solid #ffffff18;
+
+    box-shadow:
+        0 0 20px #0005;
+}
+
+.building:after{
+    content:"";
+
+    position:absolute;
+    inset:9px;
+
+    background:
+        repeating-linear-gradient(
+            90deg,
+            #dce7e733 0 7px,
+            transparent 7px 17px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            #dce7e733 0 7px,
+            transparent 7px 18px
+        );
+}
+
+.b1{
+    left:0;
+    width:11%;
+    height:45%;
+}
+
+.b2{
+    left:12%;
+    width:13%;
+    height:70%;
+}
+
+.b3{
+    left:27%;
+    width:10%;
+    height:52%;
+}
+
+.b4{
+    left:39%;
+    width:16%;
+    height:83%;
+}
+
+.b5{
+    left:57%;
+    width:11%;
+    height:60%;
+}
+
+.b6{
+    left:70%;
+    width:14%;
+    height:76%;
+}
+
+.b7{
+    right:0;
+    width:13%;
+    height:50%;
+}
+
+/* ROAD */
+
+#road{
+    position:absolute;
+
+    left:0;
+    right:0;
+    bottom:16%;
+
+    height:90px;
+
+    background:#242a2f;
+
+    border-top:3px solid #555;
+    border-bottom:3px solid #555;
+}
+
+#road:after{
+    content:"";
+
+    position:absolute;
+
+    left:0;
+    right:0;
+    top:43px;
+
+    border-top:
+        4px dashed #d8c85d;
+}
+
+/* PLAYER */
+
+#spiderman{
+    position:absolute;
+
+    width:34px;
+    height:48px;
+
+    left:50%;
+    top:50%;
+
+    z-index:200;
+
+    transform:
+        translate(-50%,-50%);
+}
+
+.body{
+    position:absolute;
+
+    width:30px;
+    height:35px;
+
+    left:2px;
+    top:12px;
+
+    border-radius:
+        12px 12px 6px 6px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #8b0b13 0 44%,
+            #d51622 45%,
+            #0b2b72 46%,
+            #071a49
+        );
+
+    border:
+        2px solid #050b15;
+}
+
+.head{
+    position:absolute;
+
+    width:25px;
+    height:25px;
+
+    left:4px;
+    top:-5px;
+
+    border-radius:50%;
+
+    background:#c91522;
+
+    border:
+        2px solid #080c15;
+}
+
+.head:before,
+.head:after{
+    content:"";
+
+    position:absolute;
+
+    width:8px;
+    height:4px;
+
+    top:9px;
+
+    background:white;
+
+    border:1px solid #111;
+}
+
+.head:before{
+    left:2px;
+    transform:rotate(25deg);
+}
+
+.head:after{
+    right:2px;
+    transform:rotate(-25deg);
+}
+
+.body:after{
+    content:"";
+
+    position:absolute;
+
+    inset:5px;
+
+    border-radius:8px;
+
+    background:
+        repeating-linear-gradient(
+            45deg,
+            transparent 0 7px,
+            #ffffff20 8px 9px
+        );
+}
+
+/* SPIDER SENSE OVERLAY */
+
+#senseOverlay{
+    position:fixed;
+
+    inset:0;
+
+    pointer-events:none;
+
+    z-index:400;
+
+    opacity:0;
+
+    transition:
+        opacity .2s;
+}
+
+#senseOverlay.active{
+    opacity:1;
+
+    background:
+        radial-gradient(
+            circle at center,
+            transparent 15%,
+            #e91e2d12 42%,
+            #e91e2d45 100%
+        );
+
+    animation:
+        sensePulse .8s infinite alternate;
+}
+
+@keyframes sensePulse{
+    from{
+        filter:
+            brightness(1)
+            saturate(1);
+    }
+
+    to{
+        filter:
+            brightness(1.2)
+            saturate(1.6);
+    }
+}
+
+/* SENSE RING */
+
+#senseRing{
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:100px;
+    height:100px;
+
+    transform:
+        translate(-50%,-50%);
+
+    border:
+        2px solid #ff3040;
+
+    border-radius:50%;
+
+    opacity:0;
+}
+
+#senseRing.active{
+    animation:
+        senseRing 1.2s infinite;
+}
+
+@keyframes senseRing{
+
+    0%{
+        width:70px;
+        height:70px;
+        opacity:.9;
+    }
+
+    100%{
+        width:650px;
+        height:650px;
+        opacity:0;
+    }
+}
+
+/* THREAT INDICATORS */
+
+.threat{
+    position:absolute;
+
+    width:30px;
+    height:30px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+
+    font-size:14px;
+
+    z-index:150;
+
+    box-shadow:
+        0 0 15px #ff2636;
+
+    animation:
+        threatPulse .7s infinite alternate;
+}
+
+@keyframes threatPulse{
+    from{
+        transform:scale(.9);
+    }
+
+    to{
+        transform:scale(1.15);
+    }
+}
+
+.enemy{
+    background:#7b1018;
+    border:2px solid #ff3444;
+}
+
+.crime{
+    background:#6b3c08;
+    border:2px solid #ffc234;
+}
+
+.civilian{
+    background:#123e63;
+    border:2px solid #55baff;
+}
+
+/* DIRECTION ARROWS */
+
+.directionArrow{
+    position:fixed;
+
+    left:50%;
+    top:50%;
+
+    width:0;
+    height:0;
+
+    border-left:
+        9px solid transparent;
+
+    border-right:
+        9px solid transparent;
+
+    border-bottom:
+        25px solid #ff3344;
+
+    transform-origin:
+        50% 120px;
+
+    display:none;
+
+    z-index:350;
+
+    filter:
+        drop-shadow(
+            0 0 7px #ff3344
+        );
+}
+
+/* HUD */
+
+#hud{
+    position:fixed;
+
+    top:12px;
+    left:12px;
+
+    width:min(550px,93vw);
+
+    padding:12px;
+
+    background:#03070ddd;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:13px;
+
+    z-index:500;
+}
+
+.title{
+    font-size:14px;
+    font-weight:bold;
+}
+
+.subtitle{
+    margin-top:4px;
+
+    font-size:9px;
+
+    color:#aebfc7;
+}
+
+.stats{
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:6px;
+
+    margin-top:10px;
+}
+
+.stat{
+    background:#101b23;
+
+    padding:8px 4px;
+
+    border-radius:7px;
+
+    text-align:center;
+
+    font-size:9px;
+}
+
+#status{
+    margin-top:8px;
+
+    padding:8px;
+
+    background:#101b23;
+
+    border-radius:7px;
+
+    font-size:9px;
+
+    line-height:1.8;
+}
+
+/* BUTTONS */
+
+#controls{
+    position:fixed;
+
+    left:50%;
+    bottom:12px;
+
+    transform:
+        translateX(-50%);
+
+    width:min(720px,95vw);
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:7px;
+
+    z-index:600;
+}
+
+button{
+    padding:11px 5px;
+
+    background:#111f2a;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:9px;
+
+    color:white;
+
+    font-size:10px;
+
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.95);
+}
+
+/* MESSAGE */
+
+#message{
+    position:fixed;
+
+    left:50%;
+    top:24%;
+
+    transform:
+        translateX(-50%);
+
+    padding:
+        10px 16px;
+
+    background:#03070cf5;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:9px;
+
+    font-size:10px;
+
+    display:none;
+
+    z-index:1500;
+
+    text-align:center;
+}
+
+/* MAP */
+
+#map{
+    display:none;
+
+    position:fixed;
+
+    inset:0;
+
+    background:#02060aee;
+
+    z-index:1000;
+
+    align-items:center;
+    justify-content:center;
+
+    padding:20px;
+}
+
+.mapbox{
+    width:min(700px,95vw);
+
+    background:#0b141b;
+
+    border:
+        1px solid #ffffff22;
+
+    border-radius:14px;
+
+    padding:16px;
+}
+
+.mapgrid{
+    position:relative;
+
+    height:360px;
+
+    margin-top:12px;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent 48%,
+            #d7c86e55 49% 51%,
+            transparent 52%
+        ),
+        linear-gradient(
+            transparent 48%,
+            #d7c86e55 49% 51%,
+            transparent 52%
+        ),
+        #1c2c34;
+
+    border-radius:10px;
+}
+
+.mapPlayer{
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:12px;
+    height:12px;
+
+    border-radius:50%;
+
+    background:#e21b2b;
+
+    box-shadow:
+        0 0 15px #e21b2b;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="sky"></div>
+<div id="sun"></div>
+
+<div class="building b1"></div>
+<div class="building b2"></div>
+<div class="building b3"></div>
+<div class="building b4"></div>
+<div class="building b5"></div>
+<div class="building b6"></div>
+<div class="building b7"></div>
+
+<div id="road"></div>
+
+<!-- PLAYER -->
+
+<div id="spiderman">
+    <div class="head"></div>
+    <div class="body"></div>
+</div>
+
+<!-- SENSE EFFECTS -->
+
+<div id="senseOverlay">
+    <div id="senseRing"></div>
+</div>
+
+<div
+    id="directionArrow"
+    class="directionArrow">
+</div>
+
+<!-- THREATS -->
+
+<div
+    id="enemy1"
+    class="threat enemy"
+    style="left:18%;top:36%">
+    ⚠️
+</div>
+
+<div
+    id="crime1"
+    class="threat crime"
+    style="left:73%;top:42%">
+    🚨
+</div>
+
+<div
+    id="civilian1"
+    class="threat civilian"
+    style="left:31%;top:27%">
+    👤
+</div>
+
+<div
+    id="enemy2"
+    class="threat enemy"
+    style="left:87%;top:25%">
+    ⚠️
+</div>
+
+<!-- HUD -->
+
+<div id="hud">
+
+<div class="title">
+🕷️ SPIDER-MAN — V205
+</div>
+
+<div class="subtitle">
+SPIDER-SENSE 2.0
+</div>
+
+<div class="stats">
+
+<div class="stat">
+❤️ HEALTH<br>
+<span id="health">100</span>
+</div>
+
+<div class="stat">
+⚡ POWER<br>
+<span id="power">100</span>
+</div>
+
+<div class="stat">
+🕸️ WEBS<br>
+<span id="webs">30</span>
+</div>
+
+<div class="stat">
+⭐ LEVEL<br>
+<span id="level">1</span>
+</div>
+
+</div>
+
+<div id="status">
+
+📍 Location:
+<b id="locationText">
+Downtown
+</b>
+
+<br>
+
+🕷️ Spider-Sense:
+<span id="senseStatus">
+OFF
+</span>
+
+<br>
+
+⚠️ Threat:
+<span id="threatStatus">
+None
+</span>
+
+<br>
+
+🧭 Direction:
+<span id="directionStatus">
+None
+</span>
+
+<br>
+
+📡 Range:
+<span id="rangeStatus">
+0
+</span> m
+
+</div>
+
+</div>
+
+<div id="message"></div>
+
+<!-- CONTROLS -->
+
+<div id="controls">
+
+<button onclick="Spider.sense()">
+🕷️ SPIDER-SENSE
+</button>
+
+<button onclick="Spider.scan()">
+📡 SCAN AREA
+</button>
+
+<button onclick="Spider.focusThreat()">
+🎯 FOCUS THREAT
+</button>
+
+<button onclick="Spider.clearSense()">
+❌ CLEAR
+</button>
+
+<button onclick="Spider.move(-1,0)">
+⬅️ LEFT
+</button>
+
+<button onclick="Spider.move(1,0)">
+➡️ RIGHT
+</button>
+
+<button onclick="Spider.jump()">
+🦘 JUMP
+</button>
+
+<button onclick="Spider.web()">
+🕸️ WEB
+</button>
+
+<button onclick="Spider.map()">
+🗺️ MAP
+</button>
+
+<button onclick="Spider.rest()">
+❤️ RESTORE
+</button>
+
+<button onclick="Spider.save()">
+💾 SAVE
+</button>
+
+</div>
+
+<!-- MAP -->
+
+<div id="map">
+
+<div class="mapbox">
+
+<h2>🗺️ CITY MAP</h2>
+
+<div class="mapgrid">
+
+<div
+id="mapPlayer"
+class="mapPlayer">
+</div>
+
+</div>
+
+<br>
+
+<button onclick="Spider.map()">
+CLOSE MAP
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const Spider={
+
+saveKey:
+"SPIDERMAN_V205",
+
+x:0,
+y:0,
+
+health:100,
+power:100,
+webs:30,
+level:1,
+
+senseActive:false,
+
+currentThreat:null,
+
+lastScan:[],
+
+init(){
+
+this.load();
+
+this.update();
+
+this.keyboard();
+
+this.message(
+"🕷️ Spider-Sense 2.0 ready!"
+);
+
+},
+
+/* KEYBOARD */
+
+keyboard(){
+
+document.addEventListener(
+"keydown",
+e=>{
+
+const k=
+e.key.toLowerCase();
+
+if(k==="f")
+this.sense();
+
+if(k==="e")
+this.scan();
+
+if(k==="t")
+this.focusThreat();
+
+if(k==="w"||
+   k==="arrowup")
+this.move(0,-1);
+
+if(k==="s"||
+   k==="arrowdown")
+this.move(0,1);
+
+if(k==="a"||
+   k==="arrowleft")
+this.move(-1,0);
+
+if(k==="d"||
+   k==="arrowright")
+this.move(1,0);
+
+if(k===" ")
+this.jump();
+
+});
+
+},
+
+/* MOVE */
+
+move(dx,dy){
+
+this.x+=dx*4;
+
+this.y+=dy*4;
+
+this.x=
+Math.max(
+-100,
+Math.min(100,this.x)
+);
+
+this.y=
+Math.max(
+-100,
+Math.min(100,this.y)
+);
+
+this.render();
+
+this.location();
+
+if(this.senseActive)
+this.scan(false);
+
+},
+
+/* RENDER */
+
+render(){
+
+const player=
+document.getElementById(
+"spiderman"
+);
+
+player.style.left=
+(50+this.x*.25)+"%";
+
+player.style.top=
+(50+this.y*.18)+"%";
+
+},
+
+/* SPIDER SENSE */
+
+sense(){
+
+if(this.power<8){
+
+this.message(
+"⚡ Spider-Sense needs more power."
+);
+
+return;
+
+}
+
+this.power-=8;
+
+this.senseActive=true;
+
+const overlay=
+document.getElementById(
+"senseOverlay"
+);
+
+const ring=
+document.getElementById(
+"senseRing"
+);
+
+overlay.classList.add(
+"active"
+);
+
+ring.classList.add(
+"active"
+);
+
+this.scan(false);
+
+this.message(
+"🕷️ SPIDER-SENSE ACTIVATED!"
+);
+
+this.update();
+
+setTimeout(
+()=>{
+
+this.clearSense();
+
+},
+7000
+);
+
+},
+
+/* SCAN */
+
+scan(showMessage=true){
+
+const threats=[
+...document.querySelectorAll(
+".threat"
+)
+];
+
+const player=
+document
+.getElementById(
+"spiderman"
+)
+.getBoundingClientRect();
+
+const px=
+player.left+
+player.width/2;
+
+const py=
+player.top+
+player.height/2;
+
+let closest=null;
+
+let closestDistance=
+Infinity;
+
+threats.forEach(
+threat=>{
+
+const rect=
+threat.getBoundingClientRect();
+
+const tx=
+rect.left+
+rect.width/2;
+
+const ty=
+rect.top+
+rect.height/2;
+
+const distance=
+Math.hypot(
+tx-px,
+ty-py
+);
+
+if(distance<
+closestDistance){
+
+closestDistance=
+distance;
+
+closest=
+threat;
+
+}
+
+});
+
+if(closest){
+
+this.currentThreat=
+closest;
+
+this.lastScan=[
+closest
+];
+
+this.showThreat(
+closest,
+closestDistance
+);
+
+if(showMessage){
+
+this.message(
+"📡 Threat detected!"
+);
+
+}
+
+}else{
+
+this.currentThreat=null;
+
+this.lastScan=[];
+
+document.getElementById(
+"threatStatus"
+).textContent=
+"None";
+
+document.getElementById(
+"rangeStatus"
+).textContent=
+"0";
+
+}
+
+this.update();
+
+},
+
+/* SHOW THREAT */
+
+showThreat(
+threat,
+distance
+){
+
+let type="Threat";
+
+if(threat.classList.contains(
+"enemy"
+))
+type="Enemy";
+
+if(threat.classList.contains(
+"crime"
+))
+type="Crime";
+
+if(threat.classList.contains(
+"civilian"
+))
+type="Civilian";
+
+document.getElementById(
+"threatStatus"
+).textContent=
+type;
+
+document.getElementById(
+"rangeStatus"
+).textContent=
+Math.round(
+distance/4
+);
+
+this.pointDirection(
+threat
+);
+
+},
+
+/* DIRECTION */
+
+pointDirection(
+threat
+){
+
+const player=
+document
+.getElementById(
+"spiderman"
+)
+.getBoundingClientRect();
+
+const tr=
+threat.getBoundingClientRect();
+
+const px=
+player.left+
+player.width/2;
+
+const py=
+player.top+
+player.height/2;
+
+const tx=
+tr.left+
+tr.width/2;
+
+const ty=
+tr.top+
+tr.height/2;
+
+const dx=
+tx-px;
+
+const dy=
+ty-py;
+
+const angle=
+Math.atan2(dy,dx)*
+180/Math.PI;
+
+const arrow=
+document.getElementById(
+"directionArrow"
+);
+
+arrow.style.display=
+"block";
+
+arrow.style.transform=
+`
+translate(-50%,-50%)
+rotate(${angle+90}deg)
+`;
+
+let direction="North";
+
+if(Math.abs(dx)>
+Math.abs(dy)){
+
+direction=
+dx>0
+?
+"East"
+:
+"West";
+
+}else{
+
+direction=
+dy>0
+?
+"South"
+:
+"North";
+
+}
+
+document.getElementById(
+"directionStatus"
+).textContent=
+direction;
+
+},
+
+/* FOCUS */
+
+focusThreat(){
+
+if(!this.currentThreat){
+
+this.scan();
+
+if(!this.currentThreat){
+
+this.message(
+"🎯 No threat detected."
+);
+
+return;
+
+}
+
+}
+
+const threat=
+this.currentThreat;
+
+const rect=
+threat.getBoundingClientRect();
+
+const px=
+rect.left+
+rect.width/2;
+
+const py=
+rect.top+
+rect.height/2;
+
+const player=
+document
+.getElementById(
+"spiderman"
+);
+
+const pr=
+player.getBoundingClientRect();
+
+const cx=
+pr.left+
+pr.width/2;
+
+const cy=
+pr.top+
+pr.height/2;
+
+const dx=
+px-cx;
+
+const dy=
+py-cy;
+
+this.x+=
+(dx/window.innerWidth)*50;
+
+this.y+=
+(dy/window.innerHeight)*40;
+
+this.x=
+Math.max(
+-100,
+Math.min(100,this.x)
+);
+
+this.y=
+Math.max(
+-100,
+Math.min(100,this.y)
+);
+
+this.render();
+
+this.message(
+"🎯 Threat location focused."
+);
+
+this.scan(false);
+
+},
+
+/* CLEAR */
+
+clearSense(){
+
+this.senseActive=false;
+
+document
+.getElementById(
+"senseOverlay"
+)
+.classList.remove(
+"active"
+);
+
+document
+.getElementById(
+"senseRing"
+)
+.classList.remove(
+"active"
+);
+
+document.getElementById(
+"directionArrow"
+).style.display=
+"none";
+
+document.getElementById(
+"senseStatus"
+).textContent=
+"OFF";
+
+document.getElementById(
+"directionStatus"
+).textContent=
+"None";
+
+},
+
+/* JUMP */
+
+jump(){
+
+if(this.power<5){
+
+this.message(
+"⚡ Not enough power."
+);
+
+return;
+
+}
+
+this.power-=5;
+
+const player=
+document.getElementById(
+"spiderman"
+);
+
+player.animate(
+[
+{
+transform:
+"translate(-50%,-50%)"
+},
+{
+transform:
+"translate(-50%,-150%)"
+},
+{
+transform:
+"translate(-50%,-50%)"
+}
+],
+{
+duration:450,
+easing:"ease-out"
+}
+);
+
+this.update();
+
+},
+
+/* WEB */
+
+web(){
+
+if(this.webs<=0){
+
+this.message(
+"🕸️ No webs."
+);
+
+return;
+
+}
+
+if(this.power<2){
+
+this.message(
+"⚡ Not enough power."
+);
+
+return;
+
+}
+
+this.webs--;
+
+this.power-=2;
+
+this.message(
+"🕸️ Web fired!"
+);
+
+this.update();
+
+},
+
+/* LOCATION */
+
+location(){
+
+let place=
+"Downtown";
+
+if(this.x>50)
+place=
+"Financial District";
+
+else if(this.x<-50)
+place=
+"Residential District";
+
+else if(this.y>50)
+place=
+"Industrial District";
+
+else if(this.y<-50)
+place=
+"City Center";
+
+document.getElementById(
+"locationText"
+).textContent=
+place;
+
+},
+
+/* REST */
+
+rest(){
+
+this.health=
+Math.min(
+100,
+this.health+20
+);
+
+this.power=
+Math.min(
+100,
+this.power+30
+);
+
+this.message(
+"❤️ Recovered."
+);
+
+this.update();
+
+},
+
+/* MAP */
+
+map(){
+
+const map=
+document.getElementById(
+"map"
+);
+
+map.style.display=
+map.style.display==="flex"
+?
+"none":
+"flex";
+
+const player=
+document.getElementById(
+"mapPlayer"
+);
+
+player.style.left=
+(50+this.x*.35)+"%";
+
+player.style.top=
+(50+this.y*.35)+"%";
+
+},
+
+/* HUD */
+
+update(){
+
+document.getElementById(
+"health"
+).textContent=
+Math.round(this.health);
+
+document.getElementById(
+"power"
+).textContent=
+Math.round(this.power);
+
+document.getElementById(
+"webs"
+).textContent=
+this.webs;
+
+document.getElementById(
+"level"
+).textContent=
+this.level;
+
+document.getElementById(
+"senseStatus"
+).textContent=
+this.senseActive
+?
+"ACTIVE":
+"OFF";
+
+},
+
+/* SAVE */
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+
+x:this.x,
+y:this.y,
+health:this.health,
+power:this.power,
+webs:this.webs,
+level:this.level
+
+})
+);
+
+this.message(
+"💾 V205 saved!"
+);
+
+},
+
+/* LOAD */
+
+load(){
+
+try{
+
+const raw=
+localStorage.getItem(
+this.saveKey
+);
+
+if(!raw)return;
+
+const d=
+JSON.parse(raw);
+
+if(Number.isFinite(d.x))
+this.x=d.x;
+
+if(Number.isFinite(d.y))
+this.y=d.y;
+
+if(Number.isFinite(d.health))
+this.health=d.health;
+
+if(Number.isFinite(d.power))
+this.power=d.power;
+
+if(Number.isFinite(d.webs))
+this.webs=d.webs;
+
+if(Number.isFinite(d.level))
+this.level=d.level;
+
+this.render();
+
+}catch(e){
+
+console.log(
+"Load error:",
+e
+);
+
+},
+
+/* MESSAGE */
+
+message(text){
+
+const box=
+document.getElementById(
+"message"
+);
+
+box.textContent=text;
+
+box.style.display=
+"block";
+
+clearTimeout(
+this.messageTimer
+);
+
+this.messageTimer=
+setTimeout(
+()=>{
+box.style.display="none";
+},
+2000
+);
+
+}
+
+};
+
+Spider.init();
+
+</script>
+
+</body>
+</html>
