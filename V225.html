@@ -1,0 +1,1019 @@
+<!-- =====================================================
+ V225 — SPIDER-SENSE & DANGER AWARENESS
+ Add after V224
+ ===================================================== -->
+
+<style>
+
+/* ================= SPIDER SENSE ================= */
+
+#spiderSense225{
+
+    position:fixed;
+    inset:0;
+
+    z-index:3700;
+
+    pointer-events:none;
+
+    opacity:0;
+
+    transition:
+        opacity .15s;
+
+}
+
+#spiderSense225.active{
+    opacity:1;
+}
+
+
+/* ================= SENSE RING ================= */
+
+#senseRing225{
+
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:170px;
+    height:170px;
+
+    transform:
+        translate(-50%,-50%);
+
+    border:
+        2px solid #ffffff55;
+
+    border-radius:50%;
+
+    animation:
+        sensePulse225 .7s infinite;
+
+}
+
+@keyframes sensePulse225{
+
+    0%{
+        transform:
+            translate(-50%,-50%)
+            scale(.8);
+
+        opacity:.25;
+    }
+
+    100%{
+        transform:
+            translate(-50%,-50%)
+            scale(1.15);
+
+        opacity:.8;
+    }
+
+}
+
+
+/* ================= DANGER INDICATORS ================= */
+
+.dangerIndicator225{
+
+    position:fixed;
+
+    width:34px;
+    height:34px;
+
+    border:
+        2px solid #ffffff;
+
+    border-radius:50%;
+
+    display:flex;
+
+    align-items:center;
+    justify-content:center;
+
+    font-size:13px;
+
+    z-index:3800;
+
+    pointer-events:none;
+
+    animation:
+        dangerPulse225 .5s infinite alternate;
+
+}
+
+@keyframes dangerPulse225{
+
+    from{
+        opacity:.55;
+        transform:scale(.85);
+    }
+
+    to{
+        opacity:1;
+        transform:scale(1.1);
+    }
+
+}
+
+
+/* ================= HUD ================= */
+
+#senseHud225{
+
+    position:fixed;
+
+    left:12px;
+    top:540px;
+
+    width:min(230px,48vw);
+
+    padding:10px;
+
+    background:#03070de8;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:3900;
+
+}
+
+.senseTitle225{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#senseState225,
+#senseThreat225,
+#senseNearby225{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#senseControls225{
+
+    position:fixed;
+
+    left:12px;
+    bottom:75px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:4000;
+
+}
+
+#senseControls225 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+
+/* ================= DANGER SCREEN ================= */
+
+#dangerFlash225{
+
+    position:fixed;
+
+    inset:0;
+
+    z-index:3600;
+
+    pointer-events:none;
+
+    opacity:0;
+
+}
+
+#dangerFlash225.active{
+
+    animation:
+        dangerFlash225 .45s;
+
+}
+
+@keyframes dangerFlash225{
+
+    0%{
+        opacity:.18;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ SPIDER SENSE LAYER
+ ===================================================== -->
+
+<div id="spiderSense225">
+
+    <div id="senseRing225"></div>
+
+</div>
+
+
+<div id="dangerFlash225"></div>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="senseHud225">
+
+    <div class="senseTitle225">
+        🕷️ SPIDER-SENSE — V225
+    </div>
+
+    <div id="senseState225">
+        Sense: READY
+    </div>
+
+    <div id="senseThreat225">
+        Threat: NONE
+    </div>
+
+    <div id="senseNearby225">
+        Nearby enemies: 0
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="senseControls225">
+
+    <button
+        onclick="SpiderSense225.activate()">
+        🕷️ SENSE
+    </button>
+
+    <button
+        onclick="SpiderSense225.scan()">
+        🔎 SCAN
+    </button>
+
+    <button
+        onclick="SpiderSense225.clear()">
+        ✖ CLEAR
+    </button>
+
+    <button
+        onclick="SpiderSense225.reset()">
+        🔄 RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V225 SPIDER-SENSE ENGINE
+ ===================================================== */
+
+const SpiderSense225={
+
+    active:false,
+
+    scanning:false,
+
+    range:280,
+
+    threat:"NONE",
+
+    nearby:[],
+
+    scanTimer:null,
+
+    dangerTimer:null,
+
+    indicators:[],
+
+    slowMotion:false,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.startPassiveScan();
+
+        this.message(
+            "🕷️ Spider-Sense online."
+        );
+
+    },
+
+
+    /* =========================
+       PASSIVE SCAN
+    ========================= */
+
+    startPassiveScan(){
+
+        clearInterval(
+            this.scanTimer
+        );
+
+
+        this.scanTimer=
+            setInterval(
+                ()=>{
+
+                    this.detect();
+
+                },
+                350
+            );
+
+    },
+
+
+    /* =========================
+       ACTIVATE
+    ========================= */
+
+    activate(){
+
+        this.active=
+            !this.active;
+
+
+        const layer=
+            document.getElementById(
+                "spiderSense225"
+            );
+
+
+        if(layer){
+
+            layer.classList.toggle(
+                "active",
+                this.active
+            );
+
+        }
+
+
+        if(this.active){
+
+            this.scan();
+
+            this.message(
+                "🕷️ Spider-Sense activated."
+            );
+
+        }else{
+
+            this.clearIndicators();
+
+            this.message(
+                "🕷️ Spider-Sense disabled."
+            );
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       SCAN
+    ========================= */
+
+    scan(){
+
+        this.detect();
+
+        this.active=true;
+
+
+        const layer=
+            document.getElementById(
+                "spiderSense225"
+            );
+
+
+        if(layer){
+
+            layer.classList.add(
+                "active"
+            );
+
+        }
+
+
+        this.message(
+            "🔎 Area scanned."
+        );
+
+    },
+
+
+    /* =========================
+       DETECT ENEMIES
+    ========================= */
+
+    detect(){
+
+        if(
+            typeof SpiderEnemy220===
+            "undefined"
+        ){
+
+            this.nearby=[];
+
+            this.threat="NONE";
+
+            this.updateHUD();
+
+            return;
+
+        }
+
+
+        const enemies=
+            Object.values(
+                SpiderEnemy220.enemies
+            ).filter(
+                enemy=>
+                    enemy.active
+            );
+
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+
+        if(!player){
+
+            this.nearby=[];
+
+            this.updateHUD();
+
+            return;
+
+        }
+
+
+        const playerRect=
+            player.getBoundingClientRect();
+
+
+        const px=
+            playerRect.left+
+            playerRect.width/2;
+
+        const py=
+            playerRect.top+
+            playerRect.height/2;
+
+
+        this.nearby=[];
+
+
+        enemies.forEach(
+            enemy=>{
+
+                const element=
+                    document.getElementById(
+                        "enemy220_"+
+                        enemy.id
+                    );
+
+
+                if(!element)
+                    return;
+
+
+                const rect=
+                    element.getBoundingClientRect();
+
+
+                const ex=
+                    rect.left+
+                    rect.width/2;
+
+                const ey=
+                    rect.top+
+                    rect.height/2;
+
+
+                const distance=
+                    Math.hypot(
+                        ex-px,
+                        ey-py
+                    );
+
+
+                if(
+                    distance<=
+                    this.range
+                ){
+
+                    this.nearby.push({
+
+                        enemy:enemy,
+
+                        distance:distance,
+
+                        x:ex,
+
+                        y:ey
+
+                    });
+
+                }
+
+            }
+        );
+
+
+        this.calculateThreat();
+
+        this.updateIndicators();
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       THREAT CALCULATION
+    ========================= */
+
+    calculateThreat(){
+
+        if(
+            !this.nearby.length
+        ){
+
+            this.threat="NONE";
+
+            return;
+
+        }
+
+
+        let attacking=0;
+
+        let chasing=0;
+
+
+        this.nearby.forEach(
+            item=>{
+
+                if(
+                    item.enemy.state===
+                    "ATTACK"
+                )
+                    attacking++;
+
+
+                if(
+                    item.enemy.state===
+                    "CHASE"
+                )
+                    chasing++;
+
+            }
+        );
+
+
+        if(
+            attacking>0
+        ){
+
+            this.threat=
+                "CRITICAL";
+
+        }else if(
+            chasing>0
+        ){
+
+            this.threat=
+                "HIGH";
+
+        }else if(
+            this.nearby.length>=3
+        ){
+
+            this.threat=
+                "MEDIUM";
+
+        }else{
+
+            this.threat=
+                "LOW";
+
+        }
+
+
+        if(
+            this.threat==="CRITICAL"
+        ){
+
+            this.dangerWarning();
+
+        }
+
+    },
+
+
+    /* =========================
+       DANGER WARNING
+    ========================= */
+
+    dangerWarning(){
+
+        const flash=
+            document.getElementById(
+                "dangerFlash225"
+            );
+
+
+        if(flash){
+
+            flash.classList.remove(
+                "active"
+            );
+
+            void flash.offsetWidth;
+
+            flash.classList.add(
+                "active"
+            );
+
+        }
+
+
+        this.message(
+            "⚠️ SPIDER-SENSE: DANGER!"
+        );
+
+
+        /*
+         * Temporary slow motion.
+         */
+
+        this.enableSlowMotion();
+
+    },
+
+
+    /* =========================
+       SLOW MOTION
+    ========================= */
+
+    enableSlowMotion(){
+
+        if(
+            this.slowMotion
+        )
+            return;
+
+
+        this.slowMotion=true;
+
+
+        document.documentElement.style
+            .setProperty(
+                "--senseTime225",
+                ".65"
+            );
+
+
+        setTimeout(
+            ()=>{
+
+                this.slowMotion=false;
+
+            },
+            700
+        );
+
+    },
+
+
+    /* =========================
+       INDICATORS
+    ========================= */
+
+    updateIndicators(){
+
+        this.clearIndicators();
+
+
+        if(
+            !this.active
+        )
+            return;
+
+
+        this.nearby.forEach(
+            item=>{
+
+                const indicator=
+                    document.createElement(
+                        "div"
+                    );
+
+
+                indicator.className=
+                    "dangerIndicator225";
+
+
+                indicator.textContent=
+                    item.enemy.state===
+                    "ATTACK"
+                    ?"!"
+                    :"•";
+
+
+                let x=
+                    item.x;
+
+                let y=
+                    item.y;
+
+
+                /*
+                 * Keep indicator inside
+                 * the screen.
+                 */
+
+                x=
+                    Math.max(
+                        20,
+                        Math.min(
+                            window.innerWidth-20,
+                            x
+                        )
+                    );
+
+
+                y=
+                    Math.max(
+                        20,
+                        Math.min(
+                            window.innerHeight-20,
+                            y
+                        )
+                    );
+
+
+                indicator.style.left=
+                    x+"px";
+
+                indicator.style.top=
+                    y+"px";
+
+
+                document.body.appendChild(
+                    indicator
+                );
+
+
+                this.indicators.push(
+                    indicator
+                );
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       CLEAR INDICATORS
+    ========================= */
+
+    clearIndicators(){
+
+        this.indicators.forEach(
+            indicator=>{
+
+                indicator.remove();
+
+            }
+        );
+
+
+        this.indicators=[];
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const state=
+            document.getElementById(
+                "senseState225"
+            );
+
+        const threat=
+            document.getElementById(
+                "senseThreat225"
+            );
+
+        const nearby=
+            document.getElementById(
+                "senseNearby225"
+            );
+
+
+        if(state){
+
+            state.textContent=
+                "Sense: "+
+                (
+                    this.active
+                    ?"ACTIVE"
+                    :"READY"
+                );
+
+        }
+
+
+        if(threat){
+
+            threat.textContent=
+                "Threat: "+
+                this.threat;
+
+        }
+
+
+        if(nearby){
+
+            nearby.textContent=
+                "Nearby enemies: "+
+                this.nearby.length;
+
+        }
+
+    },
+
+
+    /* =========================
+       CLEAR
+    ========================= */
+
+    clear(){
+
+        this.nearby=[];
+
+        this.threat="NONE";
+
+        this.clearIndicators();
+
+        this.active=false;
+
+
+        const layer=
+            document.getElementById(
+                "spiderSense225"
+            );
+
+
+        if(layer){
+
+            layer.classList.remove(
+                "active"
+            );
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    reset(){
+
+        this.clear();
+
+        this.scanning=false;
+
+        this.slowMotion=false;
+
+        this.message(
+            "🔄 Spider-Sense reset."
+        );
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V225
+ ===================================================== */
+
+SpiderSense225.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="q")
+            SpiderSense225.activate();
+
+
+        if(key==="s")
+            SpiderSense225.scan();
+
+
+        if(key==="c")
+            SpiderSense225.clear();
+
+    }
+);
