@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V85</title>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  overflow:hidden;
+  background:#080b12;
+  font-family:Arial,sans-serif;
+}
+
+
+/* =========================================================
+   V85 MAP BUTTON
+   ========================================================= */
+
+#v85MapButton{
+
+  position:fixed;
+
+  right:15px;
+  top:70px;
+
+  z-index:9000;
+
+  padding:11px 14px;
+
+  background:#05070ee8;
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:11px;
+
+  font-weight:bold;
+
+  cursor:pointer;
+
+}
+
+
+/* =========================================================
+   MAP
+   ========================================================= */
+
+#v85Map{
+
+  position:fixed;
+
+  inset:0;
+
+  z-index:9500;
+
+  background:#080b12;
+
+  display:none;
+
+}
+
+
+/* =========================================================
+   MAP HEADER
+   ========================================================= */
+
+#v85MapHeader{
+
+  position:absolute;
+
+  left:15px;
+  right:15px;
+  top:15px;
+
+  z-index:10;
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  gap:10px;
+
+  color:white;
+
+}
+
+
+#v85MapTitle{
+
+  padding:10px 14px;
+
+  background:#05070ee8;
+
+  border:1px solid #ffffff30;
+
+  border-radius:11px;
+
+  font-weight:bold;
+
+}
+
+
+#v85Close{
+
+  padding:10px 14px;
+
+  background:#05070ee8;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:11px;
+
+}
+
+
+/* =========================================================
+   MAP AREA
+   ========================================================= */
+
+#v85MapArea{
+
+  position:absolute;
+
+  left:0;
+  right:0;
+  top:0;
+  bottom:0;
+
+  overflow:hidden;
+
+  background:
+
+    linear-gradient(
+      90deg,
+      transparent 48%,
+      #ffffff08 49%,
+      #ffffff08 51%,
+      transparent 52%
+    ),
+
+    linear-gradient(
+      0deg,
+      transparent 48%,
+      #ffffff08 49%,
+      #ffffff08 51%,
+      transparent 52%
+    ),
+
+    #101722;
+
+}
+
+
+/* =========================================================
+   CITY BLOCKS
+   ========================================================= */
+
+.v85Road{
+
+  position:absolute;
+
+  background:#252c38;
+
+  border:1px solid #ffffff08;
+
+}
+
+
+.v85Road.horizontal{
+
+  width:100%;
+
+  height:45px;
+
+  left:0;
+
+}
+
+
+.v85Road.vertical{
+
+  height:100%;
+
+  width:45px;
+
+  top:0;
+
+}
+
+
+.v85Block{
+
+  position:absolute;
+
+  background:#151d28;
+
+  border:1px solid #ffffff0d;
+
+  border-radius:4px;
+
+}
+
+
+/* =========================================================
+   MAP MARKERS
+   ========================================================= */
+
+.v85Marker{
+
+  position:absolute;
+
+  transform:
+    translate(-50%,-50%);
+
+  z-index:20;
+
+  width:18px;
+  height:18px;
+
+  border-radius:50%;
+
+  border:2px solid white;
+
+  box-shadow:
+    0 0 10px #000;
+
+}
+
+
+.v85LocationMarker{
+
+  background:#777;
+
+}
+
+
+.v85MissionMarker{
+
+  background:#ddd;
+
+}
+
+
+.v85PlayerMarker{
+
+  width:20px;
+  height:20px;
+
+  background:white;
+
+  box-shadow:
+    0 0 16px white;
+
+}
+
+
+/* =========================================================
+   LABEL
+   ========================================================= */
+
+.v85Label{
+
+  position:absolute;
+
+  transform:
+    translate(-50%,8px);
+
+  z-index:21;
+
+  padding:4px 7px;
+
+  background:#05070ed9;
+
+  color:white;
+
+  border-radius:6px;
+
+  font-size:10px;
+
+  white-space:nowrap;
+
+}
+
+
+/* =========================================================
+   MAP CONTROLS
+   ========================================================= */
+
+#v85Controls{
+
+  position:absolute;
+
+  right:15px;
+  bottom:15px;
+
+  z-index:30;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:6px;
+
+}
+
+
+#v85Controls button{
+
+  width:45px;
+  height:40px;
+
+  background:#05070ee8;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:9px;
+
+  font-size:18px;
+
+}
+
+
+/* =========================================================
+   HUD
+   ========================================================= */
+
+#v85HUD{
+
+  position:fixed;
+
+  left:15px;
+  bottom:15px;
+
+  z-index:8000;
+
+  padding:10px 13px;
+
+  background:#05070ed9;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:11px;
+
+  font:12px Arial,sans-serif;
+
+}
+
+
+/* =========================================================
+   INFO
+   ========================================================= */
+
+#v85Info{
+
+  position:absolute;
+
+  left:15px;
+  bottom:15px;
+
+  z-index:30;
+
+  max-width:220px;
+
+  padding:10px;
+
+  background:#05070ee8;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font-size:11px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     MAP BUTTON
+     ========================================================= -->
+
+<button id="v85MapButton">
+
+  🗺️ MAP
+
+</button>
+
+
+<!-- =========================================================
+     HUD
+     ========================================================= -->
+
+<div id="v85HUD">
+
+  📍 <span id="v85LocationText">
+    Downtown
+  </span>
+
+</div>
+
+
+<!-- =========================================================
+     MAP
+     ========================================================= -->
+
+<div id="v85Map">
+
+  <div id="v85MapHeader">
+
+    <div id="v85MapTitle">
+
+      🗺️ CITY MAP
+
+    </div>
+
+
+    <button id="v85Close">
+
+      ❌ CLOSE
+
+    </button>
+
+  </div>
+
+
+  <div id="v85MapArea">
+
+
+    <!-- CITY ROADS -->
+
+    <div
+      class="v85Road horizontal"
+      style="top:22%;"
+    ></div>
+
+    <div
+      class="v85Road horizontal"
+      style="top:48%;"
+    ></div>
+
+    <div
+      class="v85Road horizontal"
+      style="top:74%;"
+    ></div>
+
+
+    <div
+      class="v85Road vertical"
+      style="left:25%;"
+    ></div>
+
+    <div
+      class="v85Road vertical"
+      style="left:50%;"
+    ></div>
+
+    <div
+      class="v85Road vertical"
+      style="left:75%;"
+    ></div>
+
+
+    <!-- CITY BLOCKS -->
+
+    <div
+      class="v85Block"
+      style="left:5%;top:5%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:30%;top:5%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:55%;top:5%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:80%;top:5%;width:15%;height:14%;"
+    ></div>
+
+
+    <div
+      class="v85Block"
+      style="left:5%;top:29%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:30%;top:29%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:55%;top:29%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:80%;top:29%;width:15%;height:14%;"
+    ></div>
+
+
+    <div
+      class="v85Block"
+      style="left:5%;top:55%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:30%;top:55%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:55%;top:55%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:80%;top:55%;width:15%;height:14%;"
+    ></div>
+
+
+    <div
+      class="v85Block"
+      style="left:5%;top:81%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:30%;top:81%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:55%;top:81%;width:17%;height:14%;"
+    ></div>
+
+    <div
+      class="v85Block"
+      style="left:80%;top:81%;width:15%;height:14%;"
+    ></div>
+
+
+    <!-- LOCATION MARKERS -->
+
+    <div
+      class="v85Marker v85LocationMarker"
+      style="left:25%;top:22%;"
+      title="City Park"
+    ></div>
+
+    <div
+      class="v85Label"
+      style="left:25%;top:22%;"
+    >
+      City Park
+    </div>
+
+
+    <div
+      class="v85Marker v85LocationMarker"
+      style="left:75%;top:22%;"
+      title="Uptown"
+    ></div>
+
+    <div
+      class="v85Label"
+      style="left:75%;top:22%;"
+    >
+      Uptown
+    </div>
+
+
+    <div
+      class="v85Marker v85LocationMarker"
+      style="left:75%;top:74%;"
+      title="Harbor"
+    ></div>
+
+    <div
+      class="v85Label"
+      style="left:75%;top:74%;"
+    >
+      Harbor
+    </div>
+
+
+    <div
+      class="v85Marker v85LocationMarker"
+      style="left:25%;top:74%;"
+      title="Industrial"
+    ></div>
+
+    <div
+      class="v85Label"
+      style="left:25%;top:74%;"
+    >
+      Industrial
+    </div>
+
+
+    <!-- PLAYER -->
+
+    <div
+      id="v85PlayerMarker"
+      class="v85Marker v85PlayerMarker"
+      style="left:50%;top:50%;"
+    ></div>
+
+
+    <div
+      id="v85PlayerLabel"
+      class="v85Label"
+      style="left:50%;top:50%;"
+    >
+      YOU
+    </div>
+
+
+    <!-- INFO -->
+
+    <div id="v85Info">
+
+      ⚪ YOU<br>
+      ● CITY LOCATION<br>
+      ◇ MISSION
+
+    </div>
+
+
+    <!-- CONTROLS -->
+
+    <div id="v85Controls">
+
+      <button
+        id="v85ZoomIn"
+      >
+        +
+      </button>
+
+      <button
+        id="v85ZoomOut"
+      >
+        −
+      </button>
+
+      <button
+        id="v85Center"
+      >
+        ◎
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V85
+   CITY MAP + PLAYER RADAR
+   ========================================================= */
+
+const V85 = {
+
+  version:"V85",
+
+  saveKey:
+    "WEBBOUND_V85_MAP",
+
+  mapOpen:false,
+
+  zoom:1,
+
+  minZoom:0.7,
+
+  maxZoom:2.5,
+
+  playerX:50,
+
+  playerY:50,
+
+  currentLocation:"Downtown",
+
+  lastFrame:0,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.applyZoom();
+
+    this.startLoop();
+
+    console.log(
+      "WEBBOUND V85 MAP SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     OPEN MAP
+     ======================================================= */
+
+  open(){
+
+    const map=
+      document.getElementById(
+        "v85Map"
+      );
+
+    if(!map){
+
+      return;
+
+    }
+
+    map.style.display=
+      "block";
+
+    this.mapOpen=true;
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     CLOSE MAP
+     ======================================================= */
+
+  close(){
+
+    const map=
+      document.getElementById(
+        "v85Map"
+      );
+
+    if(!map){
+
+      return;
+
+    }
+
+    map.style.display=
+      "none";
+
+    this.mapOpen=false;
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    if(this.mapOpen){
+
+      this.close();
+
+    }
+    else{
+
+      this.open();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ZOOM IN
+     ======================================================= */
+
+  zoomIn(){
+
+    this.zoom=
+      Math.min(
+        this.maxZoom,
+        this.zoom+0.2
+      );
+
+    this.applyZoom();
+
+  },
+
+
+  /* =======================================================
+     ZOOM OUT
+     ======================================================= */
+
+  zoomOut(){
+
+    this.zoom=
+      Math.max(
+        this.minZoom,
+        this.zoom-0.2
+      );
+
+    this.applyZoom();
+
+  },
+
+
+  /* =======================================================
+     RESET ZOOM
+     ======================================================= */
+
+  resetZoom(){
+
+    this.zoom=1;
+
+    this.applyZoom();
+
+  },
+
+
+  /* =======================================================
+     APPLY ZOOM
+     ======================================================= */
+
+  applyZoom(){
+
+    const area=
+      document.getElementById(
+        "v85MapArea"
+      );
+
+    if(!area){
+
+      return;
+
+    }
+
+    const blocks=
+      area.querySelectorAll(
+        ".v85Road,.v85Block"
+      );
+
+    /*
+      Keep the map markers fixed
+      while scaling the city layout.
+    */
+
+    blocks.forEach(
+      element=>{
+
+        element.style.transform=
+          "scale("+
+          this.zoom+
+          ")";
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     SET PLAYER MAP POSITION
+     ======================================================= */
+
+  setPlayerPosition(
+    x,
+    y
+  ){
+
+    const px=
+      Number(x);
+
+    const py=
+      Number(y);
+
+
+    if(
+      !Number.isFinite(px) ||
+      !Number.isFinite(py)
+    ){
+
+      return;
+
+    }
+
+
+    this.playerX=
+      Math.max(
+        0,
+        Math.min(
+          100,
+          px
+        )
+      );
+
+
+    this.playerY=
+      Math.max(
+        0,
+        Math.min(
+          100,
+          py
+        )
+      );
+
+
+    this.updatePlayerMarker();
+
+  },
+
+
+  /* =======================================================
+     PLAYER MARKER
+     ======================================================= */
+
+  updatePlayerMarker(){
+
+    const marker=
+      document.getElementById(
+        "v85PlayerMarker"
+      );
+
+    const label=
+      document.getElementById(
+        "v85PlayerLabel"
+      );
+
+
+    if(marker){
+
+      marker.style.left=
+        this.playerX+
+        "%";
+
+      marker.style.top=
+        this.playerY+
+        "%";
+
+    }
+
+
+    if(label){
+
+      label.style.left=
+        this.playerX+
+        "%";
+
+      label.style.top=
+        this.playerY+
+        "%";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SET LOCATION
+     ======================================================= */
+
+  setLocation(name){
+
+    if(
+      typeof name!=="string" ||
+      !name.trim()
+    ){
+
+      return;
+
+    }
+
+    this.currentLocation=
+      name.trim();
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const text=
+      document.getElementById(
+        "v85LocationText"
+      );
+
+    if(text){
+
+      text.textContent=
+        this.currentLocation;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ANIMATION LOOP
+     ======================================================= */
+
+  startLoop(){
+
+    const frame=
+      timestamp=>{
+
+        if(
+          timestamp-
+          this.lastFrame>=
+          16
+        ){
+
+          this.updatePlayerMarker();
+
+          this.lastFrame=
+            timestamp;
+
+        }
+
+
+        requestAnimationFrame(
+          frame
+        );
+
+      };
+
+
+    requestAnimationFrame(
+      frame
+    );
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      zoom:
+        this.zoom,
+
+      playerX:
+        this.playerX,
+
+      playerY:
+        this.playerY,
+
+      currentLocation:
+        this.currentLocation
+
+    };
+
+  },
+
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V85 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(
+        Number.isFinite(
+          Number(data.zoom)
+        )
+      ){
+
+        this.zoom=
+          Math.max(
+            this.minZoom,
+            Math.min(
+              this.maxZoom,
+              Number(data.zoom)
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.playerX)
+        )
+      ){
+
+        this.playerX=
+          Math.max(
+            0,
+            Math.min(
+              100,
+              Number(data.playerX)
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.playerY)
+        )
+      ){
+
+        this.playerY=
+          Math.max(
+            0,
+            Math.min(
+              100,
+              Number(data.playerY)
+            )
+          );
+
+      }
+
+
+      if(
+        typeof data.currentLocation===
+        "string"
+      ){
+
+        this.currentLocation=
+          data.currentLocation;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V85 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     V60 SAVE COMPATIBILITY
+     ======================================================= */
+
+  installV60Compatibility(){
+
+    if(
+      typeof V60==="undefined" ||
+      typeof V60.collect!=="function"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V60.__v85CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    const originalCollect=
+      V60.collect.bind(V60);
+
+
+    V60.collect=function(){
+
+      const data=
+        originalCollect();
+
+      data.v85=
+        V85.collect();
+
+      return data;
+
+    };
+
+
+    if(
+      typeof V60.apply==="function"
+    ){
+
+      const originalApply=
+        V60.apply.bind(V60);
+
+
+      V60.apply=function(data){
+
+        originalApply(data);
+
+
+        if(
+          data &&
+          data.v85
+        ){
+
+          V85.apply(
+            data.v85
+          );
+
+        }
+
+      };
+
+    }
+
+
+    V60.__v85CompatibilityInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     APPLY SAVE
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.zoom)
+      )
+    ){
+
+      this.zoom=
+        Math.max(
+          this.minZoom,
+          Math.min(
+            this.maxZoom,
+            Number(data.zoom)
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.playerX)
+      )
+    ){
+
+      this.playerX=
+        Math.max(
+          0,
+          Math.min(
+            100,
+            Number(data.playerX)
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.playerY)
+      )
+    ){
+
+      this.playerY=
+        Math.max(
+          0,
+          Math.min(
+            100,
+            Number(data.playerY)
+          )
+        );
+
+    }
+
+
+    if(
+      typeof data.currentLocation===
+      "string"
+    ){
+
+      this.currentLocation=
+        data.currentLocation;
+
+    }
+
+
+    this.applyZoom();
+
+    this.updatePlayerMarker();
+
+    this.updateHUD();
+
+  }
+
+};
+
+
+/* =========================================================
+   BUTTON EVENTS
+   ========================================================= */
+
+document
+  .getElementById("v85MapButton")
+  .addEventListener(
+    "click",
+    ()=>{
+      V85.toggle();
+    }
+  );
+
+
+document
+  .getElementById("v85Close")
+  .addEventListener(
+    "click",
+    ()=>{
+      V85.close();
+    }
+  );
+
+
+document
+  .getElementById("v85ZoomIn")
+  .addEventListener(
+    "click",
+    ()=>{
+      V85.zoomIn();
+    }
+  );
+
+
+document
+  .getElementById("v85ZoomOut")
+  .addEventListener(
+    "click",
+    ()=>{
+      V85.zoomOut();
+    }
+  );
+
+
+document
+  .getElementById("v85Center")
+  .addEventListener(
+    "click",
+    ()=>{
+      V85.resetZoom();
+    }
+  );
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      M = Map
+    */
+
+    if(
+      event.code==="KeyM"
+    ){
+
+      event.preventDefault();
+
+      V85.toggle();
+
+    }
+
+
+    /*
+      Escape = Close
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V85.close();
+
+    }
+
+
+    /*
+      + = Zoom in
+    */
+
+    if(
+      event.code==="Equal" ||
+      event.code==="NumpadAdd"
+    ){
+
+      V85.zoomIn();
+
+    }
+
+
+    /*
+      - = Zoom out
+    */
+
+    if(
+      event.code==="Minus" ||
+      event.code==="NumpadSubtract"
+    ){
+
+      V85.zoomOut();
+
+    }
+
+  }
+);
+
+
+/* ============================================
