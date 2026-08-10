@@ -1,0 +1,771 @@
+<!-- =========================================================
+ WEBBOUND V71
+ HOME INTERACTION + BED + WINDOW + PERSONAL ITEMS
+ BUILDS ON V60 - V70
+ ========================================================= -->
+
+<style>
+
+#v71HomePanel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:9750;
+  width:min(400px,90%);
+  padding:20px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:18px;
+  font-family:Arial,sans-serif;
+  display:none;
+}
+
+#v71HomePanel h2{
+  margin-top:0;
+}
+
+.v71Button{
+  width:100%;
+  padding:11px;
+  margin:5px 0;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+}
+
+#v71HomeStatus{
+  font-size:12px;
+  color:#cbd5e1;
+  margin-bottom:12px;
+}
+
+#v71HomeMessage{
+  position:fixed;
+  left:50%;
+  bottom:135px;
+  transform:translateX(-50%);
+  z-index:9997;
+  padding:11px 16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:11px;
+  font:13px Arial,sans-serif;
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+}
+
+</style>
+
+
+<!-- =========================================================
+ HOME INTERACTION PANEL
+ ========================================================= -->
+
+<div id="v71HomePanel">
+
+  <h2>🏠 HOME</h2>
+
+  <div id="v71HomeStatus">
+    Home interaction system
+  </div>
+
+  <button class="v71Button"
+          onclick="V71.openBedroom()">
+
+    🛏️ BEDROOM
+
+  </button>
+
+  <button class="v71Button"
+          onclick="V71.rest()">
+
+    😴 REST / SLEEP
+
+  </button>
+
+  <button class="v71Button"
+          onclick="V71.openWindow()">
+
+    🪟 WINDOW / ROOF
+
+  </button>
+
+  <button class="v71Button"
+          onclick="V71.viewMemories()">
+
+    📸 PERSONAL ITEMS
+
+  </button>
+
+  <button class="v71Button"
+          onclick="V71.saveAtHome()">
+
+    💾 SAVE AT HOME
+
+  </button>
+
+  <button class="v71Button"
+          onclick="V71.close()">
+
+    ❌ CLOSE
+
+  </button>
+
+</div>
+
+
+<div id="v71HomeMessage"></div>
+
+
+<script>
+
+const V71 = {
+
+  version:"V71",
+
+  panelOpen:false,
+
+  currentRoom:"living_room",
+
+  resting:false,
+
+  roofAccess:false,
+
+  memoriesViewed:0,
+
+
+  /* =======================================================
+     OPEN
+     ======================================================= */
+
+  open(){
+
+    if(
+      typeof V68 !== "undefined" &&
+      !V68.inside
+    ){
+
+      this.message(
+        "🏠 Enter the safehouse first."
+      );
+
+      return;
+
+    }
+
+
+    this.panelOpen=true;
+
+
+    const panel=
+      document.getElementById(
+        "v71HomePanel"
+      );
+
+
+    if(panel){
+
+      panel.style.display=
+        "block";
+
+    }
+
+
+    this.updateStatus();
+
+  },
+
+
+  /* =======================================================
+     CLOSE
+     ======================================================= */
+
+  close(){
+
+    this.panelOpen=false;
+
+
+    const panel=
+      document.getElementById(
+        "v71HomePanel"
+      );
+
+
+    if(panel){
+
+      panel.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     STATUS
+     ======================================================= */
+
+  updateStatus(){
+
+    const status=
+      document.getElementById(
+        "v71HomeStatus"
+      );
+
+
+    if(!status){
+
+      return;
+
+    }
+
+
+    let time=
+      "Unknown";
+
+
+    if(
+      typeof V67 !== "undefined" &&
+      typeof V67.formatTime==="function"
+    ){
+
+      time=
+        V67.formatTime();
+
+    }
+
+
+    status.innerHTML=
+      "Room: "+
+      this.currentRoom+
+      "<br>Time: "+
+      time;
+
+  },
+
+
+  /* =======================================================
+     BEDROOM
+     ======================================================= */
+
+  openBedroom(){
+
+    if(
+      typeof V68 !== "undefined" &&
+      !V68.inside
+    ){
+
+      this.message(
+        "🏠 Enter the home first."
+      );
+
+      return;
+
+    }
+
+
+    this.currentRoom=
+      "bedroom";
+
+
+    this.updateStatus();
+
+
+    this.message(
+      "🛏️ Entered bedroom."
+    );
+
+  },
+
+
+  /* =======================================================
+     REST
+     ======================================================= */
+
+  rest(){
+
+    if(
+      typeof V68 !== "undefined" &&
+      !V68.inside
+    ){
+
+      this.message(
+        "🏠 You need to be at home."
+      );
+
+      return;
+
+    }
+
+
+    if(
+      this.currentRoom!=="bedroom"
+    ){
+
+      this.message(
+        "🛏️ Go to the bedroom first."
+      );
+
+      return;
+
+    }
+
+
+    if(this.resting){
+
+      return;
+
+    }
+
+
+    this.resting=true;
+
+
+    this.message(
+      "😴 Resting..."
+    );
+
+
+    /*
+      Advance the V67 clock by
+      approximately 8 game hours.
+
+      This does not change V67's
+      time system itself.
+    */
+
+    if(
+      typeof V67 !== "undefined"
+    ){
+
+      const newMinutes=
+        V67.minutes+
+        480;
+
+
+      V67.minutes=
+        newMinutes%1440;
+
+
+      V67.updateHUD();
+
+    }
+
+
+    /*
+      Restore basic player resources
+      when those variables exist.
+    */
+
+    if(
+      typeof health !== "undefined"
+    ){
+
+      health=100;
+
+    }
+
+
+    if(
+      typeof energy !== "undefined"
+    ){
+
+      energy=100;
+
+    }
+
+
+    setTimeout(
+      ()=>{
+
+        this.resting=false;
+
+        this.message(
+          "☀️ Rest complete."
+        );
+
+
+        if(
+          typeof V60 !== "undefined" &&
+          typeof V60.save==="function"
+        ){
+
+          V60.save();
+
+        }
+
+      },
+      1500
+    );
+
+  },
+
+
+  /* =======================================================
+     WINDOW / ROOF
+     ======================================================= */
+
+  openWindow(){
+
+    if(
+      typeof V68 !== "undefined" &&
+      !V68.inside
+    ){
+
+      this.message(
+        "🏠 Enter the home first."
+      );
+
+      return;
+
+    }
+
+
+    this.roofAccess=
+      !this.roofAccess;
+
+
+    if(this.roofAccess){
+
+      this.message(
+        "🪟 Roof access unlocked."
+      );
+
+    }
+    else{
+
+      this.message(
+        "🪟 Roof access closed."
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     PERSONAL ITEMS
+     ======================================================= */
+
+  viewMemories(){
+
+    if(
+      typeof V68 !== "undefined" &&
+      !V68.inside
+    ){
+
+      this.message(
+        "📸 Enter the home first."
+      );
+
+      return;
+
+    }
+
+
+    this.memoriesViewed++;
+
+
+    this.message(
+      "📸 Personal memories viewed."
+    );
+
+
+    console.log(
+      "V71 personal items viewed:",
+      this.memoriesViewed
+    );
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  saveAtHome(){
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save==="function"
+    ){
+
+      V60.save();
+
+      this.message(
+        "💾 Home save created."
+      );
+
+    }
+    else{
+
+      this.message(
+        "❌ Save system unavailable."
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v71HomeMessage"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.opacity=
+        "1";
+
+
+      setTimeout(
+        ()=>{
+
+          box.style.opacity=
+            "0";
+
+        },
+        2200
+      );
+
+    }
+
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE DATA
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      currentRoom:
+        this.currentRoom,
+
+      roofAccess:
+        this.roofAccess,
+
+      memoriesViewed:
+        this.memoriesViewed
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.currentRoom=
+      data.currentRoom ||
+      "living_room";
+
+
+    this.roofAccess=
+      Boolean(
+        data.roofAccess
+      );
+
+
+    this.memoriesViewed=
+      Number(
+        data.memoriesViewed
+      ) || 0;
+
+
+    this.updateStatus();
+
+  }
+
+};
+
+
+/* =========================================================
+ V68 HOME INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V68 !== "undefined"
+){
+
+  const v68OriginalEnter=
+    V68.enterHome.bind(V68);
+
+
+  V68.enterHome=function(){
+
+    v68OriginalEnter();
+
+    V71.currentRoom=
+      "living_room";
+
+    V71.open();
+
+  };
+
+}
+
+
+/* =========================================================
+ V60 SAVE / LOAD INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const v71OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v71OriginalCollect();
+
+    data.v71=
+      V71.collect();
+
+    return data;
+
+  };
+
+
+  const v71OriginalApply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    v71OriginalApply(data);
+
+
+    if(
+      data &&
+      data.v71
+    ){
+
+      V71.apply(
+        data.v71
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      I = home interaction
+    */
+
+    if(
+      event.code==="KeyI"
+    ){
+
+      event.preventDefault();
+
+      if(V71.panelOpen){
+
+        V71.close();
+
+      }
+      else{
+
+        V71.open();
+
+      }
+
+    }
+
+
+    /*
+      Z = rest
+    */
+
+    if(
+      event.code==="KeyZ"
+    ){
+
+      event.preventDefault();
+
+      V71.rest();
+
+    }
+
+
+    /*
+      X = window / roof
+    */
+
+    if(
+      event.code==="KeyX"
+    ){
+
+      event.preventDefault();
+
+      V71.openWindow();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V71.updateStatus();
+
+console.log(
+  "WEBBOUND V71 HOME INTERACTION SYSTEM READY"
+);
+
+</script>
