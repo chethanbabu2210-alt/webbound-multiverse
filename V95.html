@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V95</title>
+
+<style>
+
+#v95Radar{
+
+  position:fixed;
+
+  right:14px;
+  top:70px;
+
+  width:150px;
+  height:150px;
+
+  z-index:9500;
+
+  background:#05070ee8;
+
+  border:1px solid #ffffff35;
+
+  border-radius:50%;
+
+  overflow:hidden;
+
+  box-shadow:
+    0 0 20px #000;
+
+  font-family:Arial,sans-serif;
+
+}
+
+#v95RadarCanvas{
+
+  width:150px;
+  height:150px;
+
+  display:block;
+
+}
+
+#v95RadarLabel{
+
+  position:absolute;
+
+  left:50%;
+
+  bottom:7px;
+
+  transform:translateX(-50%);
+
+  padding:3px 7px;
+
+  background:#000b;
+
+  color:white;
+
+  border-radius:5px;
+
+  font:bold 9px Arial,sans-serif;
+
+  white-space:nowrap;
+
+}
+
+#v95Message{
+
+  position:fixed;
+
+  left:50%;
+  top:22%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  display:none;
+
+  padding:10px 15px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+#v95Controls{
+
+  position:fixed;
+
+  right:14px;
+
+  top:230px;
+
+  z-index:9501;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:5px;
+
+}
+
+#v95Controls button{
+
+  padding:7px 10px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+
+  font-size:10px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V95 RADAR
+     ========================================================= -->
+
+<div id="v95Radar">
+
+  <canvas
+    id="v95RadarCanvas"
+    width="150"
+    height="150">
+  </canvas>
+
+  <div id="v95RadarLabel">
+    RADAR
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v95Controls">
+
+  <button onclick="V95.toggle()">
+    🗺️ RADAR
+  </button>
+
+  <button onclick="V95.center()">
+    🎯 CENTER
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v95Message">
+  V95
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V95
+   MINI MAP + NAVIGATION RADAR
+   ========================================================= */
+
+const V95 = {
+
+  version:"V95",
+
+  saveKey:
+    "WEBBOUND_V95_RADAR",
+
+  visible:true,
+
+  radarSize:150,
+
+  range:100,
+
+  updateRate:80,
+
+  lastUpdate:0,
+
+  canvas:null,
+
+  ctx:null,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.canvas=
+      document.getElementById(
+        "v95RadarCanvas"
+      );
+
+    if(this.canvas){
+
+      this.ctx=
+        this.canvas.getContext(
+          "2d"
+        );
+
+    }
+
+    this.load();
+
+    this.updateVisibility();
+
+    this.draw();
+
+    console.log(
+      "WEBBOUND V95 RADAR SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     PLAYER POSITION
+     ======================================================= */
+
+  getPlayerPosition(){
+
+    try{
+
+      if(
+        typeof player!=="undefined" &&
+        player &&
+        player.position
+      ){
+
+        return{
+
+          x:
+            Number(
+              player.position.x
+            ) || 0,
+
+          y:
+            Number(
+              player.position.y
+            ) || 0,
+
+          z:
+            Number(
+              player.position.z
+            ) || 0
+
+        };
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V95 PLAYER ERROR:",
+        error
+      );
+
+    }
+
+
+    return{
+
+      x:0,
+      y:0,
+      z:0
+
+    };
+
+  },
+
+
+  /* =======================================================
+     GET WAYPOINT
+     ======================================================= */
+
+  getWaypoint(){
+
+    try{
+
+      if(
+        typeof V94!=="undefined" &&
+        V94.waypoint
+      ){
+
+        return V94.waypoint;
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V95 V94 ERROR:",
+        error
+      );
+
+    }
+
+
+    return null;
+
+  },
+
+
+  /* =======================================================
+     DISTANCE
+     ======================================================= */
+
+  getDistance(){
+
+    const waypoint=
+      this.getWaypoint();
+
+
+    if(!waypoint){
+
+      return Infinity;
+
+    }
+
+
+    const playerPos=
+      this.getPlayerPosition();
+
+
+    const dx=
+      waypoint.x-
+      playerPos.x;
+
+    const dz=
+      waypoint.z-
+      playerPos.z;
+
+
+    return Math.sqrt(
+      dx*dx+
+      dz*dz
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.visible=
+      !this.visible;
+
+    this.updateVisibility();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     VISIBILITY
+     ======================================================= */
+
+  updateVisibility(){
+
+    const radar=
+      document.getElementById(
+        "v95Radar"
+      );
+
+    const controls=
+      document.getElementById(
+        "v95Controls"
+      );
+
+
+    if(radar){
+
+      radar.style.display=
+        this.visible
+        ? "block"
+        : "none";
+
+    }
+
+
+    if(controls){
+
+      controls.style.display=
+        this.visible
+        ? "flex"
+        : "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CENTER
+     ======================================================= */
+
+  center(){
+
+    this.range=100;
+
+    this.message(
+      "🎯 Radar centered"
+    );
+
+  },
+
+
+  /* =======================================================
+     DRAW RADAR
+     ======================================================= */
+
+  draw(){
+
+    if(
+      !this.ctx ||
+      !this.canvas
+    ){
+
+      return;
+
+    }
+
+
+    const ctx=
+      this.ctx;
+
+    const size=
+      this.radarSize;
+
+    const center=
+      size/2;
+
+
+    ctx.clearRect(
+      0,
+      0,
+      size,
+      size
+    );
+
+
+    /*
+      Background
+    */
+
+    ctx.fillStyle=
+      "#05070e";
+
+    ctx.fillRect(
+      0,
+      0,
+      size,
+      size
+    );
+
+
+    /*
+      Radar circles
+    */
+
+    ctx.strokeStyle=
+      "#ffffff28";
+
+    ctx.lineWidth=1;
+
+
+    [25,50,75].forEach(
+      radius=>{
+
+        ctx.beginPath();
+
+        ctx.arc(
+          center,
+          center,
+          radius,
+          0,
+          Math.PI*2
+        );
+
+        ctx.stroke();
+
+      }
+    );
+
+
+    /*
+      Crosshair
+    */
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      center,
+      0
+    );
+
+    ctx.lineTo(
+      center,
+      size
+    );
+
+    ctx.moveTo(
+      0,
+      center
+    );
+
+    ctx.lineTo(
+      size,
+      center
+    );
+
+    ctx.stroke();
+
+
+    /*
+      Player
+    */
+
+    ctx.fillStyle=
+      "white";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      center,
+      center-8
+    );
+
+    ctx.lineTo(
+      center-6,
+      center+7
+    );
+
+    ctx.lineTo(
+      center+6,
+      center+7
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /*
+      Mission waypoint
+    */
+
+    const waypoint=
+      this.getWaypoint();
+
+
+    if(
+      waypoint &&
+      typeof V94!=="undefined" &&
+      V94.active
+    ){
+
+      const playerPos=
+        this.getPlayerPosition();
+
+
+      let dx=
+        waypoint.x-
+        playerPos.x;
+
+      let dz=
+        waypoint.z-
+        playerPos.z;
+
+
+      const distance=
+        Math.sqrt(
+          dx*dx+
+          dz*dz
+        );
+
+
+      if(
+        distance>this.range
+      ){
+
+        const scale=
+          this.range/
+          distance;
+
+        dx*=scale;
+        dz*=scale;
+
+      }
+
+
+      /*
+        Convert world coordinates
+        to radar coordinates.
+      */
+
+      const radarScale=
+        65/
+        this.range;
+
+
+      let rx=
+        center+
+        dx*radarScale;
+
+      let rz=
+        center+
+        dz*radarScale;
+
+
+      /*
+        Keep marker inside radar.
+      */
+
+      const margin=8;
+
+
+      rx=
+        Math.max(
+          margin,
+          Math.min(
+            size-margin,
+            rx
+          )
+        );
+
+
+      rz=
+        Math.max(
+          margin,
+          Math.min(
+            size-margin,
+            rz
+          )
+        );
+
+
+      /*
+        Waypoint marker.
+      */
+
+      ctx.fillStyle=
+        "white";
+
+      ctx.beginPath();
+
+      ctx.arc(
+        rx,
+        rz,
+        5,
+        0,
+        Math.PI*2
+      );
+
+      ctx.fill();
+
+
+      /*
+        Line from player
+        to waypoint.
+      */
+
+      ctx.strokeStyle=
+        "#ffffff50";
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        center,
+        center
+      );
+
+      ctx.lineTo(
+        rx,
+        rz
+      );
+
+      ctx.stroke();
+
+    }
+
+
+    /*
+      Update label.
+    */
+
+    const label=
+      document.getElementById(
+        "v95RadarLabel"
+      );
+
+
+    if(label){
+
+      const distance=
+        this.getDistance();
+
+
+      if(
+        Number.isFinite(
+          distance
+        )
+      ){
+
+        label.textContent=
+          Math.round(
+            distance
+          )+
+          " m";
+
+      }
+      else{
+
+        label.textContent=
+          "RADAR";
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const now=
+      performance.now();
+
+
+    if(
+      now-
+      this.lastUpdate<
+      this.updateRate
+    ){
+
+      return;
+
+    }
+
+
+    this.lastUpdate=
+      now;
+
+
+    if(this.visible){
+
+      this.draw();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v95Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1600
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        visible:this.visible,
+
+        range:this.range
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V95 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.visible===
+        "boolean"
+      ){
+
+        this.visible=
+          data.visible;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.range)
+        )
+      ){
+
+        this.range=
+          Math.max(
+            20,
+            Number(data.range)
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V95 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      visible:this.visible,
+
+      range:this.range
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.visible===
+      "boolean"
+    ){
+
+      this.visible=
+        data.visible;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.range)
+      )
+    ){
+
+      this.range=
+        Math.max(
+          20,
+          Number(data.range)
+        );
+
+    }
+
+
+    this.updateVisibility();
+
+    this.draw();
+
+  },
+
+
+  /* =======================================================
+     V94 COMPATIBILITY
+     ======================================================= */
+
+  installV94Compatibility(){
+
+    if(
+      typeof V94==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V94.__v95CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    V94.__v95CompatibilityInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    const loop=()=>{
+
+      this.update();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      N = radar on/off
+    */
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      V95.toggle();
+
+    }
+
+
+    /*
+      C = center radar
+    */
+
+    if(
+      event.code==="KeyC"
+    ){
+
+      V95.center();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V95.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V95.init();
+
+V95.installV94Compatibility();
+
+V95.start();
+
+
+console.log(
+  "WEBBOUND V95 RADAR SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
