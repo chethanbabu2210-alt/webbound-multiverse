@@ -1,0 +1,801 @@
+<!-- =====================================================
+ V231 — TRAFFIC & VEHICLE SYSTEM
+ Add after V230
+ ===================================================== -->
+
+<style>
+
+#trafficHud231{
+    position:fixed;
+    right:12px;
+    top:455px;
+    width:min(240px,48vw);
+    padding:10px;
+    background:#03070dec;
+    border:1px solid #ffffff25;
+    border-radius:10px;
+    z-index:4800;
+}
+
+.trafficTitle231{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#vehicleCount231,
+#trafficState231,
+#trafficLight231{
+    margin-top:5px;
+    font-size:8px;
+}
+
+
+/* ================= VEHICLES ================= */
+
+.vehicle231{
+
+    position:absolute;
+
+    width:34px;
+    height:16px;
+
+    background:#1d2930;
+
+    border:1px solid #ffffff25;
+
+    border-radius:4px;
+
+    z-index:1100;
+
+    transition:
+        left .7s linear,
+        top .7s linear;
+
+}
+
+.vehicle231::before,
+.vehicle231::after{
+
+    content:"";
+
+    position:absolute;
+
+    width:6px;
+    height:4px;
+
+    bottom:-3px;
+
+    background:#050505;
+
+    border-radius:2px;
+
+}
+
+.vehicle231::before{
+    left:5px;
+}
+
+.vehicle231::after{
+    right:5px;
+}
+
+
+/* ================= BUS ================= */
+
+.bus231{
+
+    width:52px;
+    height:20px;
+
+    border-radius:3px;
+
+}
+
+
+/* ================= TRAFFIC LIGHT ================= */
+
+.trafficLight231{
+
+    position:absolute;
+
+    width:10px;
+    height:28px;
+
+    background:#111;
+
+    border:1px solid #ffffff30;
+
+    border-radius:4px;
+
+    z-index:1400;
+
+}
+
+.trafficLight231.active{
+    box-shadow:0 0 8px #ffffff70;
+}
+
+
+/* ================= CONTROLS ================= */
+
+#trafficControls231{
+
+    position:fixed;
+
+    right:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5000;
+
+}
+
+#trafficControls231 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="trafficHud231">
+
+    <div class="trafficTitle231">
+        🚗 TRAFFIC SYSTEM — V231
+    </div>
+
+    <div id="vehicleCount231">
+        Vehicles: 0
+    </div>
+
+    <div id="trafficState231">
+        Traffic: Normal
+    </div>
+
+    <div id="trafficLight231">
+        Lights: GREEN
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="trafficControls231">
+
+    <button onclick="SpiderTraffic231.spawnCar()">
+        🚗 CAR
+    </button>
+
+    <button onclick="SpiderTraffic231.spawnBus()">
+        🚌 BUS
+    </button>
+
+    <button onclick="SpiderTraffic231.toggleTraffic()">
+        🚦 TRAFFIC
+    </button>
+
+    <button onclick="SpiderTraffic231.clearVehicles()">
+        🧹 CLEAR
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V231 TRAFFIC ENGINE
+ ===================================================== */
+
+const SpiderTraffic231={
+
+    vehicles:[],
+
+    nextId:1,
+
+    trafficEnabled:true,
+
+    trafficState:"Normal",
+
+    lightState:"GREEN",
+
+    maxVehicles:20,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.spawnInitialTraffic();
+
+        this.createTrafficLights();
+
+        this.startTrafficLoop();
+
+        this.updateHUD();
+
+
+        this.message(
+            "🚗 Traffic system online."
+        );
+
+    },
+
+
+    /* =========================
+       ROOT
+    ========================= */
+
+    getRoot(){
+
+        return document.body;
+
+    },
+
+
+    /* =========================
+       INITIAL TRAFFIC
+    ========================= */
+
+    spawnInitialTraffic(){
+
+        for(
+            let i=0;
+            i<8;
+            i++
+        ){
+
+            this.spawnCar();
+
+        }
+
+    },
+
+
+    /* =========================
+       SPAWN CAR
+    ========================= */
+
+    spawnCar(){
+
+        if(
+            this.vehicles.length>=
+            this.maxVehicles
+        ){
+
+            this.message(
+                "🚗 Vehicle limit reached."
+            );
+
+            return;
+
+        }
+
+
+        const id=
+            "car231_"+
+            this.nextId++;
+
+
+        const car=
+            document.createElement(
+                "div"
+            );
+
+
+        car.id=id;
+
+        car.className=
+            "vehicle231";
+
+
+        car.dataset.type=
+            "car";
+
+
+        car.style.left=
+            (
+                5+
+                Math.random()*85
+            )+"vw";
+
+
+        car.style.top=
+            (
+                25+
+                Math.random()*55
+            )+"vh";
+
+
+        car.addEventListener(
+            "click",
+            ()=>{
+
+                this.interact(
+                    car
+                );
+
+            }
+        );
+
+
+        this.getRoot().appendChild(
+            car
+        );
+
+
+        this.vehicles.push({
+
+            id:id,
+
+            element:car,
+
+            type:"car",
+
+            active:true
+
+        });
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       SPAWN BUS
+    ========================= */
+
+    spawnBus(){
+
+        if(
+            this.vehicles.length>=
+            this.maxVehicles
+        )
+            return;
+
+
+        const id=
+            "bus231_"+
+            this.nextId++;
+
+
+        const bus=
+            document.createElement(
+                "div"
+            );
+
+
+        bus.id=id;
+
+        bus.className=
+            "vehicle231 bus231";
+
+
+        bus.dataset.type=
+            "bus";
+
+
+        bus.style.left=
+            "5vw";
+
+
+        bus.style.top=
+            (
+                30+
+                Math.random()*45
+            )+"vh";
+
+
+        bus.addEventListener(
+            "click",
+            ()=>{
+
+                this.interact(
+                    bus
+                );
+
+            }
+        );
+
+
+        this.getRoot().appendChild(
+            bus
+        );
+
+
+        this.vehicles.push({
+
+            id:id,
+
+            element:bus,
+
+            type:"bus",
+
+            active:true
+
+        });
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "🚌 Bus entered the area."
+        );
+
+    },
+
+
+    /* =========================
+       TRAFFIC LOOP
+    ========================= */
+
+    startTrafficLoop(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    this.trafficEnabled
+                ){
+
+                    this.moveVehicles();
+
+                }
+
+            },
+            1000
+        );
+
+    },
+
+
+    /* =========================
+       MOVE VEHICLES
+    ========================= */
+
+    moveVehicles(){
+
+        this.vehicles.forEach(
+            vehicle=>{
+
+                if(
+                    !vehicle.active ||
+                    !vehicle.element
+                )
+                    return;
+
+
+                let left=
+                    parseFloat(
+                        vehicle.element.style.left
+                    );
+
+
+                /*
+                 * RED LIGHT
+                 * slows traffic.
+                 */
+
+                if(
+                    this.lightState===
+                    "RED"
+                ){
+
+                    return;
+
+                }
+
+
+                left+=
+                    vehicle.type==="bus"
+                    ?2
+                    :3;
+
+
+                if(left>100){
+
+                    left=-8;
+
+                }
+
+
+                vehicle.element.style.left=
+                    left+"vw";
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       TRAFFIC LIGHTS
+    ========================= */
+
+    createTrafficLights(){
+
+        for(
+            let i=0;
+            i<3;
+            i++
+        ){
+
+            const light=
+                document.createElement(
+                    "div"
+                );
+
+
+            light.className=
+                "trafficLight231";
+
+
+            light.style.left=
+                (
+                    20+
+                    i*30
+                )+"vw";
+
+
+            light.style.top=
+                "32vh";
+
+
+            this.getRoot().appendChild(
+                light
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       TOGGLE TRAFFIC
+    ========================= */
+
+    toggleTraffic(){
+
+        this.trafficEnabled=
+            !this.trafficEnabled;
+
+
+        this.trafficState=
+            this.trafficEnabled
+            ?"Normal"
+            :"Stopped";
+
+
+        this.updateHUD();
+
+
+        this.message(
+            this.trafficEnabled
+            ?"🚦 Traffic resumed."
+            :"🚦 Traffic stopped."
+        );
+
+    },
+
+
+    /* =========================
+       CHANGE LIGHT
+    ========================= */
+
+    changeLight(){
+
+        this.lightState=
+            this.lightState==="GREEN"
+            ?"RED"
+            :"GREEN";
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       VEHICLE INTERACTION
+    ========================= */
+
+    interact(vehicle){
+
+        const type=
+            vehicle.dataset.type;
+
+
+        this.message(
+
+            type==="bus"
+            ?"🚌 Bus selected."
+            :"🚗 Vehicle selected."
+
+        );
+
+    },
+
+
+    /* =========================
+       CLEAR
+    ========================= */
+
+    clearVehicles(){
+
+        this.vehicles.forEach(
+            vehicle=>{
+
+                if(
+                    vehicle.element &&
+                    vehicle.element.parentNode
+                ){
+
+                    vehicle.element.parentNode
+                        .removeChild(
+                            vehicle.element
+                        );
+
+                }
+
+            }
+        );
+
+
+        this.vehicles=[];
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "🧹 Traffic cleared."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const count=
+            document.getElementById(
+                "vehicleCount231"
+            );
+
+
+        const state=
+            document.getElementById(
+                "trafficState231"
+            );
+
+
+        const light=
+            document.getElementById(
+                "trafficLight231"
+            );
+
+
+        if(count){
+
+            count.textContent=
+                "Vehicles: "+
+                this.vehicles.length;
+
+        }
+
+
+        if(state){
+
+            state.textContent=
+                "Traffic: "+
+                this.trafficState;
+
+        }
+
+
+        if(light){
+
+            light.textContent=
+                "Lights: "+
+                this.lightState;
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V231
+ ===================================================== */
+
+SpiderTraffic231.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="c")
+            SpiderTraffic231.spawnCar();
+
+
+        if(key==="v")
+            SpiderTraffic231.spawnBus();
+
+
+        if(key==="l")
+            SpiderTraffic231.changeLight();
+
+
+        if(key==="q")
+            SpiderTraffic231.toggleTraffic();
+
+
+        if(key==="x")
+            SpiderTraffic231.clearVehicles();
+
+    }
+);
