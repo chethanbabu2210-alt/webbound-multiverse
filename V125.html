@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V125</title>
+
+<style>
+
+#v125HUD{
+  position:fixed;
+  left:12px;
+  top:550px;
+  z-index:17200;
+  width:min(280px,70vw);
+  padding:14px;
+  background:#05070eeb;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v125Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v125Info{
+  margin-top:9px;
+  font-size:10px;
+  line-height:1.7;
+  opacity:.8;
+}
+
+#v125Controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:10px;
+}
+
+#v125Controls button{
+  flex:1;
+  min-width:75px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v125TrafficLayer{
+  position:fixed;
+  inset:0;
+  z-index:15000;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.v125Car{
+  position:absolute;
+  width:34px;
+  height:18px;
+  border-radius:5px;
+  background:#555;
+  box-shadow:0 2px 5px #0008;
+}
+
+.v125Car::before{
+  content:"";
+  position:absolute;
+  left:5px;
+  top:-3px;
+  width:24px;
+  height:8px;
+  background:#222;
+  border-radius:4px;
+}
+
+.v125CarLightFront{
+  position:absolute;
+  right:-1px;
+  top:4px;
+  width:3px;
+  height:4px;
+  background:#fff;
+  border-radius:2px;
+}
+
+.v125CarLightBack{
+  position:absolute;
+  left:-1px;
+  top:4px;
+  width:3px;
+  height:4px;
+  background:#f22;
+  border-radius:2px;
+}
+
+#v125Message{
+  position:fixed;
+  left:50%;
+  top:25%;
+  transform:translateX(-50%);
+  z-index:17500;
+  display:none;
+  max-width:88%;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 11px Arial,sans-serif;
+  text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V125
+     CITY TRAFFIC SYSTEM
+     ========================================================= -->
+
+<div id="v125TrafficLayer"></div>
+
+<div id="v125HUD">
+
+  <div id="v125Title">
+    🚗 CITY TRAFFIC
+  </div>
+
+  <div id="v125Info">
+    Vehicles: 0<br>
+    Traffic: Active<br>
+    Speed: Normal<br>
+    Density: Medium
+  </div>
+
+  <div id="v125Controls">
+
+    <button onclick="V125.spawnVehicle()">
+      🚗 SPAWN
+    </button>
+
+    <button onclick="V125.spawnTraffic(5)">
+      🚙 +5 CARS
+    </button>
+
+    <button onclick="V125.clearTraffic()">
+      🗑️ CLEAR
+    </button>
+
+    <button onclick="V125.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+    <button onclick="V125.setDensity('low')">
+      LOW
+    </button>
+
+    <button onclick="V125.setDensity('high')">
+      HIGH
+    </button>
+
+  </div>
+
+</div>
+
+<div id="v125Message">
+  V125
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V125
+   CITY TRAFFIC SYSTEM
+   ========================================================= */
+
+const V125 = {
+
+  version:"V125",
+
+  saveKey:
+    "WEBBOUND_V125_TRAFFIC",
+
+  vehicles:[],
+
+  running:true,
+
+  density:"medium",
+
+  speedMultiplier:1,
+
+  nextId:1,
+
+  timer:null,
+
+  messageTimer:null,
+
+  lastSpawn:0,
+
+  spawnDelay:1800,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.start();
+
+    if(
+      this.vehicles.length===0
+    ){
+
+      this.spawnTraffic(
+        this.getDensityCount()
+      );
+
+    }
+
+    console.log(
+      "WEBBOUND V125 TRAFFIC SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          this.update();
+
+        },
+        40
+      );
+
+  },
+
+
+  /* =======================================================
+     GET DENSITY COUNT
+     ======================================================= */
+
+  getDensityCount(){
+
+    if(
+      this.density==="low"
+    ){
+
+      return 4;
+
+    }
+
+    if(
+      this.density==="high"
+    ){
+
+      return 12;
+
+    }
+
+    return 7;
+
+  },
+
+
+  /* =======================================================
+     SET DENSITY
+     ======================================================= */
+
+  setDensity(level){
+
+    if(
+      level!=="low" &&
+      level!=="medium" &&
+      level!=="high"
+    ){
+
+      return;
+
+    }
+
+    this.density=
+      level;
+
+    const target=
+      this.getDensityCount();
+
+    while(
+      this.vehicles.length<
+      target
+    ){
+
+      this.spawnVehicle(
+        true
+      );
+
+    }
+
+    if(
+      this.vehicles.length>
+      target+2
+    ){
+
+      this.vehicles=
+        this.vehicles.slice(
+          0,
+          target
+        );
+
+      this.renderAll();
+
+    }
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🚦 Traffic density: "+
+      level.toUpperCase()
+    );
+
+  },
+
+
+  /* =======================================================
+     SPAWN VEHICLE
+     ======================================================= */
+
+  spawnVehicle(silent=false){
+
+    const id=
+      this.nextId++;
+
+    const direction=
+      Math.random()<
+      .5
+      ? 1
+      : -1;
+
+    const lane=
+      Math.floor(
+        Math.random()*4
+      );
+
+    const vehicle={
+
+      id:id,
+
+      x:
+        direction===1
+        ? -60
+        : window.innerWidth+60,
+
+      y:
+        150+
+        lane*75,
+
+      direction:
+        direction,
+
+      speed:
+        0.8+
+        Math.random()*1.4,
+
+      type:
+        this.randomVehicleType(),
+
+      lane:
+        lane,
+
+      createdAt:
+        Date.now(),
+
+      element:null
+
+    };
+
+    this.vehicles.push(
+      vehicle
+    );
+
+    this.createVehicleElement(
+      vehicle
+    );
+
+    this.updateHUD();
+
+    if(
+      !silent
+    ){
+
+      this.message(
+        "🚗 Vehicle spawned"
+      );
+
+    }
+
+    return vehicle;
+
+  },
+
+
+  /* =======================================================
+     SPAWN MULTIPLE
+     ======================================================= */
+
+  spawnTraffic(count){
+
+    const amount=
+      Math.max(
+        0,
+        Math.min(
+          30,
+          Number(count)||0
+        )
+      );
+
+    for(
+      let i=0;
+      i<amount;
+      i++
+    ){
+
+      this.spawnVehicle(
+        true
+      );
+
+    }
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     RANDOM VEHICLE
+     ======================================================= */
+
+  randomVehicleType(){
+
+    const types=[
+      "car",
+      "taxi",
+      "van",
+      "bus"
+    ];
+
+    return types[
+      Math.floor(
+        Math.random()*
+        types.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     CREATE ELEMENT
+     ======================================================= */
+
+  createVehicleElement(vehicle){
+
+    const layer=
+      document.getElementById(
+        "v125TrafficLayer"
+      );
+
+    if(!layer){
+
+      return;
+
+    }
+
+    const car=
+      document.createElement(
+        "div"
+      );
+
+    car.className=
+      "v125Car";
+
+    car.dataset.vehicleId=
+      vehicle.id;
+
+    const front=
+      document.createElement(
+        "div"
+      );
+
+    front.className=
+      "v125CarLightFront";
+
+    const back=
+      document.createElement(
+        "div"
+      );
+
+    back.className=
+      "v125CarLightBack";
+
+    car.appendChild(
+      front
+    );
+
+    car.appendChild(
+      back
+    );
+
+    /*
+      Different visual sizes.
+    */
+
+    if(
+      vehicle.type==="van"
+    ){
+
+      car.style.width=
+        "42px";
+
+    }
+
+    if(
+      vehicle.type==="bus"
+    ){
+
+      car.style.width=
+        "55px";
+
+      car.style.height=
+        "22px";
+
+    }
+
+    vehicle.element=
+      car;
+
+    layer.appendChild(
+      car
+    );
+
+    this.renderVehicle(
+      vehicle
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER VEHICLE
+     ======================================================= */
+
+  renderVehicle(vehicle){
+
+    if(
+      !vehicle.element
+    ){
+
+      return;
+
+    }
+
+    vehicle.element.style.left=
+      vehicle.x+
+      "px";
+
+    vehicle.element.style.top=
+      vehicle.y+
+      "px";
+
+    if(
+      vehicle.direction<0
+    ){
+
+      vehicle.element.style.transform=
+        "scaleX(-1)";
+
+    }
+    else{
+
+      vehicle.element.style.transform=
+        "scaleX(1)";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE TRAFFIC
+     ======================================================= */
+
+  update(){
+
+    if(
+      !this.running
+    ){
+
+      return;
+
+    }
+
+    const now=
+      Date.now();
+
+    /*
+      Automatic spawning.
+    */
+
+    if(
+      this.vehicles.length<
+      this.getDensityCount() &&
+      now-this.lastSpawn>
+      this.spawnDelay
+    ){
+
+      this.spawnVehicle(
+        true
+      );
+
+      this.lastSpawn=
+        now;
+
+    }
+
+
+    for(
+      let i=
+        this.vehicles.length-1;
+      i>=0;
+      i--
+    ){
+
+      const vehicle=
+        this.vehicles[i];
+
+      vehicle.x+=
+        vehicle.speed*
+        vehicle.direction*
+        this.speedMultiplier;
+
+      /*
+        Remove vehicles after
+        they leave the screen.
+      */
+
+      if(
+        vehicle.direction===1 &&
+        vehicle.x>
+        window.innerWidth+80
+      ){
+
+        this.removeVehicle(
+          vehicle.id
+        );
+
+        continue;
+
+      }
+
+      if(
+        vehicle.direction===-1 &&
+        vehicle.x<
+        -100
+      ){
+
+        this.removeVehicle(
+          vehicle.id
+        );
+
+        continue;
+
+      }
+
+      this.renderVehicle(
+        vehicle
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     REMOVE VEHICLE
+     ======================================================= */
+
+  removeVehicle(id){
+
+    const index=
+      this.vehicles.findIndex(
+        vehicle=>
+          vehicle.id===
+          id
+      );
+
+    if(
+      index===-1
+    ){
+
+      return;
+
+    }
+
+    const vehicle=
+      this.vehicles[index];
+
+    if(
+      vehicle.element &&
+      vehicle.element.parentNode
+    ){
+
+      vehicle.element.parentNode.removeChild(
+        vehicle.element
+      );
+
+    }
+
+    this.vehicles.splice(
+      index,
+      1
+    );
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     CLEAR TRAFFIC
+     ======================================================= */
+
+  clearTraffic(){
+
+    this.vehicles.forEach(
+      vehicle=>{
+
+        if(
+          vehicle.element &&
+          vehicle.element.parentNode
+        ){
+
+          vehicle.element.parentNode.removeChild(
+            vehicle.element
+          );
+
+        }
+
+      }
+    );
+
+    this.vehicles=[];
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🗑️ Traffic cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER ALL
+     ======================================================= */
+
+  renderAll(){
+
+    const layer=
+      document.getElementById(
+        "v125TrafficLayer"
+      );
+
+    if(layer){
+
+      layer.innerHTML="";
+
+    }
+
+    this.vehicles.forEach(
+      vehicle=>{
+
+        vehicle.element=
+          null;
+
+        this.createVehicleElement(
+          vehicle
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.running=
+      !this.running;
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      this.running
+      ? "▶️ Traffic resumed"
+      : "⏸️ Traffic paused"
+    );
+
+  },
+
+
+  /* =======================================================
+     SPEED
+     ======================================================= */
+
+  setSpeed(value){
+
+    const speed=
+      Number(value);
+
+    if(
+      !Number.isFinite(speed) ||
+      speed<=0
+    ){
+
+      return;
+
+    }
+
+    this.speedMultiplier=
+      Math.min(
+        5,
+        Math.max(
+          .2,
+          speed
+        )
+      );
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      running:
+        this.running,
+
+      density:
+        this.density,
+
+      speedMultiplier:
+        this.speedMultiplier,
+
+      nextId:
+        this.nextId,
+
+      vehicles:
+        this.vehicles.map(
+          vehicle=>({
+
+            id:
+              vehicle.id,
+
+            x:
+              vehicle.x,
+
+            y:
+              vehicle.y,
+
+            direction:
+              vehicle.direction,
+
+            speed:
+              vehicle.speed,
+
+            type:
+              vehicle.type,
+
+            lane:
+              vehicle.lane
+
+          })
+        ),
+
+      savedAt:
+        new Date().toISOString()
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V125 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+      if(!raw){
+
+        return;
+
+      }
+
+      const data=
+        JSON.parse(
+          raw
+        );
+
+      if(!data){
+
+        return;
+
+      }
+
+      this.running=
+        typeof data.running===
+        "boolean"
+        ? data.running
+        : true;
+
+      if(
+        data.density===
+        "low" ||
+        data.density===
+        "medium" ||
+        data.density===
+        "high"
+      ){
+
+        this.density=
+          data.density;
+
+      }
+
+      const speed=
+        Number(
+          data.speedMultiplier
+        );
+
+      if(
+        Number.isFinite(speed)
+      ){
+
+        this.speedMultiplier=
+          Math.min(
+            5,
+            Math.max(
+              .2,
+              speed
+            )
+          );
+
+      }
+
+      this.nextId=
+        Number(
+          data.nextId
+        )||
+        1;
+
+      if(
+        Array.isArray(
+          data.vehicles
+        )
+      ){
+
+        this.vehicles=
+          data.vehicles
+            .filter(
+              vehicle=>
+                vehicle &&
+                Number.isFinite(
+                  Number(vehicle.x)
+                ) &&
+                Number.isFinite(
+                  Number(vehicle.y)
+                )
+            )
+            .slice(
+              0,
+              30
+            )
+            .map(
+              vehicle=>({
+
+                id:
+                  Number(
+                    vehicle.id
+                  )||
+                  this.nextId++,
+
+                x:
+                  Number(
+                    vehicle.x
+                  ),
+
+                y:
+                  Number(
+                    vehicle.y
+                  ),
+
+                direction:
+                  Number(
+                    vehicle.direction
+                  )>=0
+                  ? 1
+                  : -1,
+
+                speed:
+                  Math.max(
+                    .1,
+                    Number(
+                      vehicle.speed
+                    )||
+                    1
+                  ),
+
+                type:
+                  typeof vehicle.type===
+                  "string"
+                  ? vehicle.type
+                  : "car",
+
+                lane:
+                  Number(
+                    vehicle.lane
+                  )||
+                  0,
+
+                element:
+                  null
+
+              })
+            );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V125 LOAD ERROR:",
+        error
+      );
+
+      this.vehicles=[];
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+    this.clearTraffic();
+
+    this.running=
+      typeof data.running===
+      "boolean"
+      ? data.running
+      : true;
+
+    if(
+      data.density===
+      "low" ||
+      data.density===
+      "medium" ||
+      data.density===
+      "high"
+    ){
+
+      this.density=
+        data.density;
+
+    }
+
+    const speed=
+      Number(
+        data.speedMultiplier
+      );
+
+    if(
+      Number.isFinite(speed)
+    ){
+
+      this.speedMultiplier=
+        Math.min(
+          5,
+          Math.max(
+            .2,
+            speed
+          )
+        );
+
+    }
+
+    this.nextId=
+      Number(
+        data.nextId
+      )||
+      1;
+
+    if(
+      Array.isArray(
+        data.vehicles
+      )
+    ){
+
+      data.vehicles
+        .slice(0,30)
+        .forEach(
+          vehicle=>{
+
+            if(!vehicle){
+
+              return;
+
+            }
+
+            const newVehicle={
+
+              id:
+                Number(
+                  vehicle.id
+                )||
+                this.nextId++,
+
+              x:
+                Number(
+                  vehicle.x
+                )||
+                0,
+
+              y:
+                Number(
+                  vehicle.y
+                )||
+                150,
+
+              direction:
+                Number(
+                  vehicle.direction
+                )>=0
+                ? 1
+                : -1,
+
+              speed:
+                Math.max(
+                  .1,
+                  Number(
+                    vehicle.speed
+                  )||
+                  1
+                ),
+
+              type:
+                typeof vehicle.type===
+                "string"
+                ? vehicle.type
+                : "car",
+
+              lane:
+                Number(
+                  vehicle.lane
+                )||
+                0,
+
+              element:
+                null
+
+            };
+
+            this.vehicles.push(
+              newVehicle
+            );
+
+          }
+        );
+
+    }
+
+    this.renderAll();
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const info=
+      document.getElementById(
+        "v125Info"
+      );
+
+    if(!info){
+
+      return;
+
+    }
+
+    let trafficState=
+      this.running
+      ? "Active"
+      : "Paused";
+
+    let speedText=
+      this.speedMultiplier===1
+      ? "Normal"
+      : this.speedMultiplier+
+        "x";
+
+    info.innerHTML=
+      "Vehicles: "+
+      this.vehicles.length+
+      "<br>"+
+      "Traffic: "+
+      trafficState+
+      "<br>"+
+      "Speed: "+
+      speedText+
+      "<br>"+
+      "Density: "+
+      this.density;
+
+  },
+
+
+  /* =======================================================
+     KEYBOARD
+     ======================================================= */
+
+  handleKey(event){
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      this.toggle();
+
+    }
+
+    if(
+      event.code==="KeyC"
+    ){
+
+      this.spawnVehicle();
+
+    }
+
+    if(
+      event.code==="KeyX"
+    ){
+
+      this.clearTraffic();
+
+    }
+
+    if(
+      event.key==="1"
+    ){
+
+      this.setDensity(
+        "low"
+      );
+
+    }
+
+    if(
+      event.key==="2"
+    ){
+
+      this.setDensity(
+        "medium"
+      );
+
+    }
+
+    if(
+      event.key==="3"
+    ){
+
+      this.setDensity(
+        "high"
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v
