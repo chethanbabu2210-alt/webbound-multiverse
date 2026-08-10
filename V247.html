@@ -1,0 +1,851 @@
+<!-- =====================================================
+ V247 — DYNAMIC CRIME + EMERGENCY EVENTS
+ Add after V246
+ ===================================================== -->
+
+<style>
+
+#eventHud247{
+
+    position:fixed;
+
+    left:12px;
+
+    top:815px;
+
+    width:min(260px,52vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:9px;
+
+    z-index:5500;
+
+}
+
+.eventTitle247{
+
+    font-size:9px;
+
+    font-weight:bold;
+
+}
+
+#eventType247,
+#eventStatus247,
+#eventReward247{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= EVENT MARKER ================= */
+
+.cityEvent247{
+
+    position:absolute;
+
+    width:32px;
+
+    height:32px;
+
+    border-radius:50%;
+
+    background:#ffffff12;
+
+    border:2px solid #ffffff60;
+
+    z-index:4100;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:12px;
+
+    cursor:pointer;
+
+    animation:
+        eventPulse247 1s infinite;
+
+}
+
+@keyframes eventPulse247{
+
+    0%,100%{
+
+        transform:scale(1);
+
+    }
+
+    50%{
+
+        transform:scale(1.15);
+
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#eventControls247{
+
+    position:fixed;
+
+    left:12px;
+
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5600;
+
+}
+
+#eventControls247 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= MESSAGE ================= */
+
+#eventMessage247{
+
+    position:fixed;
+
+    left:50%;
+
+    top:25%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 16px;
+
+    background:#03070df7;
+
+    border:1px solid #ffffff35;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    z-index:7500;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#eventMessage247.show{
+
+    animation:
+        eventPopup247 1.4s forwards;
+
+}
+
+@keyframes eventPopup247{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+            translateX(-50%)
+            scale(.8);
+
+    }
+
+    20%{
+
+        opacity:1;
+
+        transform:
+            translateX(-50%)
+            scale(1);
+
+    }
+
+    80%{
+
+        opacity:1;
+
+    }
+
+    100%{
+
+        opacity:0;
+
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ EVENT HUD
+ ===================================================== -->
+
+<div id="eventHud247">
+
+    <div class="eventTitle247">
+        🚨 CITY EVENTS — V247
+    </div>
+
+    <div id="eventType247">
+        Event: NONE
+    </div>
+
+    <div id="eventStatus247">
+        Status: WAITING
+    </div>
+
+    <div id="eventReward247">
+        Reward: 0 XP
+    </div>
+
+</div>
+
+
+<div id="eventMessage247">
+    EVENT
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="eventControls247">
+
+    <button onclick="SpiderEvents247.createEvent()">
+        🚨 EVENT
+    </button>
+
+    <button onclick="SpiderEvents247.complete()">
+        ✅ COMPLETE
+    </button>
+
+    <button onclick="SpiderEvents247.cancel()">
+        ✕ CANCEL
+    </button>
+
+    <button onclick="SpiderEvents247.clear()">
+        🧹 CLEAR
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V247 EVENT ENGINE
+ ===================================================== */
+
+const SpiderEvents247={
+
+    current:null,
+
+    marker:null,
+
+    active:true,
+
+    completed:0,
+
+    totalCreated:0,
+
+    eventTypes:[
+
+        {
+            name:"Street Crime",
+            icon:"🚨",
+            reward:50
+        },
+
+        {
+            name:"Civilian Emergency",
+            icon:"🆘",
+            reward:40
+        },
+
+        {
+            name:"Vehicle Accident",
+            icon:"🚗",
+            reward:60
+        },
+
+        {
+            name:"Police Assistance",
+            icon:"🚓",
+            reward:75
+        },
+
+        {
+            name:"Missing Item",
+            icon:"🔎",
+            reward:35
+        }
+
+    ],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.startRandomEvents();
+
+        this.updateHUD();
+
+        this.message(
+            "🚨 Dynamic city events enabled."
+        );
+
+    },
+
+
+    /* =========================
+       CREATE EVENT
+       ========================= */
+
+    createEvent(){
+
+        if(
+            this.current
+        ){
+
+            this.message(
+                "🚨 Complete the current event first."
+            );
+
+            return;
+
+        }
+
+
+        const data=
+            this.eventTypes[
+                Math.floor(
+                    Math.random()*
+                    this.eventTypes.length
+                )
+            ];
+
+
+        const event={
+
+            name:data.name,
+
+            icon:data.icon,
+
+            reward:data.reward,
+
+            x:
+                8+
+                Math.random()*82,
+
+            y:
+                20+
+                Math.random()*65
+
+        };
+
+
+        this.current=event;
+
+        this.totalCreated++;
+
+
+        this.createMarker();
+
+        this.updateHUD();
+
+
+        this.message(
+            data.icon+
+            " New event: "+
+            data.name
+        );
+
+
+        /*
+         * Police response.
+         */
+
+        if(
+            data.name===
+            "Street Crime" &&
+            typeof SpiderPolice246!==
+            "undefined"
+        ){
+
+            SpiderPolice246
+                .addWanted(1);
+
+        }
+
+    },
+
+
+    /* =========================
+       MARKER
+       ========================= */
+
+    createMarker(){
+
+        this.removeMarker();
+
+
+        if(
+            !this.current
+        )
+            return;
+
+
+        const marker=
+            document.createElement(
+                "div"
+            );
+
+
+        marker.className=
+            "cityEvent247";
+
+
+        marker.textContent=
+            this.current.icon;
+
+
+        marker.style.left=
+            this.current.x+
+            "vw";
+
+
+        marker.style.top=
+            this.current.y+
+            "vh";
+
+
+        marker.title=
+            this.current.name;
+
+
+        marker.addEventListener(
+            "click",
+            ()=>{
+                this.complete();
+            }
+        );
+
+
+        document.body.appendChild(
+            marker
+        );
+
+
+        this.marker=marker;
+
+    },
+
+
+    /* =========================
+       COMPLETE
+       ========================= */
+
+    complete(){
+
+        if(
+            !this.current
+        ){
+
+            this.message(
+                "ℹ️ No active event."
+            );
+
+            return;
+
+        }
+
+
+        const event=
+            this.current;
+
+
+        this.completed++;
+
+
+        /*
+         * XP reward.
+         */
+
+        if(
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            SpiderProgress239.addXP(
+                event.reward
+            );
+
+        }
+
+
+        /*
+         * Mission progress.
+         */
+
+        if(
+            typeof SpiderMission236!==
+            "undefined"
+        ){
+
+            SpiderMission236
+                .addProgress();
+
+        }
+
+
+        /*
+         * Collectible token reward.
+         */
+
+        if(
+            typeof SpiderCollect242!==
+            "undefined"
+        ){
+
+            SpiderCollect242.tokens+=
+                10;
+
+            SpiderCollect242.updateHUD();
+
+        }
+
+
+        this.message(
+            "✅ "+
+            event.name+
+            " completed! +"+
+            event.reward+
+            " XP"
+        );
+
+
+        this.current=null;
+
+        this.removeMarker();
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CANCEL
+       ========================= */
+
+    cancel(){
+
+        if(
+            !this.current
+        )
+            return;
+
+
+        this.message(
+            "✕ Event cancelled."
+        );
+
+
+        this.current=null;
+
+        this.removeMarker();
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       CLEAR
+       ========================= */
+
+    clear(){
+
+        this.current=null;
+
+        this.removeMarker();
+
+        this.updateHUD();
+
+
+        this.message(
+            "🧹 City event cleared."
+        );
+
+    },
+
+
+    /* =========================
+       REMOVE MARKER
+       ========================= */
+
+    removeMarker(){
+
+        if(
+            this.marker &&
+            this.marker.parentNode
+        ){
+
+            this.marker
+                .parentNode
+                .removeChild(
+                    this.marker
+                );
+
+        }
+
+
+        this.marker=null;
+
+    },
+
+
+    /* =========================
+       RANDOM EVENTS
+       ========================= */
+
+    startRandomEvents(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    !this.active
+                )
+                    return;
+
+
+                if(
+                    this.current
+                )
+                    return;
+
+
+                /*
+                 * Random chance.
+                 */
+
+                if(
+                    Math.random()<0.35
+                ){
+
+                    this.createEvent();
+
+                }
+
+            },
+            12000
+        );
+
+    },
+
+
+    /* =========================
+       TOGGLE
+       ========================= */
+
+    toggle(){
+
+        this.active=
+            !this.active;
+
+
+        this.message(
+            this.active
+            ?"▶️ Dynamic events active."
+            :"⏸️ Dynamic events paused."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const type=
+            document.getElementById(
+                "eventType247"
+            );
+
+
+        const status=
+            document.getElementById(
+                "eventStatus247"
+            );
+
+
+        const reward=
+            document.getElementById(
+                "eventReward247"
+            );
+
+
+        if(type){
+
+            type.textContent=
+                "Event: "+
+                (
+                    this.current
+                    ?this.current.name
+                    :"NONE"
+                );
+
+        }
+
+
+        if(status){
+
+            status.textContent=
+                "Status: "+
+                (
+                    this.current
+                    ?"ACTIVE"
+                    :"WAITING"
+                );
+
+        }
+
+
+        if(reward){
+
+            reward.textContent=
+                "Reward: "+
+                (
+                    this.current
+                    ?this.current.reward
+                    :0
+                )+
+                " XP";
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "eventMessage247"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V247
+ ===================================================== */
+
+SpiderEvents247.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="e")
+            SpiderEvents247.createEvent();
+
+
+        if(key==="enter")
+            SpiderEvents247.complete();
+
+
+        if(key==="escape")
+            SpiderEvents247.cancel();
+
+
+        if(key==="delete")
+            SpiderEvents247.clear();
+
+    }
+);
