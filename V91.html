@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V91</title>
+
+<style>
+
+#v91HUD{
+  position:fixed;
+  left:12px;
+  top:12px;
+
+  z-index:9100;
+
+  padding:10px 13px;
+
+  background:#05070ee0;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:11px;
+
+  font:12px Arial,sans-serif;
+
+  min-width:145px;
+}
+
+#v91Title{
+  font-weight:bold;
+  margin-bottom:5px;
+}
+
+#v91Stats{
+  opacity:.75;
+  line-height:18px;
+}
+
+#v91Message{
+  position:fixed;
+
+  left:50%;
+  top:20%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  padding:11px 17px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff35;
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+  display:none;
+}
+
+#v91Controls{
+  position:fixed;
+
+  left:50%;
+  bottom:18px;
+
+  transform:translateX(-50%);
+
+  z-index:9101;
+
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+
+  justify-content:center;
+
+  padding:8px;
+
+  background:#05070ee5;
+
+  border:1px solid #ffffff25;
+  border-radius:12px;
+}
+
+#v91Controls button{
+  padding:8px 10px;
+
+  background:#111827;
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+
+  font-size:11px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V91 AMBIENT HUD
+     ========================================================= -->
+
+<div id="v91HUD">
+
+  <div id="v91Title">
+    🚶 CITY ACTIVITY
+  </div>
+
+  <div id="v91Stats">
+    Pedestrians: 0<br>
+    Vehicles: 0<br>
+    System: ON
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v91Message">
+  V91
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v91Controls">
+
+  <button onclick="V91.addPedestrian()">
+    🚶 ADD NPC
+  </button>
+
+  <button onclick="V91.addVehicle()">
+    🚗 ADD CAR
+  </button>
+
+  <button onclick="V91.clearAll()">
+    🗑️ CLEAR
+  </button>
+
+  <button onclick="V91.toggle()">
+    ⏯️ TOGGLE
+  </button>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V91
+   AMBIENT NPC + TRAFFIC SYSTEM
+   ========================================================= */
+
+const V91 = {
+
+  version:"V91",
+
+  saveKey:
+    "WEBBOUND_V91_AMBIENT",
+
+  enabled:true,
+
+  pedestrians:[],
+
+  vehicles:[],
+
+  nextID:1,
+
+  maxPedestrians:25,
+
+  maxVehicles:15,
+
+  spawnRadius:60,
+
+  updateRate:100,
+
+  lastUpdate:0,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V91 AMBIENT SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     PLAYER POSITION
+     ======================================================= */
+
+  getPlayerPosition(){
+
+    try{
+
+      if(
+        typeof player!=="undefined" &&
+        player &&
+        player.position
+      ){
+
+        return{
+
+          x:
+            Number(
+              player.position.x
+            ) || 0,
+
+          y:
+            Number(
+              player.position.y
+            ) || 0,
+
+          z:
+            Number(
+              player.position.z
+            ) || 0
+
+        };
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V91 PLAYER ERROR:",
+        error
+      );
+
+    }
+
+
+    return{
+      x:0,
+      y:0,
+      z:0
+    };
+
+  },
+
+
+  /* =======================================================
+     RANDOM POSITION
+     ======================================================= */
+
+  randomPosition(){
+
+    const playerPos=
+      this.getPlayerPosition();
+
+
+    const angle=
+      Math.random()*
+      Math.PI*2;
+
+
+    const distance=
+      15+
+      Math.random()*
+      (
+        this.spawnRadius-15
+      );
+
+
+    return{
+
+      x:
+        playerPos.x+
+        Math.cos(angle)*
+        distance,
+
+      y:
+        playerPos.y,
+
+      z:
+        playerPos.z+
+        Math.sin(angle)*
+        distance
+
+    };
+
+  },
+
+
+  /* =======================================================
+     ADD PEDESTRIAN
+     ======================================================= */
+
+  addPedestrian(
+    options={}
+  ){
+
+    if(
+      this.pedestrians.length>=
+      this.maxPedestrians
+    ){
+
+      return false;
+
+    }
+
+
+    const pos=
+      options.position ||
+      this.randomPosition();
+
+
+    const npc={
+
+      id:
+        "npc_"+
+        this.nextID++,
+
+      type:"pedestrian",
+
+      x:Number(pos.x)||0,
+
+      y:Number(pos.y)||0,
+
+      z:Number(pos.z)||0,
+
+      speed:
+        Number(options.speed) ||
+        (
+          1+
+          Math.random()*1.5
+        ),
+
+      angle:
+        Math.random()*
+        Math.PI*2,
+
+      state:"walking",
+
+      active:true
+
+    };
+
+
+    this.pedestrians.push(
+      npc
+    );
+
+
+    this.updateHUD();
+
+    return npc;
+
+  },
+
+
+  /* =======================================================
+     ADD VEHICLE
+     ======================================================= */
+
+  addVehicle(
+    options={}
+  ){
+
+    if(
+      this.vehicles.length>=
+      this.maxVehicles
+    ){
+
+      return false;
+
+    }
+
+
+    const pos=
+      options.position ||
+      this.randomPosition();
+
+
+    const vehicle={
+
+      id:
+        "vehicle_"+
+        this.nextID++,
+
+      type:"vehicle",
+
+      x:Number(pos.x)||0,
+
+      y:Number(pos.y)||0,
+
+      z:Number(pos.z)||0,
+
+      speed:
+        Number(options.speed) ||
+        (
+          4+
+          Math.random()*4
+        ),
+
+      angle:
+        Math.random()*
+        Math.PI*2,
+
+      state:"driving",
+
+      active:true
+
+    };
+
+
+    this.vehicles.push(
+      vehicle
+    );
+
+
+    this.updateHUD();
+
+    return vehicle;
+
+  },
+
+
+  /* =======================================================
+     REMOVE OBJECT
+     ======================================================= */
+
+  remove(id){
+
+    this.pedestrians=
+      this.pedestrians.filter(
+        npc=>
+          npc.id!==id
+      );
+
+
+    this.vehicles=
+      this.vehicles.filter(
+        vehicle=>
+          vehicle.id!==id
+      );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     CLEAR ALL
+     ======================================================= */
+
+  clearAll(){
+
+    this.pedestrians=[];
+
+    this.vehicles=[];
+
+    this.updateHUD();
+
+    this.message(
+      "🗑️ Ambient traffic cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     MOVE PEDESTRIAN
+     ======================================================= */
+
+  updatePedestrian(
+    npc,
+    delta
+  ){
+
+    if(!npc.active){
+
+      return;
+
+    }
+
+
+    /*
+      Small direction changes create
+      simple wandering behaviour.
+    */
+
+    if(
+      Math.random()<0.01
+    ){
+
+      npc.angle+=
+        (
+          Math.random()-.5
+        )*
+        1.2;
+
+    }
+
+
+    npc.x+=
+      Math.sin(
+        npc.angle
+      )*
+      npc.speed*
+      delta;
+
+
+    npc.z+=
+      Math.cos(
+        npc.angle
+      )*
+      npc.speed*
+      delta;
+
+  },
+
+
+  /* =======================================================
+     MOVE VEHICLE
+     ======================================================= */
+
+  updateVehicle(
+    vehicle,
+    delta
+  ){
+
+    if(!vehicle.active){
+
+      return;
+
+    }
+
+
+    /*
+      Vehicles travel in a straight
+      direction until their direction
+      changes slightly.
+    */
+
+    if(
+      Math.random()<0.004
+    ){
+
+      vehicle.angle+=
+        (
+          Math.random()-.5
+        )*
+        .4;
+
+    }
+
+
+    vehicle.x+=
+      Math.sin(
+        vehicle.angle
+      )*
+      vehicle.speed*
+      delta;
+
+
+    vehicle.z+=
+      Math.cos(
+        vehicle.angle
+      )*
+      vehicle.speed*
+      delta;
+
+  },
+
+
+  /* =======================================================
+     UPDATE SYSTEM
+     ======================================================= */
+
+  update(){
+
+    if(!this.enabled){
+
+      return;
+
+    }
+
+
+    const now=
+      performance.now();
+
+
+    if(
+      now-
+      this.lastUpdate<
+      this.updateRate
+    ){
+
+      return;
+
+    }
+
+
+    const delta=
+      Math.min(
+        (
+          now-
+          this.lastUpdate
+        )/1000,
+        .25
+      );
+
+
+    this.lastUpdate=now;
+
+
+    this.pedestrians.forEach(
+      npc=>
+        this.updatePedestrian(
+          npc,
+          delta
+        )
+    );
+
+
+    this.vehicles.forEach(
+      vehicle=>
+        this.updateVehicle(
+          vehicle,
+          delta
+        )
+    );
+
+
+    this.cleanupFarObjects();
+
+    this.autoSpawn();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     CLEANUP FAR OBJECTS
+     ======================================================= */
+
+  cleanupFarObjects(){
+
+    const pos=
+      this.getPlayerPosition();
+
+
+    const maxDistance=
+      this.spawnRadius*2;
+
+
+    const maxDistanceSq=
+      maxDistance*
+      maxDistance;
+
+
+    this.pedestrians=
+      this.pedestrians.filter(
+        npc=>{
+
+          const dx=
+            npc.x-pos.x;
+
+          const dz=
+            npc.z-pos.z;
+
+
+          return(
+            dx*dx+
+            dz*dz<=
+            maxDistanceSq
+          );
+
+        }
+      );
+
+
+    this.vehicles=
+      this.vehicles.filter(
+        vehicle=>{
+
+          const dx=
+            vehicle.x-pos.x;
+
+          const dz=
+            vehicle.z-pos.z;
+
+
+          return(
+            dx*dx+
+            dz*dz<=
+            maxDistanceSq
+          );
+
+        }
+      );
+
+  },
+
+
+  /* =======================================================
+     AUTO SPAWN
+     ======================================================= */
+
+  autoSpawn(){
+
+    if(
+      this.pedestrians.length<
+      5
+    ){
+
+      this.addPedestrian();
+
+    }
+
+
+    if(
+      this.vehicles.length<
+      3
+    ){
+
+      this.addVehicle();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.enabled=
+      !this.enabled;
+
+
+    this.message(
+      this.enabled
+      ? "🚦 City activity ON"
+      : "⏸️ City activity OFF"
+    );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const stats=
+      document.getElementById(
+        "v91Stats"
+      );
+
+
+    if(!stats){
+
+      return;
+
+    }
+
+
+    stats.innerHTML=
+      "Pedestrians: "+
+      this.pedestrians.length+
+      "<br>"+
+      "Vehicles: "+
+      this.vehicles.length+
+      "<br>"+
+      "System: "+
+      (
+        this.enabled
+        ? "ON"
+        : "OFF"
+      );
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v91Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        enabled:this.enabled,
+
+        nextID:this.nextID,
+
+        pedestrians:
+          this.pedestrians,
+
+        vehicles:
+          this.vehicles
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V91 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.enabled===
+        "boolean"
+      ){
+
+        this.enabled=
+          data.enabled;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.nextID)
+        )
+      ){
+
+        this.nextID=
+          Number(data.nextID);
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.pedestrians
+        )
+      ){
+
+        this.pedestrians=
+          data.pedestrians;
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.vehicles
+        )
+      ){
+
+        this.vehicles=
+          data.vehicles;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V91 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      enabled:this.enabled,
+
+      nextID:this.nextID,
+
+      pedestrians:
+        this.pedestrians,
+
+      vehicles:
+        this.vehicles
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.enabled===
+      "boolean"
+    ){
+
+      this.enabled=
+        data.enabled;
+
+    }
+
+
+    if(
+      Array.isArray(
+        data.pedestrians
+      )
+    ){
+
+      this.pedestrians=
+        data.pedestrians;
+
+    }
+
+
+    if(
+      Array.isArray(
+        data.vehicles
+      )
+    ){
+
+      this.vehicles=
+        data.vehicles;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.nextID)
+      )
+    ){
+
+      this.nextID=
+        Number(data.nextID);
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     V90 COMPATIBILITY
+     ======================================================= */
+
+  installV90Compatibility(){
+
+    if(
+      typeof V90==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V90.__v91CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    V90.__v91CompatibilityInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    const loop=()=>{
+
+      this.update();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      N = pedestrian
+    */
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      V91.addPedestrian();
+
+    }
+
+
+    /*
+      C = vehicle
+    */
+
+    if(
+      event.code==="KeyC"
+    ){
+
+      V91.addVehicle();
+
+    }
+
+
+    /*
+      Delete = clear
+    */
+
+    if(
+      event.code==="Delete"
+    ){
+
+      V91.clearAll();
+
+    }
+
+
+    /*
+      B = toggle ambient system
+    */
+
+    if(
+      event.code==="KeyB"
+    ){
+
+      V91.toggle();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V91.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V91.init();
+
+V91.installV90Compatibility();
+
+V91.start();
+
+
+/* =========================================================
+   FUTURE API
+
+   V91.addPedestrian();
+
+   V91.addVehicle();
+
+   V91.addPedestrian({
+     position:{
+       x:10,
+       y:0,
+       z:20
+     },
+     speed:1.5
+   });
+
+   V91.clearAll();
+
+   V91.toggle();
+
+   ========================================================= */
+
+</script>
+
+</body>
+</html>
