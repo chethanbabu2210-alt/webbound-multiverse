@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V103</title>
+
+<style>
+
+#v103HUD{
+  position:fixed;
+  right:12px;
+  top:350px;
+  z-index:10300;
+  width:min(290px,75vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+}
+
+#v103Title{
+  font-size:13px;
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+#v103Hint{
+  font-size:10px;
+  opacity:.65;
+}
+
+#v103Dialogue{
+  position:fixed;
+  left:50%;
+  bottom:35px;
+  transform:translateX(-50%);
+  width:min(650px,88vw);
+  z-index:10400;
+  display:none;
+  padding:16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+  box-shadow:0 15px 45px #000b;
+}
+
+#v103Speaker{
+  font-size:13px;
+  font-weight:bold;
+  margin-bottom:7px;
+}
+
+#v103Text{
+  font-size:12px;
+  line-height:1.5;
+  opacity:.9;
+}
+
+#v103Choices{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:12px;
+}
+
+.v103Choice{
+  padding:9px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:9px;
+  text-align:left;
+  font-size:11px;
+}
+
+#v103Controls{
+  position:fixed;
+  right:12px;
+  top:425px;
+  z-index:10301;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#v103Controls button{
+  padding:8px 11px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:10px;
+}
+
+#v103Message{
+  position:fixed;
+  left:50%;
+  top:20%;
+  transform:translateX(-50%);
+  z-index:10500;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V103 NPC INTERACTION HUD
+     ========================================================= -->
+
+<div id="v103HUD">
+
+  <div id="v103Title">
+    🧍 NPC INTERACTION
+  </div>
+
+  <div id="v103Hint">
+    Press E near an NPC to interact.
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     TEST CONTROLS
+     ========================================================= -->
+
+<div id="v103Controls">
+
+  <button onclick="V103.interact()">
+    💬 TALK
+  </button>
+
+  <button onclick="V103.nextNPC()">
+    👤 NEXT NPC
+  </button>
+
+  <button onclick="V103.closeDialogue()">
+    ❌ CLOSE
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     DIALOGUE
+     ========================================================= -->
+
+<div id="v103Dialogue">
+
+  <div id="v103Speaker">
+    NPC
+  </div>
+
+  <div id="v103Text">
+    ...
+  </div>
+
+  <div id="v103Choices"></div>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v103Message">
+  V103
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V103
+   NPC INTERACTION / DIALOGUE SYSTEM
+   ========================================================= */
+
+const V103 = {
+
+  version:"V103",
+
+  saveKey:
+    "WEBBOUND_V103_NPC_DATA",
+
+  currentNPC:0,
+
+  dialogueOpen:false,
+
+  reputation:0,
+
+  interactedNPCs:[],
+
+  npcs:[
+
+    {
+      id:"shopkeeper",
+
+      name:"Local Shopkeeper",
+
+      role:"Shopkeeper",
+
+      lines:[
+
+        {
+          text:
+            "The streets have been unusually busy today.",
+
+          choices:[
+
+            {
+              text:"What's happening?",
+
+              reply:
+                "People are talking about strange activity nearby.",
+
+              reputation:1
+            },
+
+            {
+              text:"I'll keep an eye out.",
+
+              reply:
+                "Thanks. Every bit of help matters.",
+
+              reputation:1
+            }
+
+          ]
+
+        }
+
+      ]
+
+    },
+
+
+    {
+      id:"student",
+
+      name:"College Student",
+
+      role:"Student",
+
+      lines:[
+
+        {
+          text:
+            "Hey! Did you see what happened down the street?",
+
+          choices:[
+
+            {
+              text:"No. What happened?",
+
+              reply:
+                "There was a huge disturbance, then everyone disappeared.",
+
+              reputation:1
+            },
+
+            {
+              text:"Stay somewhere safe.",
+
+              reply:
+                "Yeah. I'll head home.",
+
+              reputation:1
+            }
+
+          ]
+
+        }
+
+      ]
+
+    },
+
+
+    {
+      id:"police",
+
+      name:"Police Officer",
+
+      role:"Officer",
+
+      lines:[
+
+        {
+          text:
+            "We're trying to keep the area under control.",
+
+          choices:[
+
+            {
+              text:"Do you need assistance?",
+
+              reply:
+                "Keep civilians away from dangerous areas.",
+
+              reputation:2
+            },
+
+            {
+              text:"I'll stay out of the way.",
+
+              reply:
+                "Good. Just be careful out there.",
+
+              reputation:0
+            }
+
+          ]
+
+        }
+
+      ]
+
+    },
+
+
+    {
+      id:"scientist",
+
+      name:"Research Scientist",
+
+      role:"Scientist",
+
+      lines:[
+
+        {
+          text:
+            "I've detected unusual readings across the city.",
+
+          choices:[
+
+            {
+              text:"Can I help investigate?",
+
+              reply:
+                "I may have a location for you to investigate.",
+
+              reputation:2
+            },
+
+            {
+              text:"What caused the readings?",
+
+              reply:
+                "That's exactly what I'm trying to determine.",
+
+              reputation:1
+            }
+
+          ]
+
+        }
+
+      ]
+
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V103 NPC SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET CURRENT NPC
+     ======================================================= */
+
+  getNPC(){
+
+    return this.npcs[
+      this.currentNPC
+    ] || null;
+
+  },
+
+
+  /* =======================================================
+     NEXT NPC
+     ======================================================= */
+
+  nextNPC(){
+
+    this.currentNPC++;
+
+    if(
+      this.currentNPC>=
+      this.npcs.length
+    ){
+
+      this.currentNPC=0;
+
+    }
+
+    this.closeDialogue();
+
+    this.updateHUD();
+
+    this.save();
+
+    const npc=
+      this.getNPC();
+
+    this.message(
+      "👤 "+
+      npc.name
+    );
+
+  },
+
+
+  /* =======================================================
+     INTERACT
+     ======================================================= */
+
+  interact(){
+
+    const npc=
+      this.getNPC();
+
+    if(!npc){
+
+      return;
+
+    }
+
+    this.dialogueOpen=true;
+
+    this.openDialogue(
+      npc
+    );
+
+    this.markInteracted(
+      npc.id
+    );
+
+  },
+
+
+  /* =======================================================
+     OPEN DIALOGUE
+     ======================================================= */
+
+  openDialogue(npc){
+
+    const panel=
+      document.getElementById(
+        "v103Dialogue"
+      );
+
+    const speaker=
+      document.getElementById(
+        "v103Speaker"
+      );
+
+    const text=
+      document.getElementById(
+        "v103Text"
+      );
+
+    const choices=
+      document.getElementById(
+        "v103Choices"
+      );
+
+
+    if(!panel){
+
+      return;
+
+    }
+
+
+    panel.style.display=
+      "block";
+
+
+    if(speaker){
+
+      speaker.textContent=
+        npc.name+
+        " • "+
+        npc.role;
+
+    }
+
+
+    const line=
+      npc.lines[0];
+
+
+    if(text){
+
+      text.textContent=
+        line.text;
+
+    }
+
+
+    if(choices){
+
+      choices.innerHTML="";
+
+
+      line.choices.forEach(
+        (choice,index)=>{
+
+          const button=
+            document.createElement(
+              "button"
+            );
+
+
+          button.className=
+            "v103Choice";
+
+
+          button.textContent=
+            (index+1)+
+            ". "+
+            choice.text;
+
+
+          button.onclick=
+            ()=>{
+              this.choose(
+                choice
+              );
+            };
+
+
+          choices.appendChild(
+            button
+          );
+
+        }
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CHOOSE DIALOGUE OPTION
+     ======================================================= */
+
+  choose(choice){
+
+    if(!choice){
+
+      return;
+
+    }
+
+
+    this.reputation+=
+      Number(
+        choice.reputation
+      ) || 0;
+
+
+    const speaker=
+      document.getElementById(
+        "v103Speaker"
+      );
+
+    const text=
+      document.getElementById(
+        "v103Text"
+      );
+
+    const choices=
+      document.getElementById(
+        "v103Choices"
+      );
+
+
+    if(speaker){
+
+      speaker.textContent=
+        this.getNPC().name;
+
+    }
+
+
+    if(text){
+
+      text.textContent=
+        choice.reply;
+
+    }
+
+
+    if(choices){
+
+      choices.innerHTML="";
+
+
+      const closeButton=
+        document.createElement(
+          "button"
+        );
+
+
+      closeButton.className=
+        "v103Choice";
+
+
+      closeButton.textContent=
+        "Continue";
+
+
+      closeButton.onclick=
+        ()=>{
+          this.closeDialogue();
+        };
+
+
+      choices.appendChild(
+        closeButton
+      );
+
+    }
+
+
+    this.save();
+
+
+    /*
+      Optional game callback.
+    */
+
+    if(
+      typeof window.onWebboundNPCDialogue===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundNPCDialogue(
+          this.getNPC(),
+          choice
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V103 DIALOGUE CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CLOSE DIALOGUE
+     ======================================================= */
+
+  closeDialogue(){
+
+    const panel=
+      document.getElementById(
+        "v103Dialogue"
+      );
+
+
+    if(panel){
+
+      panel.style.display=
+        "none";
+
+    }
+
+
+    this.dialogueOpen=false;
+
+  },
+
+
+  /* =======================================================
+     MARK NPC INTERACTED
+     ======================================================= */
+
+  markInteracted(id){
+
+    if(
+      !this.interactedNPCs.includes(id)
+    ){
+
+      this.interactedNPCs.push(
+        id
+      );
+
+    }
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     GET INTERACTION COUNT
+     ======================================================= */
+
+  getInteractionCount(){
+
+    return this.interactedNPCs.length;
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const npc=
+      this.getNPC();
+
+    const title=
+      document.getElementById(
+        "v103Title"
+      );
+
+    const hint=
+      document.getElementById(
+        "v103Hint"
+      );
+
+
+    if(!npc){
+
+      return;
+
+    }
+
+
+    if(title){
+
+      title.textContent=
+        "🧍 "+
+        npc.name;
+
+    }
+
+
+    if(hint){
+
+      hint.textContent=
+        "Press E to talk • Reputation: "+
+        this.reputation;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v103Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+            box.style.display=
+              "none";
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        currentNPC:
+          this.currentNPC,
+
+        reputation:
+          this.reputation,
+
+        interactedNPCs:
+          this.interactedNPCs
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V103 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.currentNPC
+          )
+        )
+      ){
+
+        this.currentNPC=
+          Math.max(
+            0,
+            Math.min(
+              this.npcs.length-1,
+              Number(
+                data.currentNPC
+              )
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.reputation
+          )
+        )
+      ){
+
+        this.reputation=
+          Number(
+            data.reputation
+          );
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.interactedNPCs
+        )
+      ){
+
+        this.interactedNPCs=
+          data.interactedNPCs
+          .filter(
+            id=>
+              typeof id==="string"
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V103 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      currentNPC:
+        this.currentNPC,
+
+      reputation:
+        this.reputation,
+
+      interactedNPCs:
+        this.interactedNPCs
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(
+          data.currentNPC
+        )
+      )
+    ){
+
+      this.currentNPC=
+        Math.max(
+          0,
+          Math.min(
+            this.npcs.length-1,
+            Number(
+              data.currentNPC
+            )
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(
+          data.reputation
+        )
+      )
+    ){
+
+      this.reputation=
+        Number(
+          data.reputation
+        );
+
+    }
+
+
+    if(
+      Array.isArray(
+        data.interactedNPCs
+      )
+    ){
+
+      this.interactedNPCs=
+        data.interactedNPCs;
+
+    }
+
+
+    this.updateHUD();
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      E = interact
+    */
+
+    if(
+      event.code==="KeyE"
+    ){
+
+      V103.interact();
+
+    }
+
+
+    /*
+      TAB = next NPC
+    */
+
+    if(
+      event.code==="Tab"
+    ){
+
+      event.preventDefault();
+
+      V103.nextNPC();
+
+    }
+
+
+    /*
+      ESC = close dialogue
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      V103.closeDialogue();
+
+    }
+
+
+    /*
+      Number keys select
+      dialogue choices.
+    */
+
+    if(
+      V103.dialogueOpen
+    ){
+
+      const number=
+        Number(
+          event.key
+        );
+
+
+      if(
+        number>=1 &&
+        number<=9
+      ){
+
+        const npc=
+          V103.getNPC();
+
+        if(
+          npc &&
+          npc.lines[0] &&
+          npc.lines[0].choices[
+            number-1
+          ]
+        ){
+
+          V103.choose(
+            npc.lines[0].choices[
+              number-1
+            ]
+          );
+
+        }
+
+      }
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V103.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V103.init();
+
+
+console.log(
+  "WEBBOUND V103 NPC INTERACTION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
