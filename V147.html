@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V147 — MISSION MAP</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ overflow:hidden;
+ background:#071017;
+ color:white;
+ font-family:Arial,sans-serif
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:
+ linear-gradient(#182d39,#091218 55%,#0a1115)
+}
+
+/* WORLD */
+
+#world{
+ position:absolute;
+ inset:0;
+ transform-origin:center;
+ transition:transform .15s linear
+}
+
+.road{
+ position:absolute;
+ background:#252c31;
+ z-index:1
+}
+
+.road.h{
+ left:0;
+ right:0;
+ height:45px
+}
+
+.road.v{
+ top:0;
+ bottom:0;
+ width:45px
+}
+
+.building{
+ position:absolute;
+ background:#15232c;
+ border:1px solid #ffffff16;
+ border-radius:7px;
+ z-index:3
+}
+
+.building span{
+ position:absolute;
+ left:50%;
+ top:50%;
+ transform:translate(-50%,-50%);
+ font-size:9px;
+ white-space:nowrap;
+ color:#aebbc4
+}
+
+/* PLAYER */
+
+#player{
+ position:absolute;
+ width:24px;
+ height:32px;
+ border-radius:9px 9px 5px 5px;
+ background:#278be0;
+ transform:translate(-50%,-50%);
+ z-index:100
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ width:14px;
+ height:14px;
+ left:5px;
+ top:-10px;
+ border-radius:50%;
+ background:#bd8967
+}
+
+/* WAYPOINT */
+
+.waypoint{
+ position:absolute;
+ width:34px;
+ height:34px;
+ border-radius:50%;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ transform:translate(-50%,-50%);
+ background:#6c3aa4;
+ border:2px solid #d6a7ff;
+ box-shadow:0 0 18px #8b4fd0;
+ animation:pulse 1.2s infinite;
+ z-index:50
+}
+
+@keyframes pulse{
+ 50%{
+  transform:
+   translate(-50%,-50%)
+   scale(1.18)
+ }
+}
+
+/* NPC */
+
+.npc{
+ position:absolute;
+ width:18px;
+ height:27px;
+ border-radius:8px 8px 4px 4px;
+ background:#b54b52;
+ z-index:40
+}
+
+.npc:before{
+ content:"";
+ position:absolute;
+ width:11px;
+ height:11px;
+ left:3.5px;
+ top:-8px;
+ border-radius:50%;
+ background:#bd8967
+}
+
+/* HUD */
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(370px,70vw);
+ padding:12px;
+ background:#03070cf2;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500
+}
+
+#gameTitle{
+ font-weight:bold;
+ font-size:13px
+}
+
+#missionName{
+ margin-top:7px;
+ font-size:12px;
+ color:#d6a7ff
+}
+
+#objective{
+ margin-top:6px;
+ font-size:10px;
+ line-height:1.6
+}
+
+#bar{
+ height:7px;
+ margin-top:8px;
+ background:#ffffff18;
+ border-radius:5px;
+ overflow:hidden
+}
+
+#progress{
+ width:0%;
+ height:100%;
+ background:#b478e8;
+ transition:width .3s
+}
+
+/* MINIMAP */
+
+#minimap{
+ position:fixed;
+ right:12px;
+ top:12px;
+ width:170px;
+ height:170px;
+ background:#071017ee;
+ border:2px solid #ffffff30;
+ border-radius:12px;
+ z-index:500;
+ overflow:hidden
+}
+
+.mapRoad{
+ position:absolute;
+ background:#29343b
+}
+
+.mapRoad.h{
+ left:0;
+ right:0;
+ height:10px
+}
+
+.mapRoad.v{
+ top:0;
+ bottom:0;
+ width:10px
+}
+
+.mapBuilding{
+ position:absolute;
+ background:#1a2931
+}
+
+#mapPlayer{
+ position:absolute;
+ width:7px;
+ height:7px;
+ border-radius:50%;
+ background:#55b4ff;
+ transform:translate(-50%,-50%);
+ z-index:10
+}
+
+#mapTarget{
+ position:absolute;
+ width:8px;
+ height:8px;
+ border-radius:50%;
+ background:#d98cff;
+ transform:translate(-50%,-50%);
+ animation:pulseMap 1s infinite;
+ z-index:10
+}
+
+@keyframes pulseMap{
+ 50%{transform:translate(-50%,-50%) scale(1.5)}
+}
+
+/* CONTROLS */
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:12px;
+ transform:translateX(-50%);
+ width:min(760px,94vw);
+ padding:10px;
+ background:#03070cf0;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px
+}
+
+button{
+ flex:1;
+ min-width:110px;
+ padding:9px;
+ background:#152733;
+ color:white;
+ border:1px solid #ffffff20;
+ border-radius:8px;
+ font-size:10px
+}
+
+button:active{
+ transform:scale(.97)
+}
+
+/* PANELS */
+
+#panel{
+ position:fixed;
+ left:50%;
+ top:50%;
+ transform:translate(-50%,-50%);
+ width:min(560px,92vw);
+ max-height:80vh;
+ overflow:auto;
+ padding:16px;
+ background:#03070cf9;
+ border:1px solid #ffffff30;
+ border-radius:15px;
+ z-index:2000;
+ display:none
+}
+
+.row{
+ margin-top:8px;
+ padding:10px;
+ background:#111d26;
+ border-radius:8px;
+ font-size:10px;
+ line-height:1.6
+}
+
+.close{
+ width:100%;
+ margin-top:10px
+}
+
+#message{
+ position:fixed;
+ left:50%;
+ top:22%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ font-size:10px;
+ display:none;
+ z-index:3000
+}
+
+/* MOBILE */
+
+#touch{
+ position:fixed;
+ left:10px;
+ bottom:100px;
+ z-index:600;
+ display:grid;
+ grid-template-columns:45px 45px 45px;
+ gap:4px
+}
+
+.touchBtn{
+ min-width:0;
+ width:45px;
+ height:40px;
+ padding:0
+}
+
+.empty{
+ visibility:hidden
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road h" style="top:28%"></div>
+  <div class="road h" style="top:67%"></div>
+
+  <div class="road v" style="left:24%"></div>
+  <div class="road v" style="left:56%"></div>
+  <div class="road v" style="left:78%"></div>
+
+  <div class="building"
+       style="left:4%;top:5%;width:17%;height:18%">
+   <span>🏠 HOMES</span>
+  </div>
+
+  <div class="building"
+       style="left:29%;top:5%;width:18%;height:18%">
+   <span>🏫 SCHOOL</span>
+  </div>
+
+  <div class="building"
+       style="left:60%;top:5%;width:15%;height:18%">
+   <span>🏥 HOSPITAL</span>
+  </div>
+
+  <div class="building"
+       style="left:82%;top:5%;width:14%;height:18%">
+   <span>🏢 OFFICES</span>
+  </div>
+
+  <div class="building"
+       style="left:4%;top:46%;width:17%;height:16%">
+   <span>🏭 FACTORY</span>
+  </div>
+
+  <div class="building"
+       style="left:29%;top:47%;width:18%;height:16%">
+   <span>🌳 PARK</span>
+  </div>
+
+  <div class="building"
+       style="left:60%;top:46%;width:15%;height:16%">
+   <span>🍽️ RESTAURANT</span>
+  </div>
+
+  <div class="building"
+       style="left:82%;top:45%;width:14%;height:17%">
+   <span>🏪 MARKET</span>
+  </div>
+
+  <div id="player"></div>
+
+ </div>
+
+</div>
+
+<!-- HUD -->
+
+<div id="hud">
+
+ <div id="gameTitle">
+  🕵️ WEBBOUND V147
+ </div>
+
+ <div id="missionName">
+  No active mission
+ </div>
+
+ <div id="objective">
+  Choose a mission to begin.
+ </div>
+
+ <div id="bar">
+  <div id="progress"></div>
+ </div>
+
+</div>
+
+<!-- MINIMAP -->
+
+<div id="minimap">
+
+ <div class="mapRoad h" style="top:28%"></div>
+ <div class="mapRoad h" style="top:67%"></div>
+
+ <div class="mapRoad v" style="left:24%"></div>
+ <div class="mapRoad v" style="left:56%"></div>
+ <div class="mapRoad v" style="left:78%"></div>
+
+ <div class="mapBuilding"
+      style="left:4%;top:5%;width:17%;height:18%"></div>
+
+ <div class="mapBuilding"
+      style="left:29%;top:5%;width:18%;height:18%"></div>
+
+ <div class="mapBuilding"
+      style="left:60%;top:5%;width:15%;height:18%"></div>
+
+ <div class="mapBuilding"
+      style="left:82%;top:5%;width:14%;height:18%"></div>
+
+ <div class="mapPlayer"
+      id="mapPlayer"></div>
+
+ <div class="mapTarget"
+      id="mapTarget"
+      style="display:none"></div>
+
+</div>
+
+<!-- MESSAGE -->
+
+<div id="message"></div>
+
+<!-- TOUCH -->
+
+<div id="touch">
+
+ <button class="touchBtn empty"></button>
+
+ <button
+  class="touchBtn"
+  onpointerdown="V147.keys.up=true"
+  onpointerup="V147.keys.up=false">
+  ▲
+ </button>
+
+ <button class="touchBtn empty"></button>
+
+ <button
+  class="touchBtn"
+  onpointerdown="V147.keys.left=true"
+  onpointerup="V147.keys.left=false">
+  ◀
+ </button>
+
+ <button
+  class="touchBtn"
+  onpointerdown="V147.keys.down=true"
+  onpointerup="V147.keys.down=false">
+  ▼
+ </button>
+
+ <button
+  class="touchBtn"
+  onpointerdown="V147.keys.right=true"
+  onpointerup="V147.keys.right=false">
+  ▶
+ </button>
+
+</div>
+
+<!-- CONTROLS -->
+
+<div id="controls">
+
+ <button onclick="V147.missionPanel()">
+  🎯 MISSIONS
+ </button>
+
+ <button onclick="V147.startMission()">
+  ▶ START MISSION
+ </button>
+
+ <button onclick="V147.centerTarget()">
+  📍 TARGET
+ </button>
+
+ <button onclick="V147.objectivePanel()">
+  📋 OBJECTIVES
+ </button>
+
+ <button onclick="V147.save()">
+  💾 SAVE
+ </button>
+
+ <button onclick="V147.resetMission()">
+  🔄 RESET
+ </button>
+
+</div>
+
+<!-- PANEL -->
+
+<div id="panel">
+
+ <h3 id="panelTitle">
+  WEBBOUND V147
+ </h3>
+
+ <div id="panelContent"></div>
+
+ <button
+  class="close"
+  onclick="V147.closePanel()">
+  CLOSE
+ </button>
+
+</div>
+
+<script>
+
+const V147={
+
+ saveKey:"WEBBOUND_V147",
+
+ keys:{
+  up:false,
+  down:false,
+  left:false,
+  right:false
+ },
+
+ player:{
+  x:window.innerWidth/2,
+  y:window.innerHeight/2
+ },
+
+ target:null,
+
+ activeMission:null,
+
+ missionIndex:0,
+
+ missions:[
+
+  {
+   id:"market",
+   name:"🛍️ THE MISSING PACKAGE",
+   description:
+    "Investigate the market and locate the abandoned package.",
+   targetX:.88,
+   targetY:.53,
+   reward:250,
+   xp:100,
+   type:"location"
+  },
+
+  {
+   id:"warehouse",
+   name:"🏭 WAREHOUSE CLUE",
+   description:
+    "Reach the warehouse and search for evidence.",
+   targetX:.12,
+   targetY:.53,
+   reward:400,
+   xp:150,
+   type:"location"
+  },
+
+  {
+   id:"hospital",
+   name:"🏥 MEDICAL REPORT",
+   description:
+    "Visit the hospital and collect the investigation report.",
+   targetX:.67,
+   targetY:.14,
+   reward:300,
+   xp:120,
+   type:"location"
+  },
+
+  {
+   id:"office",
+   name:"🏢 SECRET FILE",
+   description:
+    "Reach the office district and recover the missing file.",
+   targetX:.89,
+   targetY:.14,
+   reward:500,
+   xp:200,
+   type:"location"
+  }
+
+ ],
+
+ completed:[],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.keyboard();
+
+  this.render();
+
+  this.updateHUD();
+
+  setInterval(
+   ()=>this.update(),
+   30
+  );
+
+  this.message(
+   "🗺️ V147 mission map ready"
+  );
+
+ },
+
+ /* =========================
+    KEYBOARD
+ ========================= */
+
+ keyboard(){
+
+  window.addEventListener(
+   "keydown",
+   e=>{
+
+    if(
+     e.code==="ArrowUp"||
+     e.code==="KeyW"
+    )
+     this.keys.up=true;
+
+    if(
+     e.code==="ArrowDown"||
+     e.code==="KeyS"
+    )
+     this.keys.down=true;
+
+    if(
+     e.code==="ArrowLeft"||
+     e.code==="KeyA"
+    )
+     this.keys.left=true;
+
+    if(
+     e.code==="ArrowRight"||
+     e.code==="KeyD"
+    )
+     this.keys.right=true;
+
+    if(e.code==="KeyM")
+     this.missionPanel();
+
+    if(e.code==="KeyT")
+     this.centerTarget();
+
+    if(e.code==="Escape")
+     this.closePanel();
+
+   }
+  );
+
+  window.addEventListener(
+   "keyup",
+   e=>{
+
+    if(
+     e.code==="ArrowUp"||
+     e.code==="KeyW"
+    )
+     this.keys.up=false;
+
+    if(
+     e.code==="ArrowDown"||
+     e.code==="KeyS"
+    )
+     this.keys.down=false;
+
+    if(
+     e.code==="ArrowLeft"||
+     e.code==="KeyA"
+    )
+     this.keys.left=false;
+
+    if(
+     e.code==="ArrowRight"||
+     e.code==="KeyD"
+    )
+     this.keys.right=false;
+
+   }
+  );
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const speed=3;
+
+  if(this.keys.up)
+   this.player.y-=speed;
+
+  if(this.keys.down)
+   this.player.y+=speed;
+
+  if(this.keys.left)
+   this.player.x-=speed;
+
+  if(this.keys.right)
+   this.player.x+=speed;
+
+  this.player.x=
+   Math.max(
+    10,
+    Math.min(
+     window.innerWidth-10,
+     this.player.x
+    )
+   );
+
+  this.player.y=
+   Math.max(
+    110,
+    Math.min(
+     window.innerHeight-20,
+     this.player.y
+    )
+   );
+
+  this.checkMission();
+
+  this.render();
+
+ },
+
+ /* =========================
+    RENDER
+ ========================= */
+
+ render(){
+
+  const p=
+   document.getElementById(
+    "player"
+   );
+
+  p.style.left=
+   this.player.x+"px";
+
+  p.style.top=
+   this.player.y+"px";
+
+  this.renderTarget();
+
+  this.renderMap();
+
+ },
+
+ renderTarget(){
+
+  if(
+   !this.activeMission
+  ){
+
+   document.getElementById(
+    "mapTarget"
+   ).style.display="none";
+
+   return;
+
+  }
+
+  const mission=
+   this.activeMission;
+
+  const x=
+   mission.targetX*
+   window.innerWidth;
+
+  const y=
+   mission.targetY*
+   window.innerHeight;
+
+  if(!this.target){
+
+   this.target=
+    document.createElement(
+     "div"
+    );
+
+   this.target.className=
+    "waypoint";
+
+   this.target.textContent="📍";
+
+   document
+    .getElementById("world")
+    .appendChild(
+     this.target
+    );
+
+  }
+
+  this.target.style.left=
+   x+"px";
+
+  this.target.style.top=
+   y+"px";
+
+ },
+
+ renderMap(){
+
+  const mapPlayer=
+   document.getElementById(
+    "mapPlayer"
+   );
+
+  mapPlayer.style.left=
+   (
+    this.player.x/
+    window.innerWidth*
+    100
+   )+"%";
+
+  mapPlayer.style.top=
+   (
+    this.player.y/
+    window.innerHeight*
+    100
+   )+"%";
+
+  const mapTarget=
+   document.getElementById(
+    "mapTarget"
+   );
+
+  if(this.activeMission){
+
+   mapTarget.style.display=
+    "block";
+
+   mapTarget.style.left=
+    (
+     this.activeMission.targetX*
+     100
+    )+"%";
+
+   mapTarget.style.top=
+    (
+     this.activeMission.targetY*
+     100
+    )+"%";
+
+  }
+  else{
+
+   mapTarget.style.display=
+    "none";
+
+  }
+
+ },
+
+ /* =========================
+    MISSIONS
+ ========================= */
+
+ missionPanel(){
+
+  let html="";
+
+  this.missions.forEach(
+   (m,i)=>{
+
+    const done=
+     this.completed.includes(
+      m.id
+     );
+
+    html+=`
+
+    <div class="row">
+
+     <b>${m.name}</b>
+
+     <br>
+
+     ${m.description}
+
+     <br><br>
+
+     💰 Reward:
+     ₹${m.reward}
+
+     <br>
+
+     ⭐ XP:
+     ${m.xp}
+
+     <br>
+
+     Status:
+     ${
+      done
+      ?"✅ Completed"
+      :this.activeMission?.id===m.id
+      ?"🟣 Active"
+      :"⚪ Available"
+     }
+
+     ${
+      !done
+      ?`
+
+       <br><br>
+
+       <button
+        onclick="V147.selectMission(${i})">
+        SELECT
+       </button>
+
+      `
+      :""
+     }
+
+    </div>
+
+    `;
+
+   }
+  );
+
+  this.openPanel(
+   "🎯 MISSION SELECT",
+   html
+  );
+
+ },
+
+ selectMission(index){
+
+  const mission=
+   this.missions[index];
+
+  if(
+   this.completed.includes(
+    mission.id
+   )
+  ){
+
+   this.message(
+    "Mission already completed"
+   );
+
+   return;
+
+  }
+
+  this.activeMission=
+   mission;
+
+  this.closePanel();
+
+  this.updateHUD();
+
+  this.message(
+   "🎯 Selected: "+
+   mission.name
+  );
+
+ },
+
+ startMission(){
+
+  if(!this.activeMission){
+
+   this.missionPanel();
+
+   return;
+
+  }
+
+  this.player.x=
+   Math.max(
+    20,
+    this.player.x
+   );
+
+  this.message(
+   "▶ Mission started"
+  );
+
+  this.updateHUD();
+
+ },
+
+ checkMission(){
+
+  if(!this.activeMission)
+   return;
+
+  const mission=
+   this.activeMission;
+
+  const tx=
+   mission.targetX*
+   window.innerWidth;
+
+  const ty=
+   mission.targetY*
+   window.innerHeight;
+
+  const dx=
+   this.player.x-tx;
+
+  const dy=
+   this.player.y-ty;
+
+  const distance=
+   Math.sqrt(
+    dx*dx+dy*dy
+   );
+
+  const maxDistance=
+   Math.min(
+    window.innerWidth,
+    window.innerHeight
+   );
+
+  const progress=
+   Math.max(
+    0,
+    Math.min(
+     100,
+     100-
+     distance/
+     maxDistance*
+     100
+    )
+   );
+
+  document.getElementById(
+   "progress"
+  ).style.width=
+   progress+"%";
+
+  if(distance<45){
+
+   this.completeMission();
+
+  }
+
+ },
+
+ completeMission(){
+
+  if(!this.activeMission)
+   return;
+
+  const mission=
+   this.activeMission;
+
+  if(
+   this.completed.includes(
+    mission.id
+   )
+  )
+   return;
+
+  this.completed.push(
+   mission.id
+  );
+
+  this.message(
+   "✅ Mission complete! +₹"+
+   mission.reward+
+   " • +"+
+   mission.xp+
+   " XP"
+  );
+
+  this.activeMission=null;
+
+  if(this.target){
+
+   this.target.remove();
+
+   this.target=null;
+
+  }
+
+  this.updateHUD();
+
+  this.save();
+
+ },
+
+ /* =========================
+    OBJECTIVES
+ ========================= */
+
+ objectivePanel(){
+
+  if(!this.activeMission){
+
+   this.openPanel(
+    "📋 OBJECTIVES",
+    `
+     <div class="row">
+      No active mission.
+      <br><br>
+      Open the Mission menu and select
+      an investigation.
+     </div>
+    `
+   );
+
+   return;
+
+  }
+
+  const m=
+   this.activeMission;
+
+  const tx=
+   m.targetX*
+   window.innerWidth;
+
+  const ty=
+   m.targetY*
+   window.innerHeight;
+
+  const distance=
+   Math.round(
+    Math.sqrt(
+     Math.pow(
+      this.player.x-tx,
+      2
+     )+
+     Math.pow(
+      this.player.y-ty,
+      2
+     )
+    )
+   );
+
+  this.openPanel(
+   "📋 CURRENT OBJECTIVE",
+   `
+
+   <div class="row">
+
+    <b>${m.name}</b>
+
+    <br><br>
+
+    ${m.description}
+
+    <br><br>
+
+    📍 Distance:
+    ${distance}px
+
+    <br>
+
+    💰 Reward:
+    ₹${m.reward}
+
+   </div>
+
+   `
+  );
+
+ },
+
+ centerTarget(){
+
+  if(!this.activeMission){
+
+   this.message(
+    "No active target"
+   );
+
+   return;
+
+  }
+
+  const m=
+   this.activeMission;
+
+  this.player.x=
+   m.targetX*
+   window.innerWidth;
+
+  this.player.y=
+   m.targetY*
+   window.innerHeight;
+
+  this.message(
+   "📍 Target reached"
+  );
+
+ },
+
+ resetMission(){
+
+  if(this.target){
+
+   this.target.remove();
+
+   this.target=null;
+
+  }
+
+  this.activeMission=null;
+
+  this.updateHUD();
+
+  this.message(
+   "🔄 Mission reset"
+  );
+
+ },
+
+ /* =========================
+    HUD
+ ========================= */
+
+ updateHUD(){
+
+  const name=
+   document.getElementById(
+    "missionName"
+   );
+
+  const objective=
+   document.getElementById(
+    "objective"
+   );
+
+  if(!this.activeMission){
+
+   name.textContent=
+    "No active mission";
+
+   objective.textContent=
+    "Choose a mission to begin.";
+
+   document.getElementById(
+    "progress"
+   ).style.width="0%";
+
+   return;
+
+  }
+
+  name.textContent=
+   this.activeMission.name;
+
+  objective.textContent=
+   "📍 "+
+   this.activeMission.description;
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ openPanel(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "block";
+
+ },
+
+ closePanel(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    MESSAGE
+ ========================= */
+
+ message(text){
+
+  const el=
+   document.getElementById(
+    "message"
+   );
+
+  el.textContent=text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.messageTimer
+  );
+
+  this.messageTimer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ },
+
+ /* =========================
+    SAVE / LOAD
+ ========================= */
+
+ save(){
+
+  const data={
+
+   player:this.player,
+
+   completed:this.completed,
+
+   activeMission:
+    this.activeMission?
+     this.activeMission.id:
+     null
+
+  };
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify(data)
+  );
+
+  this.message(
+   "💾 V147 saved"
+  );
+
+ },
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(data.player){
+
+    this.player={
+     ...this.player,
+     ...data.player
+    };
+
+   }
+
+   if(
+    Array.isArray(
+     data.completed
+    )
+   ){
+
+    this.completed=
+     data.completed;
+
+   }
+
+   if(data.activeMission){
+
+    this.activeMission=
+     this.missions.find(
+      m=>
+       m.id===
+       data.activeMission
+     )||null;
+
+   }
+
+  }
+  catch(e){
+
+   console.log(
+    "V147 load error",
+    e
+   );
+
+  }
+
+ }
+
+};
+
+window.addEventListener(
+ "resize",
+ ()=>{
+  V147.render();
+ }
+);
+
+V147.init();
+
+console.log(
+ "WEBBOUND V147 MISSION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
