@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V197 — CAREERS</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{
+ margin:0;width:100%;height:100%;overflow:hidden;
+ font-family:Arial,sans-serif;background:#05090d;color:#fff
+}
+#game{
+ position:fixed;inset:0;overflow:hidden;
+ background:linear-gradient(#789fac,#101a20)
+}
+#sky{
+ position:absolute;inset:0;
+ background:linear-gradient(#83adbd,#c3d2d5)
+}
+.road{position:absolute;background:#272d31}
+.rh{left:0;right:0;top:57%;height:75px}
+.rv{top:0;bottom:0;left:67%;width:75px}
+.line{position:absolute;background:#d7c86e;opacity:.45}
+.lineH{left:0;right:0;top:calc(57% + 36px);height:2px}
+.lineV{top:0;bottom:0;left:calc(67% + 36px);width:2px}
+
+.building{
+ position:absolute;display:flex;align-items:center;
+ justify-content:center;text-align:center;
+ background:#172831;border:1px solid #ffffff18;
+ border-radius:9px;color:#83949c;font-size:10px
+}
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:15%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;left:50%;top:53%;
+ width:29px;height:41px;border-radius:10px 10px 5px 5px;
+ background:#2c91da;z-index:50
+}
+#player:before{
+ content:"";position:absolute;left:5.5px;top:-14px;
+ width:18px;height:18px;border-radius:50%;
+ background:#bd8967
+}
+
+#hud{
+ position:fixed;left:10px;top:10px;
+ width:min(980px,94vw);padding:12px;
+ background:#03070cee;border:1px solid #ffffff25;
+ border-radius:13px;z-index:500
+}
+.title{font-size:13px;font-weight:bold}
+.stats{
+ display:grid;grid-template-columns:repeat(6,1fr);
+ gap:5px;margin-top:8px
+}
+.stat{
+ padding:7px 4px;background:#101b23;
+ border-radius:7px;text-align:center;font-size:9px
+}
+#careerHud{
+ margin-top:8px;padding:9px;background:#111d25;
+ border-radius:8px;font-size:9px;line-height:1.8
+}
+.bar{
+ height:7px;background:#ffffff12;
+ border-radius:7px;overflow:hidden;margin-top:4px
+}
+.fill{
+ height:100%;width:0%;
+ background:#8fb8df;transition:.3s
+}
+
+#controls{
+ position:fixed;left:50%;bottom:10px;
+ transform:translateX(-50%);
+ width:min(980px,96vw);
+ display:flex;flex-wrap:wrap;gap:6px;z-index:500
+}
+button{
+ flex:1;min-width:105px;padding:10px;
+ background:#142733;border:1px solid #ffffff22;
+ border-radius:8px;color:#fff;font-size:10px;cursor:pointer
+}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+
+#panel{
+ position:fixed;inset:0;display:none;
+ align-items:center;justify-content:center;
+ background:#000c;z-index:1000
+}
+.box{
+ width:min(830px,94vw);max-height:84vh;
+ overflow:auto;padding:17px;background:#050b10;
+ border:1px solid #ffffff28;border-radius:15px
+}
+.card{
+ padding:11px;background:#111d25;
+ border-radius:9px;margin-bottom:7px;
+ font-size:10px;line-height:1.7
+}
+.card button{width:100%;margin-top:8px}
+
+#notification{
+ position:fixed;left:50%;top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;background:#03070cf5;
+ border:1px solid #ffffff25;border-radius:9px;
+ display:none;z-index:1500;font-size:10px;
+ text-align:center
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="sky"></div>
+<div class="road rh"></div>
+<div class="road rv"></div>
+<div class="line lineH"></div>
+<div class="line lineV"></div>
+
+<div class="building b1">🏠 RESIDENTIAL</div>
+<div class="building b2">🏢 CORPORATE DISTRICT</div>
+<div class="building b3">🏪 SERVICES</div>
+<div class="building b4">🏙️ OFFICE TOWERS</div>
+<div class="building b5">🏭 INDUSTRIAL ZONE</div>
+<div class="building b6">🎓 CAREER CENTER</div>
+
+<div id="player"></div>
+
+<div id="hud">
+
+<div class="title">
+💼 WEBBOUND V197 — CAREER SYSTEM
+</div>
+
+<div class="stats">
+
+<div class="stat">
+💰 CASH<br>
+₹<span id="cashText">5000</span>
+</div>
+
+<div class="stat">
+💼 JOBS<br>
+<span id="jobText">0</span>
+</div>
+
+<div class="stat">
+💵 SALARY<br>
+₹<span id="salaryText">0</span>
+</div>
+
+<div class="stat">
+⭐ EXPERIENCE<br>
+<span id="xpText">0</span>
+</div>
+
+<div class="stat">
+🎯 SKILLS<br>
+<span id="skillText">0</span>
+</div>
+
+<div class="stat">
+🏆 LEVEL<br>
+<span id="levelText">1</span>
+</div>
+
+</div>
+
+<div id="careerHud">
+
+<b>💼 ACTIVE CAREER</b><br>
+
+<span id="jobName">
+Unemployed
+</span><br>
+
+Position:
+<span id="positionText">—</span><br>
+
+Monthly Salary:
+₹<span id="activeSalary">0</span><br>
+
+Experience:
+<span id="activeXP">0</span><br>
+
+Skill Level:
+<span id="activeSkill">0</span>
+
+<div class="bar">
+<div id="careerFill" class="fill"></div>
+</div>
+
+</div>
+
+</div>
+
+<div id="notification"></div>
+
+<div id="controls">
+
+<button onclick="V197.jobs()">
+💼 JOB MARKET
+</button>
+
+<button onclick="V197.work()">
+🧑‍💻 WORK
+</button>
+
+<button onclick="V197.skill()">
+🎯 TRAINING
+</button>
+
+<button onclick="V197.promote()">
+🏆 PROMOTION
+</button>
+
+<button onclick="V197.salary()">
+💵 COLLECT SALARY
+</button>
+
+<button onclick="V197.career()">
+📊 CAREER
+</button>
+
+<button onclick="V197.quit()">
+🚪 QUIT JOB
+</button>
+
+<button onclick="V197.save()">
+💾 SAVE
+</button>
+
+</div>
+
+<div id="panel">
+
+<div class="box">
+
+<h2 id="panelTitle">
+WEBBOUND V197
+</h2>
+
+<div id="panelContent"></div>
+
+<button onclick="V197.close()">
+CLOSE
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const V197={
+
+saveKey:"WEBBOUND_V197",
+
+cash:5000,
+
+jobs:[],
+
+activeJob:null,
+
+levels:{},
+
+experience:{},
+
+skills:{},
+
+salaries:{},
+
+totalSalary:0,
+
+workDays:0,
+
+careerLevel:1,
+
+jobData:{
+
+delivery:{
+name:"📦 Delivery Specialist",
+salary:12000,
+xp:20,
+skillCost:700,
+skillXP:35,
+promotionXP:150,
+maxLevel:8
+},
+
+sales:{
+name:"🛒 Sales Executive",
+salary:18000,
+xp:28,
+skillCost:1000,
+skillXP:45,
+promotionXP:200,
+maxLevel:10
+},
+
+developer:{
+name:"💻 Software Developer",
+salary:35000,
+xp:40,
+skillCost:1800,
+skillXP:65,
+promotionXP:300,
+maxLevel:12
+},
+
+engineer:{
+name:"⚙️ Engineer",
+salary:45000,
+xp:48,
+skillCost:2200,
+skillXP:75,
+promotionXP:350,
+maxLevel:14
+},
+
+manager:{
+name:"🏢 Business Manager",
+salary:65000,
+xp:60,
+skillCost:3000,
+skillXP:90,
+promotionXP:450,
+maxLevel:16
+},
+
+director:{
+name:"👔 Company Director",
+salary:100000,
+xp:80,
+skillCost:5000,
+skillXP:120,
+promotionXP:600,
+maxLevel:20
+}
+
+},
+
+init(){
+
+this.load();
+this.update();
+
+this.notify(
+"💼 V197 Career System ready"
+);
+
+},
+
+jobs(){
+
+let html="";
+
+Object.entries(this.jobData)
+.forEach(([id,j])=>{
+
+const owned=
+this.jobs.includes(id);
+
+const level=
+this.levels[id]||1;
+
+html+=`
+
+<div class="card">
+
+<b>${j.name}</b>
+
+<br><br>
+
+💵 Starting Salary:
+₹${j.salary.toLocaleString()}
+
+<br>
+
+⭐ Work XP:
+${j.xp}
+
+<br>
+
+🎯 Training Cost:
+₹${j.skillCost.toLocaleString()}
+
+<br>
+
+🏆 Promotion XP:
+${j.promotionXP}
+
+<br>
+
+Maximum Level:
+${j.maxLevel}
+
+<br>
+
+Current Level:
+${owned?level:"—"}
+
+<br><br>
+
+<button
+onclick="V197.apply('${id}')"
+${owned?"disabled":""}>
+
+${owned?
+"✅ ALREADY JOINED":
+"📄 APPLY FOR JOB"}
+
+</button>
+
+${owned?
+`<button onclick="V197.select('${id}')">
+SELECT JOB
+</button>`:""}
+
+</div>
+
+`;
+
+});
+
+this.open(
+"💼 JOB MARKET",
+html
+);
+
+},
+
+apply(id){
+
+const j=this.jobData[id];
+
+if(this.jobs.includes(id)){
+this.notify("You already have this job.");
+return;
+}
+
+this.jobs.push(id);
+
+this.levels[id]=1;
+this.experience[id]=0;
+this.skills[id]=0;
+this.salaries[id]=j.salary;
+
+this.activeJob=id;
+
+this.careerLevel=
+Math.max(
+this.careerLevel,
+1
+);
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🎉 Hired as "+
+j.name
+);
+
+},
+
+select(id){
+
+if(!this.jobs.includes(id))
+return;
+
+this.activeJob=id;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"💼 Selected "+
+this.jobData[id].name
+);
+
+},
+
+work(){
+
+if(!this.activeJob){
+
+this.notify(
+"💼 Apply for a job first."
+);
+
+return;
+
+}
+
+const id=this.activeJob;
+const j=this.jobData[id];
+
+const level=
+this.levels[id]||1;
+
+const xp=
+Math.floor(
+j.xp*(1+(level-1)*0.15)
+);
+
+this.experience[id]=
+(this.experience[id]||0)+xp;
+
+this.workDays++;
+
+this.careerLevel=
+Math.min(
+100,
+1+
+Math.floor(
+this.workDays/10
+)
+);
+
+this.update();
+this.save();
+
+this.notify(
+"🧑‍💻 Work completed! +"+
+xp+
+" XP"
+);
+
+},
+
+salary(){
+
+if(!this.activeJob){
+
+this.notify(
+"💼 Get a job first."
+);
+
+return;
+
+}
+
+const id=this.activeJob;
+const j=this.jobData[id];
+
+const level=
+this.levels[id]||1;
+
+const amount=
+Math.floor(
+j.salary*
+(1+(level-1)*0.18)
+);
+
+this.cash+=amount;
+
+this.salaries[id]=
+(this.salaries[id]||0)+amount;
+
+this.totalSalary+=amount;
+
+this.update();
+this.save();
+
+this.notify(
+"💵 Salary received: ₹"+
+amount.toLocaleString()
+);
+
+},
+
+skill(){
+
+if(!this.activeJob){
+
+this.notify(
+"💼 Select a career first."
+);
+
+return;
+
+}
+
+const id=this.activeJob;
+const j=this.jobData[id];
+
+if(this.cash<j.skillCost){
+
+this.notify(
+"❌ Training costs ₹"+
+j.skillCost.toLocaleString()
+);
+
+return;
+
+}
+
+this.cash-=j.skillCost;
+
+this.skills[id]=
+(this.skills[id]||0)+1;
+
+this.experience[id]=
+(this.experience[id]||0)+j.skillXP;
+
+this.update();
+this.save();
+
+this.notify(
+"🎯 Skill improved! +"+
+j.skillXP+
+" XP"
+);
+
+},
+
+promote(){
+
+if(!this.activeJob){
+
+this.notify(
+"💼 Select a career first."
+);
+
+return;
+
+}
+
+const id=this.activeJob;
+const j=this.jobData[id];
+
+const level=
+this.levels[id]||1;
+
+const xp=
+this.experience[id]||0;
+
+const required=
+j.promotionXP*level;
+
+if(level>=j.maxLevel){
+
+this.notify(
+"🏆 Maximum career level reached."
+);
+
+return;
+
+}
+
+if(xp<required){
+
+this.notify(
+"❌ Need "+
+(required-xp)+
+" more XP for promotion."
+);
+
+return;
+
+}
+
+this.levels[id]=level+1;
+
+this.skills[id]=
+(this.skills[id]||0)+1;
+
+this.careerLevel++;
+
+this.update();
+this.save();
+
+this.notify(
+"🏆 PROMOTED TO LEVEL "+
+(level+1)
+);
+
+},
+
+career(){
+
+let html="";
+
+let totalSalary=0;
+let totalXP=0;
+let totalSkills=0;
+
+this.jobs.forEach(id=>{
+
+const j=this.jobData[id];
+
+const level=
+this.levels[id]||1;
+
+const xp=
+this.experience[id]||0;
+
+const skills=
+this.skills[id]||0;
+
+const salary=
+Math.floor(
+j.salary*
+(1+(level-1)*0.18)
+);
+
+totalSalary+=
+this.salaries[id]||0;
+
+totalXP+=xp;
+totalSkills+=skills;
+
+html+=`
+
+<div class="card">
+
+<b>${j.name}</b>
+
+<br>
+
+🏆 Level:
+${level}
+
+<br>
+
+⭐ Experience:
+${xp}
+
+<br>
+
+🎯 Skills:
+${skills}
+
+<br>
+
+💵 Current Salary:
+₹${salary.toLocaleString()}
+
+<br>
+
+💰 Salary Earned:
+₹${(this.salaries[id]||0).toLocaleString()}
+
+<br>
+
+<button onclick="V197.select('${id}')">
+SELECT CAREER
+</button>
+
+</div>
+
+`;
+
+});
+
+if(!html){
+
+html=`
+
+<div class="card">
+You are currently unemployed.
+</div>
+
+`;
+
+}
+
+html+=`
+
+<div class="card">
+
+<b>📊 CAREER PROFILE</b>
+
+<br><br>
+
+💼 Jobs:
+${this.jobs.length}
+
+<br>
+
+⭐ Total Experience:
+${totalXP}
+
+<br>
+
+🎯 Total Skills:
+${totalSkills}
+
+<br>
+
+💵 Total Salary:
+₹${totalSalary.toLocaleString()}
+
+<br>
+
+🏆 Career Level:
+${this.careerLevel}
+
+<br>
+
+🧑‍💻 Work Days:
+${this.workDays}
+
+</div>
+
+`;
+
+this.open(
+"📊 CAREER PROFILE",
+html
+);
+
+},
+
+quit(){
+
+if(!this.activeJob){
+
+this.notify(
+"No active job."
+);
+
+return;
+
+}
+
+const id=this.activeJob;
+
+this.jobs=
+this.jobs.filter(
+x=>x!==id
+);
+
+delete this.levels[id];
+delete this.experience[id];
+delete this.skills[id];
+delete this.salaries[id];
+
+this.activeJob=
+this.jobs.length?
+this.jobs[0]:
+null;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🚪 Career resigned."
+);
+
+},
+
+update(){
+
+let xp=0;
+let skills=0;
+let salary=0;
+
+this.jobs.forEach(id=>{
+
+xp+=
+this.experience[id]||0;
+
+skills+=
+this.skills[id]||0;
+
+salary+=
+this.salaries[id]||0;
+
+});
+
+document.getElementById(
+"cashText"
+).textContent=
+this.cash.toLocaleString();
+
+document.getElementById(
+"jobText"
+).textContent=
+this.jobs.length;
+
+document.getElementById(
+"salaryText"
+).textContent=
+salary.toLocaleString();
+
+document.getElementById(
+"xpText"
+).textContent=
+xp;
+
+document.getElementById(
+"skillText"
+).textContent=
+skills;
+
+document.getElementById(
+"levelText"
+).textContent=
+this.careerLevel;
+
+if(!this.activeJob){
+
+document.getElementById(
+"jobName"
+).textContent=
+"Unemployed";
+
+document.getElementById(
+"positionText"
+).textContent="—";
+
+document.getElementById(
+"activeSalary"
+).textContent="0";
+
+document.getElementById(
+"activeXP"
+).textContent="0";
+
+document.getElementById(
+"activeSkill"
+).textContent="0";
+
+document.getElementById(
+"careerFill"
+).style.width="0%";
+
+return;
+
+}
+
+const id=this.activeJob;
+const j=this.jobData[id];
+
+const level=
+this.levels[id]||1;
+
+const currentSalary=
+Math.floor(
+j.salary*
+(1+(level-1)*0.18)
+);
+
+const xp=
+this.experience[id]||0;
+
+const skills=
+this.skills[id]||0;
+
+document.getElementById(
+"jobName"
+).textContent=
+j.name;
+
+document.getElementById(
+"positionText"
+).textContent=
+"Level "+level;
+
+document.getElementById(
+"activeSalary"
+).textContent=
+currentSalary.toLocaleString();
+
+document.getElementById(
+"activeXP"
+).textContent=
+xp;
+
+document.getElementById(
+"activeSkill"
+).textContent=
+skills;
+
+document.getElementById(
+"careerFill"
+).style.width=
+Math.min(
+100,
+(level/j.maxLevel)*100
+)+"%";
+
+},
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+
+cash:this.cash,
+jobs:this.jobs,
+activeJob:this.activeJob,
+levels:this.levels,
+experience:this.experience,
+skills:this.skills,
+salaries:this.salaries,
+totalSalary:this.totalSalary,
+workDays:this.workDays,
+careerLevel:this.careerLevel
+
+})
+);
+
+},
+
+load(){
+
+try{
+
+const raw=
+localStorage.getItem(
+this.saveKey
+);
+
+if(!raw)return;
+
+const d=JSON.parse(raw);
+
+if(Number.isFinite(d.cash))
+this.cash=Math.max(0,d.cash);
+
+if(Array.isArray(d.jobs))
+this.jobs=
+d.jobs.filter(
+id=>this.jobData[id]
+);
+
+if(
+typeof d.activeJob==="string" &&
+this.jobData[d.activeJob]
+)
+this.activeJob=d.activeJob;
+
+if(d.levels)
+this.levels=d.levels;
+
+if(d.experience)
+this.experience=d.experience;
+
+if(d.skills)
+this.skills=d.skills;
+
+if(d.salaries)
+this.salaries=d.salaries;
+
+if(Number.isFinite(d.totalSalary))
+this.totalSalary=Math.max(
+0,d.totalSalary
+);
+
+if(Number.isFinite(d.workDays))
+this.workDays=Math.max(
+0,d.workDays
+);
+
+if(Number.isFinite(d.careerLevel))
+this.careerLevel=Math.max(
+1,d.careerLevel
+);
+
+}catch(e){
+
+console.log(
+"V197 load error:",
+e
+);
+
+}
+
+},
+
+open(title,content){
+
+document.getElementById(
+"panelTitle"
+).textContent=title;
+
+document.getElementById(
+"panelContent"
+).innerHTML=
+content;
+
+document.getElementById(
+"panel"
+).style.display="flex";
+
+},
+
+close(){
+
+document.getElementById(
+"panel"
+).style.display="none";
+
+},
+
+notify(text){
+
+const el=
+document.getElementById(
+"notification"
+);
+
+el.textContent=text;
+
+el.style.display="block";
+
+clearTimeout(this.timer);
+
+this.timer=
+setTimeout(
+()=>{
+el.style.display="none";
+},
+2400
+);
+
+}
+
+};
+
+V197.init();
+
+console.log(
+"WEBBOUND V197 CAREER SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
