@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V154 — INVENTORY SYSTEM</title>
+
+<style>
+*{
+ box-sizing:border-box;
+}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+ overflow:hidden;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:64px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:64px;
+}
+
+.lane{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.laneH{
+ left:0;
+ right:0;
+ top:calc(57% + 31px);
+ height:2px;
+}
+
+.laneV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 31px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{
+ left:4%;
+ top:7%;
+ width:19%;
+ height:28%;
+}
+
+.b2{
+ left:28%;
+ top:7%;
+ width:19%;
+ height:28%;
+}
+
+.b3{
+ left:51%;
+ top:7%;
+ width:16%;
+ height:27%;
+}
+
+.b4{
+ right:3%;
+ top:7%;
+ width:23%;
+ height:28%;
+}
+
+.b5{
+ left:4%;
+ bottom:6%;
+ width:20%;
+ height:24%;
+}
+
+.b6{
+ left:30%;
+ bottom:7%;
+ width:18%;
+ height:22%;
+}
+
+/* PLAYER */
+
+#player{
+ position:absolute;
+ left:50%;
+ top:57%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:40;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+/* HUD */
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(470px,82vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:flex;
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ flex:1;
+ padding:7px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#inventoryMini{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.6;
+}
+
+#lastItem{
+ color:#c9a6e7;
+}
+
+#capacityBar{
+ margin-top:6px;
+ height:7px;
+ background:#ffffff15;
+ border-radius:5px;
+ overflow:hidden;
+}
+
+#capacityProgress{
+ height:100%;
+ width:0%;
+ background:#b68de8;
+ transition:.3s;
+}
+
+/* CONTROLS */
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(850px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+button:disabled{
+ opacity:.45;
+}
+
+/* PANEL */
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(700px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:
+ repeat(auto-fit,minmax(150px,1fr));
+ gap:7px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ min-height:130px;
+ font-size:10px;
+ line-height:1.5;
+}
+
+.card b{
+ display:block;
+ margin-bottom:7px;
+}
+
+.card button{
+ width:100%;
+ margin-top:7px;
+}
+
+.badge{
+ display:inline-block;
+ padding:3px 6px;
+ background:#ffffff12;
+ border-radius:5px;
+ font-size:8px;
+}
+
+/* NOTIFICATION */
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="lane laneH"></div>
+  <div class="lane laneV"></div>
+
+  <div class="building b1">
+   🏠 RESIDENTIAL
+  </div>
+
+  <div class="building b2">
+   🏫 SCHOOL
+  </div>
+
+  <div class="building b3">
+   🏥 HOSPITAL
+  </div>
+
+  <div class="building b4">
+   🏢 CORPORATE
+  </div>
+
+  <div class="building b5">
+   🏭 WAREHOUSE
+  </div>
+
+  <div class="building b6">
+   🌳 PARK
+  </div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🎒 WEBBOUND V154
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    🎒 ITEMS<br>
+    <span id="itemCount">0</span>
+   </div>
+
+   <div class="stat">
+    📦 SLOTS<br>
+    <span id="slotCount">0/20</span>
+   </div>
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cash">0</span>
+   </div>
+
+   <div class="stat">
+    ⭐ LEVEL<br>
+    <span id="level">1</span>
+   </div>
+
+  </div>
+
+  <div id="inventoryMini">
+
+   <b>LAST ITEM</b><br>
+
+   <span id="lastItem">
+    No items collected.
+   </span>
+
+   <div id="capacityBar">
+    <div id="capacityProgress"></div>
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V154.inventory()">
+   🎒 INVENTORY
+  </button>
+
+  <button onclick="V154.collectRandom()">
+   📦 COLLECT ITEM
+  </button>
+
+  <button onclick="V154.searchArea()">
+   🔎 SEARCH AREA
+  </button>
+
+  <button onclick="V154.useBestItem()">
+   ⚡ USE ITEM
+  </button>
+
+  <button onclick="V154.dropItem()">
+   🗑️ DROP ITEM
+  </button>
+
+  <button onclick="V154.expandCapacity()">
+   📦 EXPAND
+  </button>
+
+  <button onclick="V154.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V154.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V154={
+
+ saveKey:"WEBBOUND_V154",
+
+ maxSlots:20,
+
+ cash:0,
+
+ level:1,
+
+ lastItem:"No items collected.",
+
+ inventoryData:{},
+
+ items:[
+
+  {
+   id:"phone",
+   icon:"📱",
+   name:"Smart Phone",
+   category:"Technology",
+   value:250,
+   usable:true,
+   description:
+    "Useful communication device."
+  },
+
+  {
+   id:"flashlight",
+   icon:"🔦",
+   name:"Flashlight",
+   category:"Equipment",
+   value:80,
+   usable:true,
+   description:
+    "Helps investigate dark locations."
+  },
+
+  {
+   id:"medkit",
+   icon:"🩹",
+   name:"Medical Kit",
+   category:"Medical",
+   value:150,
+   usable:true,
+   description:
+    "Basic recovery equipment."
+  },
+
+  {
+   id:"camera",
+   icon:"📷",
+   name:"Investigation Camera",
+   category:"Equipment",
+   value:300,
+   usable:true,
+   description:
+    "Used for documenting evidence."
+  },
+
+  {
+   id:"document",
+   icon:"📄",
+   name:"Confidential Document",
+   category:"Evidence",
+   value:500,
+   usable:false,
+   description:
+    "A document that may contain important information."
+  },
+
+  {
+   id:"usb",
+   icon:"💾",
+   name:"Encrypted USB",
+   category:"Evidence",
+   value:650,
+   usable:false,
+   description:
+    "Encrypted digital evidence."
+  },
+
+  {
+   id:"key",
+   icon:"🔑",
+   name:"Unknown Key",
+   category:"Evidence",
+   value:350,
+   usable:false,
+   description:
+    "A mysterious key with unknown purpose."
+  },
+
+  {
+   id:"battery",
+   icon:"🔋",
+   name:"Battery Pack",
+   category:"Equipment",
+   value:100,
+   usable:true,
+   description:
+    "Portable power source."
+  },
+
+  {
+   id:"map",
+   icon:"🗺️",
+   name:"City Map",
+   category:"Information",
+   value:120,
+   usable:true,
+   description:
+    "Map containing useful locations."
+  },
+
+  {
+   id:"badge",
+   icon:"🎫",
+   name:"Access Badge",
+   category:"Access",
+   value:400,
+   usable:false,
+   description:
+    "May allow access to restricted locations."
+  }
+
+ ],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🎒 V154 inventory system ready"
+  );
+
+ },
+
+ /* =========================
+    TOTAL ITEMS
+ ========================= */
+
+ totalItems(){
+
+  return Object.values(
+   this.inventoryData
+  ).reduce(
+   (sum,value)=>
+    sum+value,
+   0
+  );
+
+ },
+
+ /* =========================
+    ADD ITEM
+ ========================= */
+
+ addItem(id,amount=1){
+
+  const item=
+   this.items.find(
+    x=>x.id===id
+   );
+
+  if(!item)
+   return false;
+
+  if(
+   this.totalItems()+
+   amount>
+   this.maxSlots
+  ){
+
+   this.notify(
+    "🎒 Inventory full!"
+   );
+
+   return false;
+
+  }
+
+  this.inventoryData[id]=
+   (this.inventoryData[id]||0)+
+   amount;
+
+  this.lastItem=
+   item.icon+
+   " "+
+   item.name+
+   " ×"+
+   amount;
+
+  this.update();
+
+  this.save();
+
+  return true;
+
+ },
+
+ /* =========================
+    RANDOM ITEM
+ ========================= */
+
+ collectRandom(){
+
+  const item=
+   this.items[
+    Math.floor(
+     Math.random()*
+     this.items.length
+    )
+   ];
+
+  if(
+   this.addItem(
+    item.id,
+    1
+   )
+  ){
+
+   this.notify(
+    item.icon+
+    " Found: "+
+    item.name
+   );
+
+  }
+
+ },
+
+ /* =========================
+    SEARCH
+ ========================= */
+
+ searchArea(){
+
+  const rolls=[
+   "nothing",
+   "nothing",
+   "item",
+   "item",
+   "item"
+  ];
+
+  const result=
+   rolls[
+    Math.floor(
+     Math.random()*
+     rolls.length
+    )
+   ];
+
+  if(result==="nothing"){
+
+   this.notify(
+    "🔎 You found nothing useful."
+   );
+
+   return;
+
+  }
+
+  this.collectRandom();
+
+ },
+
+ /* =========================
+    INVENTORY UI
+ ========================= */
+
+ inventory(){
+
+  let html=`
+
+   <div class="card">
+
+    🎒 Capacity:
+    <b>
+     ${this.totalItems()}/
+     ${this.maxSlots}
+    </b>
+
+    💰 Cash:
+    <b>
+     ₹${this.cash}
+    </b>
+
+   </div>
+
+   <div class="grid">
+
+  `;
+
+  this.items.forEach(
+   item=>{
+
+    const quantity=
+     this.inventoryData[
+      item.id
+     ]||0;
+
+    if(quantity<=0)
+     return;
+
+    html+=`
+
+     <div class="card">
+
+      <b>
+       ${item.icon}
+       ${item.name}
+      </b>
+
+      <span class="badge">
+       ${item.category}
+      </span>
+
+      <br><br>
+
+      Quantity:
+      <b>${quantity}</b>
+
+      Value:
+      ₹${item.value}
+
+      <br>
+
+      ${item.description}
+
+      ${
+       item.usable
+       ?`
+        <button
+         onclick=
+         "V154.useItem('${item.id}')">
+         ⚡ USE
+        </button>
+       `
+       :""
+      }
+
+      <button
+       onclick=
+       "V154.sellItem('${item.id}')">
+       💰 SELL
+      </button>
+
+     </div>
+
+    `;
+
+  });
+
+  if(
+   this.totalItems()===0
+  ){
+
+   html+=`
+
+    <div class="card">
+
+     🎒 Inventory is empty.
+
+     <br><br>
+
+     Use <b>COLLECT ITEM</b>
+     to find items.
+
+    </div>
+
+   `;
+
+  }
+
+  html+=`</div>`;
+
+  this.open(
+   "🎒 INVENTORY",
+   html
+  );
+
+ },
+
+ /* =========================
+    USE ITEM
+ ========================= */
+
+ useItem(id){
+
+  const item=
+   this.items.find(
+    x=>x.id===id
+   );
+
+  if(!item)
+   return;
+
+  const quantity=
+   this.inventoryData[id]||0;
+
+  if(quantity<=0){
+
+   this.notify(
+    "Item unavailable."
+   );
+
+   return;
+
+  }
+
+  if(!item.usable){
+
+   this.notify(
+    "🔒 This item cannot be used yet."
+   );
+
+   return;
+
+  }
+
+  this.inventoryData[id]--;
+
+  if(
+   this.inventoryData[id]<=0
+  )
+   delete this.inventoryData[id];
+
+  this.notify(
+   "⚡ Used "+
+   item.name
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    BEST ITEM
+ ========================= */
+
+ useBestItem(){
+
+  const usable=
+   this.items.filter(
+    item=>
+     item.usable &&
+     (this.inventoryData[item.id]||0)>0
+   );
+
+  if(usable.length===0){
+
+   this.notify(
+    "🎒 No usable items."
+   );
+
+   return;
+
+  }
+
+  usable.sort(
+   (a,b)=>
+    b.value-a.value
+  );
+
+  this.useItem(
+   usable[0].id
+  );
+
+ },
+
+ /* =========================
+    DROP ITEM
+ ========================= */
+
+ dropItem(){
+
+  const owned=
+   this.items.filter(
+    item=>
+     (this.inventoryData[item.id]||0)>0
+   );
+
+  if(owned.length===0){
+
+   this.notify(
+    "🎒 Nothing to drop."
+   );
+
+   return;
+
+  }
+
+  const item=
+   owned[
+    Math.floor(
+     Math.random()*
+     owned.length
+    )
+   ];
+
+  this.inventoryData[item.id]--;
+
+  if(
+   this.inventoryData[item.id]<=0
+  )
+   delete this.inventoryData[item.id];
+
+  this.notify(
+   "🗑️ Dropped "+
+   item.name
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    SELL
+ ========================= */
+
+ sellItem(id){
+
+  const item=
+   this.items.find(
+    x=>x.id===id
+   );
+
+  const quantity=
+   this.inventoryData[id]||0;
+
+  if(
+   !item||
+   quantity<=0
+  )
+   return;
+
+  const sale=
+   Math.floor(
+    item.value*.7
+   );
+
+  this.inventoryData[id]--;
+
+  if(
+   this.inventoryData[id]<=0
+  )
+   delete this.inventoryData[id];
+
+  this.cash+=sale;
+
+  this.notify(
+   "💰 Sold "+
+   item.name+
+   " for ₹"+
+   sale
+  );
+
+  this.update();
+
+  this.save();
+
+  this.inventory();
+
+ },
+
+ /* =========================
+    CAPACITY
+ ========================= */
+
+ expandCapacity(){
+
+  const cost=
+   this.maxSlots*100;
+
+  if(
+   this.cash<
+   cost
+  ){
+
+   this.notify(
+    "❌ Need ₹"+
+    cost+
+    " to expand."
+   );
+
+   return;
+
+  }
+
+  this.cash-=cost;
+
+  this.maxSlots+=5;
+
+  this.notify(
+   "📦 Capacity increased to "+
+   this.maxSlots
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    UPDATE HUD
+ ========================= */
+
+ update(){
+
+  const total=
+   this.totalItems();
+
+  document.getElementById(
+   "itemCount"
+  ).textContent=
+   total;
+
+  document.getElementById(
+   "slotCount"
+  ).textContent=
+   total+
+   "/"+
+   this.maxSlots;
+
+  document.getElementById(
+   "cash"
+  ).textContent=
+   this.cash;
+
+  document.getElementById(
+   "level"
+  ).textContent=
+   this.level;
+
+  document.getElementById(
+   "lastItem"
+  ).textContent=
+   this.lastItem;
+
+  document.getElementById(
+   "capacityProgress"
+  ).style.width=
+   Math.min(
+    100,
+    total/
+    this.maxSlots*
+    100
+   )+"%";
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    maxSlots:
+     this.maxSlots,
+
+    cash:
+     this.cash,
+
+    level:
+     this.level,
+
+    lastItem:
+     this.lastItem,
+
+    inventory:
+     this.inventoryData
+
+   })
+  );
+
+  localStorage.setItem(
+   "WEBBOUND_V150_CASH",
+   this.cash
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw){
+
+    const oldCash=
+     Number(
+      localStorage.getItem(
+       "WEBBOUND_V150_CASH"
+      )
+     );
+
+    if(Number.isFinite(oldCash))
+     this.cash=oldCash;
+
+    return;
+
+   }
+
+   const data=
+    JSON.parse(raw);
+
+   this.maxSlots=
+    Number.isFinite(
+     data.maxSlots
+    )
+    ?data.maxSlots
+    :20;
+
+   this.cash=
+    Number.isFinite(
+     data.cash
+    )
+    ?data.cash
+    :0;
+
+   this.level=
+    Number.isFinite(
+     data.level
+    )
+    ?data.level
+    :1;
+
+   this.lastItem=
+    data.lastItem||
+    "No items collected.";
+
+   this.inventoryData=
+    data.inventory||
+    {};
+
+  }
+  catch(error){
+
+   console.log(
+    "V154 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2200
+   );
+
+ }
+
+};
+
+V154.init();
+
+console.log(
+ "WEBBOUND V154 INVENTORY SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
