@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V94</title>
+
+<style>
+
+#v94Waypoint{
+
+  position:fixed;
+
+  left:50%;
+
+  top:15%;
+
+  transform:translateX(-50%);
+
+  z-index:9400;
+
+  display:none;
+
+  padding:10px 15px;
+
+  background:#05070ee8;
+
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:12px;
+
+  font:bold 12px Arial,sans-serif;
+
+  text-align:center;
+
+  min-width:170px;
+
+}
+
+#v94Arrow{
+
+  font-size:24px;
+
+  line-height:25px;
+
+}
+
+#v94Distance{
+
+  margin-top:3px;
+
+  opacity:.75;
+
+}
+
+#v94Message{
+
+  position:fixed;
+
+  left:50%;
+
+  top:25%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  display:none;
+
+  padding:10px 15px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+#v94Controls{
+
+  position:fixed;
+
+  right:12px;
+
+  bottom:18px;
+
+  z-index:9401;
+
+  display:flex;
+
+  gap:5px;
+
+  flex-direction:column;
+
+}
+
+#v94Controls button{
+
+  padding:8px 10px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+
+  font-size:11px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V94 WAYPOINT HUD
+     ========================================================= -->
+
+<div id="v94Waypoint">
+
+  <div id="v94Arrow">
+    📍
+  </div>
+
+  <div id="v94Target">
+    Mission Target
+  </div>
+
+  <div id="v94Distance">
+    0 m
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v94Controls">
+
+  <button onclick="V94.toggle()">
+    📍 WAYPOINT
+  </button>
+
+  <button onclick="V94.clearWaypoint()">
+    ❌ CLEAR
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v94Message">
+  V94
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V94
+   MISSION WAYPOINT SYSTEM
+   ========================================================= */
+
+const V94 = {
+
+  version:"V94",
+
+  saveKey:
+    "WEBBOUND_V94_WAYPOINT",
+
+  enabled:true,
+
+  waypoint:null,
+
+  active:false,
+
+  arrivalDistance:3,
+
+  updateRate:100,
+
+  lastUpdate:0,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V94 WAYPOINT SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     PLAYER POSITION
+     ======================================================= */
+
+  getPlayerPosition(){
+
+    try{
+
+      if(
+        typeof player!=="undefined" &&
+        player &&
+        player.position
+      ){
+
+        return{
+
+          x:
+            Number(
+              player.position.x
+            ) || 0,
+
+          y:
+            Number(
+              player.position.y
+            ) || 0,
+
+          z:
+            Number(
+              player.position.z
+            ) || 0
+
+        };
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V94 PLAYER ERROR:",
+        error
+      );
+
+    }
+
+
+    return{
+
+      x:0,
+      y:0,
+      z:0
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SET WAYPOINT
+     ======================================================= */
+
+  setWaypoint(
+    x,
+    y,
+    z,
+    title="Mission Target"
+  ){
+
+    const px=
+      Number(x);
+
+    const py=
+      Number(y);
+
+    const pz=
+      Number(z);
+
+
+    if(
+      !Number.isFinite(px) ||
+      !Number.isFinite(py) ||
+      !Number.isFinite(pz)
+    ){
+
+      this.message(
+        "❌ Invalid waypoint"
+      );
+
+      return false;
+
+    }
+
+
+    this.waypoint={
+
+      x:px,
+
+      y:py,
+
+      z:pz,
+
+      title:
+        String(
+          title ||
+          "Mission Target"
+        )
+
+    };
+
+
+    this.active=true;
+
+    this.save();
+
+    this.updateHUD();
+
+
+    this.message(
+      "📍 Waypoint set"
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     CLEAR WAYPOINT
+     ======================================================= */
+
+  clearWaypoint(){
+
+    this.waypoint=null;
+
+    this.active=false;
+
+    this.save();
+
+    this.updateHUD();
+
+    this.message(
+      "📍 Waypoint cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    if(!this.waypoint){
+
+      this.message(
+        "No waypoint available"
+      );
+
+      return;
+
+    }
+
+
+    this.enabled=
+      !this.enabled;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+
+      this.enabled
+      ? "📍 Waypoint ON"
+      : "📍 Waypoint OFF"
+
+    );
+
+  },
+
+
+  /* =======================================================
+     DISTANCE
+     ======================================================= */
+
+  getDistance(){
+
+    if(!this.waypoint){
+
+      return Infinity;
+
+    }
+
+
+    const playerPos=
+      this.getPlayerPosition();
+
+
+    const dx=
+      this.waypoint.x-
+      playerPos.x;
+
+    const dy=
+      this.waypoint.y-
+      playerPos.y;
+
+    const dz=
+      this.waypoint.z-
+      playerPos.z;
+
+
+    return Math.sqrt(
+      dx*dx+
+      dy*dy+
+      dz*dz
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const box=
+      document.getElementById(
+        "v94Waypoint"
+      );
+
+    const target=
+      document.getElementById(
+        "v94Target"
+      );
+
+    const distance=
+      document.getElementById(
+        "v94Distance"
+      );
+
+
+    if(
+      !box ||
+      !target ||
+      !distance
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      !this.enabled ||
+      !this.active ||
+      !this.waypoint
+    ){
+
+      box.style.display=
+        "none";
+
+      return;
+
+    }
+
+
+    box.style.display=
+      "block";
+
+
+    target.textContent=
+      this.waypoint.title;
+
+
+    const meters=
+      this.getDistance();
+
+
+    if(
+      !Number.isFinite(meters)
+    ){
+
+      distance.textContent=
+        "--";
+
+      return;
+
+    }
+
+
+    distance.textContent=
+      Math.round(meters)+
+      " m";
+
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const now=
+      performance.now();
+
+
+    if(
+      now-
+      this.lastUpdate<
+      this.updateRate
+    ){
+
+      return;
+
+    }
+
+
+    this.lastUpdate=
+      now;
+
+
+    if(
+      !this.enabled ||
+      !this.active ||
+      !this.waypoint
+    ){
+
+      return;
+
+    }
+
+
+    const distance=
+      this.getDistance();
+
+
+    this.updateHUD();
+
+
+    if(
+      distance<=
+      this.arrivalDistance
+    ){
+
+      this.onArrival();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ARRIVAL
+     ======================================================= */
+
+  onArrival(){
+
+    if(
+      !this.active
+    ){
+
+      return;
+
+    }
+
+
+    const title=
+      this.waypoint
+      ? this.waypoint.title
+      : "Target";
+
+
+    this.message(
+      "✅ Reached: "+
+      title
+    );
+
+
+    /*
+      Notify the mission system.
+    */
+
+    if(
+      typeof V93!=="undefined" &&
+      typeof V93.updateObjective===
+      "function"
+    ){
+
+      const mission=
+        typeof V93.getActiveMission===
+        "function"
+        ? V93.getActiveMission()
+        : null;
+
+
+      if(mission){
+
+        const objective=
+          mission.objectives.find(
+            item=>
+              !item.completed
+          );
+
+
+        if(objective){
+
+          V93.updateObjective(
+
+            mission.id,
+
+            objective.id,
+
+            1
+
+          );
+
+        }
+
+      }
+
+    }
+
+
+    this.clearWaypoint();
+
+  },
+
+
+  /* =======================================================
+     AUTO LINK TO V93
+     ======================================================= */
+
+  syncMission(){
+
+    if(
+      typeof V93==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      typeof V93.getActiveMission!=="function"
+    ){
+
+      return;
+
+    }
+
+
+    const mission=
+      V93.getActiveMission();
+
+
+    if(!mission){
+
+      return;
+
+    }
+
+
+    /*
+      If V93 later provides a target
+      position, automatically use it.
+    */
+
+    if(
+      mission.target &&
+      Number.isFinite(
+        Number(mission.target.x)
+      ) &&
+      Number.isFinite(
+        Number(mission.target.y)
+      ) &&
+      Number.isFinite(
+        Number(mission.target.z)
+      )
+    ){
+
+      this.setWaypoint(
+
+        mission.target.x,
+
+        mission.target.y,
+
+        mission.target.z,
+
+        mission.title
+
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v94Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        enabled:this.enabled,
+
+        active:this.active,
+
+        waypoint:this.waypoint
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V94 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.enabled===
+        "boolean"
+      ){
+
+        this.enabled=
+          data.enabled;
+
+      }
+
+
+      if(
+        typeof data.active===
+        "boolean"
+      ){
+
+        this.active=
+          data.active;
+
+      }
+
+
+      if(
+        data.waypoint &&
+        Number.isFinite(
+          Number(data.waypoint.x)
+        ) &&
+        Number.isFinite(
+          Number(data.waypoint.y)
+        ) &&
+        Number.isFinite(
+          Number(data.waypoint.z)
+        )
+      ){
+
+        this.waypoint={
+
+          x:
+            Number(
+              data.waypoint.x
+            ),
+
+          y:
+            Number(
+              data.waypoint.y
+            ),
+
+          z:
+            Number(
+              data.waypoint.z
+            ),
+
+          title:
+            String(
+              data.waypoint.title ||
+              "Mission Target"
+            )
+
+        };
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V94 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      enabled:this.enabled,
+
+      active:this.active,
+
+      waypoint:this.waypoint
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.enabled===
+      "boolean"
+    ){
+
+      this.enabled=
+        data.enabled;
+
+    }
+
+
+    if(
+      typeof data.active===
+      "boolean"
+    ){
+
+      this.active=
+        data.active;
+
+    }
+
+
+    if(
+      data.waypoint
+    ){
+
+      this.waypoint={
+
+        x:
+          Number(
+            data.waypoint.x
+          ) || 0,
+
+        y:
+          Number(
+            data.waypoint.y
+          ) || 0,
+
+        z:
+          Number(
+            data.waypoint.z
+          ) || 0,
+
+        title:
+          String(
+            data.waypoint.title ||
+            "Mission Target"
+          )
+
+      };
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     V93 COMPATIBILITY
+     ======================================================= */
+
+  installV93Compatibility(){
+
+    if(
+      typeof V93==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V93.__v94CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    V93.__v94CompatibilityInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    const loop=()=>{
+
+      this.update();
+
+      this.syncMission();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      G = toggle waypoint
+    */
+
+    if(
+      event.code==="KeyG"
+    ){
+
+      V94.toggle();
+
+    }
+
+
+    /*
+      X = clear waypoint
+    */
+
+    if(
+      event.code==="KeyX"
+    ){
+
+      V94.clearWaypoint();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V94.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V94.init();
+
+V94.installV93Compatibility();
+
+V94.start();
+
+
+/* =========================================================
+   EXAMPLE API
+
+   V94.setWaypoint(
+     100,
+     0,
+     -50,
+     "Mission Location"
+   );
+
+
+   V94.clearWaypoint();
+
+
+   V94.toggle();
+
+
+   ========================================================= */
+
+console.log(
+  "WEBBOUND V94 WAYPOINT SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
