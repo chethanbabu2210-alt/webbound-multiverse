@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V198 — BANKING</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{
+margin:0;width:100%;height:100%;overflow:hidden;
+font-family:Arial,sans-serif;background:#05090d;color:#fff
+}
+#game{
+position:fixed;inset:0;overflow:hidden;
+background:linear-gradient(#779ba7,#111b21)
+}
+#sky{
+position:absolute;inset:0;
+background:linear-gradient(#85afbd,#c1d0d3)
+}
+.road{position:absolute;background:#272d31}
+.rh{left:0;right:0;top:57%;height:75px}
+.rv{top:0;bottom:0;left:67%;width:75px}
+.line{position:absolute;background:#d7c86e;opacity:.45}
+.lineH{left:0;right:0;top:calc(57% + 36px);height:2px}
+.lineV{top:0;bottom:0;left:calc(67% + 36px);width:2px}
+
+.building{
+position:absolute;display:flex;align-items:center;
+justify-content:center;text-align:center;
+background:#172831;border:1px solid #ffffff18;
+border-radius:9px;color:#83949c;font-size:10px
+}
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:15%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+position:absolute;left:50%;top:53%;
+width:29px;height:41px;border-radius:10px 10px 5px 5px;
+background:#2c91da;z-index:50
+}
+#player:before{
+content:"";position:absolute;left:5.5px;top:-14px;
+width:18px;height:18px;border-radius:50%;
+background:#bd8967
+}
+
+#hud{
+position:fixed;left:10px;top:10px;
+width:min(980px,94vw);padding:12px;
+background:#03070cee;border:1px solid #ffffff25;
+border-radius:13px;z-index:500
+}
+.title{font-size:13px;font-weight:bold}
+.stats{
+display:grid;grid-template-columns:repeat(6,1fr);
+gap:5px;margin-top:8px
+}
+.stat{
+padding:7px 4px;background:#101b23;
+border-radius:7px;text-align:center;font-size:9px
+}
+#bankHud{
+margin-top:8px;padding:9px;background:#111d25;
+border-radius:8px;font-size:9px;line-height:1.8
+}
+.bar{
+height:7px;background:#ffffff12;
+border-radius:7px;overflow:hidden;margin-top:4px
+}
+.fill{
+height:100%;width:0%;
+background:#8fb8df;transition:.3s
+}
+
+#controls{
+position:fixed;left:50%;bottom:10px;
+transform:translateX(-50%);
+width:min(980px,96vw);
+display:flex;flex-wrap:wrap;gap:6px;z-index:500
+}
+button{
+flex:1;min-width:105px;padding:10px;
+background:#142733;border:1px solid #ffffff22;
+border-radius:8px;color:#fff;font-size:10px;cursor:pointer
+}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+
+#panel{
+position:fixed;inset:0;display:none;
+align-items:center;justify-content:center;
+background:#000c;z-index:1000
+}
+.box{
+width:min(830px,94vw);max-height:84vh;
+overflow:auto;padding:17px;background:#050b10;
+border:1px solid #ffffff28;border-radius:15px
+}
+.card{
+padding:11px;background:#111d25;
+border-radius:9px;margin-bottom:7px;
+font-size:10px;line-height:1.7
+}
+.card button{width:100%;margin-top:8px}
+
+#notification{
+position:fixed;left:50%;top:20%;
+transform:translateX(-50%);
+padding:10px 15px;background:#03070cf5;
+border:1px solid #ffffff25;border-radius:9px;
+display:none;z-index:1500;font-size:10px;
+text-align:center
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="sky"></div>
+<div class="road rh"></div>
+<div class="road rv"></div>
+<div class="line lineH"></div>
+<div class="line lineV"></div>
+
+<div class="building b1">🏠 RESIDENTIAL</div>
+<div class="building b2">🏢 BUSINESS DISTRICT</div>
+<div class="building b3">🏦 BANKING AREA</div>
+<div class="building b4">🏙️ FINANCIAL DISTRICT</div>
+<div class="building b5">📊 INVESTMENT ZONE</div>
+<div class="building b6">💳 BANK CENTER</div>
+
+<div id="player"></div>
+
+<div id="hud">
+
+<div class="title">
+🏦 WEBBOUND V198 — BANKING & FINANCE
+</div>
+
+<div class="stats">
+
+<div class="stat">
+💰 CASH<br>
+₹<span id="cashText">5000</span>
+</div>
+
+<div class="stat">
+🏦 SAVINGS<br>
+₹<span id="savingsText">0</span>
+</div>
+
+<div class="stat">
+💳 DEBT<br>
+₹<span id="debtText">0</span>
+</div>
+
+<div class="stat">
+📈 INTEREST<br>
+₹<span id="interestText">0</span>
+</div>
+
+<div class="stat">
+🔄 TRANSACTIONS<br>
+<span id="transactionText">0</span>
+</div>
+
+<div class="stat">
+⭐ CREDIT<br>
+<span id="creditText">500</span>
+</div>
+
+</div>
+
+<div id="bankHud">
+
+<b>🏦 ACTIVE BANK ACCOUNT</b><br>
+
+Account:
+<span id="accountName">Personal Savings</span><br>
+
+Savings Balance:
+₹<span id="activeSavings">0</span><br>
+
+Loan Balance:
+₹<span id="activeLoan">0</span><br>
+
+Interest Earned:
+₹<span id="activeInterest">0</span><br>
+
+Credit Score:
+<span id="activeCredit">500</span>
+
+<div class="bar">
+<div id="bankFill" class="fill"></div>
+</div>
+
+</div>
+
+</div>
+
+<div id="notification"></div>
+
+<div id="controls">
+
+<button onclick="V198.deposit()">
+🏦 DEPOSIT
+</button>
+
+<button onclick="V198.withdraw()">
+💸 WITHDRAW
+</button>
+
+<button onclick="V198.interest()">
+📈 INTEREST
+</button>
+
+<button onclick="V198.loan()">
+💳 TAKE LOAN
+</button>
+
+<button onclick="V198.repay()">
+💵 REPAY LOAN
+</button>
+
+<button onclick="V198.bank()">
+📊 BANK DASHBOARD
+</button>
+
+<button onclick="V198.transactions()">
+🔄 TRANSACTIONS
+</button>
+
+<button onclick="V198.save()">
+💾 SAVE
+</button>
+
+</div>
+
+<div id="panel">
+
+<div class="box">
+
+<h2 id="panelTitle">
+WEBBOUND V198
+</h2>
+
+<div id="panelContent"></div>
+
+<button onclick="V198.close()">
+CLOSE
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const V198={
+
+saveKey:"WEBBOUND_V198",
+
+cash:5000,
+
+savings:0,
+
+loan:0,
+
+interestEarned:0,
+
+transactions:0,
+
+credit:500,
+
+transactionHistory:[],
+
+deposit(){
+
+const amount=this.askAmount(
+"Enter deposit amount:"
+);
+
+if(!amount)return;
+
+if(amount>this.cash){
+
+this.notify(
+"❌ Not enough cash."
+);
+
+return;
+}
+
+this.cash-=amount;
+this.savings+=amount;
+
+this.record(
+"Deposit",
+amount
+);
+
+this.credit=Math.min(
+850,
+this.credit+2
+);
+
+this.update();
+this.save();
+
+this.notify(
+"🏦 Deposited ₹"+
+amount.toLocaleString()
+);
+
+},
+
+withdraw(){
+
+const amount=this.askAmount(
+"Enter withdrawal amount:"
+);
+
+if(!amount)return;
+
+if(amount>this.savings){
+
+this.notify(
+"❌ Insufficient savings."
+);
+
+return;
+}
+
+this.savings-=amount;
+this.cash+=amount;
+
+this.record(
+"Withdrawal",
+amount
+);
+
+this.credit=Math.max(
+300,
+this.credit-1
+);
+
+this.update();
+this.save();
+
+this.notify(
+"💸 Withdrawn ₹"+
+amount.toLocaleString()
+);
+
+},
+
+interest(){
+
+if(this.savings<=0){
+
+this.notify(
+"🏦 No savings available for interest."
+);
+
+return;
+}
+
+const amount=Math.floor(
+this.savings*0.02
+);
+
+this.savings+=amount;
+this.interestEarned+=amount;
+
+this.record(
+"Interest",
+amount
+);
+
+this.credit=Math.min(
+850,
+this.credit+3
+);
+
+this.update();
+this.save();
+
+this.notify(
+"📈 Interest added: ₹"+
+amount.toLocaleString()
+);
+
+},
+
+loan(){
+
+if(this.loan>0){
+
+this.notify(
+"💳 Repay your current loan first."
+);
+
+return;
+}
+
+const maxLoan=Math.max(
+10000,
+Math.floor(
+this.credit*100
+)
+);
+
+const amount=this.askAmount(
+"Maximum loan: ₹"+
+maxLoan.toLocaleString()+
+"\nEnter loan amount:"
+);
+
+if(!amount)return;
+
+if(amount>maxLoan){
+
+this.notify(
+"❌ Amount exceeds your credit limit."
+);
+
+return;
+}
+
+this.loan=amount;
+this.cash+=amount;
+
+this.record(
+"Loan received",
+amount
+);
+
+this.credit=Math.max(
+300,
+this.credit-20
+);
+
+this.update();
+this.save();
+
+this.notify(
+"💳 Loan received: ₹"+
+amount.toLocaleString()
+);
+
+},
+
+repay(){
+
+if(this.loan<=0){
+
+this.notify(
+"✅ You have no active loan."
+);
+
+return;
+}
+
+const interest=Math.ceil(
+this.loan*0.05
+);
+
+const total=this.loan+interest;
+
+const amount=this.askAmount(
+"Loan: ₹"+
+this.loan.toLocaleString()+
+"\nRepayment including interest: ₹"+
+total.toLocaleString()+
+"\nEnter repayment amount:"
+);
+
+if(!amount)return;
+
+if(amount>this.cash){
+
+this.notify(
+"❌ Not enough cash."
+);
+
+return;
+}
+
+const paid=Math.min(
+amount,
+total
+);
+
+this.cash-=paid;
+
+if(paid>=total){
+
+this.loan=0;
+
+this.credit=Math.min(
+850,
+this.credit+35
+);
+
+this.record(
+"Loan fully repaid",
+paid
+);
+
+this.notify(
+"🎉 Loan fully repaid!"
+);
+
+}else{
+
+this.loan=Math.max(
+0,
+this.loan-(paid-interest)
+);
+
+this.credit=Math.min(
+850,
+this.credit+8
+);
+
+this.record(
+"Loan repayment",
+paid
+);
+
+this.notify(
+"💵 Loan payment made."
+);
+
+}
+
+this.update();
+this.save();
+
+},
+
+bank(){
+
+const html=`
+
+<div class="card">
+
+<b>🏦 FINANCIAL SUMMARY</b>
+
+<br><br>
+
+💰 Cash:
+₹${this.cash.toLocaleString()}
+
+<br>
+
+🏦 Savings:
+₹${this.savings.toLocaleString()}
+
+<br>
+
+💳 Outstanding Loan:
+₹${this.loan.toLocaleString()}
+
+<br>
+
+📈 Total Interest:
+₹${this.interestEarned.toLocaleString()}
+
+<br>
+
+🔄 Transactions:
+${this.transactions}
+
+<br>
+
+⭐ Credit Score:
+${this.credit}
+
+<br><br>
+
+<b>Net Worth:</b>
+₹${(
+this.cash+
+this.savings-
+this.loan
+).toLocaleString()}
+
+</div>
+
+<div class="card">
+
+<b>📈 SAVINGS RATE</b>
+
+<br><br>
+
+Current interest:
+2% per interest cycle.
+
+<br>
+
+Higher savings create larger interest returns.
+
+</div>
+
+<div class="card">
+
+<b>💳 CREDIT PROFILE</b>
+
+<br><br>
+
+300–499: Poor<br>
+500–649: Fair<br>
+650–749: Good<br>
+750–850: Excellent
+
+</div>
+
+`;
+
+this.open(
+"📊 BANK DASHBOARD",
+html
+);
+
+},
+
+transactions(){
+
+let html="";
+
+if(this.transactionHistory.length===0){
+
+html=`
+<div class="card">
+No transactions yet.
+</div>
+`;
+
+}else{
+
+[...this.transactionHistory]
+.reverse()
+.forEach(t=>{
+
+html+=`
+
+<div class="card">
+
+<b>${t.type}</b><br>
+
+Amount:
+₹${t.amount.toLocaleString()}<br>
+
+Transaction #${t.id}
+
+</div>
+
+`;
+
+});
+
+}
+
+this.open(
+"🔄 TRANSACTION HISTORY",
+html
+);
+
+},
+
+record(type,amount){
+
+this.transactions++;
+
+this.transactionHistory.push({
+id:this.transactions,
+type,
+amount
+});
+
+if(
+this.transactionHistory.length>50
+){
+
+this.transactionHistory.shift();
+
+}
+
+},
+
+askAmount(message){
+
+const value=prompt(message);
+
+if(value===null)return 0;
+
+const amount=Math.floor(
+Number(value)
+);
+
+if(!Number.isFinite(amount)||
+amount<=0){
+
+this.notify(
+"❌ Enter a valid amount."
+);
+
+return 0;
+}
+
+return amount;
+},
+
+update(){
+
+document.getElementById(
+"cashText"
+).textContent=
+this.cash.toLocaleString();
+
+document.getElementById(
+"savingsText"
+).textContent=
+this.savings.toLocaleString();
+
+document.getElementById(
+"debtText"
+).textContent=
+this.loan.toLocaleString();
+
+document.getElementById(
+"interestText"
+).textContent=
+this.interestEarned.toLocaleString();
+
+document.getElementById(
+"transactionText"
+).textContent=
+this.transactions;
+
+document.getElementById(
+"creditText"
+).textContent=
+this.credit;
+
+document.getElementById(
+"activeSavings"
+).textContent=
+this.savings.toLocaleString();
+
+document.getElementById(
+"activeLoan"
+).textContent=
+this.loan.toLocaleString();
+
+document.getElementById(
+"activeInterest"
+).textContent=
+this.interestEarned.toLocaleString();
+
+document.getElementById(
+"activeCredit"
+).textContent=
+this.credit;
+
+document.getElementById(
+"bankFill"
+).style.width=
+Math.min(
+100,
+this.credit/850*100
+)+"%";
+
+},
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+
+cash:this.cash,
+savings:this.savings,
+loan:this.loan,
+interestEarned:this.interestEarned,
+transactions:this.transactions,
+credit:this.credit,
+transactionHistory:this.transactionHistory
+
+})
+);
+
+},
+
+load(){
+
+try{
+
+const raw=
+localStorage.getItem(
+this.saveKey
+);
+
+if(!raw)return;
+
+const d=JSON.parse(raw);
+
+if(Number.isFinite(d.cash))
+this.cash=Math.max(0,d.cash);
+
+if(Number.isFinite(d.savings))
+this.savings=Math.max(0,d.savings);
+
+if(Number.isFinite(d.loan))
+this.loan=Math.max(0,d.loan);
+
+if(Number.isFinite(d.interestEarned))
+this.interestEarned=
+Math.max(0,d.interestEarned);
+
+if(Number.isFinite(d.transactions))
+this.transactions=
+Math.max(0,d.transactions);
+
+if(Number.isFinite(d.credit))
+this.credit=
+Math.min(850,Math.max(300,d.credit));
+
+if(Array.isArray(d.transactionHistory))
+this.transactionHistory=
+d.transactionHistory;
+
+}catch(e){
+
+console.log(
+"V198 load error:",
+e
+);
+
+}
+
+},
+
+open(title,content){
+
+document.getElementById(
+"panelTitle"
+).textContent=title;
+
+document.getElementById(
+"panelContent"
+).innerHTML=
+content;
+
+document.getElementById(
+"panel"
+).style.display="flex";
+
+},
+
+close(){
+
+document.getElementById(
+"panel"
+).style.display="none";
+
+},
+
+notify(text){
+
+const el=
+document.getElementById(
+"notification"
+);
+
+el.textContent=text;
+
+el.style.display="block";
+
+clearTimeout(this.timer);
+
+this.timer=setTimeout(
+()=>{
+el.style.display="none";
+},
+2400
+);
+
+}
+
+};
+
+V198.load();
+V198.update();
+
+V198.notify(
+"🏦 V198 Banking System ready"
+);
+
+console.log(
+"WEBBOUND V198 BANKING SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
