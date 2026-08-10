@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V128</title>
+
+<style>
+
+#v128NPCs{
+  position:fixed;
+  inset:0;
+  z-index:15300;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.v128NPC{
+  position:absolute;
+  width:15px;
+  height:23px;
+  border-radius:8px 8px 4px 4px;
+  background:#666;
+  box-shadow:0 2px 6px #0008;
+  transform-origin:center bottom;
+}
+
+.v128NPC.idle{
+  filter:brightness(.85);
+}
+
+.v128NPC.talking{
+  filter:brightness(1.5);
+}
+
+.v128Head{
+  position:absolute;
+  width:10px;
+  height:10px;
+  left:2.5px;
+  top:-8px;
+  border-radius:50%;
+  background:#c49a78;
+}
+
+.v128Name{
+  position:absolute;
+  left:50%;
+  bottom:26px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font:7px Arial,sans-serif;
+  color:white;
+  text-shadow:0 1px 3px #000;
+}
+
+.v128Type{
+  position:absolute;
+  left:50%;
+  bottom:37px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font:6px Arial,sans-serif;
+  color:#fff;
+  opacity:.65;
+}
+
+.v128Bubble{
+  position:absolute;
+  left:50%;
+  bottom:38px;
+  transform:translateX(-50%);
+  padding:3px 5px;
+  background:#05070eef;
+  border-radius:5px;
+  font:8px Arial,sans-serif;
+  color:white;
+  white-space:nowrap;
+  display:none;
+}
+
+.v128NPC.talking .v128Bubble{
+  display:block;
+}
+
+#v128HUD{
+  position:fixed;
+  left:12px;
+  bottom:14px;
+  z-index:19500;
+  width:min(315px,76vw);
+  padding:14px;
+  background:#05070eee;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+}
+
+#v128Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v128Info{
+  margin-top:9px;
+  font-size:10px;
+  line-height:1.7;
+  opacity:.85;
+}
+
+#v128Controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:10px;
+}
+
+#v128Controls button{
+  flex:1;
+  min-width:80px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v128Message{
+  position:fixed;
+  left:50%;
+  top:22%;
+  transform:translateX(-50%);
+  z-index:20000;
+  display:none;
+  max-width:88%;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 11px Arial,sans-serif;
+  text-align:center;
+}
+
+#v128Clock{
+  position:fixed;
+  top:12px;
+  right:12px;
+  z-index:19500;
+  padding:8px 11px;
+  background:#05070eee;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:10px;
+  font:11px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="v128NPCs"></div>
+
+<div id="v128Clock">
+  🕐 08:00
+</div>
+
+<div id="v128HUD">
+
+  <div id="v128Title">
+    🏙️ NPC DAILY ROUTINE SYSTEM
+  </div>
+
+  <div id="v128Info">
+    NPCs: 0<br>
+    Walking: 0<br>
+    Idle: 0<br>
+    Talking: 0<br>
+    Time: 08:00
+  </div>
+
+  <div id="v128Controls">
+
+    <button onclick="V128.spawnNPC()">
+      🚶 SPAWN
+    </button>
+
+    <button onclick="V128.spawnNPCs(5)">
+      👥 +5
+    </button>
+
+    <button onclick="V128.advanceTime(1)">
+      ⏩ +1 HOUR
+    </button>
+
+    <button onclick="V128.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+    <button onclick="V128.clearNPCs()">
+      🗑️ CLEAR
+    </button>
+
+  </div>
+
+</div>
+
+<div id="v128Message">
+  V128
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V128
+   NPC DAILY ROUTINE SYSTEM
+   ========================================================= */
+
+const V128 = {
+
+  version:"V128",
+
+  saveKey:
+    "WEBBOUND_V128_DAILY_ROUTINES",
+
+  npcs:[],
+
+  running:true,
+
+  nextId:1,
+
+  timer:null,
+
+  saveTimer:null,
+
+  messageTimer:null,
+
+  interactionCount:0,
+
+  gameHour:8,
+
+  gameMinute:0,
+
+  timeSpeed:1,
+
+  maxNPCs:35,
+
+  interactionDistance:55,
+
+  lastInteraction:0,
+
+  interactionCooldown:4500,
+
+  spawnDelay:2400,
+
+  lastSpawn:0,
+
+
+  /* =======================================================
+     NPC TYPES
+     ======================================================= */
+
+  types:[
+
+    {
+      name:"Student",
+      color:"#3f638c",
+      speed:.55,
+      routine:[
+        [6,8,"home"],
+        [8,14,"school"],
+        [14,16,"park"],
+        [16,19,"home"],
+        [19,22,"park"],
+        [22,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Worker",
+      color:"#6b5742",
+      speed:.48,
+      routine:[
+        [6,9,"home"],
+        [9,17,"work"],
+        [17,19,"shop"],
+        [19,22,"home"],
+        [22,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Shopkeeper",
+      color:"#5b426b",
+      speed:.38,
+      routine:[
+        [6,9,"home"],
+        [9,20,"shop"],
+        [20,22,"home"],
+        [22,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Jogger",
+      color:"#426b55",
+      speed:.72,
+      routine:[
+        [6,9,"park"],
+        [9,17,"home"],
+        [17,21,"park"],
+        [21,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Tourist",
+      color:"#7b6540",
+      speed:.43,
+      routine:[
+        [6,10,"hotel"],
+        [10,18,"park"],
+        [18,21,"shop"],
+        [21,24,"hotel"],
+        [0,6,"hotel"]
+      ]
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.renderAll();
+
+    this.updateHUD();
+
+    this.start();
+
+    if(
+      this.npcs.length===0
+    ){
+
+      this.spawnNPCs(10);
+
+    }
+
+    console.log(
+      "WEBBOUND V128 DAILY ROUTINE SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          this.update();
+
+        },
+        50
+      );
+
+
+    clearInterval(
+      this.saveTimer
+    );
+
+    this.saveTimer=
+      setInterval(
+        ()=>{
+
+          this.save();
+
+        },
+        30000
+      );
+
+  },
+
+
+  /* =======================================================
+     RANDOM TYPE
+     ======================================================= */
+
+  randomType(){
+
+    return this.types[
+      Math.floor(
+        Math.random()*
+        this.types.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     RANDOM NAME
+     ======================================================= */
+
+  randomName(){
+
+    const names=[
+      "Alex",
+      "Sam",
+      "Ryan",
+      "Maya",
+      "Arun",
+      "Riya",
+      "Dev",
+      "Asha",
+      "Noah",
+      "Leo",
+      "Avi",
+      "Zara",
+      "Kiran",
+      "Nikhil",
+      "Anu"
+    ];
+
+    return names[
+      Math.floor(
+        Math.random()*
+        names.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     SPAWN
+     ======================================================= */
+
+  spawnNPC(silent=false){
+
+    if(
+      this.npcs.length>=
+      this.maxNPCs
+    ){
+
+      if(!silent){
+
+        this.message(
+          "⚠️ NPC limit reached"
+        );
+
+      }
+
+      return null;
+
+    }
+
+
+    const type=
+      this.randomType();
+
+
+    const npc={
+
+      id:
+        this.nextId++,
+
+      name:
+        this.randomName(),
+
+      type:
+        type.name,
+
+      color:
+        type.color,
+
+      speed:
+        type.speed,
+
+      routine:
+        type.routine,
+
+      x:
+        50+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerWidth-100
+        ),
+
+      y:
+        180+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerHeight-260
+        ),
+
+      direction:
+        Math.random()<.5
+        ? 1
+        : -1,
+
+      state:"walking",
+
+      destination:"home",
+
+      targetX:null,
+
+      targetY:null,
+
+      idleUntil:0,
+
+      talkingUntil:0,
+
+      cooldownUntil:0,
+
+      interactionWith:null,
+
+      element:null
+
+    };
+
+
+    this.setDestination(
+      npc,
+      true
+    );
+
+
+    this.npcs.push(
+      npc
+    );
+
+
+    this.createElement(
+      npc
+    );
+
+
+    if(!silent){
+
+      this.message(
+        "🚶 "+
+        npc.name+
+        " ("+
+        npc.type+
+        ") joined the city"
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    return npc;
+
+  },
+
+
+  /* =======================================================
+     SPAWN MULTIPLE
+     ======================================================= */
+
+  spawnNPCs(count){
+
+    for(
+      let i=0;
+      i<count;
+      i++
+    ){
+
+      this.spawnNPC(
+        true
+      );
+
+    }
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     GET CURRENT ROUTINE
+     ======================================================= */
+
+  getRoutine(npc){
+
+    const hour=
+      this.gameHour;
+
+
+    for(
+      const item of npc.routine
+    ){
+
+      const start=
+        item[0];
+
+      const end=
+        item[1];
+
+      if(
+        start<=hour &&
+        hour<end
+      ){
+
+        return item[2];
+
+      }
+
+    }
+
+
+    return "home";
+
+  },
+
+
+  /* =======================================================
+     DESTINATION
+     ======================================================= */
+
+  getDestinationPoint(place){
+
+    const w=
+      window.innerWidth;
+
+    const h=
+      window.innerHeight;
+
+
+    const points={
+
+      home:{
+        x:w*.12,
+        y:h*.55
+      },
+
+      school:{
+        x:w*.35,
+        y:h*.35
+      },
+
+      work:{
+        x:w*.62,
+        y:h*.32
+      },
+
+      shop:{
+        x:w*.78,
+        y:h*.55
+      },
+
+      park:{
+        x:w*.45,
+        y:h*.72
+      },
+
+      hotel:{
+        x:w*.82,
+        y:h*.25
+      }
+
+    };
+
+
+    const point=
+      points[place]||
+      points.home;
+
+
+    return{
+
+      x:
+        point.x+
+        (Math.random()*
+        100-50),
+
+      y:
+        point.y+
+        (Math.random()*
+        70-35)
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SET DESTINATION
+     ======================================================= */
+
+  setDestination(
+    npc,
+    initial=false
+  ){
+
+    const destination=
+      this.getRoutine(
+        npc
+      );
+
+
+    npc.destination=
+      destination;
+
+
+    const point=
+      this.getDestinationPoint(
+        destination
+      );
+
+
+    npc.targetX=
+      point.x;
+
+
+    npc.targetY=
+      point.y;
+
+
+    if(
+      !initial
+    ){
+
+      npc.state=
+        "walking";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CREATE ELEMENT
+     ======================================================= */
+
+  createElement(npc){
+
+    const layer=
+      document.getElementById(
+        "v128NPCs"
+      );
+
+
+    if(!layer){
+
+      return;
+
+    }
+
+
+    const element=
+      document.createElement(
+        "div"
+      );
+
+
+    element.className=
+      "v128NPC";
+
+
+    element.style.background=
+      npc.color;
+
+
+    const head=
+      document.createElement(
+        "div"
+      );
+
+
+    head.className=
+      "v128Head";
+
+
+    const name=
+      document.createElement(
+        "div"
+      );
+
+
+    name.className=
+      "v128Name";
+
+
+    name.textContent=
+      npc.name;
+
+
+    const type=
+      document.createElement(
+        "div"
+      );
+
+
+    type.className=
+      "v128Type";
+
+
+    type.textContent=
+      npc.type;
+
+
+    const bubble=
+      document.createElement(
+        "div"
+      );
+
+
+    bubble.className=
+      "v128Bubble";
+
+
+    bubble.textContent=
+      "Hello!";
+
+
+    element.appendChild(
+      head
+    );
+
+    element.appendChild(
+      name
+    );
+
+    element.appendChild(
+      type
+    );
+
+    element.appendChild(
+      bubble
+    );
+
+
+    npc.element=
+      element;
+
+
+    layer.appendChild(
+      element
+    );
+
+
+    this.renderNPC(
+      npc
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
+  renderNPC(npc){
+
+    if(
+      !npc.element
+    ){
+
+      return;
+
+    }
+
+
+    npc.element.style.left=
+      npc.x+
+      "px";
+
+
+    npc.element.style.top=
+      npc.y+
+      "px";
+
+
+    npc.element.style.transform=
+      npc.direction<0
+      ? "scaleX(-1)"
+      : "scaleX(1)";
+
+
+    npc.element.classList.toggle(
+      "idle",
+      npc.state==="idle"
+    );
+
+
+    npc.element.classList.toggle(
+      "talking",
+      npc.state==="talking"
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    if(
+      !this.running
+    ){
+
+      return;
+
+    }
+
+
+    this.advanceClock(
+      .025
+    );
+
+
+    const now=
+      Date.now();
+
+
+    /*
+      Update NPC routines.
+    */
+
+    this.npcs.forEach(
+      npc=>{
+
+        this.updateNPC(
+          npc,
+          now
+        );
+
+      }
+    );
+
+
+    /*
+      Random interaction.
+    */
+
+    if(
+      now-this.lastInteraction>
+      700
+    ){
+
+      this.findInteractions();
+
+    }
+
+
+    /*
+      Maintain population.
+    */
+
+    if(
+      this.npcs.length<8 &&
+      now-this.lastSpawn>
+      this.spawnDelay
+    ){
+
+      this.spawnNPC(
+        true
+      );
+
+      this.lastSpawn=
+        now;
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     UPDATE NPC
+     ======================================================= */
+
+  updateNPC(
+    npc,
+    now
+  ){
+
+    if(
+      npc.state==="talking"
+    ){
+
+      if(
+        now>=npc.talkingUntil
+      ){
+
+        npc.state=
+          "walking";
+
+        npc.interactionWith=
+          null;
+
+        npc.cooldownUntil=
+          now+
+          4500;
+
+        this.setDestination(
+          npc
+        );
+
+      }
+
+      this.renderNPC(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    if(
+      npc.state==="idle"
+    ){
+
+      if(
+        now>=npc.idleUntil
+      ){
+
+        this.setDestination(
+          npc
+        );
+
+      }
+
+      this.renderNPC(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    /*
+      Check if routine destination
+      changed.
+    */
+
+    const desired=
+      this.getRoutine(
+        npc
+      );
+
+
+    if(
+      desired!==
+      npc.destination
+    ){
+
+      this.setDestination(
+        npc
+      );
+
+    }
+
+
+    const dx=
+      npc.targetX-
+      npc.x;
+
+
+    const dy=
+      npc.targetY-
+      npc.y;
+
+
+    const distance=
+      Math.sqrt(
+        dx*dx+
+        dy*dy
+      );
+
+
+    if(
+      distance<10
+    ){
+
+      npc.state=
+        "idle";
+
+
+      npc.idleUntil=
+        now+
+        1500+
+        Math.random()*4000;
+
+
+      this.renderNPC(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    npc.direction=
+      dx>=0
+      ? 1
+      : -1;
+
+
+    const vx=
+      dx/
+      distance;
+
+
+    const vy=
+      dy/
+      distance;
+
+
+    npc.x+=
+      vx*
+      npc.speed;
+
+
+    npc.y+=
+      vy*
+      npc.speed;
+
+
+    this.keepInside(
+      npc
+    );
+
+
+    this.renderNPC(
+      npc
+    );
+
+  },
+
+
+  /* =======================================================
+     KEEP INSIDE
+     ======================================================= */
+
+  keepInside(npc){
+
+    const minX=20;
+
+    const maxX=
+      Math.max(
+        20,
+        window.innerWidth-30
+      );
+
+    const minY=170;
+
+    const maxY=
+      Math.max(
+        180,
+        window.innerHeight-60
+      );
+
+
+    if(
+      npc.x<minX
+    ){
+
+      npc.x=minX;
+
+    }
+
+
+    if(
+      npc.x>maxX
+    ){
+
+      npc.x=maxX;
+
+    }
+
+
+    if(
+      npc.y<minY
+    ){
+
+      npc.y=minY;
+
+    }
+
+
+    if(
+      npc.y>maxY
+    ){
+
+      npc.y=maxY;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     FIND INTERACTIONS
+     ======================================================= */
+
+  findInteractions(){
+
+    const now=
+      Date.now();
+
+
+    for(
+      let i=0;
+      i<this.npcs.length;
+      i++
+    ){
+
+      const a=
+        this.npcs[i];
+
+
+      if(
+        a.state!=="walking" ||
+        now<a.cooldownUntil
+      ){
+
+        continue;
+
+      }
+
+
+      for(
+        let j=i+1;
+        j<this.npcs.length;
+        j++
+      ){
+
+        const b=
+          this.npcs[j];
+
+
+        if(
+          b.state!=="walking" ||
+          now<b.cooldownUntil
+        ){
+
+          continue;
+
+        }
+
+
+        const dx=
+          a.x-b.x;
+
+
+        const dy=
+          a.y-b.y;
+
+
+        const distance=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+
+        if(
+          distance<=
+          this.interactionDistance
+        ){
+
+          this.startInteraction(
+            a,
+            b
+          );
+
+          return;
+
+        }
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     START INTERACTION
+     ======================================================= */
+
+  startInteraction(a,b){
+
+    const now=
+      Date.now();
+
+
+    a.state=
+      "talking";
+
+
+    b.state=
+      "talking";
+
+
+    a.interactionWith=
+      b.id;
+
+
+    b.interactionWith=
+      a.id;
+
+
+    a.talkingUntil=
+      now+
+      2400;
+
+
+    b.talkingUntil=
+      now+
+      2400;
+
+
+    a.cooldownUntil=
+      now+
+      this.interactionCooldown;
+
+
+    b.cooldownUntil=
+      now+
+      this.interactionCooldown;
+
+
+    this.interactionCount++;
+
+    this.lastInteraction=
+      now;
+
+
+    this.renderNPC(
+      a
+    );
+
+
+    this.renderNPC(
+      b
+    );
+
+
+    this.message(
+      "💬 "+
+      a.name+
+      " and "+
+      b.name+
+      " are talking"
+    );
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     ADVANCE TIME
+     ======================================================= */
+
+  advanceTime(hours){
+
+    this.gameHour+=
+      Number(hours)||0;
+
+
+    while(
+      this.gameHour>=24
+    ){
+
+      this.gameHour-=24;
+
+    }
+
+
+    while(
+      this.gameHour<0
+    ){
+
+      this.gameHour+=24;
+
+    }
+
+
+    /*
+      Recalculate every NPC's
+      destination.
+    */
+
+    this.npcs.forEach(
+      npc=>{
+
+        this.setDestination(
+          npc
+        );
+
+      }
+    );
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🕐 Time advanced to "+
+      this.getTimeString()
+    );
+
+  },
+
+
+  /* =======================================================
+     CLOCK STRING
+     ======================================================= */
+
+  getTimeString(){
+
+    const hour=
+      Math.floor(
+        this.gameHour
+      );
+
+
+    const minute=
+      Math.floor(
+        (this.gameHour-hour)*
+        60
+      );
+
+
+    return(
+      String(hour)
+        .padStart(2,"0")
+      +
+      ":"+
+      String(minute)
+        .padStart(2,"0")
+    );
+
+  },
+
+
+  /* =======================================================
+     ADVANCE INTERNAL CLOCK
+     ======================================================= */
+
+  advanceClock(amount){
+
+    this.gameHour+=
+      amount*
+      this.timeSpeed;
+
+
+    if(
+      this.gameHour>=24
+    ){
+
+      this.gameHour-=24;
+
+      this.npcs.forEach(
+        npc=>{
+
+          this.setDestination(
+            npc
+          );
+
+        }
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  clearNPCs(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.element &&
+          npc.element.parentNode
+        ){
+
+          npc.element.parentNode.removeChild(
+            npc.element
+          );
+
+        }
+
+      }
+    );
+
+
+    this.npcs=[];
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🗑️ NPC population cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER ALL
+     ======================================================= */
+
+  renderAll(){
+
+    const layer=
+      document.getElementById(
+        "v128NPCs"
+      );
+
+
+    if(layer){
+
+      layer.innerHTML="";
+
+    }
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        npc.element=null;
+
+        this.createElement(
+          npc
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ===================================================
