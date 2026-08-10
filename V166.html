@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V166 — TRAINING SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(650px,90vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#trainingHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.7;
+}
+
+.bar{
+ height:8px;
+ background:#ffffff12;
+ border-radius:7px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+.fill{
+ height:100%;
+ transition:.3s;
+}
+
+#healthFill{
+ width:100%;
+ background:#79b66d;
+}
+
+#staminaFill{
+ width:100%;
+ background:#719fd0;
+}
+
+#xpFill{
+ width:0%;
+ background:#b48ad4;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.6;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="line lineH"></div>
+  <div class="line lineV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🏋️ TRAINING CENTER</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🏋️ WEBBOUND V166 — TRAINING SYSTEM
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    ❤️ HEALTH<br>
+    <span id="healthText">100</span>
+   </div>
+
+   <div class="stat">
+    ⚡ STAMINA<br>
+    <span id="staminaText">100</span>
+   </div>
+
+   <div class="stat">
+    💪 LEVEL<br>
+    <span id="levelText">1</span>
+   </div>
+
+   <div class="stat">
+    ⭐ XP<br>
+    <span id="xpText">0</span>
+   </div>
+
+  </div>
+
+  <div id="trainingHud">
+
+   <b>PLAYER CONDITION</b>
+
+   <br>
+
+   Health
+   <div class="bar">
+    <div id="healthFill" class="fill"></div>
+   </div>
+
+   Stamina
+   <div class="bar">
+    <div id="staminaFill" class="fill"></div>
+   </div>
+
+   XP
+   <div class="bar">
+    <div id="xpFill" class="fill"></div>
+   </div>
+
+   Training sessions:
+   <span id="sessionsText">0</span>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V166.training()">
+   🏋️ TRAIN
+  </button>
+
+  <button onclick="V166.practice()">
+   🥊 PRACTICE
+  </button>
+
+  <button onclick="V166.challenge()">
+   🎯 CHALLENGE
+  </button>
+
+  <button onclick="V166.rest()">
+   💤 REST
+  </button>
+
+  <button onclick="V166.heal()">
+   ❤️ HEAL
+  </button>
+
+  <button onclick="V166.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V166
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V166.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V166={
+
+ saveKey:"WEBBOUND_V166",
+
+ health:100,
+
+ stamina:100,
+
+ level:1,
+
+ xp:0,
+
+ sessions:0,
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🏋️ V166 Training System ready"
+  );
+
+ },
+
+ /* =========================
+    TRAINING
+ ========================= */
+
+ training(){
+
+  if(this.stamina<15){
+
+   this.notify(
+    "⚡ Too tired. Rest first."
+   );
+
+   return;
+
+  }
+
+  this.stamina-=15;
+
+  this.xp+=20;
+
+  this.sessions++;
+
+  this.checkLevel();
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🏋️ Training complete! +20 XP"
+  );
+
+ },
+
+ /* =========================
+    PRACTICE
+ ========================= */
+
+ practice(){
+
+  if(this.stamina<20){
+
+   this.notify(
+    "⚡ Not enough stamina."
+   );
+
+   return;
+
+  }
+
+  this.stamina-=20;
+
+  this.xp+=30;
+
+  this.sessions++;
+
+  this.checkLevel();
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🥊 Practice completed! +30 XP"
+  );
+
+ },
+
+ /* =========================
+    CHALLENGE
+ ========================= */
+
+ challenge(){
+
+  if(this.stamina<30){
+
+   this.notify(
+    "⚡ You need at least 30 stamina."
+   );
+
+   return;
+
+  }
+
+  this.stamina-=30;
+
+  this.xp+=50;
+
+  this.sessions++;
+
+  const loss=
+   Math.floor(
+    Math.random()*16
+   )+5;
+
+  this.health=
+   Math.max(
+    1,
+    this.health-loss
+   );
+
+  this.checkLevel();
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🎯 Challenge completed! +50 XP"
+  );
+
+ },
+
+ /* =========================
+    REST
+ ========================= */
+
+ rest(){
+
+  this.stamina=
+   Math.min(
+    100,
+    this.stamina+40
+   );
+
+  this.health=
+   Math.min(
+    100,
+    this.health+10
+   );
+
+  this.notify(
+   "💤 You rested and recovered."
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    HEAL
+ ========================= */
+
+ heal(){
+
+  if(this.health>=100){
+
+   this.notify(
+    "❤️ Health is already full."
+   );
+
+   return;
+
+  }
+
+  this.health=
+   Math.min(
+    100,
+    this.health+30
+   );
+
+  this.stamina=
+   Math.min(
+    100,
+    this.stamina+10
+   );
+
+  this.notify(
+   "❤️ Health restored."
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    LEVEL
+ ========================= */
+
+ checkLevel(){
+
+  const needed=
+   this.level*100;
+
+  while(
+   this.xp>=needed
+  ){
+
+   this.xp-=
+    this.level*100;
+
+   this.level++;
+
+   this.health=100;
+
+   this.stamina=100;
+
+   this.notify(
+    "⭐ LEVEL UP! Level "+
+    this.level
+   );
+
+  }
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  document.getElementById(
+   "healthText"
+  ).textContent=
+   this.health;
+
+  document.getElementById(
+   "staminaText"
+  ).textContent=
+   this.stamina;
+
+  document.getElementById(
+   "levelText"
+  ).textContent=
+   this.level;
+
+  document.getElementById(
+   "xpText"
+  ).textContent=
+   this.xp;
+
+  document.getElementById(
+   "sessionsText"
+  ).textContent=
+   this.sessions;
+
+  document.getElementById(
+   "healthFill"
+  ).style.width=
+   this.health+"%";
+
+  document.getElementById(
+   "staminaFill"
+  ).style.width=
+   this.stamina+"%";
+
+  const next=
+   this.level*100;
+
+  document.getElementById(
+   "xpFill"
+  ).style.width=
+   Math.min(
+    100,
+    this.xp/next*100
+   )+"%";
+
+ },
+
+ /* =========================
+    INFO PANEL
+ ========================= */
+
+ training(){
+
+  this.open(
+   "🏋️ TRAINING CENTER",
+   `
+   <div class="card">
+
+    <b>💪 PLAYER TRAINING</b>
+
+    Training improves your XP
+    and helps increase your level.
+
+   </div>
+
+   <div class="card">
+
+    <b>🏃 STAMINA</b>
+
+    Training uses stamina.
+    Rest to recover.
+
+   </div>
+
+   <div class="card">
+
+    <b>❤️ HEALTH</b>
+
+    Challenges can reduce health.
+    Use recovery when necessary.
+
+   </div>
+   `
+  );
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    health:this.health,
+
+    stamina:this.stamina,
+
+    level:this.level,
+
+    xp:this.xp,
+
+    sessions:this.sessions
+
+   })
+  );
+
+  this.notify(
+   "💾 V166 saved"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   this.health=
+    Number.isFinite(data.health)
+    ?Math.max(
+     0,
+     Math.min(
+      100,
+      data.health
+     )
+    )
+    :100;
+
+   this.stamina=
+    Number.isFinite(data.stamina)
+    ?Math.max(
+     0,
+     Math.min(
+      100,
+      data.stamina
+     )
+    )
+    :100;
+
+   this.level=
+    Number.isFinite(data.level)
+    ?Math.max(
+     1,
+     data.level
+    )
+    :1;
+
+   this.xp=
+    Number.isFinite(data.xp)
+    ?Math.max(
+     0,
+     data.xp
+    )
+    :0;
+
+   this.sessions=
+    Number.isFinite(data.sessions)
+    ?Math.max(
+     0,
+     data.sessions
+    )
+    :0;
+
+  }
+  catch(error){
+
+   console.log(
+    "V166 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V166.init();
+
+console.log(
+ "WEBBOUND V166 TRAINING SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
