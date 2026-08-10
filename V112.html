@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V112</title>
+
+<style>
+
+#v112HUD{
+  position:fixed;
+  right:12px;
+  top:185px;
+  z-index:13200;
+  width:min(210px,58vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v112Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v112Time{
+  margin-top:7px;
+  font-size:22px;
+  font-weight:bold;
+}
+
+#v112Period{
+  margin-top:4px;
+  font-size:11px;
+  opacity:.8;
+}
+
+#v112Date{
+  margin-top:5px;
+  font-size:10px;
+  opacity:.65;
+}
+
+#v112Controls{
+  margin-top:9px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+
+#v112Controls button{
+  flex:1;
+  min-width:80px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v112Message{
+  position:fixed;
+  left:50%;
+  top:20%;
+  transform:translateX(-50%);
+  z-index:13300;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V112
+     DAY / NIGHT + TIME SYSTEM
+     ========================================================= -->
+
+<div id="v112HUD">
+
+  <div id="v112Title">
+    🕐 WORLD TIME
+  </div>
+
+  <div id="v112Time">
+    08:00
+  </div>
+
+  <div id="v112Period">
+    ☀️ MORNING
+  </div>
+
+  <div id="v112Date">
+    Day 1
+  </div>
+
+  <div id="v112Controls">
+
+    <button onclick="V112.pause()">
+      ⏸ PAUSE
+    </button>
+
+    <button onclick="V112.resume()">
+      ▶️ PLAY
+    </button>
+
+    <button onclick="V112.setTime(8,0)">
+      ☀️ MORNING
+    </button>
+
+    <button onclick="V112.setTime(18,30)">
+      🌇 EVENING
+    </button>
+
+    <button onclick="V112.setTime(23,0)">
+      🌙 NIGHT
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="v112Message">
+  V112
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V112
+   WORLD TIME SYSTEM
+   ========================================================= */
+
+const V112 = {
+
+  version:"V112",
+
+  saveKey:
+    "WEBBOUND_V112_WORLD_TIME",
+
+  /*
+    World time in minutes.
+    0 = midnight
+    720 = noon
+  */
+
+  minutes:480,
+
+  day:1,
+
+  speed:1,
+
+  running:true,
+
+  tickRate:1000,
+
+  timer:null,
+
+  lastPeriod:"morning",
+
+  messageTimer:null,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.update();
+
+    this.start();
+
+    console.log(
+      "WEBBOUND V112 WORLD TIME READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START CLOCK
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          if(
+            !this.running
+          ){
+
+            return;
+
+          }
+
+
+          this.advance(
+            this.speed
+          );
+
+        },
+        this.tickRate
+      );
+
+  },
+
+
+  /* =======================================================
+     ADVANCE TIME
+     ======================================================= */
+
+  advance(amount){
+
+    const oldMinutes=
+      this.minutes;
+
+
+    this.minutes+=
+      Number(amount)||0;
+
+
+    while(
+      this.minutes>=1440
+    ){
+
+      this.minutes-=1440;
+
+      this.day++;
+
+    }
+
+
+    while(
+      this.minutes<0
+    ){
+
+      this.minutes+=1440;
+
+      this.day=
+        Math.max(
+          1,
+          this.day-1
+        );
+
+    }
+
+
+    const oldPeriod=
+      this.getPeriod(
+        oldMinutes
+      );
+
+    const newPeriod=
+      this.getPeriod(
+        this.minutes
+      );
+
+
+    if(
+      oldPeriod!==newPeriod
+    ){
+
+      this.lastPeriod=
+        newPeriod;
+
+      this.onPeriodChange(
+        newPeriod
+      );
+
+    }
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     SET TIME
+     ======================================================= */
+
+  setTime(hour,minute){
+
+    hour=
+      Math.max(
+        0,
+        Math.min(
+          23,
+          Number(hour)||0
+        )
+      );
+
+
+    minute=
+      Math.max(
+        0,
+        Math.min(
+          59,
+          Number(minute)||0
+        )
+      );
+
+
+    this.minutes=
+      (
+        hour*60
+      )+
+      minute;
+
+
+    this.update();
+
+    this.save();
+
+
+    this.message(
+      "🕐 Time set to "+
+      this.formatTime()
+    );
+
+  },
+
+
+  /* =======================================================
+     GET HOUR
+     ======================================================= */
+
+  getHour(){
+
+    return Math.floor(
+      this.minutes/60
+    );
+
+  },
+
+
+  /* =======================================================
+     GET MINUTE
+     ======================================================= */
+
+  getMinute(){
+
+    return this.minutes%60;
+
+  },
+
+
+  /* =======================================================
+     GET DECIMAL HOUR
+     ======================================================= */
+
+  getDecimalHour(){
+
+    return(
+      this.minutes/60
+    );
+
+  },
+
+
+  /* =======================================================
+     FORMAT TIME
+     ======================================================= */
+
+  formatTime(){
+
+    const hour=
+      this.getHour();
+
+    const minute=
+      this.getMinute();
+
+
+    return(
+
+      String(hour)
+        .padStart(2,"0")
+
+      +
+
+      ":"
+
+      +
+
+      String(minute)
+        .padStart(2,"0")
+
+    );
+
+  },
+
+
+  /* =======================================================
+     GET PERIOD
+     ======================================================= */
+
+  getPeriod(minutes){
+
+    const m=
+      (
+        Number(minutes)||0
+      )%1440;
+
+
+    if(
+      m>=300 &&
+      m<720
+    ){
+
+      return "morning";
+
+    }
+
+
+    if(
+      m>=720 &&
+      m<1020
+    ){
+
+      return "afternoon";
+
+    }
+
+
+    if(
+      m>=1020 &&
+      m<1200
+    ){
+
+      return "evening";
+
+    }
+
+
+    if(
+      m>=1200 ||
+      m<300
+    ){
+
+      return "night";
+
+    }
+
+
+    return "day";
+
+  },
+
+
+  /* =======================================================
+     PERIOD ICON
+     ======================================================= */
+
+  getPeriodIcon(period){
+
+    const icons={
+
+      morning:"☀️",
+
+      afternoon:"🌤️",
+
+      evening:"🌇",
+
+      night:"🌙"
+
+    };
+
+
+    return(
+      icons[period]||
+      "🕐"
+    );
+
+  },
+
+
+  /* =======================================================
+     PERIOD LABEL
+     ======================================================= */
+
+  getPeriodLabel(period){
+
+    const labels={
+
+      morning:"MORNING",
+
+      afternoon:"AFTERNOON",
+
+      evening:"EVENING",
+
+      night:"NIGHT"
+
+    };
+
+
+    return(
+      labels[period]||
+      "DAY"
+    );
+
+  },
+
+
+  /* =======================================================
+     IS NIGHT
+     ======================================================= */
+
+  isNight(){
+
+    return(
+      this.getPeriod(
+        this.minutes
+      )==="night"
+    );
+
+  },
+
+
+  /* =======================================================
+     IS DAY
+     ======================================================= */
+
+  isDay(){
+
+    return !this.isNight();
+
+  },
+
+
+  /* =======================================================
+     PAUSE
+     ======================================================= */
+
+  pause(){
+
+    this.running=false;
+
+    this.update();
+
+    this.message(
+      "⏸ World time paused"
+    );
+
+  },
+
+
+  /* =======================================================
+     RESUME
+     ======================================================= */
+
+  resume(){
+
+    this.running=true;
+
+    this.update();
+
+    this.message(
+      "▶️ World time resumed"
+    );
+
+  },
+
+
+  /* =======================================================
+     PERIOD CHANGE
+     ======================================================= */
+
+  onPeriodChange(period){
+
+    const icon=
+      this.getPeriodIcon(
+        period
+      );
+
+    const label=
+      this.getPeriodLabel(
+        period
+      );
+
+
+    this.message(
+      icon+
+      " "+
+      label
+    );
+
+
+    /*
+      Hook for other systems.
+    */
+
+    if(
+      typeof window.onWebboundTimeChange===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundTimeChange({
+
+          minutes:
+            this.minutes,
+
+          hour:
+            this.getHour(),
+
+          minute:
+            this.getMinute(),
+
+          day:
+            this.day,
+
+          period:
+            period,
+
+          isNight:
+            this.isNight()
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V112 TIME CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  update(){
+
+    const time=
+      document.getElementById(
+        "v112Time"
+      );
+
+    const period=
+      document.getElementById(
+        "v112Period"
+      );
+
+    const date=
+      document.getElementById(
+        "v112Date"
+      );
+
+
+    const currentPeriod=
+      this.getPeriod(
+        this.minutes
+      );
+
+
+    if(time){
+
+      time.textContent=
+        this.formatTime();
+
+    }
+
+
+    if(period){
+
+      period.textContent=
+        this.getPeriodIcon(
+          currentPeriod
+        )+
+        " "+
+        this.getPeriodLabel(
+          currentPeriod
+        );
+
+    }
+
+
+    if(date){
+
+      date.textContent=
+        "Day "+
+        this.day+
+        " • "+
+        (
+          this.running
+          ? "Running"
+          : "Paused"
+        );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        minutes:this.minutes,
+
+        day:this.day,
+
+        speed:this.speed,
+
+        running:this.running
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V112 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.minutes
+          )
+        )
+      ){
+
+        this.minutes=
+          Math.max(
+            0,
+            Math.min(
+              1439,
+              Number(
+                data.minutes
+              )
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.day
+          )
+        )
+      ){
+
+        this.day=
+          Math.max(
+            1,
+            Number(
+              data.day
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.speed
+          )
+        )
+      ){
+
+        this.speed=
+          Math.max(
+            0,
+            Number(
+              data.speed
+            )
+          );
+
+      }
+
+
+      if(
+        typeof data.running===
+        "boolean"
+      ){
+
+        this.running=
+          data.running;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V112 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      minutes:this.minutes,
+
+      day:this.day,
+
+      speed:this.speed,
+
+      running:this.running
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.minutes)
+      )
+    ){
+
+      this.minutes=
+        Math.max(
+          0,
+          Math.min(
+            1439,
+            Number(data.minutes)
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.day)
+      )
+    ){
+
+      this.day=
+        Math.max(
+          1,
+          Number(data.day)
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.speed)
+      )
+    ){
+
+      this.speed=
+        Math.max(
+          0,
+          Number(data.speed)
+        );
+
+    }
+
+
+    if(
+      typeof data.running===
+      "boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v112Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1600
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      T = toggle pause/play
+    */
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      if(
+        V112.running
+      ){
+
+        V112.pause();
+
+      }
+      else{
+
+        V112.resume();
+
+      }
+
+    }
+
+
+    /*
+      1 = morning
+    */
+
+    if(
+      event.code==="Digit1"
+    ){
+
+      V112.setTime(
+        8,
+        0
+      );
+
+    }
+
+
+    /*
+      2 = afternoon
+    */
+
+    if(
+      event.code==="Digit2"
+    ){
+
+      V112.setTime(
+        14,
+        0
+      );
+
+    }
+
+
+    /*
+      3 = evening
+    */
+
+    if(
+      event.code==="Digit3"
+    ){
+
+      V112.setTime(
+        18,
+        30
+      );
+
+    }
+
+
+    /*
+      4 = night
+    */
+
+    if(
+      event.code==="Digit4"
+    ){
+
+      V112.setTime(
+        23,
+        0
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V112.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V112.init();
+
+
+console.log(
+  "WEBBOUND V112 DAY/NIGHT SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
