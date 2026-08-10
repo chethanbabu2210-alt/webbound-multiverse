@@ -1,0 +1,935 @@
+<!-- =====================================================
+ V212 — SPIDER-MAN ADVANCED COMBAT
+ Add after V211
+ ===================================================== -->
+
+<style>
+
+/* ================= COMBAT HUD ================= */
+
+#combatHud{
+    position:fixed;
+
+    left:50%;
+    bottom:105px;
+
+    transform:translateX(-50%);
+
+    width:min(330px,75vw);
+
+    padding:9px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff25;
+
+    border-radius:11px;
+
+    z-index:2400;
+
+    text-align:center;
+}
+
+.combatTitle{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#comboText{
+    margin-top:5px;
+
+    font-size:18px;
+    font-weight:bold;
+}
+
+#targetText{
+    margin-top:3px;
+
+    font-size:8px;
+
+    opacity:.75;
+}
+
+#combatButtons{
+    display:grid;
+
+    grid-template-columns:
+        repeat(5,1fr);
+
+    gap:5px;
+
+    margin-top:7px;
+}
+
+#combatButtons button{
+
+    padding:8px 3px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+}
+
+#combatButtons button:active{
+    transform:scale(.9);
+}
+
+
+/* ================= ENEMIES ================= */
+
+.combatEnemy{
+    position:absolute;
+
+    width:28px;
+    height:40px;
+
+    background:#30383e;
+
+    border-radius:8px;
+
+    z-index:500;
+
+    transition:
+        transform .12s,
+        opacity .2s;
+}
+
+.combatEnemy:before{
+    content:"";
+
+    position:absolute;
+
+    width:20px;
+    height:20px;
+
+    left:4px;
+    top:-14px;
+
+    background:#68737a;
+
+    border-radius:50%;
+}
+
+.combatEnemy.targeted{
+    outline:
+        3px solid #ffffff;
+
+    animation:
+        targetPulse .5s infinite alternate;
+}
+
+@keyframes targetPulse{
+
+    from{
+        transform:scale(1);
+    }
+
+    to{
+        transform:scale(1.12);
+    }
+
+}
+
+.combatEnemy.hit{
+    transform:
+        translateX(8px)
+        rotate(5deg);
+}
+
+.combatEnemy.defeated{
+    opacity:.15;
+
+    transform:
+        scale(.5)
+        translateY(20px);
+
+    pointer-events:none;
+}
+
+
+/* ================= COMBAT FX ================= */
+
+.combatFx{
+    position:absolute;
+
+    width:45px;
+    height:45px;
+
+    border:
+        3px solid #ffffff;
+
+    border-radius:50%;
+
+    z-index:800;
+
+    pointer-events:none;
+
+    animation:
+        hitFx .25s forwards;
+}
+
+@keyframes hitFx{
+
+    from{
+        opacity:1;
+        transform:scale(.4);
+    }
+
+    to{
+        opacity:0;
+        transform:scale(1.5);
+    }
+
+}
+
+
+/* ================= DODGE ================= */
+
+#spiderman.combatDodge{
+    animation:
+        dodgeMove .3s;
+}
+
+@keyframes dodgeMove{
+
+    0%{
+        transform:translateX(0);
+    }
+
+    50%{
+        transform:translateX(35px)
+                   rotate(8deg);
+    }
+
+    100%{
+        transform:translateX(0);
+    }
+
+}
+
+
+/* ================= DAMAGE BAR ================= */
+
+.enemyHealth{
+    position:absolute;
+
+    width:40px;
+    height:4px;
+
+    left:-6px;
+    top:-22px;
+
+    background:#111;
+
+    border-radius:4px;
+
+    overflow:hidden;
+}
+
+.enemyHealthBar{
+    width:100%;
+    height:100%;
+
+    background:#d9e1e4;
+
+    transition:
+        width .15s;
+}
+
+</style>
+
+
+<!-- =====================================================
+ COMBAT HUD
+ ===================================================== -->
+
+<div id="combatHud">
+
+    <div class="combatTitle">
+        🥊 COMBAT SYSTEM — V212
+    </div>
+
+    <div id="comboText">
+        COMBO ×0
+    </div>
+
+    <div id="targetText">
+        Target: NONE
+    </div>
+
+    <div id="combatButtons">
+
+        <button onclick="SpiderCombatV212.punch()">
+            👊 PUNCH
+        </button>
+
+        <button onclick="SpiderCombatV212.kick()">
+            🦵 KICK
+        </button>
+
+        <button onclick="SpiderCombatV212.webAttack()">
+            🕸️ WEB
+        </button>
+
+        <button onclick="SpiderCombatV212.dodge()">
+            ↔️ DODGE
+        </button>
+
+        <button onclick="SpiderCombatV212.targetNext()">
+            🎯 TARGET
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ ENEMIES
+ ===================================================== -->
+
+<div
+    id="enemy212_1"
+    class="combatEnemy"
+    style="left:35%;top:62%"
+    onclick="SpiderCombatV212.select(1)">
+
+    <div class="enemyHealth">
+        <div
+            id="enemyHealth1"
+            class="enemyHealthBar">
+        </div>
+    </div>
+
+</div>
+
+
+<div
+    id="enemy212_2"
+    class="combatEnemy"
+    style="left:55%;top:58%"
+    onclick="SpiderCombatV212.select(2)">
+
+    <div class="enemyHealth">
+        <div
+            id="enemyHealth2"
+            class="enemyHealthBar">
+        </div>
+    </div>
+
+</div>
+
+
+<div
+    id="enemy212_3"
+    class="combatEnemy"
+    style="left:72%;top:64%"
+    onclick="SpiderCombatV212.select(3)">
+
+    <div class="enemyHealth">
+        <div
+            id="enemyHealth3"
+            class="enemyHealthBar">
+        </div>
+    </div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V212 COMBAT ENGINE
+ ===================================================== */
+
+const SpiderCombatV212={
+
+    enemies:{
+
+        1:{
+            hp:100,
+            max:100,
+            alive:true
+        },
+
+        2:{
+            hp:120,
+            max:120,
+            alive:true
+        },
+
+        3:{
+            hp:150,
+            max:150,
+            alive:true
+        }
+
+    },
+
+    target:null,
+
+    combo:0,
+
+    comboTimer:null,
+
+    attacking:false,
+
+    dodgeReady:true,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.select(1);
+
+    },
+
+
+    /* =========================
+       TARGET
+    ========================= */
+
+    select(id){
+
+        const enemy=
+            this.enemies[id];
+
+        if(
+            !enemy ||
+            !enemy.alive
+        )
+            return;
+
+        document
+            .querySelectorAll(
+                ".combatEnemy"
+            )
+            .forEach(
+                e=>{
+                    e.classList.remove(
+                        "targeted"
+                    );
+                }
+            );
+
+        const element=
+            document.getElementById(
+                "enemy212_"+id
+            );
+
+        element.classList.add(
+            "targeted"
+        );
+
+        this.target=id;
+
+        document.getElementById(
+            "targetText"
+        ).textContent=
+            "Target: ENEMY "+
+            id;
+
+    },
+
+
+    /* =========================
+       NEXT TARGET
+       ========================= */
+
+    targetNext(){
+
+        const ids=
+            Object.keys(
+                this.enemies
+            )
+            .map(Number)
+            .filter(
+                id=>
+                    this.enemies[id].alive
+            );
+
+        if(!ids.length){
+
+            this.target=null;
+
+            document.getElementById(
+                "targetText"
+            ).textContent=
+                "Target: NONE";
+
+            return;
+
+        }
+
+        let index=
+            ids.indexOf(
+                this.target
+            );
+
+        index++;
+
+        if(
+            index>=ids.length
+        )
+            index=0;
+
+        this.select(
+            ids[index]
+        );
+
+    },
+
+
+    /* =========================
+       PUNCH
+       ========================= */
+
+    punch(){
+
+        this.attack(
+            18,
+            "👊 PUNCH"
+        );
+
+    },
+
+
+    /* =========================
+       KICK
+       ========================= */
+
+    kick(){
+
+        this.attack(
+            25,
+            "🦵 KICK"
+        );
+
+    },
+
+
+    /* =========================
+       WEB ATTACK
+       ========================= */
+
+    webAttack(){
+
+        this.attack(
+            12,
+            "🕸️ WEB ATTACK"
+        );
+
+        if(
+            this.target
+        ){
+
+            const enemy=
+                this.enemies[
+                    this.target
+                ];
+
+            if(enemy){
+
+                enemy.stunned=true;
+
+                this.message(
+                    "🕸️ ENEMY WEBBED!"
+                );
+
+            }
+
+        }
+
+    },
+
+
+    /* =========================
+       ATTACK
+       ========================= */
+
+    attack(damage,name){
+
+        if(
+            this.attacking ||
+            !this.target
+        ){
+
+            return;
+
+        }
+
+        const enemy=
+            this.enemies[
+                this.target
+            ];
+
+        if(
+            !enemy ||
+            !enemy.alive
+        ){
+
+            this.targetNext();
+
+            return;
+
+        }
+
+        this.attacking=true;
+
+        this.combo++;
+
+        clearTimeout(
+            this.comboTimer
+        );
+
+        this.comboTimer=
+            setTimeout(
+                ()=>{
+                    this.combo=0;
+                    this.updateCombo();
+                },
+                1200
+            );
+
+        enemy.hp=
+            Math.max(
+                0,
+                enemy.hp-damage
+            );
+
+        this.hitEffect(
+            this.target
+        );
+
+        const element=
+            document.getElementById(
+                "enemy212_"+this.target
+            );
+
+        element.classList.add(
+            "hit"
+        );
+
+        setTimeout(
+            ()=>{
+                element.classList.remove(
+                    "hit"
+                );
+            },
+            120
+        );
+
+        this.updateEnemy(
+            this.target
+        );
+
+        this.message(
+            name+
+            "  "+
+            damage+
+            " DAMAGE"
+        );
+
+        setTimeout(
+            ()=>{
+                this.attacking=false;
+            },
+            120
+        );
+
+        if(
+            enemy.hp<=0
+        ){
+
+            this.defeat(
+                this.target
+            );
+
+        }
+
+        this.updateCombo();
+
+    },
+
+
+    /* =========================
+       DEFEAT
+       ========================= */
+
+    defeat(id){
+
+        const enemy=
+            this.enemies[id];
+
+        if(!enemy)
+            return;
+
+        enemy.alive=false;
+
+        const element=
+            document.getElementById(
+                "enemy212_"+id
+            );
+
+        element.classList.add(
+            "defeated"
+        );
+
+        this.combo+=2;
+
+        const reward=
+            40+
+            this.combo*5;
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.addXP(
+                reward
+            );
+
+        }
+
+        this.message(
+            "💥 ENEMY DEFEATED! +"+
+            reward+
+            " XP"
+        );
+
+        this.targetNext();
+
+    },
+
+
+    /* =========================
+       DODGE
+       ========================= */
+
+    dodge(){
+
+        if(
+            !this.dodgeReady
+        ){
+
+            this.message(
+                "↔️ Dodge recharging..."
+            );
+
+            return;
+
+        }
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(player){
+
+            player.classList.add(
+                "combatDodge"
+            );
+
+            setTimeout(
+                ()=>{
+                    player.classList.remove(
+                        "combatDodge"
+                    );
+                },
+                300
+            );
+
+        }
+
+        this.dodgeReady=false;
+
+        this.message(
+            "↔️ PERFECT DODGE!"
+        );
+
+        setTimeout(
+            ()=>{
+                this.dodgeReady=true;
+            },
+            900
+        );
+
+    },
+
+
+    /* =========================
+       UPDATE ENEMY
+       ========================= */
+
+    updateEnemy(id){
+
+        const enemy=
+            this.enemies[id];
+
+        const bar=
+            document.getElementById(
+                "enemyHealth"+
+                id
+            );
+
+        if(
+            enemy &&
+            bar
+        ){
+
+            bar.style.width=
+                (
+                    enemy.hp/
+                    enemy.max*
+                    100
+                )+"%";
+
+        }
+
+    },
+
+
+    /* =========================
+       HIT FX
+       ========================= */
+
+    hitEffect(id){
+
+        const enemy=
+            document.getElementById(
+                "enemy212_"+id
+            );
+
+        if(!enemy)
+            return;
+
+        const rect=
+            enemy.getBoundingClientRect();
+
+        const fx=
+            document.createElement(
+                "div"
+            );
+
+        fx.className=
+            "combatFx";
+
+        fx.style.left=
+            rect.left+
+            "px";
+
+        fx.style.top=
+            rect.top+
+            "px";
+
+        document.body.appendChild(
+            fx
+        );
+
+        setTimeout(
+            ()=>{
+                fx.remove();
+            },
+            300
+        );
+
+    },
+
+
+    /* =========================
+       COMBO
+       ========================= */
+
+    updateCombo(){
+
+        document.getElementById(
+            "comboText"
+        ).textContent=
+            "COMBO ×"+
+            this.combo;
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+            return;
+
+        }
+
+        const box=
+            document.getElementById(
+                "coreMessage"
+            );
+
+        if(box)
+            box.textContent=
+                text;
+
+    }
+
+};
+
+
+/* =====================================================
+ START V212
+ ===================================================== */
+
+SpiderCombatV212.init();
+
+
+/* =====================================================
+ KEYBOARD CONTROLS
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="j")
+            SpiderCombatV212.punch();
+
+        if(key==="k")
+            SpiderCombatV212.kick();
+
+        if(key==="q")
+            SpiderCombatV212.webAttack();
+
+        if(key==="shift")
+            SpiderCombatV212.dodge();
+
+        if(key==="tab")
+            SpiderCombatV212.targetNext();
+
+    }
+);
