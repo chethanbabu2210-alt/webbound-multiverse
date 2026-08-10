@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V100</title>
+
+<style>
+
+#v100HUD{
+
+  position:fixed;
+
+  left:12px;
+
+  top:125px;
+
+  z-index:10000;
+
+  padding:10px 13px;
+
+  background:#05070ee8;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:11px;
+
+  font:bold 12px Arial,sans-serif;
+
+  min-width:135px;
+
+}
+
+#v100HUD small{
+
+  display:block;
+
+  margin-top:4px;
+
+  opacity:.7;
+
+  font-weight:normal;
+
+}
+
+#v100Controls{
+
+  position:fixed;
+
+  left:12px;
+
+  top:195px;
+
+  z-index:10001;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:6px;
+
+}
+
+#v100Controls button{
+
+  padding:9px 12px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:9px;
+
+  font-size:10px;
+
+}
+
+#v100Message{
+
+  position:fixed;
+
+  left:50%;
+
+  top:23%;
+
+  transform:translateX(-50%);
+
+  z-index:10100;
+
+  display:none;
+
+  padding:10px 16px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     WEBBOUND V100
+     DAY / NIGHT CYCLE
+     ========================================================= -->
+
+
+<div id="v100HUD">
+
+  <span id="v100Time">
+    ☀️ 12:00 PM
+  </span>
+
+  <small id="v100Phase">
+    DAY
+
+  </small>
+
+</div>
+
+
+<div id="v100Controls">
+
+  <button onclick="V100.toggle()">
+    🌅 DAY/NIGHT
+  </button>
+
+  <button onclick="V100.nextPhase()">
+    ⏭️ NEXT PHASE
+  </button>
+
+  <button onclick="V100.setMorning()">
+    🌄 MORNING
+  </button>
+
+  <button onclick="V100.setNoon()">
+    ☀️ NOON
+  </button>
+
+  <button onclick="V100.setEvening()">
+    🌇 EVENING
+  </button>
+
+  <button onclick="V100.setNight()">
+    🌙 NIGHT
+  </button>
+
+</div>
+
+
+<div id="v100Message">
+  V100
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V100
+   DAY / NIGHT SYSTEM
+   ========================================================= */
+
+const V100 = {
+
+  version:"V100",
+
+  saveKey:
+    "WEBBOUND_V100_DAY_NIGHT",
+
+  enabled:true,
+
+  time:12,
+
+  speed:0.15,
+
+  lastTime:0,
+
+  autoSaveTimer:null,
+
+  phases:[
+
+    {
+      name:"MORNING",
+      icon:"🌄",
+      start:5,
+      end:10
+    },
+
+    {
+      name:"DAY",
+      icon:"☀️",
+      start:10,
+      end:17
+    },
+
+    {
+      name:"EVENING",
+      icon:"🌇",
+      start:17,
+      end:20
+    },
+
+    {
+      name:"NIGHT",
+      icon:"🌙",
+      start:20,
+      end:24
+    },
+
+    {
+      name:"NIGHT",
+      icon:"🌙",
+      start:0,
+      end:5
+    }
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.applyToGame();
+
+    console.log(
+      "WEBBOUND V100 DAY/NIGHT SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.enabled=
+      !this.enabled;
+
+    this.message(
+
+      this.enabled
+      ? "🌅 Day/Night cycle ON"
+      : "⏸️ Day/Night cycle PAUSED"
+
+    );
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     NEXT PHASE
+     ======================================================= */
+
+  nextPhase(){
+
+    if(
+      this.time<5
+    ){
+
+      this.time=5;
+
+    }
+    else if(
+      this.time<10
+    ){
+
+      this.time=10;
+
+    }
+    else if(
+      this.time<17
+    ){
+
+      this.time=17;
+
+    }
+    else if(
+      this.time<20
+    ){
+
+      this.time=20;
+
+    }
+    else{
+
+      this.time=0;
+
+    }
+
+    this.updateHUD();
+
+    this.applyToGame();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     PRESET TIMES
+     ======================================================= */
+
+  setMorning(){
+
+    this.time=7;
+
+    this.changed(
+      "🌄 Morning"
+    );
+
+  },
+
+
+  setNoon(){
+
+    this.time=12;
+
+    this.changed(
+      "☀️ Noon"
+    );
+
+  },
+
+
+  setEvening(){
+
+    this.time=18.5;
+
+    this.changed(
+      "🌇 Evening"
+    );
+
+  },
+
+
+  setNight(){
+
+    this.time=23;
+
+    this.changed(
+      "🌙 Night"
+    );
+
+  },
+
+
+  /* =======================================================
+     TIME CHANGE
+     ======================================================= */
+
+  changed(text){
+
+    this.updateHUD();
+
+    this.applyToGame();
+
+    this.save();
+
+    this.message(text);
+
+  },
+
+
+  /* =======================================================
+     GET PHASE
+     ======================================================= */
+
+  getPhase(){
+
+    const hour=
+      this.time;
+
+
+    if(
+      hour>=5 &&
+      hour<10
+    ){
+
+      return this.phases[0];
+
+    }
+
+
+    if(
+      hour>=10 &&
+      hour<17
+    ){
+
+      return this.phases[1];
+
+    }
+
+
+    if(
+      hour>=17 &&
+      hour<20
+    ){
+
+      return this.phases[2];
+
+    }
+
+
+    return this.phases[3];
+
+  },
+
+
+  /* =======================================================
+     FORMAT TIME
+     ======================================================= */
+
+  formatTime(){
+
+    let hour=
+      Math.floor(this.time);
+
+
+    const minutes=
+      Math.floor(
+        (this.time-hour)*
+        60
+      );
+
+
+    const suffix=
+      hour>=12
+      ? "PM"
+      : "AM";
+
+
+    let displayHour=
+      hour%12;
+
+
+    if(
+      displayHour===0
+    ){
+
+      displayHour=12;
+
+    }
+
+
+    return (
+
+      String(displayHour)
+        .padStart(2,"0")
+
+      +":"
+
+      +String(minutes)
+        .padStart(2,"0")
+
+      +" "
+
+      +suffix
+
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const timeBox=
+      document.getElementById(
+        "v100Time"
+      );
+
+    const phaseBox=
+      document.getElementById(
+        "v100Phase"
+      );
+
+
+    const phase=
+      this.getPhase();
+
+
+    if(timeBox){
+
+      timeBox.textContent=
+        phase.icon+
+        " "+
+        this.formatTime();
+
+    }
+
+
+    if(phaseBox){
+
+      phaseBox.textContent=
+        phase.name+
+        (
+          this.enabled
+          ? " • RUNNING"
+          : " • PAUSED"
+        );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LIGHT LEVEL
+     ======================================================= */
+
+  getLightLevel(){
+
+    const hour=
+      this.time;
+
+
+    /*
+      Approximate natural
+      daylight intensity.
+    */
+
+    if(
+      hour>=7 &&
+      hour<=17
+    ){
+
+      return 1;
+
+    }
+
+
+    if(
+      hour>=5 &&
+      hour<7
+    ){
+
+      return (
+        0.35+
+        (
+          hour-5
+        )*
+        0.325
+      );
+
+    }
+
+
+    if(
+      hour>17 &&
+      hour<20
+    ){
+
+      return (
+        1-
+        (
+          hour-17
+        )*
+        0.27
+      );
+
+    }
+
+
+    return 0.18;
+
+  },
+
+
+  /* =======================================================
+     SKY FACTOR
+     ======================================================= */
+
+  getSkyFactor(){
+
+    const hour=
+      this.time;
+
+
+    if(
+      hour>=6 &&
+      hour<18
+    ){
+
+      return 1;
+
+    }
+
+
+    if(
+      hour>=18 &&
+      hour<20
+    ){
+
+      return 0.65;
+
+    }
+
+
+    if(
+      hour>=5 &&
+      hour<6
+    ){
+
+      return 0.55;
+
+    }
+
+
+    return 0.2;
+
+  },
+
+
+  /* =======================================================
+     ENGINE CALLBACK
+     ======================================================= */
+
+  applyToGame(){
+
+    const data={
+
+      version:this.version,
+
+      time:this.time,
+
+      phase:this.getPhase().name,
+
+      lightLevel:
+        this.getLightLevel(),
+
+      skyFactor:
+        this.getSkyFactor(),
+
+      enabled:this.enabled
+
+    };
+
+
+    /*
+      This callback is optional.
+
+      Your main 3D engine can use
+      it later to control:
+
+      - sun
+      - moon
+      - sky
+      - street lights
+      - building lights
+      - shadows
+      - environment lighting
+    */
+
+    if(
+      typeof window.onWebboundTimeUpdate===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundTimeUpdate(
+          data
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V100 ENGINE CALLBACK ERROR:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const now=
+      performance.now();
+
+
+    if(
+      !this.lastTime
+    ){
+
+      this.lastTime=
+        now;
+
+      return;
+
+    }
+
+
+    const delta=
+      (
+        now-
+        this.lastTime
+      )/
+      1000;
+
+
+    this.lastTime=
+      now;
+
+
+    if(
+      !this.enabled
+    ){
+
+      return;
+
+    }
+
+
+    /*
+      Advance in-game time.
+    */
+
+    this.time+=
+      delta*
+      this.speed;
+
+
+    /*
+      Complete 24 hour cycle.
+    */
+
+    if(
+      this.time>=24
+    ){
+
+      this.time-=24;
+
+      this.message(
+        "🌅 A new day begins"
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.applyToGame();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v100Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        enabled:this.enabled,
+
+        time:this.time,
+
+        speed:this.speed
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V100 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.enabled===
+        "boolean"
+      ){
+
+        this.enabled=
+          data.enabled;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.time)
+        )
+      ){
+
+        this.time=
+          Number(data.time);
+
+        this.time=
+          Math.max(
+            0,
+            Math.min(
+              23.999,
+              this.time
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.speed)
+        )
+      ){
+
+        this.speed=
+          Math.max(
+            0.01,
+            Math.min(
+              5,
+              Number(data.speed)
+            )
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V100 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      enabled:this.enabled,
+
+      time:this.time,
+
+      speed:this.speed
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY SAVE DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.enabled===
+      "boolean"
+    ){
+
+      this.enabled=
+        data.enabled;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.time)
+      )
+    ){
+
+      this.time=
+        Math.max(
+          0,
+          Math.min(
+            23.999,
+            Number(data.time)
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.speed)
+      )
+    ){
+
+      this.speed=
+        Math.max(
+          0.01,
+          Math.min(
+            5,
+            Number(data.speed)
+          )
+        );
+
+    }
+
+
+    this.updateHUD();
+
+    this.applyToGame();
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    const loop=()=>{
+
+      this.update();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      T = pause/resume
+    */
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      V100.toggle();
+
+    }
+
+
+    /*
+      Y = next phase
+    */
+
+    if(
+      event.code==="KeyY"
+    ){
+
+      V100.nextPhase();
+
+    }
+
+
+    /*
+      Number keys
+      1 = morning
+      2 = noon
+      3 = evening
+      4 = night
+    */
+
+    if(
+      event.code==="Digit1"
+    ){
+
+      V100.setMorning();
+
+    }
+
+
+    if(
+      event.code==="Digit2"
+    ){
+
+      V100.setNoon();
+
+    }
+
+
+    if(
+      event.code==="Digit3"
+    ){
+
+      V100.setEvening();
+
+    }
+
+
+    if(
+      event.code==="Digit4"
+    ){
+
+      V100.setNight();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V100.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V100.init();
+
+V100.start();
+
+
+console.log(
+  "WEBBOUND V100 DAY/NIGHT SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
