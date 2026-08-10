@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V89</title>
+
+<style>
+
+#v89Clock{
+  position:fixed;
+
+  right:12px;
+  top:12px;
+
+  z-index:8900;
+
+  padding:10px 13px;
+
+  background:#05070ed9;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:11px;
+
+  font:12px Arial,sans-serif;
+
+  min-width:125px;
+
+  text-align:center;
+}
+
+#v89Time{
+  font-size:18px;
+  font-weight:bold;
+}
+
+#v89Period{
+  margin-top:3px;
+  opacity:.7;
+}
+
+#v89Controls{
+  position:fixed;
+
+  left:50%;
+  bottom:18px;
+
+  transform:translateX(-50%);
+
+  z-index:8901;
+
+  display:flex;
+  gap:6px;
+
+  padding:8px;
+
+  background:#05070ee5;
+
+  border:1px solid #ffffff25;
+  border-radius:12px;
+}
+
+#v89Controls button{
+
+  padding:9px 11px;
+
+  background:#111827;
+  color:white;
+
+  border:1px solid #ffffff25;
+  border-radius:8px;
+
+  font-size:11px;
+
+}
+
+#v89Message{
+
+  position:fixed;
+
+  left:50%;
+  top:20%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  padding:11px 17px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff35;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+  display:none;
+
+}
+
+#v89Debug{
+
+  position:fixed;
+
+  left:10px;
+  bottom:10px;
+
+  z-index:8500;
+
+  padding:7px 9px;
+
+  background:#05070ec9;
+  color:white;
+
+  border-radius:8px;
+
+  font:10px monospace;
+
+  display:none;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     CLOCK
+     ========================================================= -->
+
+<div id="v89Clock">
+
+  <div id="v89Time">
+    08:00
+  </div>
+
+  <div id="v89Period">
+    DAY
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v89Controls">
+
+  <button onclick="V89.pause()">
+    ⏸ PAUSE
+  </button>
+
+  <button onclick="V89.resume()">
+    ▶ PLAY
+  </button>
+
+  <button onclick="V89.setTime(8,0)">
+    ☀ MORNING
+  </button>
+
+  <button onclick="V89.setTime(18,0)">
+    🌇 EVENING
+  </button>
+
+  <button onclick="V89.setTime(22,0)">
+    🌙 NIGHT
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v89Message">
+  Time changed
+</div>
+
+
+<!-- =========================================================
+     DEBUG
+     ========================================================= -->
+
+<div id="v89Debug">
+  V89 TIME SYSTEM
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V89
+   DAY / NIGHT + WORLD TIME SYSTEM
+   ========================================================= */
+
+const V89 = {
+
+  version:"V89",
+
+  saveKey:
+    "WEBBOUND_V89_TIME",
+
+  hour:8,
+
+  minute:0,
+
+  second:0,
+
+  running:true,
+
+  /*
+    One real second =
+    one game minute.
+  */
+
+  gameMinutesPerRealSecond:1,
+
+  lastUpdate:0,
+
+  initialized:false,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.lastUpdate=
+      performance.now();
+
+    this.updateHUD();
+
+    this.initialized=true;
+
+    console.log(
+      "WEBBOUND V89 TIME SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const now=
+      performance.now();
+
+
+    if(!this.running){
+
+      this.lastUpdate=now;
+
+      this.updateHUD();
+
+      return;
+
+    }
+
+
+    const elapsed=
+      now-
+      this.lastUpdate;
+
+
+    this.lastUpdate=now;
+
+
+    const realSeconds=
+      elapsed/1000;
+
+
+    const gameMinutes=
+      realSeconds*
+      this.gameMinutesPerRealSecond;
+
+
+    this.addMinutes(
+      gameMinutes
+    );
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     ADD MINUTES
+     ======================================================= */
+
+  addMinutes(amount){
+
+    if(
+      !Number.isFinite(
+        amount
+      )
+    ){
+
+      return;
+
+    }
+
+
+    const total=
+      this.getTotalMinutes()+
+      amount;
+
+
+    const dayLength=
+      24*60;
+
+
+    const wrapped=
+      (
+        total%dayLength+
+        dayLength
+      )%
+      dayLength;
+
+
+    this.hour=
+      Math.floor(
+        wrapped/60
+      );
+
+
+    this.minute=
+      Math.floor(
+        wrapped%60
+      );
+
+
+    this.second=
+      Math.floor(
+        (
+          wrapped-
+          Math.floor(wrapped)
+        )*60
+      );
+
+  },
+
+
+  /* =======================================================
+     GET TOTAL MINUTES
+     ======================================================= */
+
+  getTotalMinutes(){
+
+    return(
+      this.hour*60+
+      this.minute+
+      this.second/60
+    );
+
+  },
+
+
+  /* =======================================================
+     SET TIME
+     ======================================================= */
+
+  setTime(
+    hour,
+    minute=0
+  ){
+
+    let h=
+      Number(hour);
+
+    let m=
+      Number(minute);
+
+
+    if(
+      !Number.isFinite(h) ||
+      !Number.isFinite(m)
+    ){
+
+      return false;
+
+    }
+
+
+    h=
+      Math.floor(h);
+
+
+    m=
+      Math.floor(m);
+
+
+    h=
+      (
+        h%24+
+        24
+      )%24;
+
+
+    m=
+      Math.max(
+        0,
+        Math.min(
+          59,
+          m
+        )
+      );
+
+
+    this.hour=h;
+
+    this.minute=m;
+
+    this.second=0;
+
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🕒 Time changed to "+
+      this.formatTime()
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     PAUSE
+     ======================================================= */
+
+  pause(){
+
+    this.running=false;
+
+    this.message(
+      "⏸ Time paused"
+    );
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     RESUME
+     ======================================================= */
+
+  resume(){
+
+    this.running=true;
+
+    this.lastUpdate=
+      performance.now();
+
+    this.message(
+      "▶ Time resumed"
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    if(this.running){
+
+      this.pause();
+
+    }
+    else{
+
+      this.resume();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     FORMAT TIME
+     ======================================================= */
+
+  formatTime(){
+
+    const h=
+      String(
+        this.hour
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+    const m=
+      String(
+        this.minute
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+    return h+":"+m;
+
+  },
+
+
+  /* =======================================================
+     PERIOD
+     ======================================================= */
+
+  getPeriod(){
+
+    const total=
+      this.getTotalMinutes();
+
+
+    if(
+      total>=5*60 &&
+      total<8*60
+    ){
+
+      return"DAWN";
+
+    }
+
+
+    if(
+      total>=8*60 &&
+      total<17*60
+    ){
+
+      return"DAY";
+
+    }
+
+
+    if(
+      total>=17*60 &&
+      total<20*60
+    ){
+
+      return"EVENING";
+
+    }
+
+
+    if(
+      total>=20*60 ||
+      total<5*60
+    ){
+
+      return"NIGHT";
+
+    }
+
+
+    return"DAY";
+
+  },
+
+
+  /* =======================================================
+     SUNLIGHT VALUE
+     ======================================================= */
+
+  getSunlight(){
+
+    const total=
+      this.getTotalMinutes();
+
+
+    /*
+      Approximate daylight curve.
+      Returns 0 to 1.
+    */
+
+    const sunrise=
+      6*60;
+
+    const sunset=
+      18*60;
+
+
+    if(
+      total<=sunrise ||
+      total>=sunset
+    ){
+
+      return 0;
+
+    }
+
+
+    const progress=
+      (
+        total-
+        sunrise
+      )/
+      (
+        sunset-
+        sunrise
+      );
+
+
+    return Math.sin(
+      progress*
+      Math.PI
+    );
+
+  },
+
+
+  /* =======================================================
+     IS NIGHT
+     ======================================================= */
+
+  isNight(){
+
+    const period=
+      this.getPeriod();
+
+
+    return(
+      period==="NIGHT"
+    );
+
+  },
+
+
+  /* =======================================================
+     IS DAY
+     ======================================================= */
+
+  isDay(){
+
+    const period=
+      this.getPeriod();
+
+
+    return(
+      period==="DAY"
+    );
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const time=
+      document.getElementById(
+        "v89Time"
+      );
+
+
+    const period=
+      document.getElementById(
+        "v89Period"
+      );
+
+
+    if(time){
+
+      time.textContent=
+        this.formatTime();
+
+    }
+
+
+    if(period){
+
+      period.textContent=
+        this.getPeriod();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v89Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        hour:this.hour,
+
+        minute:this.minute,
+
+        second:this.second,
+
+        running:this.running
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(
+          data
+        )
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V89 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.hour)
+        )
+      ){
+
+        this.hour=
+          Math.max(
+            0,
+            Math.min(
+              23,
+              Number(data.hour)
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.minute)
+        )
+      ){
+
+        this.minute=
+          Math.max(
+            0,
+            Math.min(
+              59,
+              Number(data.minute)
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.second)
+        )
+      ){
+
+        this.second=
+          Math.max(
+            0,
+            Math.min(
+              59,
+              Number(data.second)
+            )
+          );
+
+      }
+
+
+      if(
+        typeof data.running===
+        "boolean"
+      ){
+
+        this.running=
+          data.running;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V89 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      hour:this.hour,
+
+      minute:this.minute,
+
+      second:this.second,
+
+      running:this.running
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.hour)
+      )
+    ){
+
+      this.hour=
+        Number(data.hour);
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.minute)
+      )
+    ){
+
+      this.minute=
+        Number(data.minute);
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.second)
+      )
+    ){
+
+      this.second=
+        Number(data.second);
+
+    }
+
+
+    if(
+      typeof data.running===
+      "boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     V60 SAVE COMPATIBILITY
+     ======================================================= */
+
+  installV60Compatibility(){
+
+    if(
+      typeof V60==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V60.__v89CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    const originalCollect=
+      V60.collect.bind(V60);
+
+
+    V60.collect=function(){
+
+      const data=
+        originalCollect();
+
+
+      data.v89=
+        V89.collect();
+
+
+      return data;
+
+    };
+
+
+    if(
+      typeof V60.apply==="function"
+    ){
+
+      const originalApply=
+        V60.apply.bind(V60);
+
+
+      V60.apply=function(data){
+
+        originalApply(data);
+
+
+        if(
+          data &&
+          data.v89
+        ){
+
+          V89.apply(
+            data.v89
+          );
+
+        }
+
+      };
+
+    }
+
+
+    V60.__v89CompatibilityInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     START LOOP
+     ======================================================= */
+
+  start(){
+
+    const loop=()=>{
+
+      this.update();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      T = pause/resume time
+    */
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      event.preventDefault();
+
+      V89.toggle();
+
+    }
+
+
+    /*
+      1 = morning
+    */
+
+    if(
+      event.code==="Digit1"
+    ){
+
+      V89.setTime(
+        8,
+        0
+      );
+
+    }
+
+
+    /*
+      2 = evening
+    */
+
+    if(
+      event.code==="Digit2"
+    ){
+
+      V89.setTime(
+        18,
+        0
+      );
+
+    }
+
+
+    /*
+      3 = night
+    */
+
+    if(
+      event.code==="Digit3"
+    ){
+
+      V89.setTime(
+        22,
+        0
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V89.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V89.init();
+
+V89.installV60Compatibility();
+
+V89.start();
+
+
+/* =========================================================
+   FUTURE API
+
+   V89.setTime(12,30);
+
+   V89.addMinutes(30);
+
+   V89.pause();
+
+   V89.resume();
+
+   V89.isNight();
+
+   V89.isDay();
+
+   V89.getSunlight();
+
+   ========================================================= */
+
+</script>
+
+</body>
+</html>
