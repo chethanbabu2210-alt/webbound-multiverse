@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V111</title>
+
+<style>
+
+#v111Dialogue{
+  position:fixed;
+  left:50%;
+  bottom:35px;
+  transform:translateX(-50%);
+  z-index:13000;
+  width:min(650px,92vw);
+  padding:18px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:16px;
+  font-family:Arial,sans-serif;
+  display:none;
+  box-sizing:border-box;
+}
+
+#v111Character{
+  font-size:14px;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+#v111Text{
+  font-size:13px;
+  line-height:1.5;
+  min-height:40px;
+}
+
+#v111Choices{
+  margin-top:12px;
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+}
+
+#v111Choices button{
+  padding:10px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:9px;
+  text-align:left;
+  font-size:11px;
+}
+
+#v111Close{
+  margin-top:10px;
+  width:100%;
+  padding:8px;
+  background:#090d18;
+  color:white;
+  border:1px solid #ffffff20;
+  border-radius:8px;
+  font-size:10px;
+}
+
+#v111HUD{
+  position:fixed;
+  right:12px;
+  top:12px;
+  z-index:12900;
+  width:min(205px,55vw);
+  padding:11px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:11px;
+  font-family:Arial,sans-serif;
+}
+
+#v111Title{
+  font-size:12px;
+  font-weight:bold;
+}
+
+#v111Status{
+  margin-top:6px;
+  font-size:11px;
+  line-height:1.5;
+  opacity:.8;
+}
+
+#v111Message{
+  position:fixed;
+  left:50%;
+  top:20%;
+  transform:translateX(-50%);
+  z-index:13100;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+#v111Button{
+  position:fixed;
+  right:12px;
+  top:140px;
+  z-index:12901;
+  padding:9px 12px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:9px;
+  font-size:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V111 DIALOGUE HUD
+     ========================================================= -->
+
+<div id="v111HUD">
+
+  <div id="v111Title">
+    💬 DIALOGUE SYSTEM
+  </div>
+
+  <div id="v111Status">
+    Conversations: 0<br>
+    Choices made: 0<br>
+    Status: Ready
+  </div>
+
+</div>
+
+
+<button
+  id="v111Button"
+  onclick="V111.startDemo()">
+
+  💬 TEST DIALOGUE
+
+</button>
+
+
+<!-- =========================================================
+     DIALOGUE WINDOW
+     ========================================================= -->
+
+<div id="v111Dialogue">
+
+  <div id="v111Character">
+    Character
+  </div>
+
+  <div id="v111Text">
+    Dialogue
+  </div>
+
+  <div id="v111Choices">
+  </div>
+
+  <button
+    id="v111Close"
+    onclick="V111.close()">
+
+    ❌ CLOSE
+
+  </button>
+
+</div>
+
+
+<div id="v111Message">
+  V111
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V111
+   DIALOGUE / CONVERSATION SYSTEM
+   ========================================================= */
+
+const V111 = {
+
+  version:"V111",
+
+  saveKey:
+    "WEBBOUND_V111_DIALOGUE",
+
+  active:false,
+
+  currentConversation:null,
+
+  currentNode:0,
+
+  conversations:0,
+
+  choicesMade:0,
+
+  history:[],
+
+
+  /* =======================================================
+     DIALOGUE DATABASE
+     ======================================================= */
+
+  dialogueData:{
+
+    auntMay:{
+
+      character:"Aunt May",
+
+      nodes:[
+
+        {
+          text:
+            "You have been out for a long time. Is everything okay?",
+
+          choices:[
+
+            {
+              text:"I'm okay. I was just helping people.",
+              next:1
+            },
+
+            {
+              text:"I need to get some rest.",
+              next:2
+            }
+
+          ]
+
+        },
+
+        {
+          text:
+            "That's good. Just remember to take care of yourself too.",
+
+          choices:[
+
+            {
+              text:"I will.",
+              next:-1
+            }
+
+          ]
+
+        },
+
+        {
+          text:
+            "Then get some rest. Tomorrow is another day.",
+
+          choices:[
+
+            {
+              text:"Good night.",
+              next:-1
+            }
+
+          ]
+
+        }
+
+      ]
+
+    },
+
+
+    civilian:{
+
+      character:"Civilian",
+
+      nodes:[
+
+        {
+          text:
+            "Hey! Thanks for helping out around here.",
+
+          choices:[
+
+            {
+              text:"No problem.",
+              next:1
+            },
+
+            {
+              text:"What happened?",
+              next:2
+            }
+
+          ]
+
+        },
+
+        {
+          text:
+            "People like you make the city feel safer.",
+
+          choices:[
+
+            {
+              text:"Stay safe.",
+              next:-1
+            }
+
+          ]
+
+        },
+
+        {
+          text:
+            "There was trouble nearby, but things seem calm now.",
+
+          choices:[
+
+            {
+              text:"I'll keep an eye on the area.",
+              next:-1
+            }
+
+          ]
+
+        }
+
+      ]
+
+    },
+
+
+    policeOfficer:{
+
+      character:"Police Officer",
+
+      nodes:[
+
+        {
+          text:
+            "We're getting reports of trouble around the city.",
+
+          choices:[
+
+            {
+              text:"I'll check the area.",
+              next:1
+            },
+
+            {
+              text:"What kind of trouble?",
+              next:2
+            }
+
+          ]
+
+        },
+
+        {
+          text:
+            "Good. Keep an eye out and stay alert.",
+
+          choices:[
+
+            {
+              text:"Understood.",
+              next:-1
+            }
+
+          ]
+
+        },
+
+        {
+          text:
+            "Nothing confirmed yet. Just reports from civilians.",
+
+          choices:[
+
+            {
+              text:"I'll investigate.",
+              next:1
+            }
+
+          ]
+
+        }
+
+      ]
+
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V111 DIALOGUE SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START CONVERSATION
+     ======================================================= */
+
+ start(id){
+
+    const conversation=
+      this.dialogueData[id];
+
+
+    if(!conversation){
+
+      this.message(
+        "❌ Conversation not found"
+      );
+
+      return;
+
+    }
+
+
+    this.currentConversation=
+      conversation;
+
+    this.currentNode=0;
+
+    this.active=true;
+
+    this.conversations++;
+
+
+    this.render();
+
+    this.updateHUD();
+
+    this.save();
+
+
+    if(
+      typeof window.onWebboundDialogueStart===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundDialogueStart(
+          conversation
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V111 DIALOGUE START CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     DEMO
+     ======================================================= */
+
+  startDemo(){
+
+    this.start(
+      "auntMay"
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
+  render(){
+
+    if(!this.active){
+
+      return;
+
+    }
+
+
+    const dialogue=
+      document.getElementById(
+        "v111Dialogue"
+      );
+
+    const character=
+      document.getElementById(
+        "v111Character"
+      );
+
+    const text=
+      document.getElementById(
+        "v111Text"
+      );
+
+    const choices=
+      document.getElementById(
+        "v111Choices"
+      );
+
+
+    const node=
+      this.currentConversation
+        .nodes[
+          this.currentNode
+        ];
+
+
+    if(!node){
+
+      this.close();
+
+      return;
+
+    }
+
+
+    dialogue.style.display=
+      "block";
+
+
+    character.textContent=
+      this.currentConversation
+        .character;
+
+
+    text.textContent=
+      node.text;
+
+
+    choices.innerHTML="";
+
+
+    node.choices.forEach(
+      (choice,index)=>{
+
+        const button=
+          document.createElement(
+            "button"
+          );
+
+
+        button.textContent=
+          (
+            index+1
+          )+
+          ". "+
+          choice.text;
+
+
+        button.onclick=
+          ()=>{
+
+            this.choose(
+              index
+            );
+
+          };
+
+
+        choices.appendChild(
+          button
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     CHOOSE
+     ======================================================= */
+
+  choose(index){
+
+    if(!this.active){
+
+      return;
+
+    }
+
+
+    const node=
+      this.currentConversation
+        .nodes[
+          this.currentNode
+        ];
+
+
+    if(
+      !node ||
+      !node.choices[index]
+    ){
+
+      return;
+
+    }
+
+
+    const choice=
+      node.choices[index];
+
+
+    this.choicesMade++;
+
+
+    this.history.push({
+
+      character:
+        this.currentConversation
+          .character,
+
+      node:
+        this.currentNode,
+
+      choice:
+        choice.text,
+
+      time:
+        new Date().toISOString()
+
+    });
+
+
+    if(
+      typeof window.onWebboundDialogueChoice===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundDialogueChoice({
+
+          character:
+            this.currentConversation
+              .character,
+
+          choice:
+            choice.text,
+
+          node:
+            this.currentNode
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V111 CHOICE CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+
+    if(
+      choice.next===-1
+    ){
+
+      this.close();
+
+      this.message(
+        "💬 Conversation finished"
+      );
+
+      return;
+
+    }
+
+
+    this.currentNode=
+      choice.next;
+
+
+    this.render();
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     CLOSE
+     ======================================================= */
+
+  close(){
+
+    this.active=false;
+
+    this.currentConversation=null;
+
+    this.currentNode=0;
+
+
+    const dialogue=
+      document.getElementById(
+        "v111Dialogue"
+      );
+
+
+    if(dialogue){
+
+      dialogue.style.display=
+        "none";
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    if(
+      typeof window.onWebboundDialogueEnd===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundDialogueEnd();
+
+      }
+      catch(error){
+
+        console.warn(
+          "V111 DIALOGUE END CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const status=
+      document.getElementById(
+        "v111Status"
+      );
+
+
+    if(!status){
+
+      return;
+
+    }
+
+
+    status.innerHTML=
+
+      "Conversations: "+
+      this.conversations+
+      "<br>"+
+
+      "Choices made: "+
+      this.choicesMade+
+      "<br>"+
+
+      "Status: "+
+      (
+        this.active
+        ? "Conversation active"
+        : "Ready"
+      );
+
+  },
+
+
+  /* =======================================================
+     ADD CUSTOM DIALOGUE
+     ======================================================= */
+
+  addConversation(
+    id,
+    character,
+    nodes
+  ){
+
+    if(
+      !id ||
+      !character ||
+      !Array.isArray(nodes)
+    ){
+
+      return false;
+
+    }
+
+
+    this.dialogueData[id]={
+
+      character:
+        character,
+
+      nodes:
+        nodes
+
+    };
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     GET HISTORY
+     ======================================================= */
+
+  getHistory(){
+
+    return[
+      ...this.history
+    ];
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        conversations:
+          this.conversations,
+
+        choicesMade:
+          this.choicesMade,
+
+        history:
+          this.history.slice(
+            -100
+          )
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V111 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.conversations
+          )
+        )
+      ){
+
+        this.conversations=
+          Math.max(
+            0,
+            Number(
+              data.conversations
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.choicesMade
+          )
+        )
+      ){
+
+        this.choicesMade=
+          Math.max(
+            0,
+            Number(
+              data.choicesMade
+            )
+          );
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.history
+        )
+      ){
+
+        this.history=
+          data.history.slice(
+            -100
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V111 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      conversations:
+        this.conversations,
+
+      choicesMade:
+        this.choicesMade,
+
+      history:
+        this.history.slice(
+          -100
+        )
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.conversations=
+      Math.max(
+        0,
+        Number(
+          data.conversations
+        )||0
+      );
+
+
+    this.choicesMade=
+      Math.max(
+        0,
+        Number(
+          data.choicesMade
+        )||0
+      );
+
+
+    if(
+      Array.isArray(
+        data.history
+      )
+    ){
+
+      this.history=
+        data.history.slice(
+          -100
+        );
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v111Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      E = start civilian dialogue
+      when no dialogue is active.
+    */
+
+    if(
+      event.code==="KeyE" &&
+      !V111.active
+    ){
+
+      V111.start(
+        "civilian"
+      );
+
+    }
+
+
+    /*
+      Number keys select dialogue choices.
+    */
+
+    if(
+      V111.active
+    ){
+
+      if(event.code==="Digit1"){
+
+        V111.choose(0);
+
+      }
+
+      if(event.code==="Digit2"){
+
+        V111.choose(1);
+
+      }
+
+      if(event.code==="Digit3"){
+
+        V111.choose(2);
+
+      }
+
+    }
+
+
+    /*
+      Escape closes dialogue.
+    */
+
+    if(
+      event.code==="Escape" &&
+      V111.active
+    ){
+
+      V111.close();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V111.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V111.init();
+
+
+console.log(
+  "WEBBOUND V111 DIALOGUE SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
