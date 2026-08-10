@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V123</title>
+
+<style>
+
+#v123HUD{
+  position:fixed;
+  right:12px;
+  top:360px;
+  z-index:16200;
+  width:min(270px,68vw);
+  padding:14px;
+  background:#05070eeb;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v123Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v123Clock{
+  margin-top:9px;
+  font-size:24px;
+  font-weight:bold;
+  letter-spacing:1px;
+}
+
+#v123Date{
+  margin-top:3px;
+  font-size:10px;
+  opacity:.65;
+}
+
+#v123Period{
+  margin-top:8px;
+  font-size:11px;
+}
+
+#v123Controls{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+#v123Controls button{
+  flex:1;
+  min-width:70px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v123Message{
+  position:fixed;
+  left:50%;
+  top:24%;
+  transform:translateX(-50%);
+  z-index:16400;
+  display:none;
+  max-width:88%;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 11px Arial,sans-serif;
+  text-align:center;
+}
+
+#v123Overlay{
+  position:fixed;
+  inset:0;
+  z-index:16100;
+  pointer-events:none;
+  background:rgba(20,30,70,0);
+  transition:background .8s;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V123
+     DAY / NIGHT + WORLD TIME SYSTEM
+     ========================================================= -->
+
+<div id="v123Overlay"></div>
+
+<div id="v123HUD">
+
+  <div id="v123Title">
+    🕐 WORLD TIME
+  </div>
+
+  <div id="v123Clock">
+    08:00
+  </div>
+
+  <div id="v123Date">
+    Day 1
+  </div>
+
+  <div id="v123Period">
+    ☀️ Morning
+  </div>
+
+  <div id="v123Controls">
+
+    <button onclick="V123.pause()">
+      ⏸ PAUSE
+    </button>
+
+    <button onclick="V123.resume()">
+      ▶️ PLAY
+    </button>
+
+    <button onclick="V123.advanceHour()">
+      +1 HOUR
+    </button>
+
+    <button onclick="V123.setDay()">
+      🌅 DAY
+    </button>
+
+    <button onclick="V123.setNight()">
+      🌙 NIGHT
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="v123Message">
+  V123
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V123
+   WORLD TIME SYSTEM
+   ========================================================= */
+
+const V123 = {
+
+  version:"V123",
+
+  saveKey:
+    "WEBBOUND_V123_WORLD_TIME",
+
+  hour:8,
+
+  minute:0,
+
+  day:1,
+
+  running:true,
+
+  /*
+    One real second =
+    2 game minutes.
+  */
+
+  minutesPerRealSecond:2,
+
+  timer:null,
+
+  messageTimer:null,
+
+  lastPeriod:"Morning",
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.update();
+
+    this.start();
+
+    console.log(
+      "WEBBOUND V123 WORLD TIME READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START CLOCK
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          if(
+            this.running
+          ){
+
+            this.tick();
+
+          }
+
+        },
+        1000
+      );
+
+  },
+
+
+  /* =======================================================
+     STOP
+     ======================================================= */
+
+  stop(){
+
+    clearInterval(
+      this.timer
+    );
+
+    this.timer=null;
+
+  },
+
+
+  /* =======================================================
+     PAUSE
+     ======================================================= */
+
+  pause(){
+
+    this.running=false;
+
+    this.update();
+
+    this.message(
+      "⏸ World time paused"
+    );
+
+  },
+
+
+  /* =======================================================
+     RESUME
+     ======================================================= */
+
+  resume(){
+
+    this.running=true;
+
+    this.update();
+
+    this.message(
+      "▶️ World time resumed"
+    );
+
+  },
+
+
+  /* =======================================================
+     TICK
+     ======================================================= */
+
+  tick(){
+
+    this.minute+=
+      this.minutesPerRealSecond;
+
+
+    while(
+      this.minute>=60
+    ){
+
+      this.minute-=60;
+
+      this.hour++;
+
+    }
+
+
+    while(
+      this.hour>=24
+    ){
+
+      this.hour-=24;
+
+      this.day++;
+
+      this.callHook(
+        "newDay"
+      );
+
+    }
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     ADVANCE HOUR
+     ======================================================= */
+
+  advanceHour(){
+
+    this.hour++;
+
+    if(
+      this.hour>=24
+    ){
+
+      this.hour=0;
+
+      this.day++;
+
+      this.callHook(
+        "newDay"
+      );
+
+    }
+
+
+    this.update();
+
+    this.save();
+
+
+    this.message(
+      "🕐 Time advanced to "+
+      this.getTime()
+    );
+
+  },
+
+
+  /* =======================================================
+     SET DAY
+     ======================================================= */
+
+  setDay(){
+
+    this.hour=12;
+
+    this.minute=0;
+
+    this.update();
+
+    this.save();
+
+
+    this.message(
+      "☀️ Daytime set"
+    );
+
+  },
+
+
+  /* =======================================================
+     SET NIGHT
+     ======================================================= */
+
+  setNight(){
+
+    this.hour=22;
+
+    this.minute=0;
+
+    this.update();
+
+    this.save();
+
+
+    this.message(
+      "🌙 Nighttime set"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET TIME
+     ======================================================= */
+
+  getTime(){
+
+    const h=
+      String(
+        this.hour
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+    const m=
+      String(
+        this.minute
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+    return h+
+      ":"+
+      m;
+
+  },
+
+
+  /* =======================================================
+     GET PERIOD
+     ======================================================= */
+
+  getPeriod(){
+
+    const time=
+      this.hour+
+      this.minute/
+      60;
+
+
+    if(
+      time>=5 &&
+      time<8
+    ){
+
+      return{
+        name:"Dawn",
+        icon:"🌅"
+      };
+
+    }
+
+
+    if(
+      time>=8 &&
+      time<12
+    ){
+
+      return{
+        name:"Morning",
+        icon:"☀️"
+      };
+
+    }
+
+
+    if(
+      time>=12 &&
+      time<17
+    ){
+
+      return{
+        name:"Afternoon",
+        icon:"🌤️"
+      };
+
+    }
+
+
+    if(
+      time>=17 &&
+      time<20
+    ){
+
+      return{
+        name:"Evening",
+        icon:"🌇"
+      };
+
+    }
+
+
+    if(
+      time>=20 &&
+      time<24
+    ){
+
+      return{
+        name:"Night",
+        icon:"🌙"
+      };
+
+    }
+
+
+    return{
+      name:"Late Night",
+      icon:"🌌"
+    };
+
+  },
+
+
+  /* =======================================================
+     GET LIGHT LEVEL
+     ======================================================= */
+
+  getLightLevel(){
+
+    const time=
+      this.hour+
+      this.minute/
+      60;
+
+
+    /*
+      0 = dark
+      1 = bright
+    */
+
+    if(
+      time<5
+    ){
+
+      return .15;
+
+    }
+
+
+    if(
+      time<7
+    ){
+
+      return .15+
+        (
+          (time-5)/
+          2
+        )*.85;
+
+    }
+
+
+    if(
+      time<18
+    ){
+
+      return 1;
+
+    }
+
+
+    if(
+      time<20
+    ){
+
+      return 1-
+        (
+          (time-18)/
+          2
+        )*.85;
+
+    }
+
+
+    return .15;
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  update(){
+
+    const clock=
+      document.getElementById(
+        "v123Clock"
+      );
+
+
+    const date=
+      document.getElementById(
+        "v123Date"
+      );
+
+
+    const period=
+      document.getElementById(
+        "v123Period"
+      );
+
+
+    const overlay=
+      document.getElementById(
+        "v123Overlay"
+      );
+
+
+    const currentPeriod=
+      this.getPeriod();
+
+
+    if(clock){
+
+      clock.textContent=
+        this.getTime();
+
+    }
+
+
+    if(date){
+
+      date.textContent=
+        "Day "+
+        this.day;
+
+    }
+
+
+    if(period){
+
+      period.textContent=
+        currentPeriod.icon+
+        " "+
+        currentPeriod.name+
+        " • "+
+        (
+          this.running
+          ? "Running"
+          : "Paused"
+        );
+
+    }
+
+
+    /*
+      Detect period changes.
+    */
+
+    if(
+      this.lastPeriod!==
+      currentPeriod.name
+    ){
+
+      this.lastPeriod=
+        currentPeriod.name;
+
+      this.callHook(
+        "periodChange",
+        currentPeriod.name
+      );
+
+    }
+
+
+    /*
+      Visual night overlay.
+      It does not interfere with
+      the actual game renderer.
+    */
+
+    if(overlay){
+
+      const light=
+        this.getLightLevel();
+
+
+      const darkness=
+        Math.max(
+          0,
+          Math.min(
+            .72,
+            1-light
+          )
+        );
+
+
+      overlay.style.background=
+        "rgba(10,20,65,"+
+        darkness+
+        ")";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     GET CURRENT WORLD STATE
+     ======================================================= */
+
+  getState(){
+
+    return{
+
+      hour:
+        this.hour,
+
+      minute:
+        this.minute,
+
+      day:
+        this.day,
+
+      running:
+        this.running,
+
+      time:
+        this.getTime(),
+
+      period:
+        this.getPeriod().name,
+
+      light:
+        this.getLightLevel()
+
+    };
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      hour:
+        this.hour,
+
+      minute:
+        this.minute,
+
+      day:
+        this.day,
+
+      running:
+        this.running,
+
+      savedAt:
+        new Date().toISOString()
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V123 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(
+          raw
+        );
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      this.hour=
+        Number(
+          data.hour
+        );
+
+
+      this.minute=
+        Number(
+          data.minute
+        );
+
+
+      this.day=
+        Number(
+          data.day
+        );
+
+
+      /*
+        Safety validation.
+      */
+
+      if(
+        !Number.isFinite(
+          this.hour
+        ) ||
+        this.hour<0 ||
+        this.hour>23
+      ){
+
+        this.hour=8;
+
+      }
+
+
+      if(
+        !Number.isFinite(
+          this.minute
+        ) ||
+        this.minute<0 ||
+        this.minute>59
+      ){
+
+        this.minute=0;
+
+      }
+
+
+      if(
+        !Number.isFinite(
+          this.day
+        ) ||
+        this.day<1
+      ){
+
+        this.day=1;
+
+      }
+
+
+      if(
+        typeof data.running===
+        "boolean"
+      ){
+
+        this.running=
+          data.running;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V123 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    const oldRunning=
+      this.running;
+
+
+    this.hour=
+      Number(
+        data.hour
+      );
+
+
+    this.minute=
+      Number(
+        data.minute
+      );
+
+
+    this.day=
+      Number(
+        data.day
+      );
+
+
+    if(
+      typeof data.running===
+      "boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    /*
+      Validate loaded values.
+    */
+
+    if(
+      !Number.isFinite(
+        this.hour
+      ) ||
+      this.hour<0 ||
+      this.hour>23
+    ){
+
+      this.hour=8;
+
+    }
+
+
+    if(
+      !Number.isFinite(
+        this.minute
+      ) ||
+      this.minute<0 ||
+      this.minute>59
+    ){
+
+      this.minute=0;
+
+    }
+
+
+    if(
+      !Number.isFinite(
+        this.day
+      ) ||
+      this.day<1
+    ){
+
+      this.day=1;
+
+    }
+
+
+    this.update();
+
+    this.save();
+
+
+    if(
+      oldRunning!==this.running
+    ){
+
+      this.message(
+        this.running
+        ? "▶️ World time resumed"
+        : "⏸ World time paused"
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     EVENT HOOK
+     ======================================================= */
+
+  callHook(
+    event,
+    data
+  ){
+
+    /*
+      Future WEBBOUND versions
+      can listen to this.
+    */
+
+    if(
+      typeof window.onWebboundTimeEvent===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundTimeEvent({
+
+          event:
+            event,
+
+          data:
+            data,
+
+          state:
+            this.getState()
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V123 TIME CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v123Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(
+        text
+      );
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      T = advance one hour
+    */
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      V123.advanceHour();
+
+    }
+
+
+    /*
+      P = pause/resume
+    */
+
+    if(
+      event.code==="KeyP"
+    ){
+
+      if(
+        V123.running
+      ){
+
+        V123.pause();
+
+      }
+      else{
+
+        V123.resume();
+
+      }
+
+    }
+
+
+    /*
+      N = night
+    */
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      V123.setNight();
+
+    }
+
+
+    /*
+      D = day
+    */
+
+    if(
+      event.code==="KeyD"
+    ){
+
+      V123.setDay();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V123.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V123.init();
+
+
+console.log(
+  "WEBBOUND V123 WORLD TIME SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
