@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V143</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ overflow:hidden;
+ background:#071018;
+ color:#fff;
+ font-family:Arial,sans-serif
+}
+
+#world{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#172630,#081219)
+}
+
+.road{
+ position:absolute;
+ background:#252d33;
+ z-index:2
+}
+
+.road.h{
+ height:40px;
+ left:0;
+ right:0
+}
+
+.road.v{
+ width:40px;
+ top:0;
+ bottom:0
+}
+
+.building{
+ position:absolute;
+ background:#1b2934;
+ border:1px solid #ffffff18;
+ border-radius:8px;
+ z-index:4
+}
+
+.label{
+ position:absolute;
+ left:50%;
+ top:50%;
+ transform:translate(-50%,-50%);
+ font-size:9px;
+ white-space:nowrap
+}
+
+#player{
+ position:absolute;
+ width:22px;
+ height:30px;
+ background:#268de5;
+ border-radius:9px 9px 4px 4px;
+ transform:translate(-50%,-50%);
+ z-index:7000
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ width:13px;
+ height:13px;
+ left:4.5px;
+ top:-9px;
+ border-radius:50%;
+ background:#c9936c
+}
+
+.npc{
+ position:absolute;
+ width:17px;
+ height:25px;
+ border-radius:8px 8px 4px 4px;
+ z-index:2000;
+ cursor:pointer
+}
+
+.npc:before{
+ content:"";
+ position:absolute;
+ width:10px;
+ height:10px;
+ left:3.5px;
+ top:-8px;
+ border-radius:50%;
+ background:#c9936c
+}
+
+.npcName{
+ position:absolute;
+ bottom:28px;
+ left:50%;
+ transform:translateX(-50%);
+ font-size:7px;
+ white-space:nowrap;
+ text-shadow:0 1px 3px #000
+}
+
+.marker{
+ position:absolute;
+ width:30px;
+ height:30px;
+ border-radius:50%;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:6000
+}
+
+.caseMarker{
+ background:#71318a;
+ border:2px solid #e2a4ff;
+ box-shadow:0 0 13px #ad55d6;
+ animation:pulse 1.2s infinite
+}
+
+.shopMarker{
+ background:#246b45;
+ border:2px solid #76e0a0
+}
+
+@keyframes pulse{
+ 50%{transform:scale(1.2)}
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ bottom:10px;
+ width:min(620px,95vw);
+ padding:13px;
+ background:#03070cf2;
+ border:1px solid #ffffff25;
+ border-radius:14px;
+ z-index:9000
+}
+
+#title{
+ font-weight:bold;
+ font-size:14px
+}
+
+#stats{
+ margin-top:7px;
+ font-size:10px;
+ line-height:1.7
+}
+
+.buttons{
+ display:flex;
+ flex-wrap:wrap;
+ gap:5px;
+ margin-top:8px
+}
+
+button{
+ flex:1;
+ min-width:100px;
+ padding:8px;
+ border:1px solid #ffffff20;
+ border-radius:8px;
+ background:#162534;
+ color:white;
+ font-size:9px
+}
+
+button:active{
+ transform:scale(.97)
+}
+
+#clock{
+ position:fixed;
+ right:10px;
+ top:10px;
+ padding:9px 12px;
+ background:#03070cf2;
+ border:1px solid #ffffff25;
+ border-radius:10px;
+ z-index:9000;
+ font-size:11px
+}
+
+#message{
+ position:fixed;
+ left:50%;
+ top:15%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff30;
+ border-radius:10px;
+ display:none;
+ z-index:10000;
+ font-size:11px;
+ text-align:center
+}
+
+#panel{
+ position:fixed;
+ left:50%;
+ top:50%;
+ transform:translate(-50%,-50%);
+ width:min(560px,94vw);
+ max-height:82vh;
+ overflow:auto;
+ display:none;
+ padding:15px;
+ background:#03070cf9;
+ border:1px solid #ffffff30;
+ border-radius:16px;
+ z-index:12000
+}
+
+#panelTitle{
+ font-weight:bold;
+ font-size:14px
+}
+
+.row{
+ margin-top:8px;
+ padding:10px;
+ background:#111d27;
+ border-radius:9px;
+ font-size:10px;
+ line-height:1.65
+}
+
+.close{
+ width:100%;
+ margin-top:10px
+}
+
+.shopItem{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ gap:8px;
+ margin-top:7px;
+ padding:9px;
+ background:#111d27;
+ border-radius:8px
+}
+
+.shopItem button{
+ min-width:80px;
+ flex:none
+}
+</style>
+</head>
+
+<body>
+
+<div id="world">
+
+ <div class="road h" style="top:27%"></div>
+ <div class="road h" style="top:67%"></div>
+
+ <div class="road v" style="left:24%"></div>
+ <div class="road v" style="left:56%"></div>
+ <div class="road v" style="left:78%"></div>
+
+ <div class="building"
+      style="left:5%;top:5%;width:17%;height:18%">
+  <div class="label">🏠 RESIDENTIAL</div>
+ </div>
+
+ <div class="building"
+      style="left:29%;top:5%;width:17%;height:18%">
+  <div class="label">🏫 SCHOOL</div>
+ </div>
+
+ <div class="building"
+      style="left:60%;top:5%;width:15%;height:18%">
+  <div class="label">🏥 HOSPITAL</div>
+ </div>
+
+ <div class="building"
+      style="left:81%;top:5%;width:15%;height:18%">
+  <div class="label">🏢 OFFICES</div>
+ </div>
+
+ <div class="building"
+      style="left:5%;top:46%;width:17%;height:16%">
+  <div class="label">🏭 FACTORY</div>
+ </div>
+
+ <div class="building"
+      style="left:29%;top:47%;width:18%;height:17%">
+  <div class="label">🌳 PARK</div>
+ </div>
+
+ <div class="building"
+      style="left:60%;top:46%;width:15%;height:15%">
+  <div class="label">🍽️ RESTAURANT</div>
+ </div>
+
+ <div class="building"
+      style="left:81%;top:45%;width:15%;height:17%">
+  <div class="label">🏪 MARKET</div>
+ </div>
+
+ <div id="player"></div>
+
+</div>
+
+<div id="clock">
+ 📅 Day 1 • 🕐 08:00
+</div>
+
+<div id="message"></div>
+
+<div id="hud">
+
+ <div id="title">
+  🕵️ WEBBOUND V143 — CITY INTERACTION
+ </div>
+
+ <div id="stats"></div>
+
+ <div class="buttons">
+
+  <button onclick="V143.interactNearest()">
+   🗣️ INTERACT
+  </button>
+
+  <button onclick="V143.shopPanel()">
+   🛒 SHOP
+  </button>
+
+  <button onclick="V143.inventoryPanel()">
+   🎒 INVENTORY
+  </button>
+
+  <button onclick="V143.missionPanel()">
+   🎯 MISSIONS
+  </button>
+
+  <button onclick="V143.casePanel()">
+   📁 CASES
+  </button>
+
+  <button onclick="V143.collect()">
+   🔎 COLLECT
+  </button>
+
+  <button onclick="V143.witness()">
+   🗣️ WITNESS
+  </button>
+
+  <button onclick="V143.analyze()">
+   🧪 ANALYZE
+  </button>
+
+  <button onclick="V143.solveCase()">
+   ⚖️ SOLVE
+  </button>
+
+  <button onclick="V143.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+</div>
+
+<div id="panel">
+
+ <div id="panelTitle">
+  WEBBOUND V143
+ </div>
+
+ <div id="panelContent"></div>
+
+ <button class="close"
+         onclick="V143.closePanel()">
+  CLOSE
+ </button>
+
+</div>
+
+<script>
+
+const V143={
+
+ saveKey:"WEBBOUND_V143",
+
+ keys:{},
+
+ hour:8,
+ day:1,
+
+ player:{
+  x:window.innerWidth/2,
+  y:window.innerHeight/2,
+  money:1000,
+  reputation:0,
+  xp:0,
+  level:1
+ },
+
+ npcs:[],
+ cases:[],
+ missions:[],
+
+ inventory:{
+  medkit:0,
+  camera:1,
+  notebook:1,
+  scanner:0,
+  evidenceBag:1
+ },
+
+ investigation:{
+  collected:0,
+  analyzed:0,
+  interviews:0,
+  solved:0
+ },
+
+ courtStats:{
+  convictions:0,
+  justice:50
+ },
+
+ shopItems:[
+
+  {
+   id:"medkit",
+   name:"🩹 First Aid Kit",
+   price:100,
+   description:"Useful emergency equipment."
+  },
+
+  {
+   id:"scanner",
+   name:"📡 Evidence Scanner",
+   price:350,
+   description:"Improves evidence collection."
+  },
+
+  {
+   id:"notebook",
+   name:"📓 Investigation Notebook",
+   price:75,
+   description:"Helps organize witness information."
+  },
+
+  {
+   id:"evidenceBag",
+   name:"🧳 Evidence Bag",
+   price:200,
+   description:"Professional evidence storage."
+  }
+
+ ],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.createNPCs();
+
+  this.createMissions();
+
+  this.keyboard();
+
+  this.render();
+
+  this.updateHUD();
+
+  setInterval(
+   ()=>this.update(),
+   40
+  );
+
+  setInterval(
+   ()=>this.timeTick(),
+   1000
+  );
+
+  setInterval(
+   ()=>this.spawnCase(),
+   20000
+  );
+
+  this.message(
+   "🕵️ V143 interaction system ready"
+  );
+
+ },
+
+ /* =========================
+    NPC
+ ========================= */
+
+ createNPCs(){
+
+  if(this.npcs.length)
+   return;
+
+  const names=[
+   "Alex","Sam","Ryan","Maya",
+   "Arun","Riya","Dev","Asha",
+   "Noah","Leo","Avi","Zara",
+   "Kiran","Nikhil","Anu",
+   "Rahul","Meera","Vikram"
+  ];
+
+  const jobs=[
+   "Student",
+   "Doctor",
+   "Engineer",
+   "Shopkeeper",
+   "Teacher",
+   "Driver",
+   "Journalist",
+   "Mechanic"
+  ];
+
+  for(let i=0;i<18;i++){
+
+   this.npcs.push({
+
+    id:i+1,
+
+    name:names[i],
+
+    job:
+     jobs[
+      Math.floor(
+       Math.random()*jobs.length
+      )
+     ],
+
+    x:
+     60+
+     Math.random()*
+     (window.innerWidth-120),
+
+    y:
+     160+
+     Math.random()*
+     Math.max(
+      1,
+      window.innerHeight-210
+     ),
+
+    trust:
+     30+
+     Math.floor(
+      Math.random()*70
+     ),
+
+    relationship:0,
+
+    element:null
+
+   });
+
+  }
+
+ },
+
+ nearestNPC(){
+
+  let best=null;
+  let dist=999999;
+
+  this.npcs.forEach(n=>{
+
+   const dx=
+    n.x-this.player.x;
+
+   const dy=
+    n.y-this.player.y;
+
+   const d=
+    Math.sqrt(
+     dx*dx+dy*dy
+    );
+
+   if(d<dist){
+
+    dist=d;
+    best=n;
+
+   }
+
+  });
+
+  return dist<100?best:null;
+
+ },
+
+ /* =========================
+    INTERACTION
+ ========================= */
+
+ interactNearest(){
+
+  const n=this.nearestNPC();
+
+  if(!n){
+
+   this.message(
+    "🗣️ Move closer to a person"
+   );
+
+   return;
+
+  }
+
+  this.dialogue(n);
+
+ },
+
+ dialogue(n){
+
+  const rep=
+   this.player.reputation;
+
+  let greeting;
+
+  if(rep>=20){
+
+   greeting=
+    "I've heard about your investigations. People trust you.";
+
+  }
+  else if(rep>=5){
+
+   greeting=
+    "You're becoming known around the city.";
+
+  }
+  else if(rep<0){
+
+   greeting=
+    "I'm not sure I should talk to you.";
+
+  }
+  else{
+
+   greeting=
+    "Hello. What can I do for you?";
+
+  }
+
+  const trust=
+   n.trust+
+   n.relationship;
+
+  let response;
+
+  if(trust>=80){
+
+   response=
+    "I trust you. If I hear anything useful, I'll tell you.";
+
+  }
+  else if(trust>=55){
+
+   response=
+    "Maybe I can help with your investigation.";
+
+  }
+  else{
+
+   response=
+    "I don't know you well enough yet.";
+
+  }
+
+  this.openPanel(
+
+   "🗣️ "+n.name,
+
+   `
+
+   <div class="row">
+
+   <b>${n.name}</b>
+
+   <br>
+
+   Occupation: ${n.job}
+
+   <br>
+
+   Trust: ${trust}/100
+
+   <br>
+
+   Relationship:
+   ${n.relationship}
+
+   </div>
+
+   <div class="row">
+
+   "${greeting}"
+
+   </div>
+
+   <div class="row">
+
+   "${response}"
+
+   </div>
+
+   <button
+    onclick="V143.askQuestion(${n.id})">
+    ❓ ASK ABOUT THE CITY
+   </button>
+
+   <button
+    onclick="V143.buildTrust(${n.id})">
+    🤝 BUILD TRUST
+   </button>
+
+   <button
+    onclick="V143.askCaseInfo(${n.id})">
+    📁 ASK ABOUT CASES
+   </button>
+
+   `
+
+  );
+
+ },
+
+ askQuestion(id){
+
+  const n=
+   this.npcs.find(
+    x=>x.id===id
+   );
+
+  if(!n)return;
+
+  const answers=[
+
+   "I saw someone suspicious near the market yesterday.",
+
+   "The hospital staff have been unusually busy.",
+
+   "There was a strange vehicle near the offices.",
+
+   "I heard people talking about missing documents.",
+
+   "The park was unusually crowded last night."
+
+  ];
+
+  const answer=
+   answers[
+    Math.floor(
+     Math.random()*answers.length
+    )
+   ];
+
+  n.relationship+=1;
+
+  this.player.xp+=10;
+
+  this.message(
+   "💬 Information received"
+  );
+
+  this.openPanel(
+
+   "🗣️ CITY INFORMATION",
+
+   `
+
+   <div class="row">
+
+   ${n.name} says:
+
+   <br><br>
+
+   "${answer}"
+
+   </div>
+
+   <div class="row">
+
+   ⭐ +10 XP
+
+   </div>
+
+   `
+
+  );
+
+ },
+
+ buildTrust(id){
+
+  const n=
+   this.npcs.find(
+    x=>x.id===id
+   );
+
+  if(!n)return;
+
+  if(this.player.money<25){
+
+   this.message(
+    "You need ₹25"
+   );
+
+   return;
+
+  }
+
+  this.player.money-=25;
+
+  n.relationship+=5;
+
+  this.player.reputation+=1;
+
+  this.message(
+   "🤝 Relationship improved"
+  );
+
+  this.dialogue(n);
+
+ },
+
+ askCaseInfo(id){
+
+  const n=
+   this.npcs.find(
+    x=>x.id===id
+   );
+
+  if(!n)return;
+
+  if(n.trust+n.relationship<55){
+
+   this.message(
+    "🔒 This person doesn't trust you enough"
+   );
+
+   return;
+
+  }
+
+  this.openPanel(
+
+   "📁 CASE INFORMATION",
+
+   `
+
+   <div class="row">
+
+   ${n.name} tells you:
+
+   <br><br>
+
+   "I noticed suspicious activity
+   around the city. Check active
+   case locations carefully."
+
+   </div>
+
+   `
+
+  );
+
+  this.addXP(15);
+
+ },
+
+ /* =========================
+    SHOP
+ ========================= */
+
+ shopPanel(){
+
+  let html="";
+
+  this.shopItems.forEach(item=>{
+
+   html+=`
+
+   <div class="shopItem">
+
+    <div>
+
+     <b>${item.name}</b>
+
+     <br>
+
+     ${item.description}
+
+     <br>
+
+     💰 ₹${item.price}
+
+    </div>
+
+    <button
+     onclick="V143.buy('${item.id}')">
+     BUY
+    </button>
+
+   </div>
+
+   `;
+
+  });
+
+  this.openPanel(
+   "🛒 CITY EQUIPMENT SHOP",
+   html
+  );
+
+ },
+
+ buy(id){
+
+  const item=
+   this.shopItems.find(
+    x=>x.id===id
+   );
+
+  if(!item)
+   return;
+
+  if(this.player.money<item.price){
+
+   this.message(
+    "❌ Not enough money"
+   );
+
+   return;
+
+  }
+
+  this.player.money-=
+   item.price;
+
+  if(
+   this.inventory[id]===undefined
+  )
+   this.inventory[id]=0;
+
+  this.inventory[id]++;
+
+  this.message(
+   "🛒 Purchased "+
+   item.name
+  );
+
+  this.shopPanel();
+
+ },
+
+ /* =========================
+    INVENTORY
+ ========================= */
+
+ inventoryPanel(){
+
+  const names={
+
+   medkit:"🩹 First Aid Kit",
+
+   camera:"📷 Camera",
+
+   notebook:"📓 Notebook",
+
+   scanner:"📡 Evidence Scanner",
+
+   evidenceBag:"🧳 Evidence Bag"
+
+  };
+
+  let html="";
+
+  Object.keys(this.inventory)
+   .forEach(id=>{
+
+    html+=`
+
+    <div class="row">
+
+    ${names[id]||id}
+
+    <br>
+
+    Quantity:
+    <b>${this.inventory[id]}</b>
+
+    </div>
+
+    `;
+
+   });
+
+  this.openPanel(
+   "🎒 INVENTORY",
+   html
+  );
+
+ },
+
+ /* =========================
+    CASES
+ ========================= */
+
+ spawnCase(){
+
+  const types=[
+
+   ["🛍️","Market Theft"],
+
+   ["🚗","Vehicle Theft"],
+
+   ["💳","Fraud Investigation"],
+
+   ["🏠","Burglary"],
+
+   ["🏢","Office Crime"]
+
+  ];
+
+  const type=
+   types[
+    Math.floor(
+     Math.random()*types.length
+    )
+   ];
+
+  const suspect=
+   this.npcs[
+    Math.floor(
+     Math.random()*this.npcs.length
+    )
+   ];
+
+  this.cases.push({
+
+   id:Date.now(),
+
+   icon:type[0],
+
+   name:type[1],
+
+   suspect:suspect.name,
+
+   evidence:20+
+    Math.floor(
+     Math.random()*30
+    ),
+
+   evidenceItems:[],
+
+   witnesses:[],
+
+   analyzed:false,
+
+   solved:false,
+
+   x:
+    60+
+    Math.random()*
+    (window.innerWidth-120),
+
+   y:
+    150+
+    Math.random()*
+    Math.max(
+     1,
+     window.innerHeight-200
+    ),
+
+   element:null
+
+  });
+
+  this.message(
+   "📁 New case: "+type[1]
+  );
+
+ },
+
+ nearestCase(){
+
+  let best=null;
+  let dist=999999;
+
+  this.cases.forEach(c=>{
+
+   if(c.solved)
+    return;
+
+   const dx=
+    c.x-this.player.x;
+
+   const dy=
+    c.y-this.player.y;
+
+   const d=
+    Math.sqrt(
+     dx*dx+dy*dy
+    );
+
+   if(d<dist){
+
+    dist=d;
+    best=c;
+
+   }
+
+  });
+
+  return dist<150?best:null;
+
+ },
+
+ collect(){
+
+  const c=this.nearestCase();
+
+  if(!c){
+
+   this.message(
+    "🔎 Move near a case marker"
+   );
+
+   return;
+
+  }
+
+  const items=[
+
+   "🔍 Fingerprint",
+
+   "📷 CCTV footage",
+
+   "🧾 Receipt",
+
+   "📱 Digital record",
+
+   "👟 Footprint",
+
+   "🧤 Trace evidence"
+
+  ];
+
+  let item=
+   items[
+    Math.floor(
+     Math.random()*items.length
+    )
+   ];
+
+  if(
+   this.inventory.scanner>0&&
+   Math.random()<.35
+  ){
+
+   item=
+    "📡 Scanner anomaly";
+
+  }
+
+  if(
+   c.evidenceItems.includes(item)
+  ){
+
+   this.message(
+    "This evidence is already collected"
+   );
+
+   return;
+
+  }
+
+  c.evidenceItems.push(item);
+
+  let amount=10;
+
+  if(this.inventory.evidenceBag>0)
+   amount+=5;
+
+  c.evidence=
+   Math.min(
+    100,
+    c.evidence+amount
+   );
+
+  this.investigation.collected++;
+
+  this.message(
+   "🔎 Collected: "+item+
+   " +"+amount+" evidence"
+  );
+
+ },
+
+ witness(){
+
+  const c=this.nearestCase();
+
+  if(!c){
+
+   this.message(
+    "🗣️ No case nearby"
+   );
+
+   return;
+
+  }
+
+  const person=
+   this.npcs.find(
+    n=>
+     n.name!==c.suspect&&
+     !c.witnesses.includes(n.name)
+   );
+
+  if(!person){
+
+   this.message(
+    "No available witness"
+   );
+
+   return;
+
+  }
+
+  c.witnesses.push(
+   person.name
+  );
+
+  c.evidence=
+   Math.min(
+    100,
+    c.evidence+
+    (person.trust>60?12:5)
+   );
+
+  this.investigation.interviews++;
+
+  this.message(
+   "🗣️ "+person.name+
+   " gave a statement"
+  );
+
+ },
+
+ analyze(){
+
+  const c=
+   this.cases.find(
+    x=>
+     !x.solved&&
+     x.evidenceItems.length>0&&
+     !x.analyzed
+   );
+
+  if(!c){
+
+   this.message(
+    "🧪 No evidence ready"
+   );
+
+   return;
+
+  }
+
+  c.analyzed=true;
+
+  c.evidence=
+   Math.min(
+    100,
+    c.evidence+15
+   );
+
+  this.investigation.analyzed++;
+
+  this.message(
+   "🧪 Analysis complete"
+  );
+
+ },
+
+ solveCase(){
+
+  const c=
+   this.cases.find(
+    x=>!x.solved
+   );
+
+  if(!c){
+
+   this.message(
+    "No active case"
+   );
+
+   return;
+
+  }
+
+  let strength=c.evidence;
+
+  strength+=
+   c.witnesses.length*8;
+
+  if(c.analyzed)
+   strength+=15;
+
+  if(
+   strength+
+   Math.random()*10
+   >=70
+  ){
+
+   c.solved=true;
+
+   this.investigation.solved++;
+
+   this.courtStats.convictions++;
+
+   this.courtStats.justice=
+    Math.min(
+     100,
+     this.courtStats.justice+4
+    );
+
+   this.player.money+=250;
+
+   this.player.reputation+=5;
+
+   this.addXP(100);
+
+   this.message(
+    "⚖️ CASE SOLVED! +₹250"
+   );
+
+  }
+  else{
+
+   this.message(
+    "⚖️ Evidence is not strong enough"
+   );
+
+  }
+
+ },
+
+ /* =========================
+    MISSIONS
+ ========================= */
+
+ createMissions(){
+
+  if(this.missions.length)
+   return;
+
+  this.missions=[
+
+   {
+    id:"talk",
+    name:"🗣️ City Contacts",
+    description:"Talk to 3 citizens.",
+    type:"talk",
+    target:3,
+    progress:0,
+    reward:200,
+    completed:false,
+    claimed:false
+   },
+
+   {
+    id:"buy",
+    name:"🛒 Prepare",
+    description:"Buy one investigation item.",
+    type:"buy",
+    target:1,
+    progress:0,
+    reward:150,
+    completed:false,
+    claimed:false
+   },
+
+   {
+    id:"case",
+    name:"📁 Investigator",
+    description:"Solve one case.",
+    type:"solve",
+    target:1,
+    progress:0,
+    reward:500,
+    completed:false,
+    claimed:false
+   }
+
+  ];
+
+ },
+
+ updateMission(type){
+
+  this.missions.forEach(m=>{
+
+   if(
+    m.type!==type||
+    m.completed
+   )
+    return;
+
+   m.progress=
+    Math.min(
+     m.target,
+     m.progress+1
+    );
+
+   if(
+    m.progress>=m.target
+   ){
+
+    m.completed=true;
+
+    this.message(
+     "🎯 Mission completed: "+
+     m.name
+    );
+
+   }
+
+  });
+
+ },
+
+ addXP(amount){
+
+  this.player.xp+=amount;
+
+  const required=
+   100+
+   (this.player.level-1)*75;
+
+  if(this.player.xp>=required){
+
+   this.player.xp-=required;
+
+   this.player.level++;
+
+   this.player.money+=100;
+
+   this.message(
+    "⭐ LEVEL UP! Level "+
+    this.player.level
+   );
+
+  }
+
+ },
+
+ missionPanel(){
+
+  let html="";
+
+  this.missions.forEach(m=>{
+
+   html+=`
+
+   <div class="row">
+
+   <b>${m.name}</b>
+
+   <br>
+
+   ${m.description}
+
+   <br><br>
+
+   ${m.progress}/${m.target}
+
+   <br>
+
+   💰 Reward: ₹${m.reward}
+
+   <br>
+
+   Status:
+   ${
+    m.claimed
+    ?"🎁 Claimed"
+    :m.completed
+    ?"✅ Complete"
+    :"⏳ Active"
+   }
+
+   ${
+    m.completed&&!m.claimed
+    ?`
+
+     <br><br>
+
+     <button
+      onclick="V143.claimMission('${m.id}')">
+      🎁 CLAIM
+     </button>
+
+    `
+    :""
+   }
+
+   </div>
+
+   `;
+
+  });
+
+  this.openPanel(
+   "🎯 MISSIONS",
+   html
+  );
+
+ },
+
+ claimMission(id){
+
+  const m=
+   this.missions.find(
+    x=>x.id===id
+   );
+
+  if(
+   !m||
+   !m.completed||
+   m.claimed
+  )
+   return;
+
+  m.claimed=true;
+
+  this.player.money+=
+   m.reward;
+
+  this.addXP(50);
+
+  this.message(
+   "🎁 Reward claimed: ₹"+
+   m.reward
+  );
+
+  this.missionPanel();
+
+ },
+
+ casePanel(){
+
+  let html="";
+
+  this.cases.forEach(c=>{
+
+   html+=`
+
+   <div class="row">
+
+   <b>
+    ${c.icon} ${c.name}
+   </b>
+
+   <br>
+
+   Suspect:
+   ${c.suspect}
+
+   <br>
+
+   Evidence:
+   ${c.evidence}%
+
+   <br>
+
+   Witnesses:
+   ${c.witnesses.length}
+
+   <br>
+
+   Forensics:
+   ${c.analyzed?"Complete":"Pending"}
+
+   <br>
+
+   Status:
+   ${c.solved?"✅ Solved":"🔴 Active"}
+
+   </div>
+
+   `;
+
+  });
+
+  this.openPanel(
+   "📁 CASE FILES",
+   html||
+   "<div class='row'>No cases.</div>"
+  );
+
+ },
+
+ /* =========================
+    MOVEMENT
+ ========================= */
+
+ keyboard(){
+
+  window.addEventListener(
+   "keydown",
+   e=>{
+
+    this.keys[e.code]=true;
+
+    if(e.code==="KeyE")
+     this.interactNearest();
+
+    if(e.code==="KeyI")
+     this.inventoryPanel();
+
+    if(e.code==="KeyM")
+     this.missionPanel();
+
+    if(e.code==="KeyC")
+     this.casePanel();
+
+    if(e.code==="Escape")
+     this.closePanel();
+
+   }
+  );
+
+  window.addEventListener(
+   "keyup",
+   e=>{
+    this.keys[e.code]=false;
+   }
+  );
+
+ },
+
+ update(){
+
+  c
