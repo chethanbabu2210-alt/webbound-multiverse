@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Spider-Man Game V201</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+    background:#101820;
+    color:white;
+}
+
+#game{
+    position:fixed;
+    inset:0;
+    overflow:hidden;
+    background:#6d9eae;
+}
+
+/* SKY */
+#sky{
+    position:absolute;
+    inset:0;
+    background:
+        linear-gradient(
+            #5d91a5 0%,
+            #9dc0c8 55%,
+            #d3d9d5 100%
+        );
+}
+
+/* SUN */
+#sun{
+    position:absolute;
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    background:#fff1ad;
+    right:10%;
+    top:9%;
+    box-shadow:0 0 50px #fff1ad;
+}
+
+/* CITY */
+.city{
+    position:absolute;
+    bottom:0;
+    width:100%;
+    height:58%;
+}
+
+.building{
+    position:absolute;
+    bottom:0;
+    background:#26343d;
+    border:1px solid #ffffff15;
+    box-shadow:0 0 20px #0004;
+}
+
+.building:after{
+    content:"";
+    position:absolute;
+    inset:10px;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            #d9dfb833 0 7px,
+            transparent 7px 17px
+        ),
+        repeating-linear-gradient(
+            0deg,
+            #d9dfb833 0 7px,
+            transparent 7px 18px
+        );
+}
+
+.b1{left:0;width:11%;height:46%}
+.b2{left:12%;width:13%;height:70%}
+.b3{left:27%;width:10%;height:52%}
+.b4{left:39%;width:16%;height:83%}
+.b5{left:57%;width:11%;height:60%}
+.b6{left:70%;width:14%;height:76%}
+.b7{right:0;width:13%;height:50%}
+
+/* ROADS */
+#roadH{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:16%;
+    height:90px;
+    background:#242a2f;
+    border-top:3px solid #555;
+    border-bottom:3px solid #555;
+}
+
+#roadH:after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:43px;
+    border-top:4px dashed #d8c85d;
+}
+
+#roadV{
+    position:absolute;
+    top:42%;
+    bottom:0;
+    left:48%;
+    width:90px;
+    background:#242a2f;
+    border-left:3px solid #555;
+    border-right:3px solid #555;
+}
+
+#roadV:after{
+    content:"";
+    position:absolute;
+    top:0;
+    bottom:0;
+    left:43px;
+    border-left:4px dashed #d8c85d;
+}
+
+/* PLAYER */
+#spiderman{
+    position:absolute;
+    width:34px;
+    height:48px;
+    left:50%;
+    top:50%;
+    z-index:100;
+    transform:translate(-50%,-50%);
+    transition:transform .08s linear;
+}
+
+/* BODY */
+.body{
+    position:absolute;
+    width:30px;
+    height:35px;
+    left:2px;
+    top:12px;
+    border-radius:12px 12px 6px 6px;
+    background:
+        linear-gradient(
+            90deg,
+            #8b0b13,
+            #d51622 45%,
+            #0b2b72 46%,
+            #071a49
+        );
+    border:2px solid #050b15;
+}
+
+/* HEAD */
+.head{
+    position:absolute;
+    width:25px;
+    height:25px;
+    left:4px;
+    top:-5px;
+    border-radius:50%;
+    background:#c91522;
+    border:2px solid #080c15;
+}
+
+.head:before,
+.head:after{
+    content:"";
+    position:absolute;
+    width:8px;
+    height:4px;
+    background:white;
+    top:9px;
+    border:1px solid #111;
+}
+
+.head:before{
+    left:2px;
+    transform:rotate(25deg);
+}
+
+.head:after{
+    right:2px;
+    transform:rotate(-25deg);
+}
+
+/* WEB PATTERN */
+.body:after{
+    content:"";
+    position:absolute;
+    inset:5px;
+    border-radius:8px;
+    background:
+        repeating-linear-gradient(
+            45deg,
+            transparent 0 7px,
+            #ffffff20 8px 9px
+        );
+}
+
+/* HUD */
+#hud{
+    position:fixed;
+    top:12px;
+    left:12px;
+    width:min(430px,92vw);
+    padding:12px;
+    border-radius:13px;
+    background:#03070ddd;
+    border:1px solid #ffffff25;
+    z-index:500;
+}
+
+.title{
+    font-size:14px;
+    font-weight:bold;
+}
+
+.subtitle{
+    margin-top:4px;
+    color:#aebfc7;
+    font-size:9px;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+    margin-top:10px;
+}
+
+.stat{
+    background:#101b23;
+    padding:8px 4px;
+    text-align:center;
+    border-radius:7px;
+    font-size:9px;
+}
+
+#location{
+    margin-top:8px;
+    padding:8px;
+    background:#101b23;
+    border-radius:7px;
+    font-size:9px;
+}
+
+/* CONTROLS */
+#controls{
+    position:fixed;
+    left:50%;
+    bottom:12px;
+    transform:translateX(-50%);
+    width:min(500px,95vw);
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:7px;
+    z-index:600;
+}
+
+button{
+    padding:11px 6px;
+    border:1px solid #ffffff25;
+    border-radius:9px;
+    background:#111f2a;
+    color:white;
+    font-size:10px;
+    cursor:pointer;
+}
+
+button:active{
+    transform:scale(.95);
+}
+
+/* MAP */
+#map{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:#02060aee;
+    z-index:1000;
+    padding:20px;
+}
+
+.mapbox{
+    width:min(700px,95vw);
+    margin:auto;
+    background:#0b141b;
+    border:1px solid #ffffff22;
+    border-radius:14px;
+    padding:16px;
+}
+
+.mapgrid{
+    position:relative;
+    height:380px;
+    margin-top:12px;
+    background:
+        linear-gradient(
+            90deg,
+            transparent 48%,
+            #d7c86e55 49% 51%,
+            transparent 52%
+        ),
+        linear-gradient(
+            transparent 48%,
+            #d7c86e55 49% 51%,
+            transparent 52%
+        ),
+        #1c2c34;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.zone{
+    position:absolute;
+    padding:10px;
+    border-radius:8px;
+    background:#12222c;
+    border:1px solid #ffffff20;
+    font-size:9px;
+}
+
+.z1{left:5%;top:7%}
+.z2{right:5%;top:8%}
+.z3{left:5%;bottom:8%}
+.z4{right:5%;bottom:8%}
+.z5{left:39%;top:42%}
+
+#mapPlayer{
+    position:absolute;
+    left:50%;
+    top:50%;
+    width:12px;
+    height:12px;
+    background:#e21b2b;
+    border-radius:50%;
+    box-shadow:0 0 15px #e21b2b;
+}
+
+/* MESSAGE */
+#message{
+    position:fixed;
+    left:50%;
+    top:25%;
+    transform:translateX(-50%);
+    padding:10px 16px;
+    background:#03070cf5;
+    border:1px solid #ffffff25;
+    border-radius:9px;
+    font-size:10px;
+    display:none;
+    z-index:1500;
+    text-align:center;
+}
+
+/* MOBILE JOYSTICK */
+#joystick{
+    position:fixed;
+    left:18px;
+    bottom:30px;
+    width:105px;
+    height:105px;
+    border-radius:50%;
+    background:#ffffff12;
+    border:2px solid #ffffff22;
+    z-index:700;
+}
+
+#stick{
+    position:absolute;
+    width:43px;
+    height:43px;
+    left:29px;
+    top:29px;
+    border-radius:50%;
+    background:#ffffff33;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="sky"></div>
+<div id="sun"></div>
+
+<div class="city">
+    <div class="building b1"></div>
+    <div class="building b2"></div>
+    <div class="building b3"></div>
+    <div class="building b4"></div>
+    <div class="building b5"></div>
+    <div class="building b6"></div>
+    <div class="building b7"></div>
+</div>
+
+<div id="roadH"></div>
+<div id="roadV"></div>
+
+<!-- SPIDER-MAN -->
+<div id="spiderman">
+    <div class="head"></div>
+    <div class="body"></div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+
+    <div class="title">
+        🕷️ SPIDER-MAN — V201
+    </div>
+
+    <div class="subtitle">
+        CITY EXPLORATION SYSTEM
+    </div>
+
+    <div class="stats">
+
+        <div class="stat">
+            ❤️ HEALTH<br>
+            <span id="health">100</span>
+        </div>
+
+        <div class="stat">
+            🕷️ SPIDER POWER<br>
+            <span id="power">100</span>
+        </div>
+
+        <div class="stat">
+            ⭐ LEVEL<br>
+            <span id="level">1</span>
+        </div>
+
+    </div>
+
+    <div id="location">
+        📍 Location:
+        <b id="locationText">
+            Downtown
+        </b>
+        <br>
+        🧭 Position:
+        <span id="position">
+            0, 0
+        </span>
+    </div>
+
+</div>
+
+<div id="message"></div>
+
+<!-- JOYSTICK -->
+<div id="joystick">
+    <div id="stick"></div>
+</div>
+
+<!-- CONTROLS -->
+<div id="controls">
+
+    <button onclick="Spider.jump()">
+        🦘 JUMP
+    </button>
+
+    <button onclick="Spider.sprint()">
+        🏃 SPRINT
+    </button>
+
+    <button onclick="Spider.map()">
+        🗺️ MAP
+    </button>
+
+    <button onclick="Spider.sense()">
+        🕷️ SPIDER-SENSE
+    </button>
+
+    <button onclick="Spider.rest()">
+        ❤️ RESTORE
+    </button>
+
+    <button onclick="Spider.save()">
+        💾 SAVE
+    </button>
+
+</div>
+
+<!-- MAP -->
+<div id="map">
+
+    <div class="mapbox">
+
+        <h2>🗺️ NEW YORK CITY</h2>
+
+        <div class="mapgrid">
+
+            <div class="zone z1">
+                🏙️ Downtown
+            </div>
+
+            <div class="zone z2">
+                🏢 Financial District
+            </div>
+
+            <div class="zone z3">
+                🏘️ Residential
+            </div>
+
+            <div class="zone z4">
+                🏭 Industrial
+            </div>
+
+            <div class="zone z5">
+                🏛️ City Center
+            </div>
+
+            <div id="mapPlayer"></div>
+
+        </div>
+
+        <br>
+
+        <button onclick="Spider.map()">
+            CLOSE MAP
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+
+const Spider = {
+
+    saveKey:"SPIDERMAN_V201",
+
+    x:0,
+    y:0,
+
+    health:100,
+    power:100,
+    level:1,
+
+    speed:4,
+
+    moving:false,
+
+    direction:"down",
+
+    init(){
+
+        this.load();
+        this.update();
+
+        this.message(
+            "🕷️ Welcome, Spider-Man!"
+        );
+
+        this.keyboard();
+
+    },
+
+    keyboard(){
+
+        document.addEventListener(
+            "keydown",
+            e=>{
+
+                const key=e.key.toLowerCase();
+
+                if(
+                    key==="w" ||
+                    key==="arrowup"
+                ){
+
+                    this.move(0,-1);
+
+                }
+
+                if(
+                    key==="s" ||
+                    key==="arrowdown"
+                ){
+
+                    this.move(0,1);
+
+                }
+
+                if(
+                    key==="a" ||
+                    key==="arrowleft"
+                ){
+
+                    this.move(-1,0);
+
+                }
+
+                if(
+                    key==="d" ||
+                    key==="arrowright"
+                ){
+
+                    this.move(1,0);
+
+                }
+
+                if(key===" "){
+                    e.preventDefault();
+                    this.jump();
+                }
+
+            }
+        );
+
+    },
+
+    move(dx,dy){
+
+        const distance=this.speed;
+
+        this.x+=dx*distance;
+        this.y+=dy*distance;
+
+        this.x=Math.max(
+            -100,
+            Math.min(100,this.x)
+        );
+
+        this.y=Math.max(
+            -100,
+            Math.min(100,this.y)
+        );
+
+        if(dx>0)this.direction="right";
+        if(dx<0)this.direction="left";
+        if(dy>0)this.direction="down";
+        if(dy<0)this.direction="up";
+
+        this.render();
+        this.location();
+
+        this.power=Math.max(
+            0,
+            this.power-.2
+        );
+
+        this.update();
+
+    },
+
+    render(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const screenX=
+            50+(this.x*.25);
+
+        const screenY=
+            50+(this.y*.18);
+
+        player.style.left=
+            screenX+"%";
+
+        player.style.top=
+            screenY+"%";
+
+        if(this.direction==="left"){
+            player.style.transform=
+                "translate(-50%,-50%) scaleX(-1)";
+        }
+        else{
+            player.style.transform=
+                "translate(-50%,-50%) scaleX(1)";
+        }
+
+    },
+
+    jump(){
+
+        if(this.power<5){
+
+            this.message(
+                "🕷️ Not enough power!"
+            );
+
+            return;
+        }
+
+        this.power-=5;
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        player.style.transition=
+            "transform .18s";
+
+        player.style.transform+=
+            " translateY(-80px)";
+
+        setTimeout(()=>{
+
+            player.style.transform=
+                this.direction==="left"
+                ?
+                "translate(-50%,-50%) scaleX(-1)"
+                :
+                "translate(-50%,-50%) scaleX(1)";
+
+        },180);
+
+        this.message(
+            "🦘 Jump!"
+        );
+
+        this.update();
+
+    },
+
+    sprint(){
+
+        if(this.power<10){
+
+            this.message(
+                "🕷️ Too tired to sprint."
+            );
+
+            return;
+        }
+
+        this.power-=10;
+
+        this.speed=10;
+
+        this.move(
+            this.direction==="left"?-1:
+            this.direction==="right"?1:0,
+
+            this.direction==="up"?-1:
+            this.direction==="down"?1:0
+        );
+
+        this.speed=4;
+
+        this.message(
+            "🏃 Super sprint!"
+        );
+
+    },
+
+    sense(){
+
+        if(this.power<8){
+
+            this.message(
+                "🕷️ Spider-Sense unavailable."
+            );
+
+            return;
+        }
+
+        this.power-=8;
+
+        const events=[
+            "⚠️ Crime detected nearby!",
+            "🚨 Police activity detected!",
+            "👤 Someone may need help!",
+            "🕷️ Danger detected!",
+            "📸 Interesting photo opportunity nearby!"
+        ];
+
+        const event=
+            events[
+                Math.floor(
+                    Math.random()*events.length
+                )
+            ];
+
+        this.message(event);
+
+        this.update();
+
+    },
+
+    rest(){
+
+        this.health=Math.min(
+            100,
+            this.health+20
+        );
+
+        this.power=Math.min(
+            100,
+            this.power+30
+        );
+
+        this.message(
+            "❤️ Spider-Man recovered."
+        );
+
+        this.update();
+
+    },
+
+    location(){
+
+        let place="Downtown";
+
+        if(this.x>50)
+            place="Financial District";
+
+        else if(this.x<-50)
+            place="Residential District";
+
+        else if(this.y>50)
+            place="Industrial District";
+
+        else if(this.y<-50)
+            place="City Center";
+
+        document.getElementById(
+            "locationText"
+        ).textContent=place;
+
+        document.getElementById(
+            "position"
+        ).textContent=
+            Math.round(this.x)+
+            ", "+
+            Math.round(this.y);
+
+        const mapPlayer=
+            document.getElementById(
+                "mapPlayer"
+            );
+
+        mapPlayer.style.left=
+            (50+this.x*.35)+"%";
+
+        mapPlayer.style.top=
+            (50+this.y*.35)+"%";
+
+    },
+
+    map(){
+
+        const map=
+            document.getElementById(
+                "map"
+            );
+
+        map.style.display=
+            map.style.display==="flex"
+            ?
+            "none"
+            :
+            "flex";
+
+        this.location();
+
+    },
+
+    update(){
+
+        document.getElementById(
+            "health"
+        ).textContent=
+            Math.round(this.health);
+
+        document.getElementById(
+            "power"
+        ).textContent=
+            Math.round(this.power);
+
+        document.getElementById(
+            "level"
+        ).textContent=
+            this.level;
+
+    },
+
+    save(){
+
+        localStorage.setItem(
+            this.saveKey,
+            JSON.stringify({
+
+                x:this.x,
+                y:this.y,
+                health:this.health,
+                power:this.power,
+                level:this.level
+
+            })
+        );
+
+        this.message(
+            "💾 Game saved!"
+        );
+
+    },
+
+    load(){
+
+        try{
+
+            const raw=
+                localStorage.getItem(
+                    this.saveKey
+                );
+
+            if(!raw)return;
+
+            const data=
+                JSON.parse(raw);
+
+            if(Number.isFinite(data.x))
+                this.x=data.x;
+
+            if(Number.isFinite(data.y))
+                this.y=data.y;
+
+            if(Number.isFinite(data.health))
+                this.health=
+                    Math.max(
+                        0,
+                        Math.min(
+                            100,
+                            data.health
+                        )
+                    );
+
+            if(Number.isFinite(data.power))
+                this.power=
+                    Math.max(
+                        0,
+                        Math.min(
+                            100,
+                            data.power
+                        )
+                    );
+
+            if(Number.isFinite(data.level))
+                this.level=
+                    Math.max(
+                        1,
+                        data.level
+                    );
+
+            this.render();
+
+        }
+        catch(error){
+
+            console.log(
+                "Save loading error:",
+                error
+            );
+
+        }
+
+    },
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "message"
+            );
+
+        box.textContent=text;
+        box.style.display="block";
+
+        clearTimeout(this.messageTimer);
+
+        this.messageTimer=
+            setTimeout(
+                ()=>{
+                    box.style.display="none";
+                },
+                2200
+            );
+
+    }
+
+};
+
+Spider.init();
+
+</script>
+
+</body>
+  </html>
