@@ -1,0 +1,944 @@
+<!-- =========================================================
+ WEBBOUND V65
+ MISSION SYSTEM + OBJECTIVES + REWARDS + CHECKPOINT INTEGRATION
+ ========================================================= -->
+
+<style>
+
+#v65Mission{
+  position:fixed;
+  z-index:8500;
+  top:15px;
+  left:15px;
+  width:min(360px,90%);
+  padding:15px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:16px;
+  font-family:Arial,sans-serif;
+  box-shadow:0 10px 35px #0008;
+}
+
+#v65Mission h3{
+  margin:0 0 8px;
+}
+
+#v65MissionTitle{
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+#v65Objective{
+  color:#dbeafe;
+  font-size:14px;
+  line-height:1.5;
+}
+
+#v65Progress{
+  margin-top:8px;
+  height:7px;
+  background:#ffffff20;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+#v65ProgressBar{
+  width:0%;
+  height:100%;
+  background:#fff;
+  transition:.25s;
+}
+
+#v65Mission button{
+  width:100%;
+  margin-top:9px;
+  padding:10px;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+  background:#111827;
+  color:white;
+}
+
+#v65MissionList{
+  display:none;
+  margin-top:10px;
+  border-top:1px solid #ffffff20;
+  padding-top:10px;
+}
+
+.v65MissionItem{
+  padding:9px;
+  margin:5px 0;
+  background:#ffffff0d;
+  border-radius:9px;
+  cursor:pointer;
+}
+
+.v65MissionItem:hover{
+  background:#ffffff18;
+}
+
+#v65Notification{
+  position:fixed;
+  z-index:9997;
+  left:50%;
+  bottom:85px;
+  transform:translateX(-50%);
+  padding:12px 18px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:12px;
+  font:14px Arial,sans-serif;
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+}
+
+#v65Reward{
+  position:fixed;
+  z-index:9998;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%) scale(.9);
+  width:min(380px,90%);
+  padding:22px;
+  text-align:center;
+  background:#05070ef7;
+  color:white;
+  border:1px solid #ffffff40;
+  border-radius:18px;
+  font-family:Arial,sans-serif;
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+}
+
+#v65Reward h2{
+  margin-top:0;
+}
+
+</style>
+
+
+<!-- =========================================================
+ MISSION HUD
+ ========================================================= -->
+
+<div id="v65Mission">
+
+  <h3>📋 CURRENT MISSION</h3>
+
+  <div id="v65MissionTitle">
+    No active mission
+  </div>
+
+  <div id="v65Objective">
+    Choose a mission to begin.
+  </div>
+
+  <div id="v65Progress">
+    <div id="v65ProgressBar"></div>
+  </div>
+
+  <button onclick="V65.toggleMissionList()">
+    🗺️ MISSION LIST
+  </button>
+
+  <div id="v65MissionList"></div>
+
+</div>
+
+
+<!-- =========================================================
+ NOTIFICATION
+ ========================================================= -->
+
+<div id="v65Notification"></div>
+
+
+<!-- =========================================================
+ REWARD
+ ========================================================= -->
+
+<div id="v65Reward">
+
+  <h2>🏆 MISSION COMPLETE</h2>
+
+  <p id="v65RewardText">
+    Mission completed!
+  </p>
+
+  <button onclick="V65.closeReward()">
+    CONTINUE
+  </button>
+
+</div>
+
+
+<script>
+
+const V65 = {
+
+  version:"V65",
+
+  activeMission:null,
+
+  missionProgress:0,
+
+  missionCompleted:[],
+
+
+  /* =======================================================
+     MISSION DATABASE
+     ======================================================= */
+
+  missions:[
+
+    {
+      id:"city_patrol",
+
+      title:"🕷️ City Patrol",
+
+      objective:
+        "Explore the city and visit 3 locations.",
+
+      type:"visit",
+
+      required:3,
+
+      rewardXP:150,
+
+      rewardScore:500
+    },
+
+    {
+      id:"help_citizens",
+
+      title:"🤝 Help the Citizens",
+
+      objective:
+        "Complete 5 civilian interactions.",
+
+      type:"interact",
+
+      required:5,
+
+      rewardXP:200,
+
+      rewardScore:700
+    },
+
+    {
+      id:"web_traversal",
+
+      title:"🕸️ Web Traversal",
+
+      objective:
+        "Travel through the city for 60 seconds.",
+
+      type:"travel",
+
+      required:60,
+
+      rewardXP:175,
+
+      rewardScore:600
+    },
+
+    {
+      id:"checkpoint",
+
+      title:"📍 Safe Point",
+
+      objective:
+        "Create a new checkpoint.",
+
+      type:"checkpoint",
+
+      required:1,
+
+      rewardXP:100,
+
+      rewardScore:300
+    }
+
+  ],
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    if(this.activeMission){
+
+      this.notify(
+        "⚠️ Finish your current mission first."
+      );
+
+      return;
+    }
+
+    this.toggleMissionList();
+
+  },
+
+
+  /* =======================================================
+     START SPECIFIC MISSION
+     ======================================================= */
+
+  startMission(id){
+
+    const mission=
+      this.missions.find(
+        m=>m.id===id
+      );
+
+    if(!mission){
+      return;
+    }
+
+    if(
+      this.missionCompleted.includes(id)
+    ){
+
+      this.notify(
+        "✅ Mission already completed."
+      );
+
+      return;
+    }
+
+    if(this.activeMission){
+
+      this.notify(
+        "⚠️ Another mission is active."
+      );
+
+      return;
+    }
+
+    this.activeMission=id;
+
+    this.missionProgress=0;
+
+    this.updateHUD();
+
+    this.notify(
+      "📋 Mission started: "+
+      mission.title
+    );
+
+  },
+
+
+  /* =======================================================
+     GET CURRENT MISSION
+     ======================================================= */
+
+  current(){
+
+    if(!this.activeMission){
+      return null;
+    }
+
+    return this.missions.find(
+      m=>m.id===this.activeMission
+    );
+
+  },
+
+
+  /* =======================================================
+     ADD PROGRESS
+     ======================================================= */
+
+  progress(amount=1){
+
+    const mission=
+      this.current();
+
+    if(!mission){
+      return;
+    }
+
+    this.missionProgress+=amount;
+
+    if(
+      this.missionProgress>
+      mission.required
+    ){
+
+      this.missionProgress=
+        mission.required;
+
+    }
+
+    this.updateHUD();
+
+    if(
+      this.missionProgress>=
+      mission.required
+    ){
+
+      this.complete();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COMPLETE
+     ======================================================= */
+
+  complete(){
+
+    const mission=
+      this.current();
+
+    if(!mission){
+      return;
+    }
+
+    const id=
+      mission.id;
+
+    if(
+      !this.missionCompleted.includes(id)
+    ){
+
+      this.missionCompleted.push(id);
+
+    }
+
+
+    /* XP */
+
+    if(
+      typeof xp !== "undefined"
+    ){
+
+      xp+=mission.rewardXP;
+
+    }
+
+
+    /* SCORE */
+
+    if(
+      typeof score !== "undefined"
+    ){
+
+      score+=mission.rewardScore;
+
+    }
+
+
+    /* LEVEL */
+
+    if(
+      typeof level !== "undefined" &&
+      typeof xp !== "undefined"
+    ){
+
+      const required=
+        level*500;
+
+      if(xp>=required){
+
+        xp-=required;
+
+        level++;
+
+        this.notify(
+          "⭐ LEVEL UP! Level "+
+          level
+        );
+
+      }
+
+    }
+
+
+    this.showReward(
+      mission
+    );
+
+
+    this.activeMission=null;
+
+    this.missionProgress=0;
+
+    this.updateHUD();
+
+
+    /* SAVE THROUGH V60 */
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save === "function"
+    ){
+
+      V60.save();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const title=
+      document.getElementById(
+        "v65MissionTitle"
+      );
+
+    const objective=
+      document.getElementById(
+        "v65Objective"
+      );
+
+    const bar=
+      document.getElementById(
+        "v65ProgressBar"
+      );
+
+    const mission=
+      this.current();
+
+    if(!mission){
+
+      title.textContent=
+        "No active mission";
+
+      objective.textContent=
+        "Choose a mission to begin.";
+
+      bar.style.width="0%";
+
+      return;
+
+    }
+
+
+    title.textContent=
+      mission.title;
+
+
+    objective.textContent=
+      mission.objective+
+      " ("+
+      this.missionProgress+
+      "/"+
+      mission.required+
+      ")";
+
+
+    const percent=
+      Math.min(
+        100,
+        (
+          this.missionProgress/
+          mission.required
+        )*100
+      );
+
+
+    bar.style.width=
+      percent+"%";
+
+  },
+
+
+  /* =======================================================
+     MISSION LIST
+     ======================================================= */
+
+  toggleMissionList(){
+
+    const list=
+      document.getElementById(
+        "v65MissionList"
+      );
+
+    if(
+      list.style.display==="block"
+    ){
+
+      list.style.display="none";
+
+      return;
+
+    }
+
+
+    list.innerHTML="";
+
+
+    this.missions.forEach(
+      mission=>{
+
+        const item=
+          document.createElement(
+            "div"
+          );
+
+        item.className=
+          "v65MissionItem";
+
+
+        const completed=
+          this.missionCompleted
+          .includes(mission.id);
+
+
+        item.innerHTML=
+          "<b>"+
+          mission.title+
+          "</b><br>"+
+          "<small>"+
+          mission.objective+
+          "</small><br>"+
+          (
+            completed
+            ? "✅ COMPLETED"
+            : "▶ TAP TO START"
+          );
+
+
+        if(!completed){
+
+          item.onclick=
+            ()=>{
+
+              this.startMission(
+                mission.id
+              );
+
+              list.style.display=
+                "none";
+
+            };
+
+        }
+
+
+        list.appendChild(item);
+
+      }
+    );
+
+
+    list.style.display="block";
+
+  },
+
+
+  /* =======================================================
+     NOTIFICATION
+     ======================================================= */
+
+  notify(text){
+
+    const box=
+      document.getElementById(
+        "v65Notification"
+      );
+
+    box.textContent=text;
+
+    box.style.opacity="1";
+
+    setTimeout(
+      ()=>{
+
+        box.style.opacity="0";
+
+      },
+      2200
+    );
+
+  },
+
+
+  /* =======================================================
+     REWARD POPUP
+     ======================================================= */
+
+  showReward(mission){
+
+    const box=
+      document.getElementById(
+        "v65Reward"
+      );
+
+    const text=
+      document.getElementById(
+        "v65RewardText"
+      );
+
+
+    text.innerHTML=
+      "🎉 "+
+      mission.title+
+      "<br><br>"+
+      "⭐ +"+
+      mission.rewardXP+
+      " XP"+
+      "<br>"+
+      "🏆 +"+
+      mission.rewardScore+
+      " Score";
+
+
+    box.style.opacity="1";
+
+    box.style.pointerEvents=
+      "auto";
+
+    box.style.transform=
+      "translate(-50%,-50%) scale(1)";
+
+  },
+
+
+  /* =======================================================
+     CLOSE REWARD
+     ======================================================= */
+
+  closeReward(){
+
+    const box=
+      document.getElementById(
+        "v65Reward"
+      );
+
+    box.style.opacity="0";
+
+    box.style.pointerEvents=
+      "none";
+
+    box.style.transform=
+      "translate(-50%,-50%) scale(.9)";
+
+  },
+
+
+  /* =======================================================
+     SAVE DATA
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      activeMission:
+        this.activeMission,
+
+      missionProgress:
+        this.missionProgress,
+
+      missionCompleted:
+        [...this.missionCompleted]
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+      return;
+    }
+
+
+    this.activeMission=
+      data.activeMission ||
+      null;
+
+
+    this.missionProgress=
+      Number(
+        data.missionProgress
+      ) || 0;
+
+
+    if(
+      Array.isArray(
+        data.missionCompleted
+      )
+    ){
+
+      this.missionCompleted=
+        [...data.missionCompleted];
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     RESET
+     ======================================================= */
+
+  resetProgress(){
+
+    this.activeMission=null;
+
+    this.missionProgress=0;
+
+    this.missionCompleted=[];
+
+    this.updateHUD();
+
+    this.notify(
+      "🔄 V65 mission progress reset."
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+ V60 SAVE INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const v60OriginalCollect=
+    V60.collect.bind(V60);
+
+  V60.collect=function(){
+
+    const data=
+      v60OriginalCollect();
+
+    data.v65=
+      V65.collect();
+
+    return data;
+
+  };
+
+
+  const v60OriginalApply=
+    V60.apply.bind(V60);
+
+  V60.apply=function(data){
+
+    v60OriginalApply(data);
+
+    if(
+      data &&
+      data.v65
+    ){
+
+      V65.apply(
+        data.v65
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ CHECKPOINT MISSION HOOK
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined" &&
+  typeof V60.createCheckpoint === "function"
+){
+
+  const originalCheckpoint=
+    V60.createCheckpoint.bind(V60);
+
+  V60.createCheckpoint=function(){
+
+    originalCheckpoint();
+
+    if(
+      V65.activeMission ===
+      "checkpoint"
+    ){
+
+      V65.progress(1);
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ GLOBAL HELPER FUNCTIONS
+ ========================================================= */
+
+function V65_startMission(){
+
+  V65.start();
+
+}
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      M = Mission menu
+    */
+
+    if(
+      event.code==="KeyM"
+    ){
+
+      event.preventDefault();
+
+      V65.toggleMissionList();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V65.updateHUD();
+
+console.log(
+  "WEBBOUND V65 MISSION SYSTEM READY"
+);
+
+</script>
