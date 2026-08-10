@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V195 — REAL ESTATE</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{
+ margin:0;width:100%;height:100%;overflow:hidden;
+ font-family:Arial,sans-serif;background:#05090d;color:#fff
+}
+#game{
+ position:fixed;inset:0;overflow:hidden;
+ background:linear-gradient(#304d59,#091116)
+}
+#sky{
+ position:absolute;inset:0;
+ background:linear-gradient(#6fa4c0,#b9d0d8)
+}
+.road{position:absolute;background:#252d32}
+.rh{left:0;right:0;top:57%;height:70px}
+.rv{top:0;bottom:0;left:68%;width:70px}
+.line{position:absolute;background:#d5c36c;opacity:.4}
+.lineH{left:0;right:0;top:calc(57% + 34px);height:2px}
+.lineV{top:0;bottom:0;left:calc(68% + 34px);width:2px}
+
+.building{
+ position:absolute;display:flex;align-items:center;
+ justify-content:center;text-align:center;
+ background:#14242d;border:1px solid #ffffff18;
+ border-radius:9px;color:#82929b;font-size:10px
+}
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;left:50%;top:53%;
+ width:29px;height:41px;border-radius:10px 10px 5px 5px;
+ background:#2c91da;z-index:50
+}
+#player:before{
+ content:"";position:absolute;left:5.5px;top:-14px;
+ width:18px;height:18px;border-radius:50%;
+ background:#bd8967
+}
+
+#hud{
+ position:fixed;left:10px;top:10px;
+ width:min(980px,94vw);padding:12px;
+ background:#03070cee;border:1px solid #ffffff25;
+ border-radius:13px;z-index:500
+}
+.title{font-size:13px;font-weight:bold}
+.stats{
+ display:grid;grid-template-columns:repeat(6,1fr);
+ gap:5px;margin-top:8px
+}
+.stat{
+ padding:7px 4px;background:#101b23;
+ border-radius:7px;text-align:center;font-size:9px
+}
+#propertyHud{
+ margin-top:8px;padding:9px;background:#111d25;
+ border-radius:8px;font-size:9px;line-height:1.8
+}
+.bar{
+ height:7px;background:#ffffff12;
+ border-radius:7px;overflow:hidden;margin-top:4px
+}
+.fill{
+ height:100%;width:0%;
+ background:#8fb8df;transition:.3s
+}
+
+#controls{
+ position:fixed;left:50%;bottom:10px;
+ transform:translateX(-50%);
+ width:min(980px,96vw);
+ display:flex;flex-wrap:wrap;gap:6px;z-index:500
+}
+button{
+ flex:1;min-width:105px;padding:10px;
+ background:#142733;border:1px solid #ffffff22;
+ border-radius:8px;color:#fff;font-size:10px;
+ cursor:pointer
+}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+
+#panel{
+ position:fixed;inset:0;display:none;
+ align-items:center;justify-content:center;
+ background:#000c;z-index:1000
+}
+.box{
+ width:min(830px,94vw);max-height:84vh;
+ overflow:auto;padding:17px;background:#050b10;
+ border:1px solid #ffffff28;border-radius:15px
+}
+.card{
+ padding:11px;background:#111d25;
+ border-radius:9px;margin-bottom:7px;
+ font-size:10px;line-height:1.7
+}
+.card button{width:100%;margin-top:8px}
+
+#notification{
+ position:fixed;left:50%;top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;background:#03070cf5;
+ border:1px solid #ffffff25;border-radius:9px;
+ display:none;z-index:1500;font-size:10px;
+ text-align:center
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="sky"></div>
+<div class="road rh"></div>
+<div class="road rv"></div>
+<div class="line lineH"></div>
+<div class="line lineV"></div>
+
+<div class="building b1">🏠 RESIDENTIAL</div>
+<div class="building b2">🏢 BUSINESS DISTRICT</div>
+<div class="building b3">🛍️ SHOPPING AREA</div>
+<div class="building b4">🏙️ DOWNTOWN</div>
+<div class="building b5">🏭 INDUSTRIAL ZONE</div>
+<div class="building b6">🏘️ PROPERTY CENTER</div>
+
+<div id="player"></div>
+
+<div id="hud">
+
+<div class="title">
+🏠 WEBBOUND V195 — REAL ESTATE
+</div>
+
+<div class="stats">
+
+<div class="stat">
+💰 CASH<br>
+₹<span id="cashText">5000</span>
+</div>
+
+<div class="stat">
+🏠 PROPERTIES<br>
+<span id="propertyText">0</span>
+</div>
+
+<div class="stat">
+🏙️ VALUE<br>
+₹<span id="valueText">0</span>
+</div>
+
+<div class="stat">
+💵 RENT<br>
+₹<span id="rentText">0</span>
+</div>
+
+<div class="stat">
+📈 PROFIT<br>
+₹<span id="profitText">0</span>
+</div>
+
+<div class="stat">
+⭐ RATING<br>
+<span id="ratingText">0</span>
+</div>
+
+</div>
+
+<div id="propertyHud">
+
+<b>🏠 ACTIVE PROPERTY</b><br>
+
+<span id="propertyName">
+No property selected
+</span><br>
+
+Level:
+<span id="propertyLevel">—</span><br>
+
+Tenants:
+<span id="activeTenants">0</span><br>
+
+Monthly Rent:
+₹<span id="activeRent">0</span><br>
+
+Property Value:
+₹<span id="activeValue">0</span>
+
+<div class="bar">
+<div id="propertyFill" class="fill"></div>
+</div>
+
+</div>
+
+</div>
+
+<div id="notification"></div>
+
+<div id="controls">
+
+<button onclick="V195.market()">
+🏠 PROPERTY MARKET
+</button>
+
+<button onclick="V195.rent()">
+💵 COLLECT RENT
+</button>
+
+<button onclick="V195.upgrade()">
+⬆️ UPGRADE
+</button>
+
+<button onclick="V195.tenants()">
+👨‍👩‍👧 TENANTS
+</button>
+
+<button onclick="V195.portfolio()">
+📊 PORTFOLIO
+</button>
+
+<button onclick="V195.sell()">
+🏷️ SELL PROPERTY
+</button>
+
+<button onclick="V195.day()">
+📅 NEXT MONTH
+</button>
+
+<button onclick="V195.save()">
+💾 SAVE
+</button>
+
+</div>
+
+<div id="panel">
+
+<div class="box">
+
+<h2 id="panelTitle">
+WEBBOUND V195
+</h2>
+
+<div id="panelContent"></div>
+
+<button onclick="V195.close()">
+CLOSE
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const V195={
+
+saveKey:"WEBBOUND_V195",
+
+cash:5000,
+
+properties:[],
+
+activeProperty:null,
+
+levels:{},
+
+tenantsData:{},
+
+rents:{},
+
+totalRent:0,
+
+totalProfit:0,
+
+rating:0,
+
+months:0,
+
+propertyData:{
+
+house:{
+name:"🏠 Family House",
+price:35000,
+rent:900,
+tenantCapacity:4,
+maxLevel:8
+},
+
+apartment:{
+name:"🏢 City Apartment",
+price:75000,
+rent:1800,
+tenantCapacity:8,
+maxLevel:10
+},
+
+shop:{
+name:"🛍️ Retail Shop",
+price:120000,
+rent:3200,
+tenantCapacity:6,
+maxLevel:12
+},
+
+office:{
+name:"🏙️ Office Building",
+price:250000,
+rent:7000,
+tenantCapacity:20,
+maxLevel:15
+},
+
+hotel:{
+name:"🏨 Hotel",
+price:600000,
+rent:18000,
+tenantCapacity:50,
+maxLevel:20
+}
+
+},
+
+init(){
+
+this.load();
+this.update();
+
+this.notify(
+"🏠 V195 Real Estate System ready"
+);
+
+},
+
+market(){
+
+let html="";
+
+Object.entries(this.propertyData)
+.forEach(([id,p])=>{
+
+const owned=
+this.properties.includes(id);
+
+const level=
+this.levels[id]||1;
+
+html+=`
+
+<div class="card">
+
+<b>${p.name}</b>
+
+<br><br>
+
+💰 Purchase Price:
+₹${p.price.toLocaleString()}
+
+<br>
+
+💵 Base Monthly Rent:
+₹${p.rent.toLocaleString()}
+
+<br>
+
+👨‍👩‍👧 Tenant Capacity:
+${p.tenantCapacity}
+
+<br>
+
+🏆 Maximum Level:
+${p.maxLevel}
+
+<br>
+
+Current Level:
+${owned?level:"—"}
+
+<br><br>
+
+<button
+onclick="V195.buy('${id}')"
+${owned?"disabled":""}>
+
+${owned?
+"✅ ALREADY OWNED":
+"🏠 BUY PROPERTY"}
+
+</button>
+
+${
+owned?
+`<button onclick="V195.select('${id}')">
+SELECT PROPERTY
+</button>`:""
+}
+
+</div>
+
+`;
+
+});
+
+this.open(
+"🏠 PROPERTY MARKET",
+html
+);
+
+},
+
+buy(id){
+
+const p=this.propertyData[id];
+
+if(this.properties.includes(id)){
+
+this.notify(
+"Property already owned."
+);
+
+return;
+
+}
+
+if(this.cash<p.price){
+
+this.notify(
+"❌ Not enough money."
+);
+
+return;
+
+}
+
+this.cash-=p.price;
+
+this.properties.push(id);
+
+this.activeProperty=id;
+
+this.levels[id]=1;
+
+this.tenantsData[id]=0;
+
+this.rents[id]=0;
+
+this.rating+=5;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🏠 Purchased "+
+p.name
+);
+
+},
+
+select(id){
+
+if(!this.properties.includes(id))
+return;
+
+this.activeProperty=id;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🏠 Selected "+
+this.propertyData[id].name
+);
+
+},
+
+rent(){
+
+if(!this.activeProperty){
+
+this.notify(
+"🏠 Select a property first."
+);
+
+return;
+
+}
+
+const id=this.activeProperty;
+const p=this.propertyData[id];
+
+const tenants=
+this.tenantsData[id]||0;
+
+if(tenants<=0){
+
+this.notify(
+"👨‍👩‍👧 No tenants are living here."
+);
+
+return;
+
+}
+
+const level=
+this.levels[id]||1;
+
+const monthlyRent=
+Math.floor(
+p.rent*
+(1+(level-1)*0.12)
+);
+
+const amount=
+monthlyRent*tenants;
+
+this.cash+=amount;
+
+this.rents[id]=
+(this.rents[id]||0)+amount;
+
+this.totalRent+=amount;
+this.totalProfit+=amount;
+
+this.rating+=1;
+
+this.months++;
+
+this.update();
+this.save();
+
+this.notify(
+"💵 Rent collected: ₹"+
+amount.toLocaleString()
+);
+
+},
+
+tenants(){
+
+if(!this.activeProperty){
+
+this.notify(
+"🏠 Select a property first."
+);
+
+return;
+
+}
+
+const id=this.activeProperty;
+const p=this.propertyData[id];
+
+const level=
+this.levels[id]||1;
+
+const capacity=
+p.tenantCapacity+
+(level-1)*2;
+
+const current=
+this.tenantsData[id]||0;
+
+if(current>=capacity){
+
+this.notify(
+"👨‍👩‍👧 Property is fully occupied."
+);
+
+return;
+
+}
+
+const available=
+capacity-current;
+
+const add=
+Math.min(
+available,
+Math.max(
+1,
+Math.floor(Math.random()*3)+1
+)
+);
+
+this.tenantsData[id]=
+current+add;
+
+this.rating+=add;
+
+this.update();
+this.save();
+
+this.notify(
+"👨‍👩‍👧 "+
+add+
+" new tenant(s) moved in."
+);
+
+},
+
+upgrade(){
+
+if(!this.activeProperty){
+
+this.notify(
+"🏠 Select a property first."
+);
+
+return;
+
+}
+
+const id=this.activeProperty;
+const p=this.propertyData[id];
+
+const level=
+this.levels[id]||1;
+
+if(level>=p.maxLevel){
+
+this.notify(
+"🏆 Maximum property level reached."
+);
+
+return;
+
+}
+
+const cost=
+Math.floor(
+p.price*
+0.22*
+level
+);
+
+if(this.cash<cost){
+
+this.notify(
+"❌ Upgrade costs ₹"+
+cost.toLocaleString()
+);
+
+return;
+
+}
+
+this.cash-=cost;
+
+this.levels[id]=level+1;
+
+this.rating+=3;
+
+this.update();
+this.save();
+
+this.notify(
+"⬆️ Property upgraded to Level "+
+(level+1)
+);
+
+},
+
+day(){
+
+if(this.properties.length===0){
+
+this.notify(
+"🏠 Buy a property first."
+);
+
+return;
+
+}
+
+let income=0;
+
+this.properties.forEach(id=>{
+
+const p=this.propertyData[id];
+
+const tenants=
+this.tenantsData[id]||0;
+
+const level=
+this.levels[id]||1;
+
+const monthlyRent=
+Math.floor(
+p.rent*
+(1+(level-1)*0.12)
+);
+
+const earned=
+monthlyRent*tenants;
+
+this.cash+=earned;
+
+this.rents[id]=
+(this.rents[id]||0)+earned;
+
+income+=earned;
+
+});
+
+this.totalRent+=income;
+this.totalProfit+=income;
+
+this.months++;
+
+this.rating+=2;
+
+this.update();
+this.save();
+
+this.notify(
+"📅 Month completed! +₹"+
+income.toLocaleString()+
+" rent"
+);
+
+},
+
+portfolio(){
+
+let html="";
+
+let totalValue=0;
+let totalTenants=0;
+let totalRent=0;
+
+this.properties.forEach(id=>{
+
+const p=this.propertyData[id];
+
+const level=
+this.levels[id]||1;
+
+const tenants=
+this.tenantsData[id]||0;
+
+const rent=
+this.rents[id]||0;
+
+const value=
+Math.floor(
+p.price*
+(1+(level-1)*0.18)
+);
+
+totalValue+=value;
+totalTenants+=tenants;
+totalRent+=rent;
+
+html+=`
+
+<div class="card">
+
+<b>${p.name}</b>
+
+<br>
+
+🏆 Level:
+${level}
+
+<br>
+
+👨‍👩‍👧 Tenants:
+${tenants}
+
+<br>
+
+💵 Rent Collected:
+₹${rent.toLocaleString()}
+
+<br>
+
+🏙️ Estimated Value:
+₹${value.toLocaleString()}
+
+<br>
+
+<button onclick="V195.select('${id}')">
+SELECT PROPERTY
+</button>
+
+</div>
+
+`;
+
+});
+
+if(!html){
+
+html=`
+
+<div class="card">
+You don't own any properties yet.
+</div>
+
+`;
+
+}
+
+html+=`
+
+<div class="card">
+
+<b>📊 PROPERTY EMPIRE</b>
+
+<br><br>
+
+🏠 Properties:
+${this.properties.length}
+
+<br>
+
+🏙️ Total Value:
+₹${totalValue.toLocaleString()}
+
+<br>
+
+👨‍👩‍👧 Total Tenants:
+${totalTenants}
+
+<br>
+
+💵 Total Rent:
+₹${totalRent.toLocaleString()}
+
+<br>
+
+⭐ Property Rating:
+${this.rating}
+
+<br>
+
+📅 Months:
+${this.months}
+
+</div>
+
+`;
+
+this.open(
+"📊 PROPERTY PORTFOLIO",
+html
+);
+
+},
+
+sell(){
+
+if(!this.activeProperty){
+
+this.notify(
+"🏠 Select a property first."
+);
+
+return;
+
+}
+
+const id=this.activeProperty;
+const p=this.propertyData[id];
+
+const level=
+this.levels[id]||1;
+
+const value=
+Math.floor(
+p.price*
+(1+(level-1)*0.18)
+);
+
+const salePrice=
+Math.floor(
+value*0.82
+);
+
+this.cash+=salePrice;
+
+this.properties=
+this.properties.filter(
+x=>x!==id
+);
+
+delete this.levels[id];
+delete this.tenantsData[id];
+delete this.rents[id];
+
+this.activeProperty=
+this.properties.length?
+this.properties[0]:
+null;
+
+this.update();
+this.save();
+this.close();
+
+this.notify(
+"🏷️ Property sold for ₹"+
+salePrice.toLocaleString()
+);
+
+},
+
+update(){
+
+let value=0;
+let rent=0;
+
+this.properties.forEach(id=>{
+
+const p=this.propertyData[id];
+
+const level=
+this.levels[id]||1;
+
+value+=Math.floor(
+p.price*
+(1+(level-1)*0.18)
+);
+
+rent+=this.rents[id]||0;
+
+});
+
+document.getElementById(
+"cashText"
+).textContent=
+this.cash.toLocaleString();
+
+document.getElementById(
+"propertyText"
+).textContent=
+this.properties.length;
+
+document.getElementById(
+"valueText"
+).textContent=
+value.toLocaleString();
+
+document.getElementById(
+"rentText"
+).textContent=
+rent.toLocaleString();
+
+document.getElementById(
+"profitText"
+).textContent=
+this.totalProfit.toLocaleString();
+
+document.getElementById(
+"ratingText"
+).textContent=
+this.rating;
+
+if(!this.activeProperty){
+
+document.getElementById(
+"propertyName"
+).textContent=
+"No property selected";
+
+document.getElementById(
+"propertyLevel"
+).textContent="—";
+
+document.getElementById(
+"activeTenants"
+).textContent="0";
+
+document.getElementById(
+"activeRent"
+).textContent="0";
+
+document.getElementById(
+"activeValue"
+).textContent="0";
+
+document.getElementById(
+"propertyFill"
+).style.width="0%";
+
+return;
+
+}
+
+const id=this.activeProperty;
+const p=this.propertyData[id];
+
+const level=
+this.levels[id]||1;
+
+const tenants=
+this.tenantsData[id]||0;
+
+const monthlyRent=
+Math.floor(
+p.rent*
+(1+(level-1)*0.12)
+);
+
+const propertyValue=
+Math.floor(
+p.price*
+(1+(level-1)*0.18)
+);
+
+document.getElementById(
+"propertyName"
+).textContent=
+p.name;
+
+document.getElementById(
+"propertyLevel"
+).textContent=
+level;
+
+document.getElementById(
+"activeTenants"
+).textContent=
+tenants;
+
+document.getElementById(
+"activeRent"
+).textContent=
+monthlyRent.toLocaleString();
+
+document.getElementById(
+"activeValue"
+).textContent=
+propertyValue.toLocaleString();
+
+document.getElementById(
+"propertyFill"
+).style.width=
+Math.min(
+100,
+level/p.maxLevel*100
+)+"%";
+
+},
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+
+cash:this.cash,
+
+properties:this.properties,
+
+activeProperty:this.activeProperty,
+
+levels:this.levels,
+
+tenantsData:this.tenantsData,
+
+rents:this.rents,
+
+totalRent:this.totalRent,
+
+totalProfit:this.totalProfit,
+
+rating:this.rating,
+
+months:this.months
+
+})
+);
+
+},
+
+load(){
+
+try{
+
+const raw=
+localStorage.getItem(
+this.saveKey
+);
+
+if(!raw)return;
+
+const d=JSON.parse(raw);
+
+if(Number.isFinite(d.cash))
+this.cash=Math.max(0,d.cash);
+
+if(Array.isArray(d.properties))
+this.properties=
+d.properties.filter(
+id=>this.propertyData[id]
+);
+
+if(
+typeof d.activeProperty==="string" &&
+this.propertyData[d.activeProperty]
+)
+this.activeProperty=
+d.activeProperty;
+
+if(d.levels)
+this.levels=d.levels;
+
+if(d.tenantsData)
+this.tenantsData=d.tenantsData;
+
+if(d.rents)
+this.rents=d.rents;
+
+if(Number.isFinite(d.totalRent))
+this.totalRent=Math.max(0,d.totalRent);
+
+if(Number.isFinite(d.totalProfit))
+this.totalProfit=Math.max(0,d.totalProfit);
+
+if(Number.isFinite(d.rating))
+this.rating=Math.max(0,d.rating);
+
+if(Number.isFinite(d.months))
+this.months=Math.max(0,d.months);
+
+}catch(e){
+
+console.log(
+"V195 load error:",
+e
+);
+
+}
+
+},
+
+open(title,content){
+
+document.getElementById(
+"panelTitle"
+).textContent=title;
+
+document.getElementById(
+"panelContent"
+).innerHTML=
+content;
+
+document.getElementById(
+"panel"
+).style.display="flex";
+
+},
+
+close(){
+
+document.getElementById(
+"panel"
+).style.display="none";
+
+},
+
+notify(text){
+
+const el=
+document.getElementById(
+"notification"
+);
+
+el.textContent=text;
+
+el.style.display="block";
+
+clearTimeout(this.timer);
+
+this.timer=setTimeout(
+()=>{
+el.style.display="none";
+},
+2400
+);
+
+}
+
+};
+
+V195.init();
+
+console.log(
+"WEBBOUND V195 REAL ESTATE SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
