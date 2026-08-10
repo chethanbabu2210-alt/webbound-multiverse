@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V98</title>
+
+<style>
+
+#v98HUD{
+
+  position:fixed;
+
+  right:12px;
+
+  top:12px;
+
+  z-index:9800;
+
+  padding:9px 12px;
+
+  background:#05070ee8;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+#v98HUD small{
+
+  display:block;
+
+  margin-top:3px;
+
+  opacity:.65;
+
+  font-weight:normal;
+
+}
+
+#v98Controls{
+
+  position:fixed;
+
+  right:12px;
+
+  top:78px;
+
+  z-index:9801;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:5px;
+
+}
+
+#v98Controls button{
+
+  padding:8px 10px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+
+  font-size:10px;
+
+}
+
+#v98Message{
+
+  position:fixed;
+
+  left:50%;
+
+  top:24%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  display:none;
+
+  padding:10px 15px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V98 AMBIENT LIFE HUD
+     ========================================================= -->
+
+<div id="v98HUD">
+
+  <span id="v98Status">
+    👥 AMBIENT LIFE ON
+  </span>
+
+  <small id="v98Count">
+    NPCs: 0
+  </small>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v98Controls">
+
+  <button onclick="V98.toggle()">
+    👥 AMBIENT LIFE
+  </button>
+
+  <button onclick="V98.addNPC()">
+    ➕ ADD NPC
+  </button>
+
+  <button onclick="V98.clearNPCs()">
+    🗑️ CLEAR NPCs
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v98Message">
+  V98
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V98
+   AMBIENT NPC SYSTEM
+   ========================================================= */
+
+const V98 = {
+
+  version:"V98",
+
+  saveKey:
+    "WEBBOUND_V98_AMBIENT",
+
+  enabled:true,
+
+  maxNPCs:25,
+
+  spawnDistance:35,
+
+  updateRate:100,
+
+  lastUpdate:0,
+
+  npcId:1,
+
+  npcs:[],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V98 AMBIENT LIFE SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     PLAYER POSITION
+     ======================================================= */
+
+  getPlayerPosition(){
+
+    try{
+
+      if(
+        typeof player!=="undefined" &&
+        player &&
+        player.position
+      ){
+
+        return{
+
+          x:
+            Number(
+              player.position.x
+            ) || 0,
+
+          y:
+            Number(
+              player.position.y
+            ) || 0,
+
+          z:
+            Number(
+              player.position.z
+            ) || 0
+
+        };
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V98 PLAYER ERROR:",
+        error
+      );
+
+    }
+
+
+    return{
+
+      x:0,
+      y:0,
+      z:0
+
+    };
+
+  },
+
+
+  /* =======================================================
+     RANDOM NPC
+     ======================================================= */
+
+  createNPC(){
+
+    const playerPos=
+      this.getPlayerPosition();
+
+
+    const angle=
+      Math.random()*
+      Math.PI*2;
+
+
+    const distance=
+      8+
+      Math.random()*
+      this.spawnDistance;
+
+
+    return{
+
+      id:
+        this.npcId++,
+
+      type:
+        Math.random()<0.8
+        ? "pedestrian"
+        : "worker",
+
+      x:
+        playerPos.x+
+        Math.cos(angle)*
+        distance,
+
+      y:
+        playerPos.y,
+
+      z:
+        playerPos.z+
+        Math.sin(angle)*
+        distance,
+
+      targetX:
+        playerPos.x+
+        Math.cos(angle+1)*
+        distance,
+
+      targetZ:
+        playerPos.z+
+        Math.sin(angle+1)*
+        distance,
+
+      speed:
+        0.7+
+        Math.random()*0.8,
+
+      active:true,
+
+      createdAt:
+        Date.now()
+
+    };
+
+  },
+
+
+  /* =======================================================
+     ADD NPC
+     ======================================================= */
+
+  addNPC(){
+
+    if(
+      this.npcs.length>=
+      this.maxNPCs
+    ){
+
+      this.message(
+        "👥 NPC limit reached"
+      );
+
+      return null;
+
+    }
+
+
+    const npc=
+      this.createNPC();
+
+
+    this.npcs.push(
+      npc
+    );
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    return npc;
+
+  },
+
+
+  /* =======================================================
+     SPAWN INITIAL NPCs
+     ======================================================= */
+
+  spawnInitial(){
+
+    if(
+      this.npcs.length>0
+    ){
+
+      return;
+
+    }
+
+
+    for(
+      let i=0;
+      i<8;
+      i++
+    ){
+
+      this.addNPC();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     REMOVE NPC
+     ======================================================= */
+
+  removeNPC(
+    id
+  ){
+
+    const index=
+      this.npcs.findIndex(
+        npc=>
+          npc.id===
+          id
+      );
+
+
+    if(index>=0){
+
+      this.npcs.splice(
+        index,
+        1
+      );
+
+      return true;
+
+    }
+
+
+    return false;
+
+  },
+
+
+  /* =======================================================
+     CLEAR NPCs
+     ======================================================= */
+
+  clearNPCs(){
+
+    this.npcs=[];
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🗑️ Ambient NPCs cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.enabled=
+      !this.enabled;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+
+      this.enabled
+      ? "👥 Ambient life ON"
+      : "👥 Ambient life OFF"
+
+    );
+
+  },
+
+
+  /* =======================================================
+     DISTANCE FROM PLAYER
+     ======================================================= */
+
+  getDistance(
+    npc,
+    playerPos
+  ){
+
+    const dx=
+      npc.x-
+      playerPos.x;
+
+    const dz=
+      npc.z-
+      playerPos.z;
+
+
+    return Math.sqrt(
+      dx*dx+
+      dz*dz
+    );
+
+  },
+
+
+  /* =======================================================
+     CHOOSE NEW TARGET
+     ======================================================= */
+
+  chooseTarget(
+    npc,
+    playerPos
+  ){
+
+    const angle=
+      Math.random()*
+      Math.PI*2;
+
+
+    const distance=
+      8+
+      Math.random()*
+      25;
+
+
+    npc.targetX=
+      playerPos.x+
+      Math.cos(angle)*
+      distance;
+
+
+    npc.targetZ=
+      playerPos.z+
+      Math.sin(angle)*
+      distance;
+
+  },
+
+
+  /* =======================================================
+     UPDATE NPC
+     ======================================================= */
+
+  updateNPC(
+    npc,
+    delta,
+    playerPos
+  ){
+
+    if(!npc.active){
+
+      return;
+
+    }
+
+
+    const dx=
+      npc.targetX-
+      npc.x;
+
+    const dz=
+      npc.targetZ-
+      npc.z;
+
+
+    const distance=
+      Math.sqrt(
+        dx*dx+
+        dz*dz
+      );
+
+
+    if(
+      distance<1.5
+    ){
+
+      this.chooseTarget(
+        npc,
+        playerPos
+      );
+
+      return;
+
+    }
+
+
+    const step=
+      npc.speed*
+      delta;
+
+
+    npc.x+=
+      (dx/distance)*
+      step;
+
+
+    npc.z+=
+      (dz/distance)*
+      step;
+
+
+    /*
+      Keep NPCs around the
+      active player area.
+    */
+
+    const playerDistance=
+      this.getDistance(
+        npc,
+        playerPos
+      );
+
+
+    if(
+      playerDistance>
+      this.spawnDistance*1.8
+    ){
+
+      const angle=
+        Math.random()*
+        Math.PI*2;
+
+
+      npc.x=
+        playerPos.x+
+        Math.cos(angle)*
+        (
+          10+
+          Math.random()*15
+        );
+
+
+      npc.z=
+        playerPos.z+
+        Math.sin(angle)*
+        (
+          10+
+          Math.random()*15
+        );
+
+
+      this.chooseTarget(
+        npc,
+        playerPos
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ENGINE CALLBACK
+     ======================================================= */
+
+  sendToGameEngine(){
+
+    /*
+      If the main game has a
+      compatible callback, send
+      the current NPC data to it.
+
+      This prevents V98 from
+      assuming how your existing
+      3D engine is structured.
+    */
+
+    if(
+      typeof window.onWebboundAmbientUpdate===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundAmbientUpdate(
+          this.npcs
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V98 ENGINE CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const now=
+      performance.now();
+
+
+    if(
+      now-
+      this.lastUpdate<
+      this.updateRate
+    ){
+
+      return;
+
+    }
+
+
+    const delta=
+      this.lastUpdate
+      ? (
+          now-
+          this.lastUpdate
+        )/1000
+      : 0;
+
+
+    this.lastUpdate=
+      now;
+
+
+    if(
+      !this.enabled
+    ){
+
+      return;
+
+    }
+
+
+    const playerPos=
+      this.getPlayerPosition();
+
+
+    for(
+      const npc of this.npcs
+    ){
+
+      this.updateNPC(
+        npc,
+        delta,
+        playerPos
+      );
+
+    }
+
+
+    this.sendToGameEngine();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const status=
+      document.getElementById(
+        "v98Status"
+      );
+
+    const count=
+      document.getElementById(
+        "v98Count"
+      );
+
+
+    if(status){
+
+      status.textContent=
+        this.enabled
+        ? "👥 AMBIENT LIFE ON"
+        : "👥 AMBIENT LIFE OFF";
+
+    }
+
+
+    if(count){
+
+      count.textContent=
+        "NPCs: "+
+        this.npcs.length;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v98Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        enabled:this.enabled,
+
+        maxNPCs:this.maxNPCs,
+
+        npcId:this.npcId,
+
+        npcs:this.npcs
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V98 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.enabled===
+        "boolean"
+      ){
+
+        this.enabled=
+          data.enabled;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.maxNPCs)
+        )
+      ){
+
+        this.maxNPCs=
+          Math.max(
+            1,
+            Math.min(
+              100,
+              Number(
+                data.maxNPCs
+              )
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.npcId)
+        )
+      ){
+
+        this.npcId=
+          Math.max(
+            1,
+            Number(
+              data.npcId
+            )
+          );
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.npcs
+        )
+      ){
+
+        this.npcs=
+          data.npcs
+          .filter(
+            npc=>
+              npc &&
+              Number.isFinite(
+                Number(npc.x)
+              ) &&
+              Number.isFinite(
+                Number(npc.z)
+              )
+          )
+          .map(
+            npc=>({
+
+              id:
+                Number(npc.id) ||
+                this.npcId++,
+
+              type:
+                String(
+                  npc.type ||
+                  "pedestrian"
+                ),
+
+              x:
+                Number(npc.x),
+
+              y:
+                Number(npc.y) || 0,
+
+              z:
+                Number(npc.z),
+
+              targetX:
+                Number(npc.targetX) ||
+                Number(npc.x),
+
+              targetZ:
+                Number(npc.targetZ) ||
+                Number(npc.z),
+
+              speed:
+                Number(npc.speed) ||
+                1,
+
+              active:
+                npc.active!==false,
+
+              createdAt:
+                Number(
+                  npc.createdAt
+                ) ||
+                Date.now()
+
+            })
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V98 LOAD ERROR:",
+        error
+      );
+
+      this.npcs=[];
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      enabled:this.enabled,
+
+      maxNPCs:this.maxNPCs,
+
+      npcId:this.npcId,
+
+      npcs:this.npcs
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.enabled===
+      "boolean"
+    ){
+
+      this.enabled=
+        data.enabled;
+
+    }
+
+
+    if(
+      Array.isArray(
+        data.npcs
+      )
+    ){
+
+      this.npcs=
+        data.npcs;
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    this.spawnInitial();
+
+
+    const loop=()=>{
+
+      this.update();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      P = ambient life ON/OFF
+    */
+
+    if(
+      event.code==="KeyP"
+    ){
+
+      V98.toggle();
+
+    }
+
+
+    /*
+      O = add NPC
+    */
+
+    if(
+      event.code==="KeyO"
+    ){
+
+      V98.addNPC();
+
+    }
+
+
+    /*
+      Delete = clear NPCs
+    */
+
+    if(
+      event.code==="Delete"
+    ){
+
+      V98.clearNPCs();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V98.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V98.init();
+
+V98.start();
+
+
+console.log(
+  "WEBBOUND V98 AMBIENT LIFE SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
