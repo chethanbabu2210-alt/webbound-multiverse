@@ -1,0 +1,2603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V129</title>
+
+<style>
+
+#v129NPCs{
+  position:fixed;
+  inset:0;
+  z-index:15400;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.v129NPC{
+  position:absolute;
+  width:15px;
+  height:23px;
+  border-radius:8px 8px 4px 4px;
+  background:#666;
+  box-shadow:0 2px 6px #0008;
+  transform-origin:center bottom;
+}
+
+.v129NPC.idle{
+  filter:brightness(.85);
+}
+
+.v129NPC.talking{
+  filter:brightness(1.5);
+}
+
+.v129NPC.buying{
+  filter:brightness(1.3);
+}
+
+.v129Head{
+  position:absolute;
+  width:10px;
+  height:10px;
+  left:2.5px;
+  top:-8px;
+  border-radius:50%;
+  background:#c49a78;
+}
+
+.v129Name{
+  position:absolute;
+  left:50%;
+  bottom:26px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font:7px Arial,sans-serif;
+  color:white;
+  text-shadow:0 1px 3px #000;
+}
+
+.v129Money{
+  position:absolute;
+  left:50%;
+  bottom:36px;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font:6px Arial,sans-serif;
+  color:#fff;
+  opacity:.75;
+}
+
+.v129Bubble{
+  position:absolute;
+  left:50%;
+  bottom:40px;
+  transform:translateX(-50%);
+  padding:3px 5px;
+  background:#05070eef;
+  border-radius:5px;
+  font:8px Arial,sans-serif;
+  color:white;
+  white-space:nowrap;
+  display:none;
+}
+
+.v129NPC.talking .v129Bubble,
+.v129NPC.buying .v129Bubble{
+  display:block;
+}
+
+#v129HUD{
+  position:fixed;
+  left:12px;
+  bottom:14px;
+  z-index:19500;
+  width:min(330px,78vw);
+  padding:14px;
+  background:#05070eee;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:14px;
+  font-family:Arial,sans-serif;
+}
+
+#v129Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v129Info{
+  margin-top:9px;
+  font-size:10px;
+  line-height:1.7;
+  opacity:.85;
+}
+
+#v129Controls{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:10px;
+}
+
+#v129Controls button{
+  flex:1;
+  min-width:82px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v129Clock{
+  position:fixed;
+  top:12px;
+  right:12px;
+  z-index:19500;
+  padding:8px 11px;
+  background:#05070eee;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:10px;
+  font:11px Arial,sans-serif;
+}
+
+#v129Message{
+  position:fixed;
+  left:50%;
+  top:22%;
+  transform:translateX(-50%);
+  z-index:20000;
+  display:none;
+  max-width:88%;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 11px Arial,sans-serif;
+  text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="v129NPCs"></div>
+
+<div id="v129Clock">
+  🕐 08:00
+</div>
+
+<div id="v129HUD">
+
+  <div id="v129Title">
+    💰 NPC ECONOMY SYSTEM
+  </div>
+
+  <div id="v129Info">
+    NPCs: 0<br>
+    Working: 0<br>
+    Shopping: 0<br>
+    Talking: 0<br>
+    City Money: ₹0
+  </div>
+
+  <div id="v129Controls">
+
+    <button onclick="V129.spawnNPC()">
+      🚶 SPAWN
+    </button>
+
+    <button onclick="V129.spawnNPCs(5)">
+      👥 +5
+    </button>
+
+    <button onclick="V129.advanceTime(1)">
+      ⏩ +1 HOUR
+    </button>
+
+    <button onclick="V129.payAll()">
+      💵 PAY WAGES
+    </button>
+
+    <button onclick="V129.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+    <button onclick="V129.clearNPCs()">
+      🗑️ CLEAR
+    </button>
+
+  </div>
+
+</div>
+
+<div id="v129Message">
+  V129
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V129
+   NPC ECONOMY SYSTEM
+   ========================================================= */
+
+const V129 = {
+
+  version:"V129",
+
+  saveKey:
+    "WEBBOUND_V129_ECONOMY",
+
+  npcs:[],
+
+  running:true,
+
+  nextId:1,
+
+  timer:null,
+
+  saveTimer:null,
+
+  messageTimer:null,
+
+  gameHour:8,
+
+  timeSpeed:1,
+
+  maxNPCs:35,
+
+  interactionDistance:55,
+
+  lastInteraction:0,
+
+  interactionCooldown:4500,
+
+  lastSpawn:0,
+
+  spawnDelay:2400,
+
+  totalTransactions:0,
+
+  cityMoney:0,
+
+  lastHour:-1,
+
+
+  /* =======================================================
+     NPC TYPES
+     ======================================================= */
+
+  types:[
+
+    {
+      name:"Student",
+      color:"#3f638c",
+      speed:.55,
+      startingMoney:500,
+      salary:0,
+      routine:[
+        [6,8,"home"],
+        [8,14,"school"],
+        [14,16,"park"],
+        [16,19,"home"],
+        [19,22,"park"],
+        [22,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Worker",
+      color:"#6b5742",
+      speed:.48,
+      startingMoney:1800,
+      salary:250,
+      routine:[
+        [6,9,"home"],
+        [9,17,"work"],
+        [17,19,"shop"],
+        [19,22,"home"],
+        [22,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Shopkeeper",
+      color:"#5b426b",
+      speed:.38,
+      startingMoney:3500,
+      salary:400,
+      routine:[
+        [6,9,"home"],
+        [9,20,"shop"],
+        [20,22,"home"],
+        [22,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Jogger",
+      color:"#426b55",
+      speed:.72,
+      startingMoney:900,
+      salary:0,
+      routine:[
+        [6,9,"park"],
+        [9,17,"home"],
+        [17,21,"park"],
+        [21,24,"home"],
+        [0,6,"home"]
+      ]
+    },
+
+    {
+      name:"Tourist",
+      color:"#7b6540",
+      speed:.43,
+      startingMoney:2500,
+      salary:0,
+      routine:[
+        [6,10,"hotel"],
+        [10,18,"park"],
+        [18,21,"shop"],
+        [21,24,"hotel"],
+        [0,6,"hotel"]
+      ]
+    }
+
+  ],
+
+
+  /* =======================================================
+     INIT
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.renderAll();
+
+    this.updateHUD();
+
+    this.start();
+
+    if(
+      this.npcs.length===0
+    ){
+
+      this.spawnNPCs(10);
+
+    }
+
+    console.log(
+      "WEBBOUND V129 ECONOMY SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          this.update();
+
+        },
+        50
+      );
+
+
+    clearInterval(
+      this.saveTimer
+    );
+
+    this.saveTimer=
+      setInterval(
+        ()=>{
+
+          this.save();
+
+        },
+        30000
+      );
+
+  },
+
+
+  /* =======================================================
+     RANDOM NAME
+     ======================================================= */
+
+  randomName(){
+
+    const names=[
+      "Alex",
+      "Sam",
+      "Ryan",
+      "Maya",
+      "Arun",
+      "Riya",
+      "Dev",
+      "Asha",
+      "Noah",
+      "Leo",
+      "Avi",
+      "Zara",
+      "Kiran",
+      "Nikhil",
+      "Anu"
+    ];
+
+    return names[
+      Math.floor(
+        Math.random()*
+        names.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     RANDOM TYPE
+     ======================================================= */
+
+  randomType(){
+
+    return this.types[
+      Math.floor(
+        Math.random()*
+        this.types.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     SPAWN NPC
+     ======================================================= */
+
+  spawnNPC(silent=false){
+
+    if(
+      this.npcs.length>=
+      this.maxNPCs
+    ){
+
+      if(!silent){
+
+        this.message(
+          "⚠️ NPC limit reached"
+        );
+
+      }
+
+      return null;
+
+    }
+
+
+    const type=
+      this.randomType();
+
+
+    const npc={
+
+      id:
+        this.nextId++,
+
+      name:
+        this.randomName(),
+
+      type:
+        type.name,
+
+      color:
+        type.color,
+
+      speed:
+        type.speed,
+
+      startingMoney:
+        type.startingMoney,
+
+      money:
+        type.startingMoney,
+
+      salary:
+        type.salary,
+
+      routine:
+        type.routine,
+
+      x:
+        50+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerWidth-100
+        ),
+
+      y:
+        180+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerHeight-260
+        ),
+
+      direction:
+        Math.random()<.5
+        ? 1
+        : -1,
+
+      state:
+        "walking",
+
+      destination:
+        "home",
+
+      targetX:null,
+
+      targetY:null,
+
+      idleUntil:0,
+
+      talkingUntil:0,
+
+      shoppingUntil:0,
+
+      cooldownUntil:0,
+
+      interactionWith:null,
+
+      lastPurchaseHour:-1,
+
+      element:null
+
+    };
+
+
+    this.cityMoney+=
+      npc.money;
+
+
+    this.setDestination(
+      npc,
+      true
+    );
+
+
+    this.npcs.push(
+      npc
+    );
+
+
+    this.createElement(
+      npc
+    );
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    if(!silent){
+
+      this.message(
+        "🚶 "+
+        npc.name+
+        " joined with ₹"+
+        npc.money
+      );
+
+    }
+
+
+    return npc;
+
+  },
+
+
+  /* =======================================================
+     SPAWN MULTIPLE
+     ======================================================= */
+
+  spawnNPCs(count){
+
+    for(
+      let i=0;
+      i<count;
+      i++
+    ){
+
+      this.spawnNPC(
+        true
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     ROUTINE
+     ======================================================= */
+
+  getRoutine(npc){
+
+    const hour=
+      this.gameHour;
+
+
+    for(
+      const item of npc.routine
+    ){
+
+      if(
+        item[0]<=hour &&
+        hour<item[1]
+      ){
+
+        return item[2];
+
+      }
+
+    }
+
+
+    return "home";
+
+  },
+
+
+  /* =======================================================
+     DESTINATION POINT
+     ======================================================= */
+
+  getDestinationPoint(place){
+
+    const w=
+      window.innerWidth;
+
+    const h=
+      window.innerHeight;
+
+
+    const points={
+
+      home:{
+        x:w*.12,
+        y:h*.55
+      },
+
+      school:{
+        x:w*.35,
+        y:h*.35
+      },
+
+      work:{
+        x:w*.62,
+        y:h*.32
+      },
+
+      shop:{
+        x:w*.78,
+        y:h*.55
+      },
+
+      park:{
+        x:w*.45,
+        y:h*.72
+      },
+
+      hotel:{
+        x:w*.82,
+        y:h*.25
+      }
+
+    };
+
+
+    const point=
+      points[place]||
+      points.home;
+
+
+    return{
+
+      x:
+        point.x+
+        Math.random()*100-
+        50,
+
+      y:
+        point.y+
+        Math.random()*70-
+        35
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SET DESTINATION
+     ======================================================= */
+
+  setDestination(
+    npc,
+    initial=false
+  ){
+
+    const destination=
+      this.getRoutine(
+        npc
+      );
+
+
+    npc.destination=
+      destination;
+
+
+    const point=
+      this.getDestinationPoint(
+        destination
+      );
+
+
+    npc.targetX=
+      point.x;
+
+
+    npc.targetY=
+      point.y;
+
+
+    if(!initial){
+
+      npc.state=
+        "walking";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CREATE ELEMENT
+     ======================================================= */
+
+  createElement(npc){
+
+    const layer=
+      document.getElementById(
+        "v129NPCs"
+      );
+
+
+    if(!layer){
+
+      return;
+
+    }
+
+
+    const element=
+      document.createElement(
+        "div"
+      );
+
+
+    element.className=
+      "v129NPC";
+
+
+    element.style.background=
+      npc.color;
+
+
+    const head=
+      document.createElement(
+        "div"
+      );
+
+
+    head.className=
+      "v129Head";
+
+
+    const name=
+      document.createElement(
+        "div"
+      );
+
+
+    name.className=
+      "v129Name";
+
+
+    name.textContent=
+      npc.name;
+
+
+    const money=
+      document.createElement(
+        "div"
+      );
+
+
+    money.className=
+      "v129Money";
+
+
+    money.textContent=
+      "₹"+
+      Math.floor(
+        npc.money
+      );
+
+
+    const bubble=
+      document.createElement(
+        "div"
+      );
+
+
+    bubble.className=
+      "v129Bubble";
+
+
+    bubble.textContent=
+      "Hello!";
+
+
+    element.appendChild(
+      head
+    );
+
+    element.appendChild(
+      name
+    );
+
+    element.appendChild(
+      money
+    );
+
+    element.appendChild(
+      bubble
+    );
+
+
+    npc.element=
+      element;
+
+
+    layer.appendChild(
+      element
+    );
+
+
+    this.renderNPC(
+      npc
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
+  renderNPC(npc){
+
+    if(
+      !npc.element
+    ){
+
+      return;
+
+    }
+
+
+    npc.element.style.left=
+      npc.x+
+      "px";
+
+
+    npc.element.style.top=
+      npc.y+
+      "px";
+
+
+    npc.element.style.transform=
+      npc.direction<0
+      ? "scaleX(-1)"
+      : "scaleX(1)";
+
+
+    npc.element.classList.toggle(
+      "idle",
+      npc.state==="idle"
+    );
+
+
+    npc.element.classList.toggle(
+      "talking",
+      npc.state==="talking"
+    );
+
+
+    npc.element.classList.toggle(
+      "buying",
+      npc.state==="shopping"
+    );
+
+
+    const money=
+      npc.element.querySelector(
+        ".v129Money"
+      );
+
+
+    if(money){
+
+      money.textContent=
+        "₹"+
+        Math.max(
+          0,
+          Math.floor(
+            npc.money
+          )
+        );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    if(
+      !this.running
+    ){
+
+      return;
+
+    }
+
+
+    this.advanceClock(
+      .025
+    );
+
+
+    const now=
+      Date.now();
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        this.updateNPC(
+          npc,
+          now
+        );
+
+      }
+    );
+
+
+    if(
+      now-
+      this.lastInteraction>
+      700
+    ){
+
+      this.findInteractions();
+
+    }
+
+
+    if(
+      this.npcs.length<8 &&
+      now-this.lastSpawn>
+      this.spawnDelay
+    ){
+
+      this.spawnNPC(
+        true
+      );
+
+      this.lastSpawn=
+        now;
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     UPDATE NPC
+     ======================================================= */
+
+  updateNPC(
+    npc,
+    now
+  ){
+
+    if(
+      npc.state==="talking"
+    ){
+
+      if(
+        now>=npc.talkingUntil
+      ){
+
+        npc.state=
+          "walking";
+
+        npc.interactionWith=
+          null;
+
+        npc.cooldownUntil=
+          now+
+          this.interactionCooldown;
+
+        this.setDestination(
+          npc
+        );
+
+      }
+
+      this.renderNPC(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    if(
+      npc.state==="shopping"
+    ){
+
+      if(
+        now>=npc.shoppingUntil
+      ){
+
+        npc.state=
+          "idle";
+
+        npc.idleUntil=
+          now+
+          1200+
+          Math.random()*2200;
+
+        this.makePurchase(
+          npc
+        );
+
+      }
+
+      this.renderNPC(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    if(
+      npc.state==="idle"
+    ){
+
+      if(
+        now>=npc.idleUntil
+      ){
+
+        this.setDestination(
+          npc
+        );
+
+      }
+
+      this.renderNPC(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    const desired=
+      this.getRoutine(
+        npc
+      );
+
+
+    if(
+      desired!==
+      npc.destination
+    ){
+
+      this.setDestination(
+        npc
+      );
+
+    }
+
+
+    const dx=
+      npc.targetX-
+      npc.x;
+
+
+    const dy=
+      npc.targetY-
+      npc.y;
+
+
+    const distance=
+      Math.sqrt(
+        dx*dx+
+        dy*dy
+      );
+
+
+    if(
+      distance<10
+    ){
+
+      /*
+        Shopkeepers remain available
+        in the shop. Other NPCs can
+        buy when visiting.
+      */
+
+      if(
+        npc.destination==="shop" &&
+        npc.lastPurchaseHour!==
+        Math.floor(
+          this.gameHour
+        )
+      ){
+
+        if(
+          npc.type!==
+          "Shopkeeper"
+        ){
+
+          npc.state=
+            "shopping";
+
+          npc.shoppingUntil=
+            now+
+            700;
+
+        }
+        else{
+
+          npc.state=
+            "idle";
+
+          npc.idleUntil=
+            now+
+            1800;
+
+        }
+
+      }
+      else{
+
+        npc.state=
+          "idle";
+
+        npc.idleUntil=
+          now+
+          1500+
+          Math.random()*3500;
+
+      }
+
+
+      this.renderNPC(
+        npc
+      );
+
+      return;
+
+    }
+
+
+    npc.direction=
+      dx>=0
+      ? 1
+      : -1;
+
+
+    const vx=
+      dx/
+      distance;
+
+
+    const vy=
+      dy/
+      distance;
+
+
+    npc.x+=
+      vx*
+      npc.speed;
+
+
+    npc.y+=
+      vy*
+      npc.speed;
+
+
+    this.keepInside(
+      npc
+    );
+
+
+    this.renderNPC(
+      npc
+    );
+
+  },
+
+
+  /* =======================================================
+     PURCHASE
+     ======================================================= */
+
+  makePurchase(npc){
+
+    const hour=
+      Math.floor(
+        this.gameHour
+      );
+
+
+    if(
+      npc.lastPurchaseHour===
+      hour
+    ){
+
+      return;
+
+    }
+
+
+    npc.lastPurchaseHour=
+      hour;
+
+
+    const prices=[
+      30,
+      50,
+      80,
+      120,
+      150
+    ];
+
+
+    const price=
+      prices[
+        Math.floor(
+          Math.random()*
+          prices.length
+        )
+      ];
+
+
+    if(
+      npc.money<
+      price
+    ){
+
+      this.message(
+        "💸 "+
+        npc.name+
+        " cannot afford a purchase"
+      );
+
+      return;
+
+    }
+
+
+    npc.money-=
+      price;
+
+
+    this.cityMoney+=
+      price;
+
+
+    this.totalTransactions++;
+
+
+    this.message(
+      "🛒 "+
+      npc.name+
+      " spent ₹"+
+      price
+    );
+
+
+    this.renderNPC(
+      npc
+    );
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     PAY WAGES
+     ======================================================= */
+
+  payAll(){
+
+    let total=0;
+
+    let workers=0;
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.salary>0
+        ){
+
+          npc.money+=
+            npc.salary;
+
+          this.cityMoney-=
+            npc.salary;
+
+          total+=
+            npc.salary;
+
+          workers++;
+
+          this.renderNPC(
+            npc
+          );
+
+        }
+
+      }
+    );
+
+
+    this.save();
+
+    this.updateHUD();
+
+
+    this.message(
+      "💵 Paid ₹"+
+      total+
+      " to "+
+      workers+
+      " workers"
+    );
+
+  },
+
+
+  /* =======================================================
+     AUTOMATIC HOURLY PAY
+     ======================================================= */
+
+  hourlyEconomy(){
+
+    const hour=
+      Math.floor(
+        this.gameHour
+      );
+
+
+    if(
+      hour===
+      this.lastHour
+    ){
+
+      return;
+
+    }
+
+
+    this.lastHour=
+      hour;
+
+
+    /*
+      Workers receive salary
+      when they reach work.
+    */
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.salary>0 &&
+          npc.destination==="work"
+        ){
+
+          npc.money+=
+            npc.salary;
+
+          this.cityMoney-=
+            npc.salary;
+
+          this.message(
+            "💵 "+
+            npc.name+
+            " earned ₹"+
+            npc.salary
+          );
+
+          this.renderNPC(
+            npc
+          );
+
+        }
+
+      }
+    );
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     INTERACTIONS
+     ======================================================= */
+
+  findInteractions(){
+
+    const now=
+      Date.now();
+
+
+    for(
+      let i=0;
+      i<this.npcs.length;
+      i++
+    ){
+
+      const a=
+        this.npcs[i];
+
+
+      if(
+        a.state!=="walking" ||
+        now<a.cooldownUntil
+      ){
+
+        continue;
+
+      }
+
+
+      for(
+        let j=i+1;
+        j<this.npcs.length;
+        j++
+      ){
+
+        const b=
+          this.npcs[j];
+
+
+        if(
+          b.state!=="walking" ||
+          now<b.cooldownUntil
+        ){
+
+          continue;
+
+        }
+
+
+        const dx=
+          a.x-b.x;
+
+
+        const dy=
+          a.y-b.y;
+
+
+        const distance=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+
+        if(
+          distance<=
+          this.interactionDistance
+        ){
+
+          this.startInteraction(
+            a,
+            b
+          );
+
+          return;
+
+        }
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     START INTERACTION
+     ======================================================= */
+
+  startInteraction(a,b){
+
+    const now=
+      Date.now();
+
+
+    a.state=
+      "talking";
+
+    b.state=
+      "talking";
+
+
+    a.interactionWith=
+      b.id;
+
+    b.interactionWith=
+      a.id;
+
+
+    a.talkingUntil=
+      now+
+      2400;
+
+    b.talkingUntil=
+      now+
+      2400;
+
+
+    a.cooldownUntil=
+      now+
+      this.interactionCooldown;
+
+    b.cooldownUntil=
+      now+
+      this.interactionCooldown;
+
+
+    this.interactionCount=
+      (this.interactionCount||0)+
+      1;
+
+
+    this.lastInteraction=
+      now;
+
+
+    this.renderNPC(
+      a
+    );
+
+    this.renderNPC(
+      b
+    );
+
+
+    this.message(
+      "💬 "+
+      a.name+
+      " and "+
+      b.name+
+      " are talking"
+    );
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     ADVANCE CLOCK
+     ======================================================= */
+
+  advanceTime(hours){
+
+    this.gameHour+=
+      Number(hours)||0;
+
+
+    while(
+      this.gameHour>=24
+    ){
+
+      this.gameHour-=24;
+
+    }
+
+
+    while(
+      this.gameHour<0
+    ){
+
+      this.gameHour+=24;
+
+    }
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        this.setDestination(
+          npc
+        );
+
+      }
+    );
+
+
+    this.hourlyEconomy();
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🕐 Time: "+
+      this.getTimeString()
+    );
+
+  },
+
+
+  /* =======================================================
+     CLOCK
+     ======================================================= */
+
+  getTimeString(){
+
+    const hour=
+      Math.floor(
+        this.gameHour
+      );
+
+
+    const minute=
+      Math.floor(
+        (this.gameHour-hour)*
+        60
+      );
+
+
+    return(
+      String(hour)
+        .padStart(2,"0")
+      +
+      ":"+
+      String(minute)
+        .padStart(2,"0")
+    );
+
+  },
+
+
+  /* =======================================================
+     INTERNAL CLOCK
+     ======================================================= */
+
+  advanceInternalClock(){
+
+    const oldHour=
+      Math.floor(
+        this.gameHour
+      );
+
+
+    this.gameHour+=
+      .025*
+      this.timeSpeed;
+
+
+    if(
+      this.gameHour>=24
+    ){
+
+      this.gameHour-=24;
+
+    }
+
+
+    const newHour=
+      Math.floor(
+        this.gameHour
+      );
+
+
+    if(
+      newHour!==oldHour
+    ){
+
+      this.hourlyEconomy();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     KEEP INSIDE
+     ======================================================= */
+
+  keepInside(npc){
+
+    npc.x=
+      Math.min(
+        Math.max(
+          20,
+          npc.x
+        ),
+        Math.max(
+          20,
+          window.innerWidth-30
+        )
+      );
+
+
+    npc.y=
+      Math.min(
+        Math.max(
+          170,
+          npc.y
+        ),
+        Math.max(
+          180,
+          window.innerHeight-60
+        )
+      );
+
+  },
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  clearNPCs(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.element &&
+          npc.element.parentNode
+        ){
+
+          npc.element.parentNode.removeChild(
+            npc.element
+          );
+
+        }
+
+      }
+    );
+
+
+    this.npcs=[];
+
+    this.cityMoney=0;
+
+    this.totalTransactions=0;
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🗑️ Economy population cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     RENDER ALL
+     ======================================================= */
+
+  renderAll(){
+
+    const layer=
+      document.getElementById(
+        "v129NPCs"
+      );
+
+
+    if(layer){
+
+      layer.innerHTML="";
+
+    }
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        npc.element=null;
+
+        this.createElement(
+          npc
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.running=
+      !this.running;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      this.running
+      ? "▶️ Economy simulation resumed"
+      : "⏸️ Economy simulation paused"
+    );
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify({
+
+          version:
+            this.version,
+
+          running:
+            this.running,
+
+          gameHour:
+            this.gameHour,
+
+          nextId:
+            this.nextId,
+
+          cityMoney:
+            this.cityMoney,
+
+          totalTransactions:
+            this.totalTransactions,
+
+          npcs:
+            this.npcs.map(
+              npc=>({
+
+                id:npc.id,
+
+                name:npc.name,
+
+                type:npc.type,
+
+                color:npc.color,
+
+                speed:npc.speed,
+
+                money:npc.money,
+
+                salary:npc.salary,
+
+                x:npc.x,
+
+                y:npc.y,
+
+                direction:npc.direction,
+
+                state:npc.state,
+
+                destination:npc.destination,
+
+                targetX:npc.targetX,
+
+                targetY:npc.targetY,
+
+                idleUntil:npc.idleUntil,
+
+                talkingUntil:npc.talkingUntil,
+
+                shoppingUntil:npc.shoppingUntil,
+
+                cooldownUntil:npc.cooldownUntil,
+
+                interactionWith:
+                  npc.interactionWith,
+
+                lastPurchaseHour:
+                  npc.lastPurchaseHour
+
+              })
+            ),
+
+          savedAt:
+            new Date().toISOString()
+
+        })
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V129 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(
+          raw
+        );
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      this.running=
+        typeof data.running===
+        "boolean"
+        ? data.running
+        : true;
+
+
+      this.gameHour=
+        Number(
+          data.gameHour
+        );
+
+
+      if(
+        !Number.isFinite(
+          this.gameHour
+        )
+      ){
+
+        this.gameHour=8;
+
+      }
+
+
+      this.nextId=
+        Number(
+          data.nextId
+        )||
+        1;
+
+
+      this.cityMoney=
+        Number(
+          data.cityMoney
+        )||
+        0;
+
+
+      this.totalTransactions=
+        Number(
+          data.totalTransactions
+        )||
+        0;
+
+
+      if(
+        !Array.isArray(
+          data.npcs
+        )
+      ){
+
+        return;
+
+      }
+
+
+      this.npcs=
+        data.npcs
+          .slice(
+            0,
+            this.maxNPCs
+          )
+          .map(
+            item=>{
+
+              const type=
+                this.types.find(
+                  t=>
+                    t.name===
+                    item.type
+                )
+                ||
+                this.types[0];
+
+
+              return{
+
+                id:
+                  Number(
+                    item.id
+                  )||
+                  this.nextId++,
+
+                name:
+                  typeof item.name===
+                  "string"
+                  ? item.name
+                  : this.randomName(),
+
+                type:
+                  type.name,
+
+                color:
+                  item.color||
+                  type.color,
+
+                speed:
+                  Number(
+                    item.speed
+                  )||
+                  type.speed,
+
+                startingMoney:
+                  type.startingMoney,
+
+                money:
+                  Number(
+                    item.money
+                  )||
+                  type.startingMoney,
+
+                salary:
+                  Number(
+                    item.salary
+                  )||
+                  type.salary,
+
+                routine:
+                  type.routine,
+
+                x:
+                  Number(
+                    item.x
+                  )||
+                  100,
+
+                y:
+                  Number(
+                    item.y
+                  )||
+                  200,
+
+                direction:
+                  Number(
+                    item.direction
+                  )>=0
+                  ? 1
+                  : -1,
+
+                state:
+                  item.state==="talking"
+                  ? "talking"
+                  : item.state==="shopping"
+                  ? "shopping"
+                  : item.state==="idle"
+                  ? "idle"
+                  : "walking",
+
+                destination:
+                  item.destination||
+                  "home",
+
+                targetX:
+                  Number(
+                    item.targetX
+                  ),
+
+                targetY:
+                  Number(
+                    item.targetY
+                  ),
+
+                idleUntil:
+                  Number(
+                    item.idleUntil
+                  )||
+                  0,
+
+                talkingUntil:
+                  Number(
+                    item.talkingUntil
+                  )||
+                  0,
+
+                shoppingUntil:
+                  Number(
+                    item.shoppingUntil
+                  )||
+                  0,
+
+                cooldownUntil:
+                  Number(
+                    item.cooldownUntil
+                  )||
+                  0,
+
+                interactionWith:
+                  item.interactionWith||
+                  null,
+
+                lastPurchaseHour:
+                  Number(
+                    item.lastPurchaseHour
+                  )||
+                  -1,
+
+                element:null
+
+              };
+
+            }
+          );
+
+
+      this.npcs.forEach(
+        npc=>{
+
+          if(
+            !Number.isFinite(
+              npc.targetX
+            ) ||
+            !Number.isFinite(
+              npc.targetY
+            )
+          ){
+
+            this.setDestination(
+              npc
+            );
+
+          }
+
+
+          if(
+            npc.talkingUntil<
+            Date.now()
+          ){
+
+            if(
+              npc.state===
+              "talking"
+            ){
+
+              npc.state=
+                "walking";
+
+            }
+
+            npc.interactionWith=
+              null;
+
+          }
+
+
+          if(
+            npc.shoppingUntil<
+            Date.now() &&
+            npc.state===
+            "shopping"
+          ){
+
+            npc.state=
+              "idle";
+
+          }
+
+        }
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V129 LOAD ERROR:",
+        error
+      );
+
+      this.npcs=[];
+
+    }
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const info=
+      document.getElementById(
+        "v129Info"
+      );
+
+
+    const clock=
+      document.getElementById(
+        "v129Clock"
+      );
+
+
+    if(clock){
+
+      clock.textContent=
+        "🕐 "+
+        this.getTimeString();
+
+    }
+
+
+    if(!info){
+
+      return;
+
+    }
+
+
+    let working=0;
+
+    let shopping=0;
+
+    let talking=0;
+
+
+    this.npcs.forEach(
+      npc=>{
+
+        if(
+          npc.destination==="work"
+        ){
+
+          working++;
+
+        }
+
+
+        if(
+          npc.state==="shopping"
+        ){
+
+          shopping++;
+
+        }
+
+
+        if(
+          npc.state==="talking"
+        ){
+
+          talking++;
+
+        }
+
+      }
+    );
+
+
+    info.innerHTML=
+      "NPCs: "+
+      this.npcs.length+
+      "<br>"+
+      "Working: "+
+      working+
+      "<br>"+
+      "Shopping: "+
+      shopping+
+      "<br>"+
+      "Talking: "+
+      talking+
+      "<br>"+
+      "City Money: ₹"+
+      Math.floor(
+        this.cityMoney
+      )+
+      "<br>"+
+      "Transactions: "+
+      this.totalTransactions;
+
+  },
+
+
+  /* =======================================================
+     KEYBOARD
+     ======================================================= */
+
+  handleKey(event){
+
+    if(
+      event.code==="KeyP"
+    ){
+
+      this.toggle();
+
+    }
+
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      this.spawnNPC();
+
+    }
+
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      this.advanceTime(1);
+
+    }
+
+
+    if(
+      event.code==="KeyW"
+    ){
+
+      this.payAll();
+
+    }
+
+
+    if(
+      event.code==="KeyX"
+    ){
+
+      this.clearNPCs();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v129Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(
+        text
+      );
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    V129.handleKey(
+      event
+    );
+
+  }
+);
+
+
+/* =========================================================
+   RESIZE
+   ========================================================= */
+
+window.addEventListener(
+  "resize",
+  ()=>{
+
+    V129.npcs.forEach(
+      npc=>{
+
+        V129.keepInside(
+          npc
+        );
+
+        V129.setDestination(
+          npc
+        );
+
+        V129.renderNPC(
+          npc
+        );
+
+      }
+    );
+
+  }
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V129.init();
+
+
+console.log(
+  "WEBBOUND V129 ECONOMY SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
