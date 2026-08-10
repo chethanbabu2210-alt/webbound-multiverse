@@ -1,0 +1,1041 @@
+<!-- =====================================================
+ V215 — OPEN WORLD CITY EXPANSION
+ Add after V214
+ ===================================================== -->
+
+<style>
+
+/* ================= CITY WORLD ================= */
+
+#cityWorld215{
+    position:fixed;
+
+    inset:0;
+
+    overflow:hidden;
+
+    z-index:5;
+
+    pointer-events:none;
+}
+
+
+/* ================= ROADS ================= */
+
+.cityRoad{
+    position:absolute;
+
+    background:#151b20;
+
+    border:
+        1px solid #ffffff12;
+
+    z-index:6;
+}
+
+.cityRoad.horizontal{
+    height:48px;
+
+    width:100%;
+}
+
+.cityRoad.vertical{
+    width:48px;
+
+    height:100%;
+}
+
+.roadLine{
+    position:absolute;
+
+    background:#ffffff55;
+
+    z-index:7;
+}
+
+.roadLine.horizontal{
+    width:100%;
+    height:2px;
+
+    top:23px;
+}
+
+.roadLine.vertical{
+    height:100%;
+    width:2px;
+
+    left:23px;
+}
+
+
+/* ================= BUILDINGS ================= */
+
+.cityBuilding{
+    position:absolute;
+
+    background:#26323a;
+
+    border:
+        1px solid #ffffff18;
+
+    border-radius:4px;
+
+    z-index:8;
+
+    box-shadow:
+        0 8px 20px #0008;
+
+    pointer-events:auto;
+
+    cursor:pointer;
+}
+
+.cityBuilding:hover{
+    outline:
+        2px solid #ffffff55;
+}
+
+.buildingRoof{
+    position:absolute;
+
+    inset:4px;
+
+    border:
+        1px solid #ffffff12;
+
+    pointer-events:none;
+}
+
+.buildingWindow{
+    position:absolute;
+
+    width:5px;
+    height:7px;
+
+    background:#aab4b8;
+
+    opacity:.45;
+
+    border-radius:1px;
+}
+
+
+/* ================= LANDMARK ================= */
+
+.cityLandmark{
+    position:absolute;
+
+    width:70px;
+    height:90px;
+
+    background:#37434b;
+
+    border:
+        2px solid #ffffff25;
+
+    border-radius:8px;
+
+    z-index:15;
+
+    text-align:center;
+
+    pointer-events:auto;
+
+    cursor:pointer;
+}
+
+.cityLandmark span{
+    position:absolute;
+
+    left:50%;
+
+    bottom:-16px;
+
+    transform:
+        translateX(-50%);
+
+    white-space:nowrap;
+
+    font-size:8px;
+
+    color:white;
+}
+
+
+/* ================= VEHICLES ================= */
+
+.cityCar{
+    position:absolute;
+
+    width:30px;
+    height:13px;
+
+    background:#4c5961;
+
+    border-radius:4px;
+
+    z-index:20;
+
+    animation:
+        cityTraffic 8s linear infinite;
+}
+
+.cityCar:before,
+.cityCar:after{
+
+    content:"";
+
+    position:absolute;
+
+    width:6px;
+    height:6px;
+
+    bottom:-3px;
+
+    background:#080b0d;
+
+    border-radius:50%;
+}
+
+.cityCar:before{
+    left:4px;
+}
+
+.cityCar:after{
+    right:4px;
+}
+
+@keyframes cityTraffic{
+
+    from{
+        transform:
+            translateX(-80px);
+    }
+
+    to{
+        transform:
+            translateX(
+                calc(100vw + 80px)
+            );
+    }
+
+}
+
+
+/* ================= PEDESTRIANS ================= */
+
+.cityPedestrian{
+    position:absolute;
+
+    width:9px;
+    height:18px;
+
+    background:#6d777d;
+
+    border-radius:5px;
+
+    z-index:22;
+
+    animation:
+        pedestrianWalk 5s linear infinite;
+}
+
+.cityPedestrian:before{
+
+    content:"";
+
+    position:absolute;
+
+    width:8px;
+    height:8px;
+
+    left:.5px;
+    top:-6px;
+
+    background:#858e92;
+
+    border-radius:50%;
+}
+
+@keyframes pedestrianWalk{
+
+    from{
+        transform:
+            translateX(-20px);
+    }
+
+    to{
+        transform:
+            translateX(
+                calc(100vw + 20px)
+            );
+    }
+
+}
+
+
+/* ================= CITY HUD ================= */
+
+#cityHud215{
+    position:fixed;
+
+    left:12px;
+    bottom:120px;
+
+    width:min(230px,50vw);
+
+    padding:9px;
+
+    background:#03070de8;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:2700;
+}
+
+.cityHudTitle{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#districtName215{
+    margin-top:5px;
+
+    font-size:9px;
+}
+
+#cityCoords215{
+    margin-top:4px;
+
+    font-size:8px;
+
+    opacity:.65;
+}
+
+
+/* ================= MINIMAP ================= */
+
+#cityMiniMap215{
+    position:fixed;
+
+    right:12px;
+    bottom:120px;
+
+    width:130px;
+    height:130px;
+
+    background:#071017e8;
+
+    border:
+        1px solid #ffffff30;
+
+    border-radius:10px;
+
+    z-index:2700;
+
+    overflow:hidden;
+}
+
+.miniRoad{
+    position:absolute;
+
+    background:#ffffff20;
+}
+
+.miniPlayer{
+    position:absolute;
+
+    width:7px;
+    height:7px;
+
+    background:#fff;
+
+    border-radius:50%;
+
+    z-index:5;
+}
+
+.miniLandmark{
+    position:absolute;
+
+    width:5px;
+    height:5px;
+
+    background:#b7c0c4;
+
+    border-radius:1px;
+}
+
+
+/* ================= CITY CONTROLS ================= */
+
+#cityControls215{
+    position:fixed;
+
+    right:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:2800;
+}
+
+#cityControls215 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:#fff;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+}
+
+</style>
+
+
+<!-- =====================================================
+ CITY WORLD
+ ===================================================== -->
+
+<div id="cityWorld215">
+
+    <!-- ROADS -->
+
+    <div
+        class="cityRoad horizontal"
+        style="top:25%">
+        <div class="roadLine horizontal"></div>
+    </div>
+
+    <div
+        class="cityRoad horizontal"
+        style="top:62%">
+        <div class="roadLine horizontal"></div>
+    </div>
+
+    <div
+        class="cityRoad vertical"
+        style="left:30%">
+        <div class="roadLine vertical"></div>
+    </div>
+
+    <div
+        class="cityRoad vertical"
+        style="left:72%">
+        <div class="roadLine vertical"></div>
+    </div>
+
+
+    <!-- BUILDINGS -->
+
+    <div
+        class="cityBuilding"
+        style="
+            left:3%;
+            top:5%;
+            width:18%;
+            height:17%;
+        "
+        onclick="SpiderCity215.enterBuilding(1)">
+        <div class="buildingRoof"></div>
+    </div>
+
+    <div
+        class="cityBuilding"
+        style="
+            left:35%;
+            top:4%;
+            width:25%;
+            height:18%;
+        "
+        onclick="SpiderCity215.enterBuilding(2)">
+        <div class="buildingRoof"></div>
+    </div>
+
+    <div
+        class="cityBuilding"
+        style="
+            left:77%;
+            top:5%;
+            width:18%;
+            height:17%;
+        "
+        onclick="SpiderCity215.enterBuilding(3)">
+        <div class="buildingRoof"></div>
+    </div>
+
+    <div
+        class="cityBuilding"
+        style="
+            left:5%;
+            top:68%;
+            width:20%;
+            height:22%;
+        "
+        onclick="SpiderCity215.enterBuilding(4)">
+        <div class="buildingRoof"></div>
+    </div>
+
+    <div
+        class="cityBuilding"
+        style="
+            left:38%;
+            top:70%;
+            width:21%;
+            height:18%;
+        "
+        onclick="SpiderCity215.enterBuilding(5)">
+        <div class="buildingRoof"></div>
+    </div>
+
+    <div
+        class="cityBuilding"
+        style="
+            left:78%;
+            top:68%;
+            width:17%;
+            height:21%;
+        "
+        onclick="SpiderCity215.enterBuilding(6)">
+        <div class="buildingRoof"></div>
+    </div>
+
+
+    <!-- LANDMARKS -->
+
+    <div
+        id="landmarkCentral"
+        class="cityLandmark"
+        style="
+            left:44%;
+            top:34%;
+        "
+        onclick="SpiderCity215.visitLandmark('Central Tower')">
+
+        🏙️
+
+        <span>
+            Central Tower
+        </span>
+
+    </div>
+
+
+    <div
+        class="cityLandmark"
+        style="
+            left:82%;
+            top:34%;
+            width:55px;
+            height:65px;
+        "
+        onclick="SpiderCity215.visitLandmark('Police Station')">
+
+        🚔
+
+        <span>
+            Police Station
+        </span>
+
+    </div>
+
+
+    <!-- TRAFFIC -->
+
+    <div
+        class="cityCar"
+        style="
+            top:27%;
+            left:0;
+            animation-delay:0s;
+        ">
+    </div>
+
+    <div
+        class="cityCar"
+        style="
+            top:64%;
+            left:0;
+            animation-delay:2s;
+        ">
+    </div>
+
+    <div
+        class="cityCar"
+        style="
+            top:39%;
+            left:0;
+            animation-delay:4s;
+        ">
+    </div>
+
+
+    <!-- PEDESTRIANS -->
+
+    <div
+        class="cityPedestrian"
+        style="
+            top:57%;
+            left:0;
+            animation-delay:0s;
+        ">
+    </div>
+
+    <div
+        class="cityPedestrian"
+        style="
+            top:77%;
+            left:0;
+            animation-delay:2s;
+        ">
+    </div>
+
+    <div
+        class="cityPedestrian"
+        style="
+            top:47%;
+            left:0;
+            animation-delay:3s;
+        ">
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CITY HUD
+ ===================================================== -->
+
+<div id="cityHud215">
+
+    <div class="cityHudTitle">
+        🏙️ NEW YORK CITY — V215
+    </div>
+
+    <div id="districtName215">
+        District: Midtown
+    </div>
+
+    <div id="cityCoords215">
+        Position: 50, 50
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ MINIMAP
+ ===================================================== -->
+
+<div id="cityMiniMap215">
+
+    <div
+        class="miniRoad"
+        style="
+            left:0;
+            top:40%;
+            width:100%;
+            height:3px;
+        ">
+    </div>
+
+    <div
+        class="miniRoad"
+        style="
+            left:60%;
+            top:0;
+            width:3px;
+            height:100%;
+        ">
+    </div>
+
+    <div
+        class="miniLandmark"
+        style="
+            left:50%;
+            top:50%;
+        ">
+    </div>
+
+    <div
+        id="miniPlayer215"
+        class="miniPlayer"
+        style="
+            left:50%;
+            top:50%;
+        ">
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="cityControls215">
+
+    <button
+        onclick="SpiderCity215.changeDistrict()">
+        🏙️ DISTRICT
+    </button>
+
+    <button
+        onclick="SpiderCity215.centerPlayer()">
+        🎯 CENTER
+    </button>
+
+    <button
+        onclick="SpiderCity215.visitLandmark('Central Tower')">
+        🏙️ LANDMARK
+    </button>
+
+    <button
+        onclick="SpiderCity215.toggleTraffic()">
+        🚗 TRAFFIC
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V215 CITY ENGINE
+ ===================================================== */
+
+const SpiderCity215={
+
+    districts:[
+
+        "Midtown",
+        "Downtown",
+        "Financial District",
+        "Queens",
+        "Brooklyn",
+        "Harlem"
+
+    ],
+
+    districtIndex:0,
+
+    traffic:true,
+
+    playerX:50,
+
+    playerY:50,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateDistrict();
+
+        this.trackPlayer();
+
+        this.message(
+            "🏙️ Open-world city loaded!"
+        );
+
+    },
+
+
+    /* =========================
+       DISTRICT
+    ========================= */
+
+    changeDistrict(){
+
+        this.districtIndex++;
+
+        if(
+            this.districtIndex>=
+            this.districts.length
+        ){
+
+            this.districtIndex=0;
+
+        }
+
+        this.updateDistrict();
+
+        this.message(
+            "🏙️ Entered "+
+            this.districts[
+                this.districtIndex
+            ]
+        );
+
+    },
+
+
+    /* =========================
+       UPDATE DISTRICT
+    ========================= */
+
+    updateDistrict(){
+
+        const name=
+            document.getElementById(
+                "districtName215"
+            );
+
+        if(name){
+
+            name.textContent=
+                "District: "+
+                this.districts[
+                    this.districtIndex
+                ];
+
+        }
+
+    },
+
+
+    /* =========================
+       PLAYER TRACKING
+    ========================= */
+
+    trackPlayer(){
+
+        setInterval(
+            ()=>{
+
+                const player=
+                    document.getElementById(
+                        "spiderman"
+                    );
+
+                if(!player)
+                    return;
+
+                const rect=
+                    player.getBoundingClientRect();
+
+                this.playerX=
+                    Math.max(
+                        0,
+                        Math.min(
+                            100,
+                            rect.left/
+                            window.innerWidth*
+                            100
+                        )
+                    );
+
+                this.playerY=
+                    Math.max(
+                        0,
+                        Math.min(
+                            100,
+                            rect.top/
+                            window.innerHeight*
+                            100
+                        )
+                    );
+
+                const coords=
+                    document.getElementById(
+                        "cityCoords215"
+                    );
+
+                if(coords){
+
+                    coords.textContent=
+                        "Position: "+
+                        Math.round(
+                            this.playerX
+                        )+
+                        ", "+
+                        Math.round(
+                            this.playerY
+                        );
+
+                }
+
+                this.updateMiniMap();
+
+            },
+            300
+        );
+
+    },
+
+
+    /* =========================
+       MINIMAP
+    ========================= */
+
+    updateMiniMap(){
+
+        const player=
+            document.getElementById(
+                "miniPlayer215"
+            );
+
+        if(!player)
+            return;
+
+        player.style.left=
+            this.playerX+
+            "%";
+
+        player.style.top=
+            this.playerY+
+            "%";
+
+    },
+
+
+    /* =========================
+       CENTER
+    ========================= */
+
+    centerPlayer(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+        player.style.left=
+            "50%";
+
+        player.style.top=
+            "50%";
+
+        this.message(
+            "🎯 Player centered."
+        );
+
+    },
+
+
+    /* =========================
+       BUILDING
+    ========================= */
+
+    enterBuilding(id){
+
+        this.message(
+            "🏢 Building "+
+            id+
+            " selected."
+        );
+
+    },
+
+
+    /* =========================
+       LANDMARK
+    ========================= */
+
+    visitLandmark(name){
+
+        this.message(
+            "📍 Landmark: "+
+            name
+        );
+
+        if(
+            typeof SpiderMissions!==
+            "undefined"
+        ){
+
+            SpiderMissions.progress=
+                Math.min(
+                    SpiderMissions.total,
+                    SpiderMissions.progress+
+                    .25
+                );
+
+            SpiderMissions.update();
+
+        }
+
+    },
+
+
+    /* =========================
+       TRAFFIC
+    ========================= */
+
+    toggleTraffic(){
+
+        this.traffic=
+            !this.traffic;
+
+        document
+            .querySelectorAll(
+                ".cityCar"
+            )
+            .forEach(
+                car=>{
+
+                    car.style.animationPlayState=
+                        this.traffic
+                        ? "running"
+                        : "paused";
+
+                }
+            );
+
+        this.message(
+            this.traffic
+            ? "🚗 Traffic ON"
+            : "🚗 Traffic OFF"
+        );
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V215
+ ===================================================== */
+
+SpiderCity215.init();
