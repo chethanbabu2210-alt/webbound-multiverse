@@ -1,0 +1,584 @@
+<!-- =========================================================
+ WEBBOUND V70
+ VISION + GLASSES + SPIDER-SENSE SYSTEM
+ BUILDS ON V60 - V69
+ ========================================================= -->
+
+<style>
+
+#v70VisionHUD{
+  position:fixed;
+  right:15px;
+  bottom:15px;
+  z-index:8200;
+  padding:9px 13px;
+  background:#05070ed9;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+  font:12px Arial,sans-serif;
+  pointer-events:none;
+}
+
+#v70VisionOverlay{
+  position:fixed;
+  inset:0;
+  z-index:8100;
+  pointer-events:none;
+  opacity:0;
+  transition:
+    filter .25s ease,
+    opacity .25s ease;
+}
+
+body.v70NoGlasses #v70VisionOverlay{
+  opacity:.10;
+  backdrop-filter:blur(0.7px);
+}
+
+body.v70Sense #v70VisionOverlay{
+  opacity:0;
+  backdrop-filter:none;
+}
+
+#v70SenseFlash{
+  position:fixed;
+  inset:0;
+  z-index:8099;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .2s ease;
+  background:
+    radial-gradient(
+      circle at center,
+      transparent 0%,
+      rgba(255,255,255,.06) 45%,
+      rgba(255,255,255,.16) 100%
+    );
+}
+
+#v70SenseText{
+  position:fixed;
+  left:50%;
+  top:25%;
+  transform:translateX(-50%);
+  z-index:9995;
+  padding:10px 16px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:12px;
+  font:13px Arial,sans-serif;
+  opacity:0;
+  pointer-events:none;
+  transition:.2s;
+}
+
+</style>
+
+
+<!-- =========================================================
+ VISION HUD
+ ========================================================= -->
+
+<div id="v70VisionHUD">
+
+  👓 Vision:
+  <span id="v70VisionState">
+    CLEAR
+  </span>
+
+</div>
+
+
+<div id="v70VisionOverlay"></div>
+
+<div id="v70SenseFlash"></div>
+
+<div id="v70SenseText">
+  🕷️ SPIDER-SENSE
+</div>
+
+
+<script>
+
+const V70 = {
+
+  version:"V70",
+
+  glasses:true,
+
+  spiderSense:false,
+
+  senseDuration:5000,
+
+  senseTimer:null,
+
+
+  /* =======================================================
+     APPLY VISION
+     ======================================================= */
+
+  applyVision(){
+
+    document.body.classList.toggle(
+      "v70NoGlasses",
+      !this.glasses
+    );
+
+
+    document.body.classList.toggle(
+      "v70Sense",
+      this.spiderSense
+    );
+
+
+    this.updateHUD();
+
+
+    /*
+      Connect to V69 outfit state.
+    */
+
+    if(
+      typeof V69 !== "undefined"
+    ){
+
+      V69.glasses=
+        this.glasses;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     TOGGLE GLASSES
+     ======================================================= */
+
+  toggleGlasses(){
+
+    this.glasses=
+      !this.glasses;
+
+
+    this.applyVision();
+
+
+    this.message(
+      this.glasses
+      ? "👓 Glasses ON"
+      : "👁️ Glasses OFF"
+    );
+
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save==="function"
+    ){
+
+      V60.save();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SET GLASSES
+     ======================================================= */
+
+  setGlasses(value){
+
+    this.glasses=
+      Boolean(value);
+
+    this.applyVision();
+
+  },
+
+
+  /* =======================================================
+     SPIDER SENSE
+     ======================================================= */
+
+  activateSense(){
+
+    /*
+      Restart an existing timer safely.
+    */
+
+    if(this.senseTimer){
+
+      clearTimeout(
+        this.senseTimer
+      );
+
+    }
+
+
+    this.spiderSense=true;
+
+    this.applyVision();
+
+
+    const text=
+      document.getElementById(
+        "v70SenseText"
+      );
+
+
+    const flash=
+      document.getElementById(
+        "v70SenseFlash"
+      );
+
+
+    if(text){
+
+      text.style.opacity="1";
+
+    }
+
+
+    if(flash){
+
+      flash.style.opacity=".75";
+
+      setTimeout(
+        ()=>{
+
+          flash.style.opacity="0";
+
+        },
+        250
+      );
+
+    }
+
+
+    this.message(
+      "🕷️ Spider-Sense activated"
+    );
+
+
+    this.senseTimer=
+      setTimeout(
+        ()=>{
+
+          this.deactivateSense();
+
+        },
+        this.senseDuration
+      );
+
+  },
+
+
+  /* =======================================================
+     DEACTIVATE
+     ======================================================= */
+
+  deactivateSense(){
+
+    this.spiderSense=false;
+
+    this.applyVision();
+
+
+    const text=
+      document.getElementById(
+        "v70SenseText"
+      );
+
+
+    if(text){
+
+      text.style.opacity="0";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const state=
+      document.getElementById(
+        "v70VisionState"
+      );
+
+
+    if(!state){
+
+      return;
+
+    }
+
+
+    if(this.spiderSense){
+
+      state.textContent=
+        "🕷️ SPIDER-SENSE";
+
+    }
+    else if(this.glasses){
+
+      state.textContent=
+        "👓 CLEAR";
+
+    }
+    else{
+
+      state.textContent=
+        "👁️ NATURAL";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof V68 !== "undefined" &&
+      typeof V68.message==="function"
+    ){
+
+      V68.message(text);
+
+      return;
+
+    }
+
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      glasses:
+        this.glasses,
+
+      spiderSense:
+        false
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.glasses==="boolean"
+    ){
+
+      this.glasses=
+        data.glasses;
+
+    }
+
+
+    /*
+      Spider-Sense is never restored
+      after loading a save.
+    */
+
+    this.spiderSense=false;
+
+    this.applyVision();
+
+  }
+
+};
+
+
+/* =========================================================
+ V69 GLASSES INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V69 !== "undefined"
+){
+
+  /*
+    Preserve the existing V69 toggle.
+  */
+
+  const v69OriginalToggle=
+    V69.toggleGlasses.bind(V69);
+
+
+  V69.toggleGlasses=function(){
+
+    v69OriginalToggle();
+
+    V70.glasses=
+      Boolean(
+        V69.glasses
+      );
+
+    V70.applyVision();
+
+  };
+
+}
+
+
+/* =========================================================
+ V60 SAVE / LOAD INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const v70OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v70OriginalCollect();
+
+    data.v70=
+      V70.collect();
+
+    return data;
+
+  };
+
+
+  const v70OriginalApply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    v70OriginalApply(data);
+
+
+    if(
+      data &&
+      data.v70
+    ){
+
+      V70.apply(
+        data.v70
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      G = glasses
+    */
+
+    if(
+      event.code==="KeyG"
+    ){
+
+      event.preventDefault();
+
+      V70.toggleGlasses();
+
+    }
+
+
+    /*
+      E = Spider-Sense
+    */
+
+    if(
+      event.code==="KeyE"
+    ){
+
+      event.preventDefault();
+
+      V70.activateSense();
+
+    }
+
+
+    /*
+      Escape = cancel Spider-Sense
+    */
+
+    if(
+      event.code==="Escape" &&
+      V70.spiderSense
+    ){
+
+      V70.deactivateSense();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V70.glasses=
+  typeof V69 !== "undefined"
+  ? Boolean(V69.glasses)
+  : true;
+
+
+V70.applyVision();
+
+
+console.log(
+  "WEBBOUND V70 VISION SYSTEM READY"
+);
+
+      </script>
