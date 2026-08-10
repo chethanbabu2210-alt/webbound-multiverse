@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Spider-Man Game — V62</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+    background:#090b10;
+    color:white;
+}
+
+#game{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    overflow:hidden;
+    background:linear-gradient(#314c73 0%,#7088a5 55%,#171717 55%);
+    transition:background .8s;
+}
+
+/* ---------------- CITY ---------------- */
+
+.city{
+    position:absolute;
+    left:0;
+    bottom:0;
+    width:100%;
+    height:45%;
+    display:flex;
+    align-items:end;
+    gap:7px;
+}
+
+.building{
+    position:relative;
+    width:10%;
+    background:#252a31;
+    border:1px solid #414750;
+}
+
+.building:nth-child(1){height:55%}
+.building:nth-child(2){height:78%}
+.building:nth-child(3){height:65%}
+.building:nth-child(4){height:93%}
+.building:nth-child(5){height:72%}
+.building:nth-child(6){height:85%}
+.building:nth-child(7){height:62%}
+.building:nth-child(8){height:88%}
+.building:nth-child(9){height:69%}
+.building:nth-child(10){height:96%}
+
+.windows{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:7px;
+    padding:10px;
+}
+
+.windows span{
+    height:11px;
+    background:#d6bf68;
+}
+
+/* ---------------- PLAYER ---------------- */
+
+#player{
+    position:absolute;
+    width:45px;
+    height:70px;
+    z-index:30;
+    transform-origin:center;
+}
+
+.head{
+    width:25px;
+    height:25px;
+    margin:auto;
+    border-radius:50%;
+    background:#dfae87;
+}
+
+.body{
+    width:34px;
+    height:40px;
+    margin:auto;
+    border-radius:10px 10px 5px 5px;
+    background:#c9212d;
+}
+
+.spider{
+    margin-top:-30px;
+    text-align:center;
+    font-size:19px;
+}
+
+.running{
+    animation:run .16s infinite alternate;
+}
+
+@keyframes run{
+    from{transform:rotate(-4deg)}
+    to{transform:rotate(4deg)}
+}
+
+.swinging{
+    animation:swing .5s infinite alternate;
+}
+
+@keyframes swing{
+    from{transform:rotate(-10deg)}
+    to{transform:rotate(10deg)}
+}
+
+.visionBlur{
+    filter:blur(2px);
+}
+
+.spiderSense{
+    filter:brightness(1.5) contrast(1.4);
+}
+
+/* ---------------- WEB ---------------- */
+
+#webLine{
+    position:absolute;
+    width:3px;
+    height:0;
+    background:white;
+    transform-origin:top center;
+    z-index:25;
+    display:none;
+}
+
+/* ---------------- HUD ---------------- */
+
+#hud{
+    position:absolute;
+    top:15px;
+    left:15px;
+    z-index:100;
+}
+
+.panel{
+    min-width:235px;
+    padding:12px;
+    margin-bottom:8px;
+    border-radius:12px;
+    background:rgba(0,0,0,.72);
+}
+
+button{
+    border:0;
+    border-radius:8px;
+    padding:8px 11px;
+    margin:3px;
+    color:white;
+    background:#363636;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#555;
+}
+
+/* ---------------- MISSION ---------------- */
+
+#missionBox{
+    position:absolute;
+    right:15px;
+    top:15px;
+    width:280px;
+    z-index:100;
+}
+
+#mission{
+    margin-top:7px;
+    color:#7dd3fc;
+}
+
+/* ---------------- NPC ---------------- */
+
+.npc{
+    position:absolute;
+    width:20px;
+    height:35px;
+    z-index:15;
+}
+
+.npcHead{
+    width:14px;
+    height:14px;
+    margin:auto;
+    border-radius:50%;
+    background:#d8a47e;
+}
+
+.npcBody{
+    width:20px;
+    height:21px;
+    border-radius:5px;
+    background:#777;
+}
+
+/* ---------------- TARGET ---------------- */
+
+#target{
+    position:absolute;
+    width:40px;
+    height:40px;
+    border:3px solid #ff4d4d;
+    border-radius:50%;
+    display:none;
+    z-index:20;
+    animation:pulse .7s infinite alternate;
+}
+
+@keyframes pulse{
+    from{transform:scale(.8)}
+    to{transform:scale(1.15)}
+}
+
+/* ---------------- HOME ---------------- */
+
+#home{
+    display:none;
+    position:absolute;
+    inset:0;
+    z-index:200;
+    background:linear-gradient(#454047,#16161a);
+}
+
+.room{
+    position:absolute;
+    inset:8%;
+    padding:25px;
+    border:2px solid #666;
+    border-radius:20px;
+    background:rgba(20,20,24,.95);
+}
+
+.object{
+    display:inline-block;
+    width:145px;
+    height:110px;
+    margin:8px;
+    padding:12px;
+    border:1px solid #555;
+    border-radius:15px;
+    background:rgba(255,255,255,.07);
+    text-align:center;
+}
+
+/* ---------------- MENUS ---------------- */
+
+.menu{
+    display:none;
+    position:absolute;
+    inset:13%;
+    z-index:300;
+    padding:25px;
+    border:2px solid #555;
+    border-radius:20px;
+    background:rgba(8,8,12,.97);
+}
+
+.close{
+    float:right;
+    background:#922;
+}
+
+/* ---------------- MESSAGE ---------------- */
+
+#message{
+    position:absolute;
+    left:50%;
+    bottom:25px;
+    z-index:500;
+    transform:translateX(-50%);
+    padding:12px 20px;
+    border-radius:12px;
+    background:rgba(0,0,0,.85);
+    opacity:0;
+    transition:.3s;
+}
+
+/* ---------------- CONTROLS ---------------- */
+
+#controls{
+    position:absolute;
+    right:15px;
+    bottom:15px;
+    z-index:100;
+    max-width:280px;
+}
+
+.control{
+    margin:2px;
+    padding:7px 10px;
+    border-radius:7px;
+    background:rgba(0,0,0,.65);
+    display:inline-block;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<!-- CITY -->
+
+<div class="city">
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+<div class="building">
+<div class="windows">
+<span></span><span></span><span></span><span></span>
+</div>
+</div>
+
+</div>
+
+<!-- PLAYER -->
+
+<div id="player">
+
+<div class="head"></div>
+
+<div class="body"></div>
+
+<div class="spider">
+🕷️
+</div>
+
+</div>
+
+<div id="webLine"></div>
+
+<div id="target"></div>
+
+<!-- HUD -->
+
+<div id="hud">
+
+<div class="panel">
+
+❤️ Health:
+<span id="health">100</span>
+
+<br>
+
+⚡ Energy:
+<span id="energy">100</span>
+
+<br>
+
+👕 Outfit:
+<span id="outfit">Casual</span>
+
+<br>
+
+🕷️ Suit:
+<span id="suit">Classic</span>
+
+<br>
+
+🧪 Gadget:
+<span id="gadget">1</span>
+
+<br>
+
+🕐 Time:
+<span id="time">12:00</span>
+
+<br>
+
+🏃 State:
+<span id="state">Walking</span>
+
+</div>
+
+<div class="panel">
+
+<button onclick="enterHome()">🏠 Home</button>
+
+<button onclick="toggleVision()">👓 Vision</button>
+
+<button onclick="spiderSense()">🕷️ Sense</button>
+
+<button onclick="startMission()">📋 Mission</button>
+
+<button onclick="saveGame()">💾 Save</button>
+
+</div>
+
+</div>
+
+<!-- MISSION -->
+
+<div id="missionBox" class="panel">
+
+<b>📋 Mission</b>
+
+<div id="mission">
+No active mission
+</div>
+
+</div>
+
+<!-- HOME -->
+
+<div id="home">
+
+<div class="room">
+
+<button class="close" onclick="leaveHome()">
+Exit
+</button>
+
+<h1>🏠 Peter's Home</h1>
+
+<p>Safe location</p>
+
+<br>
+
+<div class="object">
+
+🛏️
+<br>
+Bedroom
+
+<br>
+
+<button onclick="rest()">
+Rest
+</button>
+
+</div>
+
+<div class="object">
+
+👕
+<br>
+Wardrobe
+
+<br>
+
+<button onclick="openWardrobe()">
+Change
+</button>
+
+</div>
+
+<div class="object">
+
+🕷️
+<br>
+Suit Area
+
+<br>
+
+<button onclick="openSuits()">
+Suits
+</button>
+
+</div>
+
+<div class="object">
+
+💻
+<br>
+Computer
+
+<br>
+
+<button onclick="openComputer()">
+Use
+</button>
+
+</div>
+
+<div class="object">
+
+🧪
+<br>
+Workbench
+
+<br>
+
+<button onclick="upgradeGadget()">
+Upgrade
+</button>
+
+</div>
+
+<div class="object">
+
+💾
+<br>
+Save
+
+<br>
+
+<button onclick="saveGame()">
+Save
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- WARDROBE -->
+
+<div id="wardrobe" class="menu">
+
+<button class="close" onclick="closeMenus()">
+Close
+</button>
+
+<h1>👕 Wardrobe</h1>
+
+<br>
+
+<button onclick="changeOutfit('Casual')">
+Casual
+</button>
+
+<button onclick="changeOutfit('School')">
+School
+</button>
+
+<button onclick="changeOutfit('Jacket')">
+Jacket
+</button>
+
+<button onclick="changeOutfit('Formal')">
+Formal
+</button>
+
+<button onclick="changeOutfit('Sport')">
+Sport
+</button>
+
+</div>
+
+<!-- SUITS -->
+
+<div id="suits" class="menu">
+
+<button class="close" onclick="closeMenus()">
+Close
+</button>
+
+<h1>🕷️ Suit Collection</h1>
+
+<br>
+
+<button onclick="changeSuit('Classic')">
+Classic
+</button>
+
+<button onclick="changeSuit('Stealth')">
+Stealth
+</button>
+
+<button onclick="changeSuit('Advanced')">
+Advanced
+</button>
+
+<button onclick="changeSuit('Tech')">
+Tech
+</button>
+
+</div>
+
+<!-- COMPUTER -->
+
+<div id="computer" class="menu">
+
+<button class="close" onclick="closeMenus()">
+Close
+</button>
+
+<h1>💻 Computer</h1>
+
+<br>
+
+<p>📨 Messages: 3 new</p>
+
+<br>
+
+<p>🗺️ City map: Online</p>
+
+<br>
+
+<p>📋 Mission database: Online</p>
+
+<br>
+
+<p>🧪 Research system: Online</p>
+
+</div>
+
+<!-- CONTROLS -->
+
+<div id="controls">
+
+<span class="control">WASD / Arrows: Move</span>
+<span class="control">Shift: Sprint</span>
+<span class="control">Space: Jump</span>
+<span class="control">F: Web Swing</span>
+<span class="control">E: Spider-Sense</span>
+
+</div>
+
+<div id="message"></div>
+
+</div>
+
+<script>
+
+/* =========================
+   GAME STATE
+========================= */
+
+const player=document.getElementById("player");
+const game=document.getElementById("game");
+const webLine=document.getElementById("webLine");
+const target=document.getElementById("target");
+
+let x=window.innerWidth/2;
+let y=window.innerHeight*.55;
+
+let vx=0;
+let vy=0;
+
+let health=100;
+let energy=100;
+let gadgetLevel=1;
+
+let outfit="Casual";
+let suit="Classic";
+
+let vision=true;
+let senseActive=false;
+
+let sprinting=false;
+let jumping=false;
+let swinging=false;
+
+let gameHour=12;
+
+let missionActive=false;
+let missionProgress=0;
+
+let lastTime=0;
+
+const keys={};
+
+
+/* =========================
+   KEYBOARD
+========================= */
+
+document.addEventListener("keydown",e=>{
+
+    keys[e.key.toLowerCase()]=true;
+
+    if(e.key===" "){
+        e.preventDefault();
+        jump();
+    }
+
+    if(e.key.toLowerCase()==="f"){
+        toggleSwing();
+    }
+
+    if(e.key.toLowerCase()==="e"){
+        spiderSense();
+    }
+
+    if(e.key.toLowerCase()==="v"){
+        toggleVision();
+    }
+
+    if(e.key.toLowerCase()==="h"){
+        enterHome();
+    }
+
+    if(e.key.toLowerCase()==="m"){
+        startMission();
+    }
+
+});
+
+document.addEventListener("keyup",e=>{
+
+    keys[e.key.toLowerCase()]=false;
+
+});
+
+
+/* =========================
+   MAIN GAME LOOP
+========================= */
+
+function gameLoop(timestamp){
+
+    if(!lastTime){
+        lastTime=timestamp;
+    }
+
+    const delta=Math.min(
+        (timestamp-lastTime)/1000,
+        .05
+    );
+
+    lastTime=timestamp;
+
+    updatePlayer(delta);
+    updateWorld(delta);
+
+    requestAnimationFrame(gameLoop);
+}
+
+requestAnimationFrame(gameLoop);
+
+
+/* =========================
+   PLAYER
+========================= */
+
+function updatePlayer(delta){
+
+    if(
+        document.getElementById("home").style.display==="block"
+    ){
+        return;
+    }
+
+    let moveSpeed=220;
+
+    sprinting=
+        keys["shift"] &&
+        energy>0;
+
+    if(sprinting){
+
+        moveSpeed=360;
+
+        energy=Math.max(
+            0,
+            energy-25*delta
+        );
+
+    }else{
+
+        energy=Math.min(
+            100,
+            energy+8*delta
+        );
+
+    }
+
+
+    if(keys["w"]||keys["arrowup"]){
+        vy=-moveSpeed;
+    }
+    else if(keys["s"]||keys["arrowdown"]){
+        vy=moveSpeed;
+    }
+    else{
+        vy=0;
+    }
+
+
+    if(keys["a"]||keys["arrowleft"]){
+        vx=-moveSpeed;
+    }
+    else if(keys["d"]||keys["arrowright"]){
+        vx=moveSpeed;
+    }
+    else{
+        vx=0;
+    }
+
+
+    if(swinging){
+
+        moveSpeed=430;
+
+        x+=vx*delta;
+        y+=vy*delta;
+
+    }else{
+
+        x+=vx*delta;
+        y+=vy*delta;
+
+    }
+
+
+    x=Math.max(
+        20,
+        Math.min(
+            window.innerWidth-65,
+            x
+        )
+    );
+
+    y=Math.max(
+        70,
+        Math.min(
+            window.innerHeight-100,
+            y
+        )
+    );
+
+
+    player.style.left=x+"px";
+    player.style.top=y+"px";
+
+
+    player.classList.toggle(
+        "running",
+        sprinting || vx!==0 || vy!==0
+    );
+
+    player.classList.toggle(
+        "swinging",
+        swinging
+    );
+
+
+    if(sprinting){
+        document.getElementById("state").textContent="Sprinting";
+    }
+    else if(swinging){
+        document.getElementById("state").textContent="Web Swinging";
+    }
+    else if(jumping){
+        document.getElementById("state").textContent="Jumping";
+    }
+    else{
+        document.getElementById("state").textContent="Walking";
+    }
+
+    updateStats();
+
+}
+
+
+/* =========================
+   JUMP
+========================= */
+
+function jump(){
+
+    if(jumping || swinging){
+        return;
+    }
+
+    jumping=true;
+
+    const originalY=y;
+
+    let start=performance.now();
+
+    function jumpFrame(now){
+
+        const progress=
+            Math.min(
+                (now-start)/600,
+                1
+            );
+
+        const height=
+            Math.sin(progress*Math.PI)*110;
+
+        y=originalY-height;
+
+        player.style.top=y+"px";
+
+        if(progress<1){
+
+            requestAnimationFrame(jumpFrame);
+
+        }else{
+
+            y=originalY;
+            jumping=false;
+
+        }
+
+    }
+
+    requestAnimationFrame(jumpFrame);
+
+}
+
+
+/* =========================
+   WEB SWING
+========================= */
+
+function toggleSwing(){
+
+    swinging=!swinging;
+
+    if(swinging){
+
+        webLine.style.display="block";
+
+        webLine.style.left=
+            (x+22)+"px";
+
+        webLine.style.top=
+            (y-5)+"px";
+
+        webLine.style.height=
+            Math.max(
+                100,
+                y-30
+            )+"px";
+
+        showMessage(
+            "🕸️ Web swing activated"
+        );
+
+    }else{
+
+        webLine.style.display="none";
+
+        showMessage(
+            "🕸️ Web swing released"
+        );
+
+    }
+
+}
+
+
+/* =========================
+   VISION
+========================= */
+
+function toggleVision(){
+
+    vision=!vision;
+
+    document.body.classList.toggle(
+        "visionBlur",
+        !vision
+    );
+
+    showMessage(
+        vision
+        ? "👓 Clear vision"
+        : "👁️ Vision without glasses"
+    );
+
+}
+
+
+/* =========================
+   SPIDER SENSE
+========================= */
+
+function spiderSense(){
+
+    if(senseActive){
+        return;
+    }
+
+    senseActive=true;
+
+    player.classList.add(
+        "spiderSense"
+    );
+
+    if(missionActive){
+
+        target.style.display="block";
+
+        showMessage(
+            "🕷️ Spider-Sense detected the objective!"
+        );
+
+    }else{
+
+        showMessage(
+            "🕷️ Spider-Sense activated"
+        );
+
+    }
+
+    setTimeout(()=>{
+
+        senseActive=false;
+
+        player.classList.remove(
+            "spiderSense"
+        );
+
+        if(!missionActive){
+            target.style.display="none";
+        }
+
+    },4000);
+
+}
+
+
+/* =========================
+   MISSION
+========================= */
+
+function startMission(){
+
+    missionActive=true;
+    missionProgress=0;
+
+    document.getElementById(
+        "mission"
+    ).textContent=
+        "Reach the marked location.";
+
+    target.style.left=
+        (window.innerWidth*.75)+"px";
+
+    target.style.top=
+        (window.innerHeight*.45)+"px";
+
+    target.style.display="block";
+
+    showMessage(
+        "📋 Mission started"
+    );
+
+}
+
+
+function checkMission(){
+
+    if(!missionActive){
+        return;
+    }
+
+    const tx=parseFloat(
+        target.style.left
+    );
+
+    const ty=parseFloat(
+        target.style.top
+    );
+
+    const distance=Math.hypot(
+        x-tx,
+        y-ty
+    );
+
+    if(distance<80){
+
+        missionProgress++;
+
+        if(missionProgress===1){
+
+            document.getElementById(
+                "mission"
+            ).textContent=
+                "Investigate the location.";
+
+            showMessage(
+                "🔎 Location reached"
+            );
+
+            target.style.left=
+                (window.innerWidth*.30)+"px";
+
+            target.style.top=
+                (window.innerHeight*.35)+"px";
+
+        }
+
+        else{
+
+            missionActive=false;
+
+            target.style.display="none";
+
+            document.getElementById(
+                "mission"
+            ).textContent=
+                "Mission completed!";
+
+            showMessage(
+                "✅ Mission complete!"
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================
+   WORLD
+========================= */
+
+function updateWorld(delta){
+
+    gameHour+=delta*.35;
+
+    if(gameHour>=24){
+        gameHour=0;
+    }
+
+    const hour=Math.floor(gameHour);
+
+    const minutes=Math.floor(
+        (gameHour-hour)*60
+    );
+
+    document.getElementById(
+        "time"
+    ).textContent=
+        String(hour).padStart(2,"0")
+        +":"+
+        String(minutes).padStart(2,"0");
+
+
+    if(hour>=6 && hour<18){
+
+        game.style.background=
+            "linear-gradient(#314c73 0%,#7088a5 55%,#171717 55%)";
+
+    }else{
+
+        game.style.background=
+            "linear-gradient(#080d1d 0%,#1d2b48 55%,#0d0d0d 55%)";
+
+    }
+
+
+    checkMission();
+
+}
+
+
+/* =========================
+   HOME
+========================= */
+
+function enterHome(){
+
+    document.getElementById(
+        "home"
+    ).style.display="block";
+
+    showMessage(
+        "🏠 Entered Peter's Home"
+    );
+
+}
+
+function leaveHome(){
+
+    document.getElementById(
+        "home"
+    ).style.display="none";
+
+    showMessage(
+        "🌆 Returned to the city"
+    );
+
+}
+
+
+/* =========================
+   REST
+========================= */
+
+function rest(){
+
+    health=100;
+    energy=100;
+
+    updateStats();
+
+    showMessage(
+        "❤️ Health and energy restored"
+    );
+
+}
+
+
+/* =========================
+   WARDROBE
+========================= */
+
+function openWardrobe(){
+
+    document.getElementById(
+        "wardrobe"
+    ).style.display="block";
+
+}
+
+function changeOutfit(name){
+
+    outfit=name;
+
+    document.getElementById(
+        "outfit"
+    ).textContent=outfit;
+
+    showMessage(
+        "👕 Outfit: "+name
+    );
+
+}
+
+
+/* =========================
+   SUITS
+========================= */
+
+function openSuits(){
+
+    document.getElementById(
+        "suits"
+    ).style.display="block";
+
+}
+
+function changeSuit(name){
+
+    suit=name;
+
+    document.getElementById(
+        "suit"
+    ).textContent=suit;
+
+    showMessage(
+        "🕷️ Suit equipped: "+name
+    );
+
+}
+
+
+/* =========================
+   COMPUTER
+========================= */
+
+function openComputer(){
+
+    document.getElementById(
+        "computer"
+    ).style.display="block";
+
+}
+
+
+/* =========================
+   GADGET
+========================= */
+
+function upgradeGadget(){
+
+    gadgetLevel++;
+
+    document.getElementById(
+        "gadget"
+    ).textContent=gadgetLevel;
+
+    showMessage(
+        "🧪 Gadget upgraded to Level "
+        +gadgetLevel
+    );
+
+}
+
+
+/* =========================
+   MENUS
+========================= */
+
+function closeMenus(){
+
+    document.getElementById(
+        "wardrobe"
+    ).style.display="none";
+
+    document.getElementById(
+        "suits"
+    ).style.display="none";
+
+    document.getElementById(
+        "computer"
+    ).style.display="none";
+
+}
+
+
+/* =========================
+   SAVE
+========================= */
+
+function saveGame(){
+
+    const saveData={
+        version:62,
+        x,
+        y,
+        health,
+        energy,
+        gadgetLevel,
+        outfit,
+        suit,
+        gameHour,
+        missionActive,
+        missionProgress
+    };
+
+    localStorage.setItem(
+        "spidermanGameV62",
+        JSON.stringify(saveData)
+    );
+
+    showMessage(
+        "💾 V62 game saved"
+    );
+
+}
+
+
+/* =========================
+   LOAD
+========================= */
+
+function loadGame(){
+
+    const saved=
+        localStorage.getItem(
+            "spidermanGameV62"
+        );
+
+    if(!saved){
+        return;
+    }
+
+    try{
+
+        const data=
+            JSON.parse(saved);
+
+        x=data.x ?? x;
+        y=data.y ?? y;
+        health=data.health ?? 100;
+        energy=data.energy ?? 100;
+        gadgetLevel=data.gadgetLevel ?? 1;
+        outfit=data.outfit ?? "Casual";
+        suit=data.suit ?? "Classic";
+        gameHour=data.gameHour ?? 12;
+        missionActive=data.missionActive ?? false;
+        missionProgress=data.missionProgress ?? 0;
+
+        document.getElementById(
+            "outfit"
+        ).textContent=outfit;
+
+        document.getElementById(
+            "suit"
+        ).textContent=suit;
+
+        if(missionActive){
+            startMission();
+        }
+
+        updateStats();
+
+    }catch(error){
+
+        console.log(
+            "Save data could not be loaded."
+        );
+
+    }
+
+}
+
+
+/* =========================
+   STATS
+========================= */
+
+function updateStats(){
+
+    document.getElementById(
+        "health"
+    ).textContent=
+        Math.round(health);
+
+    document.getElementById(
+        "energy"
+    ).textContent=
+        Math.round(energy);
+
+    document.getElementById(
+        "gadget"
+    ).textContent=
+        gadgetLevel;
+
+}
+
+
+/* =========================
+   MESSAGE
+========================= */
+
+function showMessage(text){
+
+    const message=
+        document.getElementById(
+            "message"
+        );
+
+    message.textContent=text;
+    message.style.opacity="1";
+
+    setTimeout(()=>{
+
+        message.style.opacity="0";
+
+    },2200);
+
+}
+
+
+/* =========================
+   START
+========================= */
+
+loadGame();
+
+updateStats();
+
+</script>
+
+</body>
+</html>
