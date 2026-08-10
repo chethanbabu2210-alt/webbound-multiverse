@@ -1,0 +1,1164 @@
+<!-- =====================================================
+ V227 — SPIDER-MAN SUIT SYSTEM
+ Add after V226
+ ===================================================== -->
+
+<style>
+
+/* ================= SUIT HUD ================= */
+
+#suitHud227{
+
+    position:fixed;
+
+    right:12px;
+    top:20px;
+
+    width:min(245px,48vw);
+
+    padding:11px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:11px;
+
+    z-index:4500;
+
+}
+
+.suitTitle227{
+
+    font-size:11px;
+    font-weight:bold;
+
+}
+
+#suitName227,
+#suitLevel227,
+#suitAbility227{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= STAT BARS ================= */
+
+.suitStat227{
+
+    margin-top:7px;
+
+    font-size:7px;
+
+}
+
+.suitBar227{
+
+    height:5px;
+
+    margin-top:3px;
+
+    background:#172128;
+
+    border-radius:5px;
+
+    overflow:hidden;
+
+}
+
+.suitFill227{
+
+    height:100%;
+
+    width:0%;
+
+    background:#d9dddf;
+
+    transition:
+        width .25s;
+
+}
+
+
+/* ================= SUIT MENU ================= */
+
+#suitMenu227{
+
+    position:fixed;
+
+    left:50%;
+    top:50%;
+
+    transform:
+        translate(-50%,-50%);
+
+    width:min(320px,82vw);
+
+    padding:15px;
+
+    background:#03070df5;
+
+    border:1px solid #ffffff30;
+
+    border-radius:12px;
+
+    z-index:5000;
+
+    display:none;
+
+}
+
+.suitOption227{
+
+    padding:10px;
+
+    margin-top:6px;
+
+    background:#111f2a;
+
+    border:1px solid #ffffff20;
+
+    border-radius:7px;
+
+    cursor:pointer;
+
+    font-size:9px;
+
+}
+
+.suitOption227:hover{
+
+    background:#1b303d;
+
+}
+
+
+/* ================= ABILITY EFFECT ================= */
+
+.suitAbilityFlash227{
+
+    position:fixed;
+
+    inset:0;
+
+    z-index:4400;
+
+    pointer-events:none;
+
+    opacity:0;
+
+}
+
+.suitAbilityFlash227.active{
+
+    animation:
+        suitAbilityFlash227 .35s;
+
+}
+
+@keyframes suitAbilityFlash227{
+
+    0%{
+        opacity:.2;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#suitControls227{
+
+    position:fixed;
+
+    right:12px;
+    bottom:250px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:4600;
+
+}
+
+#suitControls227 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ SUIT HUD
+ ===================================================== -->
+
+<div id="suitHud227">
+
+    <div class="suitTitle227">
+        🕷️ SUIT SYSTEM — V227
+    </div>
+
+    <div id="suitName227">
+        Suit: Classic
+    </div>
+
+    <div id="suitLevel227">
+        Level: 1
+    </div>
+
+    <div id="suitAbility227">
+        Ability: Web Master
+    </div>
+
+
+    <div class="suitStat227">
+        Health
+        <div class="suitBar227">
+            <div
+                id="suitHealth227"
+                class="suitFill227">
+            </div>
+        </div>
+    </div>
+
+
+    <div class="suitStat227">
+        Defense
+        <div class="suitBar227">
+            <div
+                id="suitDefense227"
+                class="suitFill227">
+            </div>
+        </div>
+    </div>
+
+
+    <div class="suitStat227">
+        Web Power
+        <div class="suitBar227">
+            <div
+                id="suitWeb227"
+                class="suitFill227">
+            </div>
+        </div>
+    </div>
+
+
+    <div class="suitStat227">
+        Mobility
+        <div class="suitBar227">
+            <div
+                id="suitMobility227"
+                class="suitFill227">
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<div
+    id="suitAbilityFlash227"
+    class="suitAbilityFlash227">
+</div>
+
+
+<!-- =====================================================
+ SUIT MENU
+ ===================================================== -->
+
+<div id="suitMenu227">
+
+    <div class="suitTitle227">
+        🕷️ SELECT SUIT
+    </div>
+
+
+    <div
+        class="suitOption227"
+        onclick="SpiderSuit227.equip('classic')">
+
+        Classic Suit
+        — Balanced
+
+    </div>
+
+
+    <div
+        class="suitOption227"
+        onclick="SpiderSuit227.equip('speed')">
+
+        Velocity Suit
+        — High Mobility
+
+    </div>
+
+
+    <div
+        class="suitOption227"
+        onclick="SpiderSuit227.equip('tech')">
+
+        Tech Suit
+        — High Web Power
+
+    </div>
+
+
+    <div
+        class="suitOption227"
+        onclick="SpiderSuit227.equip('armor')">
+
+        Armor Suit
+        — High Defense
+
+    </div>
+
+
+    <div
+        class="suitOption227"
+        onclick="SpiderSuit227.equip('stealth')">
+
+        Stealth Suit
+        — Low Detection
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="suitControls227">
+
+    <button
+        onclick="SpiderSuit227.openMenu()">
+        🕷️ SUITS
+    </button>
+
+    <button
+        onclick="SpiderSuit227.ability()">
+        ⚡ ABILITY
+    </button>
+
+    <button
+        onclick="SpiderSuit227.upgrade()">
+        ⬆️ UPGRADE
+    </button>
+
+    <button
+        onclick="SpiderSuit227.closeMenu()">
+        ✖ CLOSE
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V227 SUIT ENGINE
+ ===================================================== */
+
+const SpiderSuit227={
+
+
+    /* =========================
+       SUIT DATABASE
+    ========================= */
+
+    suits:{
+
+        classic:{
+
+            name:"Classic Suit",
+
+            level:1,
+
+            health:75,
+
+            defense:55,
+
+            web:70,
+
+            mobility:70,
+
+            ability:"Web Master"
+
+        },
+
+
+        speed:{
+
+            name:"Velocity Suit",
+
+            level:1,
+
+            health:65,
+
+            defense:45,
+
+            web:65,
+
+            mobility:95,
+
+            ability:"Speed Burst"
+
+        },
+
+
+        tech:{
+
+            name:"Tech Suit",
+
+            level:1,
+
+            health:70,
+
+            defense:60,
+
+            web:100,
+
+            mobility:75,
+
+            ability:"Web Overdrive"
+
+        },
+
+
+        armor:{
+
+            name:"Armor Suit",
+
+            level:1,
+
+            health:100,
+
+            defense:100,
+
+            web:45,
+
+            mobility:40,
+
+            ability:"Armor Shield"
+
+        },
+
+
+        stealth:{
+
+            name:"Stealth Suit",
+
+            level:1,
+
+            health:65,
+
+            defense:55,
+
+            web:70,
+
+            mobility:80,
+
+            ability:"Silent Mode"
+
+        }
+
+    },
+
+
+    current:"classic",
+
+    xp:0,
+
+    xpRequired:100,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.message(
+            "🕷️ Suit system initialized."
+        );
+
+    },
+
+
+    /* =========================
+       OPEN MENU
+    ========================= */
+
+    openMenu(){
+
+        const menu=
+            document.getElementById(
+                "suitMenu227"
+            );
+
+        if(menu){
+
+            menu.style.display=
+                "block";
+
+        }
+
+    },
+
+
+    /* =========================
+       CLOSE MENU
+    ========================= */
+
+    closeMenu(){
+
+        const menu=
+            document.getElementById(
+                "suitMenu227"
+            );
+
+        if(menu){
+
+            menu.style.display=
+                "none";
+
+        }
+
+    },
+
+
+    /* =========================
+       EQUIP SUIT
+    ========================= */
+
+    equip(id){
+
+        if(
+            !this.suits[id]
+        )
+            return;
+
+
+        this.current=id;
+
+
+        this.closeMenu();
+
+        this.applySuit();
+
+        this.updateHUD();
+
+
+        this.message(
+            "🕷️ Equipped "+
+            this.suits[id].name+
+            "."
+        );
+
+    },
+
+
+    /* =========================
+       APPLY SUIT
+    ========================= */
+
+    applySuit(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+
+        if(!player)
+            return;
+
+
+        player.dataset.suit=
+            this.current;
+
+
+        /*
+         * Keep existing player
+         * styling intact.
+         *
+         * The suit identifier can
+         * be used by the rendering
+         * system later.
+         */
+
+        player.classList.remove(
+            "suit-classic227",
+            "suit-speed227",
+            "suit-tech227",
+            "suit-armor227",
+            "suit-stealth227"
+        );
+
+
+        player.classList.add(
+            "suit-"+
+            this.current+
+            "227"
+        );
+
+
+        /*
+         * Stealth suit automatically
+         * improves stealth detection.
+         */
+
+        if(
+            this.current==="stealth" &&
+            typeof SpiderWall226!=="undefined"
+        ){
+
+            SpiderWall226.visionRange=
+                120;
+
+        }else if(
+            typeof SpiderWall226!=="undefined"
+        ){
+
+            SpiderWall226.visionRange=
+                170;
+
+        }
+
+    },
+
+
+    /* =========================
+       ABILITY
+    ========================= */
+
+    ability(){
+
+        const suit=
+            this.suits[
+                this.current
+            ];
+
+
+        if(!suit)
+            return;
+
+
+        const flash=
+            document.getElementById(
+                "suitAbilityFlash227"
+            );
+
+
+        if(flash){
+
+            flash.classList.remove(
+                "active"
+            );
+
+            void flash.offsetWidth;
+
+            flash.classList.add(
+                "active"
+            );
+
+        }
+
+
+        switch(
+            this.current
+        ){
+
+            case "classic":
+
+                this.webMaster();
+
+                break;
+
+
+            case "speed":
+
+                this.speedBurst();
+
+                break;
+
+
+            case "tech":
+
+                this.webOverdrive();
+
+                break;
+
+
+            case "armor":
+
+                this.armorShield();
+
+                break;
+
+
+            case "stealth":
+
+                this.silentMode();
+
+                break;
+
+        }
+
+
+        this.message(
+            "⚡ "+
+            suit.ability+
+            " activated."
+        );
+
+    },
+
+
+    /* =========================
+       CLASSIC
+    ========================= */
+
+    webMaster(){
+
+        if(
+            typeof SpiderWebShooter223!==
+            "undefined"
+        ){
+
+            SpiderWebShooter223.energy=
+                SpiderWebShooter223.maxEnergy;
+
+            SpiderWebShooter223.updateHUD();
+
+        }
+
+    },
+
+
+    /* =========================
+       SPEED
+    ========================= */
+
+    speedBurst(){
+
+        if(
+            typeof SpiderWebPhysics224!==
+            "undefined"
+        ){
+
+            SpiderWebPhysics224.velocityX*=2;
+
+            SpiderWebPhysics224.swingSpeed=
+                Math.min(
+                    3.5,
+                    SpiderWebPhysics224
+                        .swingSpeed+
+                    1
+                );
+
+        }
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    typeof SpiderWebPhysics224!==
+                    "undefined"
+                ){
+
+                    SpiderWebPhysics224.velocityX*=.5;
+
+                }
+
+            },
+            2500
+        );
+
+    },
+
+
+    /* =========================
+       TECH
+    ========================= */
+
+    webOverdrive(){
+
+        if(
+            typeof SpiderWebShooter223!==
+            "undefined"
+        ){
+
+            SpiderWebShooter223.energy=
+                Math.min(
+                    SpiderWebShooter223.maxEnergy,
+                    SpiderWebShooter223.energy+
+                    40
+                );
+
+            SpiderWebShooter223.updateHUD();
+
+        }
+
+    },
+
+
+    /* =========================
+       ARMOR
+    ========================= */
+
+    armorShield(){
+
+        this.message(
+            "🛡️ Armor protection active."
+        );
+
+
+        setTimeout(
+            ()=>{
+
+                this.message(
+                    "🛡️ Armor protection ended."
+                );
+
+            },
+            4000
+        );
+
+    },
+
+
+    /* =========================
+       STEALTH
+    ========================= */
+
+    silentMode(){
+
+        if(
+            typeof SpiderWall226!==
+            "undefined"
+        ){
+
+            SpiderWall226.stealthMode=
+                true;
+
+            SpiderWall226.updateHUD();
+
+        }
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    typeof SpiderWall226!==
+                    "undefined"
+                ){
+
+                    SpiderWall226.stealthMode=
+                        false;
+
+                    SpiderWall226.updateHUD();
+
+                }
+
+            },
+            5000
+        );
+
+    },
+
+
+    /* =========================
+       XP
+    ========================= */
+
+    addXP(amount){
+
+        this.xp+=amount;
+
+
+        if(
+            this.xp>=
+            this.xpRequired
+        ){
+
+            this.xp-=
+                this.xpRequired;
+
+            this.levelUp();
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       LEVEL UP
+    ========================= */
+
+    levelUp(){
+
+        const suit=
+            this.suits[
+                this.current
+            ];
+
+
+        suit.level++;
+
+
+        suit.health=
+            Math.min(
+                100,
+                suit.health+5
+            );
+
+
+        suit.defense=
+            Math.min(
+                100,
+                suit.defense+5
+            );
+
+
+        suit.web=
+            Math.min(
+                100,
+                suit.web+5
+            );
+
+
+        suit.mobility=
+            Math.min(
+                100,
+                suit.mobility+5
+            );
+
+
+        this.xpRequired+=50;
+
+
+        this.message(
+            "⬆️ "+
+            suit.name+
+            " upgraded to Level "+
+            suit.level+"!"
+        );
+
+    },
+
+
+    /* =========================
+       MANUAL UPGRADE
+    ========================= */
+
+    upgrade(){
+
+        this.addXP(
+            100
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const suit=
+            this.suits[
+                this.current
+            ];
+
+
+        if(!suit)
+            return;
+
+
+        const name=
+            document.getElementById(
+                "suitName227"
+            );
+
+        const level=
+            document.getElementById(
+                "suitLevel227"
+            );
+
+        const ability=
+            document.getElementById(
+                "suitAbility227"
+            );
+
+
+        if(name){
+
+            name.textContent=
+                "Suit: "+
+                suit.name;
+
+        }
+
+
+        if(level){
+
+            level.textContent=
+                "Level: "+
+                suit.level+
+                " | XP: "+
+                this.xp+
+                "/"+
+                this.xpRequired;
+
+        }
+
+
+        if(ability){
+
+            ability.textContent=
+                "Ability: "+
+                suit.ability;
+
+        }
+
+
+        this.setBar(
+            "suitHealth227",
+            suit.health
+        );
+
+        this.setBar(
+            "suitDefense227",
+            suit.defense
+        );
+
+        this.setBar(
+            "suitWeb227",
+            suit.web
+        );
+
+        this.setBar(
+            "suitMobility227",
+            suit.mobility
+        );
+
+    },
+
+
+    /* =========================
+       STAT BAR
+    ========================= */
+
+    setBar(id,value){
+
+        const bar=
+            document.getElementById(
+                id
+            );
+
+
+        if(bar){
+
+            bar.style.width=
+                value+"%";
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V227
+ ===================================================== */
+
+SpiderSuit227.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="b")
+            SpiderSuit227.openMenu();
+
+
+        if(key==="a")
+            SpiderSuit227.ability();
+
+
+        if(key==="u")
+            SpiderSuit227.upgrade();
+
+
+        if(key==="escape")
+            SpiderSuit227.closeMenu();
+
+    }
+);
