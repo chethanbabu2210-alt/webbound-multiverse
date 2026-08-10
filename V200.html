@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V200 — STOCK MARKET</title>
+
+<style>
+*{box-sizing:border-box}
+html,body{
+margin:0;width:100%;height:100%;overflow:hidden;
+font-family:Arial,sans-serif;background:#05090d;color:#fff
+}
+#game{
+position:fixed;inset:0;overflow:hidden;
+background:linear-gradient(#789da9,#111b21)
+}
+#sky{
+position:absolute;inset:0;
+background:linear-gradient(#85afbd,#c1d0d3)
+}
+.road{position:absolute;background:#272d31}
+.rh{left:0;right:0;top:57%;height:75px}
+.rv{top:0;bottom:0;left:67%;width:75px}
+.line{position:absolute;background:#d7c86e;opacity:.45}
+.lineH{left:0;right:0;top:calc(57% + 36px);height:2px}
+.lineV{top:0;bottom:0;left:calc(67% + 36px);width:2px}
+
+.building{
+position:absolute;display:flex;align-items:center;
+justify-content:center;text-align:center;
+background:#172831;border:1px solid #ffffff18;
+border-radius:9px;color:#83949c;font-size:10px
+}
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:15%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+position:absolute;left:50%;top:53%;
+width:29px;height:41px;border-radius:10px 10px 5px 5px;
+background:#2c91da;z-index:50
+}
+#player:before{
+content:"";position:absolute;left:5.5px;top:-14px;
+width:18px;height:18px;border-radius:50%;
+background:#bd8967
+}
+
+#hud{
+position:fixed;left:10px;top:10px;
+width:min(980px,94vw);padding:12px;
+background:#03070cee;border:1px solid #ffffff25;
+border-radius:13px;z-index:500
+}
+.title{font-size:13px;font-weight:bold}
+.stats{
+display:grid;grid-template-columns:repeat(6,1fr);
+gap:5px;margin-top:8px
+}
+.stat{
+padding:7px 4px;background:#101b23;
+border-radius:7px;text-align:center;font-size:9px
+}
+
+#marketHud{
+margin-top:8px;padding:9px;background:#111d25;
+border-radius:8px;font-size:9px;line-height:1.8
+}
+
+.bar{
+height:7px;background:#ffffff12;
+border-radius:7px;overflow:hidden;margin-top:4px
+}
+.fill{
+height:100%;width:0%;
+background:#8fb8df;transition:.3s
+}
+
+#controls{
+position:fixed;left:50%;bottom:10px;
+transform:translateX(-50%);
+width:min(980px,96vw);
+display:flex;flex-wrap:wrap;gap:6px;z-index:500
+}
+
+button{
+flex:1;min-width:105px;padding:10px;
+background:#142733;border:1px solid #ffffff22;
+border-radius:8px;color:#fff;font-size:10px;
+cursor:pointer
+}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.4;cursor:not-allowed}
+
+#panel{
+position:fixed;inset:0;display:none;
+align-items:center;justify-content:center;
+background:#000c;z-index:1000
+}
+
+.box{
+width:min(830px,94vw);max-height:84vh;
+overflow:auto;padding:17px;background:#050b10;
+border:1px solid #ffffff28;border-radius:15px
+}
+
+.card{
+padding:11px;background:#111d25;
+border-radius:9px;margin-bottom:7px;
+font-size:10px;line-height:1.7
+}
+
+.card button{
+width:100%;margin-top:8px
+}
+
+.green{color:#70d890}
+.red{color:#e87878}
+
+#notification{
+position:fixed;left:50%;top:20%;
+transform:translateX(-50%);
+padding:10px 15px;background:#03070cf5;
+border:1px solid #ffffff25;border-radius:9px;
+display:none;z-index:1500;font-size:10px;
+text-align:center
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="sky"></div>
+<div class="road rh"></div>
+<div class="road rv"></div>
+<div class="line lineH"></div>
+<div class="line lineV"></div>
+
+<div class="building b1">🏠 RESIDENTIAL</div>
+<div class="building b2">🏢 CORPORATE DISTRICT</div>
+<div class="building b3">📈 STOCK EXCHANGE</div>
+<div class="building b4">🏙️ FINANCIAL TOWERS</div>
+<div class="building b5">💼 INVESTMENT ZONE</div>
+<div class="building b6">🏦 BROKER CENTER</div>
+
+<div id="player"></div>
+
+<div id="hud">
+
+<div class="title">
+📈 WEBBOUND V200 — STOCK MARKET
+</div>
+
+<div class="stats">
+
+<div class="stat">
+💰 CASH<br>
+₹<span id="cashText">5000</span>
+</div>
+
+<div class="stat">
+📊 INVESTED<br>
+₹<span id="investedText">0</span>
+</div>
+
+<div class="stat">
+💵 PORTFOLIO<br>
+₹<span id="portfolioText">0</span>
+</div>
+
+<div class="stat">
+📈 PROFIT/LOSS<br>
+₹<span id="profitText">0</span>
+</div>
+
+<div class="stat">
+📦 SHARES<br>
+<span id="sharesText">0</span>
+</div>
+
+<div class="stat">
+💰 DIVIDENDS<br>
+₹<span id="dividendText">0</span>
+</div>
+
+</div>
+
+<div id="marketHud">
+
+<b>📈 MARKET STATUS</b><br>
+
+Market:
+<span id="marketStatus">OPEN</span><br>
+
+Active Stock:
+<span id="activeStock">None</span><br>
+
+Current Price:
+₹<span id="activePrice">0</span><br>
+
+Owned Shares:
+<span id="activeShares">0</span><br>
+
+Portfolio Value:
+₹<span id="activeValue">0</span>
+
+<div class="bar">
+<div id="marketFill" class="fill"></div>
+</div>
+
+</div>
+
+</div>
+
+<div id="notification"></div>
+
+<div id="controls">
+
+<button onclick="V200.market()">
+📈 MARKET
+</button>
+
+<button onclick="V200.buy()">
+🟢 BUY
+</button>
+
+<button onclick="V200.sell()">
+🔴 SELL
+</button>
+
+<button onclick="V200.dividend()">
+💰 DIVIDEND
+</button>
+
+<button onclick="V200.moveMarket()">
+📊 MOVE MARKET
+</button>
+
+<button onclick="V200.portfolio()">
+💼 PORTFOLIO
+</button>
+
+<button onclick="V200.news()">
+📰 MARKET NEWS
+</button>
+
+<button onclick="V200.save()">
+💾 SAVE
+</button>
+
+</div>
+
+<div id="panel">
+
+<div class="box">
+
+<h2 id="panelTitle">
+WEBBOUND V200
+</h2>
+
+<div id="panelContent"></div>
+
+<button onclick="V200.close()">
+CLOSE
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const V200={
+
+saveKey:"WEBBOUND_V200",
+
+cash:5000,
+
+activeStock:null,
+
+shares:{},
+
+invested:{},
+
+prices:{},
+
+dividends:0,
+
+marketDay:1,
+
+transactions:0,
+
+stocks:{
+
+nova:{
+name:"Nova Technologies",
+symbol:"NOVA",
+sector:"Technology",
+price:420,
+dividend:12,
+volatility:0.08
+},
+
+zen:{
+name:"Zen Motors",
+symbol:"ZEN",
+sector:"Automobile",
+price:680,
+dividend:18,
+volatility:0.06
+},
+
+green:{
+name:"Green Energy",
+symbol:"GREEN",
+sector:"Energy",
+price:310,
+dividend:10,
+volatility:0.10
+},
+
+mega:{
+name:"Mega Retail",
+symbol:"MEGA",
+sector:"Retail",
+price:560,
+dividend:15,
+volatility:0.05
+},
+
+sky:{
+name:"Sky Airlines",
+symbol:"SKY",
+sector:"Aviation",
+price:740,
+dividend:8,
+volatility:0.13
+},
+
+global:{
+name:"Global Finance",
+symbol:"GFIN",
+sector:"Finance",
+price:920,
+dividend:25,
+volatility:0.04
+}
+
+},
+
+init(){
+
+this.load();
+
+Object.entries(this.stocks)
+.forEach(([id,s])=>{
+
+if(!Number.isFinite(this.prices[id]))
+this.prices[id]=s.price;
+
+});
+
+this.update();
+
+this.notify(
+"📈 V200 Stock Market ready"
+);
+
+},
+
+market(){
+
+let html="";
+
+Object.entries(this.stocks)
+.forEach(([id,s])=>{
+
+const price=
+this.prices[id]||s.price;
+
+const owned=
+this.shares[id]||0;
+
+const invested=
+this.invested[id]||0;
+
+html+=`
+
+<div class="card">
+
+<b>${s.name}</b>
+(${s.symbol})
+
+<br><br>
+
+🏭 Sector:
+${s.sector}
+
+<br>
+
+💵 Price:
+₹${price.toLocaleString()}
+
+<br>
+
+💰 Dividend:
+₹${s.dividend} / share
+
+<br>
+
+📦 Owned:
+${owned}
+
+<br>
+
+💼 Invested:
+₹${invested.toLocaleString()}
+
+<br><br>
+
+<button onclick="V200.select('${id}')">
+SELECT ${s.symbol}
+</button>
+
+</div>
+
+`;
+
+});
+
+this.open(
+"📈 STOCK MARKET",
+html
+);
+
+},
+
+select(id){
+
+if(!this.stocks[id])return;
+
+this.activeStock=id;
+
+this.update();
+
+this.save();
+
+this.close();
+
+this.notify(
+"📈 Selected "+
+this.stocks[id].symbol
+);
+
+},
+
+buy(){
+
+if(!this.activeStock){
+
+this.notify(
+"📈 Select a stock first."
+);
+
+return;
+
+}
+
+const id=this.activeStock;
+
+const price=
+this.prices[id];
+
+const amount=this.askAmount(
+"Price per share: ₹"+
+price+
+"\nEnter number of shares:"
+);
+
+if(!amount)return;
+
+const cost=
+price*amount;
+
+if(cost>this.cash){
+
+this.notify(
+"❌ Not enough cash."
+);
+
+return;
+
+}
+
+this.cash-=cost;
+
+this.shares[id]=
+(this.shares[id]||0)+amount;
+
+this.invested[id]=
+(this.invested[id]||0)+cost;
+
+this.transactions++;
+
+this.update();
+
+this.save();
+
+this.notify(
+"🟢 Bought "+
+amount+
+" shares of "+
+this.stocks[id].symbol
+);
+
+},
+
+sell(){
+
+if(!this.activeStock){
+
+this.notify(
+"📈 Select a stock first."
+);
+
+return;
+
+}
+
+const id=this.activeStock;
+
+const owned=
+this.shares[id]||0;
+
+if(owned<=0){
+
+this.notify(
+"❌ You don't own this stock."
+);
+
+return;
+
+}
+
+const amount=this.askAmount(
+"Owned shares: "+
+owned+
+"\nEnter number of shares to sell:"
+);
+
+if(!amount)return;
+
+if(amount>owned){
+
+this.notify(
+"❌ Not enough shares."
+);
+
+return;
+
+}
+
+const price=
+this.prices[id];
+
+const sale=
+price*amount;
+
+const averageCost=
+(this.invested[id]||0)/owned;
+
+const costBasis=
+averageCost*amount;
+
+const profit=
+sale-costBasis;
+
+this.cash+=sale;
+
+this.shares[id]-=amount;
+
+this.invested[id]=
+Math.max(
+0,
+(this.invested[id]||0)-costBasis
+);
+
+this.transactions++;
+
+this.update();
+
+this.save();
+
+this.notify(
+"🔴 Sold "+
+amount+
+" shares. "+
+(profit>=0?
+"Profit ₹":
+"Loss ₹")+
+Math.abs(
+Math.floor(profit)
+).toLocaleString()
+);
+
+},
+
+dividend(){
+
+let earned=0;
+
+Object.entries(this.stocks)
+.forEach(([id,s])=>{
+
+const owned=
+this.shares[id]||0;
+
+if(owned>0){
+
+const amount=
+owned*s.dividend;
+
+earned+=amount;
+
+}
+
+});
+
+if(earned<=0){
+
+this.notify(
+"💰 No dividend eligible shares."
+);
+
+return;
+
+}
+
+this.cash+=earned;
+this.dividends+=earned;
+
+this.update();
+this.save();
+
+this.notify(
+"💰 Dividends received: ₹"+
+earned.toLocaleString()
+);
+
+},
+
+moveMarket(){
+
+this.marketDay++;
+
+Object.entries(this.stocks)
+.forEach(([id,s])=>{
+
+const old=
+this.prices[id];
+
+const movement=
+( Math.random()*2-1 )*
+s.volatility;
+
+let next=
+old*(1+movement);
+
+next=Math.max(
+10,
+Math.round(next)
+);
+
+this.prices[id]=next;
+
+});
+
+this.update();
+this.save();
+
+this.notify(
+"📊 Market moved to Day "+
+this.marketDay
+);
+
+},
+
+portfolio(){
+
+let html="";
+
+let investedTotal=0;
+let currentTotal=0;
+
+Object.entries(this.stocks)
+.forEach(([id,s])=>{
+
+const shares=
+this.shares[id]||0;
+
+if(shares<=0)return;
+
+const invested=
+this.invested[id]||0;
+
+const current=
+shares*this.prices[id];
+
+const pnl=
+current-invested;
+
+investedTotal+=invested;
+currentTotal+=current;
+
+html+=`
+
+<div class="card">
+
+<b>${s.name}</b>
+(${s.symbol})
+
+<br><br>
+
+📦 Shares:
+${shares}
+
+<br>
+
+💵 Invested:
+₹${invested.toLocaleString()}
+
+<br>
+
+📊 Current Value:
+₹${current.toLocaleString()}
+
+<br>
+
+<span class="${pnl>=0?"green":"red"}">
+
+${pnl>=0?"📈 Profit":"📉 Loss"}:
+₹${Math.abs(
+Math.floor(pnl)
+).toLocaleString()}
+
+</span>
+
+<br>
+
+<button onclick="V200.select('${id}')">
+SELECT
+</button>
+
+</div>
+
+`;
+
+});
+
+if(!html){
+
+html=`
+
+<div class="card">
+Your portfolio is empty.
+</div>
+
+`;
+
+}
+
+const totalPnl=
+currentTotal-investedTotal;
+
+html+=`
+
+<div class="card">
+
+<b>💼 PORTFOLIO SUMMARY</b>
+
+<br><br>
+
+💵 Total Invested:
+₹${investedTotal.toLocaleString()}
+
+<br>
+
+📊 Current Value:
+₹${currentTotal.toLocaleString()}
+
+<br>
+
+<span class="${totalPnl>=0?"green":"red"}">
+
+📈 Total P/L:
+₹${Math.abs(
+Math.floor(totalPnl)
+).toLocaleString()}
+
+</span>
+
+<br>
+
+💰 Dividends:
+₹${this.dividends.toLocaleString()}
+
+<br>
+
+🔄 Transactions:
+${this.transactions}
+
+</div>
+
+`;
+
+this.open(
+"💼 INVESTMENT PORTFOLIO",
+html
+);
+
+},
+
+news(){
+
+const news=[
+
+"💻 Technology sector sees increased demand.",
+
+"🚗 Automobile companies report strong sales.",
+
+"🌱 Renewable energy attracts investors.",
+
+"🛒 Retail spending remains steady.",
+
+"✈️ Aviation market experiences higher volatility.",
+
+"🏦 Financial sector remains relatively stable."
+
+];
+
+const selected=
+news[
+Math.floor(
+Math.random()*news.length
+)
+];
+
+this.open(
+"📰 MARKET NEWS",
+`
+<div class="card">
+<b>Market Day ${this.marketDay}</b>
+<br><br>
+${selected}
+</div>
+`
+);
+
+},
+
+askAmount(message){
+
+const value=prompt(message);
+
+if(value===null)return 0;
+
+const amount=Math.floor(
+Number(value)
+);
+
+if(!Number.isFinite(amount)||
+amount<=0){
+
+this.notify(
+"❌ Enter a valid amount."
+);
+
+return 0;
+}
+
+return amount;
+
+},
+
+update(){
+
+document.getElementById(
+"cashText"
+).textContent=
+this.cash.toLocaleString();
+
+let invested=0;
+let portfolio=0;
+let shares=0;
+
+Object.entries(this.stocks)
+.forEach(([id])=>{
+
+const q=
+this.shares[id]||0;
+
+shares+=q;
+
+invested+=
+this.invested[id]||0;
+
+portfolio+=
+q*(this.prices[id]||0);
+
+});
+
+document.getElementById(
+"investedText"
+).textContent=
+invested.toLocaleString();
+
+document.getElementById(
+"portfolioText"
+).textContent=
+portfolio.toLocaleString();
+
+const pnl=
+portfolio-invested;
+
+document.getElementById(
+"profitText"
+).textContent=
+(pnl>=0?"+":"-")+
+Math.abs(
+Math.floor(pnl)
+).toLocaleString();
+
+document.getElementById(
+"sharesText"
+).textContent=
+shares;
+
+document.getElementById(
+"dividendText"
+).textContent=
+this.dividends.toLocaleString();
+
+if(!this.activeStock){
+
+document.getElementById(
+"activeStock"
+).textContent=
+"None";
+
+document.getElementById(
+"activePrice"
+).textContent="0";
+
+document.getElementById(
+"activeShares"
+).textContent="0";
+
+document.getElementById(
+"activeValue"
+).textContent="0";
+
+document.getElementById(
+"marketFill"
+).style.width="0%";
+
+return;
+
+}
+
+const id=this.activeStock;
+const price=this.prices[id];
+const owned=this.shares[id]||0;
+
+document.getElementById(
+"activeStock"
+).textContent=
+this.stocks[id].symbol;
+
+document.getElementById(
+"activePrice"
+).textContent=
+price.toLocaleString();
+
+document.getElementById(
+"activeShares"
+).textContent=
+owned;
+
+document.getElementById(
+"activeValue"
+).textContent=
+(price*owned).toLocaleString();
+
+document.getElementById(
+"marketFill"
+).style.width=
+Math.min(
+100,
+(price/1000)*100
+)+"%";
+
+},
+
+save(){
+
+localStorage.setItem(
+this.saveKey,
+JSON.stringify({
+
+cash:this.cash,
+activeStock:this.activeStock,
+shares:this.shares,
+invested:this.invested,
+prices:this.prices,
+dividends:this.dividends,
+marketDay:this.marketDay,
+transactions:this.transactions
+
+})
+);
+
+},
+
+load(){
+
+try{
+
+const raw=
+localStorage.getItem(
+this.saveKey
+);
+
+if(!raw)return;
+
+const d=JSON.parse(raw);
+
+if(Number.isFinite(d.cash))
+this.cash=Math.max(
+0,d.cash
+);
+
+if(typeof d.activeStock==="string"&&
+this.stocks[d.activeStock])
+this.activeStock=
+d.activeStock;
+
+if(d.shares)
+this.shares=d.shares;
+
+if(d.invested)
+this.invested=d.invested;
+
+if(d.prices)
+this.prices=d.prices;
+
+if(Number.isFinite(d.dividends))
+this.dividends=
+Math.max(0,d.dividends);
+
+if(Number.isFinite(d.marketDay))
+this.marketDay=
+Math.max(1,d.marketDay);
+
+if(Number.isFinite(d.transactions))
+this.transactions=
+Math.max(0,d.transactions);
+
+}catch(e){
+
+console.log(
+"V200 load error:",
+e
+);
+
+}
+
+},
+
+open(title,content){
+
+document.getElementById(
+"panelTitle"
+).textContent=
+title;
+
+document.getElementById(
+"panelContent"
+).innerHTML=
+content;
+
+document.getElementById(
+"panel"
+).style.display=
+"flex";
+
+},
+
+close(){
+
+document.getElementById(
+"panel"
+).style.display=
+"none";
+
+},
+
+notify(text){
+
+const el=
+document.getElementById(
+"notification"
+);
+
+el.textContent=text;
+
+el.style.display=
+"block";
+
+clearTimeout(this.timer);
+
+this.timer=
+setTimeout(
+()=>{
+el.style.display="none";
+},
+2400
+);
+
+}
+
+};
+
+V200.init();
+
+console.log(
+"WEBBOUND V200 STOCK MARKET READY"
+);
+
+</script>
+
+</body>
+</html>
