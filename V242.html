@@ -1,0 +1,826 @@
+<!-- =====================================================
+ V242 — COLLECTIBLES + EXPLORATION SYSTEM
+ Add after V241
+ ===================================================== -->
+
+<style>
+
+#collectHud242{
+
+    position:fixed;
+
+    left:12px;
+    top:700px;
+
+    width:min(250px,50vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:9px;
+
+    z-index:5500;
+
+}
+
+.collectTitle242{
+
+    font-size:9px;
+    font-weight:bold;
+
+}
+
+#collectProgress242,
+#collectTokens242,
+#collectDistrict242{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= COLLECTIBLE ================= */
+
+.collectible242{
+
+    position:absolute;
+
+    width:20px;
+    height:20px;
+
+    border-radius:50%;
+
+    background:#ffffff15;
+
+    border:2px solid #ffffff70;
+
+    box-shadow:
+        0 0 12px #ffffff40;
+
+    z-index:3600;
+
+    cursor:pointer;
+
+    animation:
+        collectibleFloat242
+        1.6s ease-in-out infinite;
+
+}
+
+@keyframes collectibleFloat242{
+
+    0%,100%{
+
+        transform:
+            translateY(0)
+            scale(1);
+
+    }
+
+    50%{
+
+        transform:
+            translateY(-6px)
+            scale(1.08);
+
+    }
+
+}
+
+
+/* ================= MESSAGE ================= */
+
+#collectMessage242{
+
+    position:fixed;
+
+    left:50%;
+    top:35%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 16px;
+
+    background:#03070df5;
+
+    border:1px solid #ffffff30;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    z-index:6500;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#collectMessage242.show{
+
+    animation:
+        collectPopup242 1s forwards;
+
+}
+
+@keyframes collectPopup242{
+
+    0%{
+
+        opacity:0;
+
+        transform:
+            translateX(-50%)
+            scale(.8);
+
+    }
+
+    20%{
+
+        opacity:1;
+
+        transform:
+            translateX(-50%)
+            scale(1);
+
+    }
+
+    80%{
+
+        opacity:1;
+
+    }
+
+    100%{
+
+        opacity:0;
+
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#collectControls242{
+
+    position:fixed;
+
+    left:50%;
+
+    bottom:20px;
+
+    transform:
+        translateX(-50%);
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5600;
+
+}
+
+#collectControls242 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="collectHud242">
+
+    <div class="collectTitle242">
+        🧩 EXPLORATION — V242
+    </div>
+
+    <div id="collectProgress242">
+        Collection: 0 / 12
+    </div>
+
+    <div id="collectTokens242">
+        Tokens: 0
+    </div>
+
+    <div id="collectDistrict242">
+        District: Downtown
+    </div>
+
+</div>
+
+
+<div id="collectMessage242">
+    COLLECTED
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="collectControls242">
+
+    <button onclick="SpiderCollect242.spawn()">
+        🧩 SPAWN
+    </button>
+
+    <button onclick="SpiderCollect242.collectNearest()">
+        ✋ COLLECT
+    </button>
+
+    <button onclick="SpiderCollect242.collectAll()">
+        ⭐ COLLECT ALL
+    </button>
+
+    <button onclick="SpiderCollect242.reset()">
+        ↻ RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V242 COLLECTIBLE ENGINE
+ ===================================================== */
+
+const SpiderCollect242={
+
+    total:12,
+
+    collected:0,
+
+    tokens:0,
+
+    collectibles:[],
+
+    nextId:1,
+
+    districts:[
+
+        "Downtown",
+
+        "Midtown",
+
+        "Harbor",
+
+        "Queens",
+
+        "Upper City",
+
+        "Industrial"
+
+    ],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.spawnInitial();
+
+        this.message(
+            "🧩 Exploration system online."
+        );
+
+    },
+
+
+    /* =========================
+       INITIAL SPAWN
+    ========================= */
+
+    spawnInitial(){
+
+        for(
+            let i=0;
+            i<6;
+            i++
+        ){
+
+            this.spawn();
+
+        }
+
+    },
+
+
+    /* =========================
+       SPAWN
+       ========================= */
+
+    spawn(){
+
+        if(
+            this.collectibles.length>=
+            this.total
+        ){
+
+            this.message(
+                "⭐ All collectibles spawned."
+            );
+
+            return;
+
+        }
+
+
+        const id=
+            "collect242_"+
+            this.nextId++;
+
+
+        const item=
+            document.createElement(
+                "div"
+            );
+
+
+        item.id=id;
+
+        item.className=
+            "collectible242";
+
+
+        item.style.left=
+            (
+                10+
+                Math.random()*80
+            )+"vw";
+
+
+        item.style.top=
+            (
+                20+
+                Math.random()*65
+            )+"vh";
+
+
+        const district=
+            this.districts[
+                Math.floor(
+                    Math.random()*
+                    this.districts.length
+                )
+            ];
+
+
+        item.dataset.district=
+            district;
+
+
+        item.title=
+            "Collectible — "+
+            district;
+
+
+        item.addEventListener(
+            "click",
+            ()=>{
+                this.collect(item);
+            }
+        );
+
+
+        document.body.appendChild(
+            item
+        );
+
+
+        this.collectibles.push({
+
+            id:id,
+
+            element:item,
+
+            district:district,
+
+            active:true
+
+        });
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       COLLECT
+       ========================= */
+
+    collect(item){
+
+        const data=
+            this.collectibles.find(
+                c=>
+                    c.element===
+                    item
+            );
+
+
+        if(
+            !data ||
+            !data.active
+        )
+            return;
+
+
+        data.active=false;
+
+
+        item.style.opacity="0";
+
+
+        setTimeout(
+            ()=>{
+                if(
+                    item.parentNode
+                ){
+
+                    item.parentNode
+                        .removeChild(
+                            item
+                        );
+
+                }
+            },
+            250
+        );
+
+
+        this.collected++;
+
+        this.tokens+=25;
+
+
+        this.message(
+            "🧩 Collectible found! +25 tokens"
+        );
+
+
+        /*
+         * Give XP.
+         */
+
+        if(
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            SpiderProgress239.addXP(
+                25
+            );
+
+        }
+
+
+        /*
+         * Exploration mission.
+         */
+
+        if(
+            typeof SpiderMission236!==
+            "undefined"
+        ){
+
+            SpiderMission236
+                .addProgress();
+
+        }
+
+
+        this.updateHUD();
+
+
+        if(
+            this.collected>=
+            this.total
+        ){
+
+            this.completeCollection();
+
+        }
+
+    },
+
+
+    /* =========================
+       COLLECT NEAREST
+       ========================= */
+
+    collectNearest(){
+
+        const active=
+            this.collectibles.filter(
+                c=>
+                    c.active
+            );
+
+
+        if(
+            !active.length
+        ){
+
+            this.message(
+                "⭐ No collectibles nearby."
+            );
+
+            return;
+
+        }
+
+
+        this.collect(
+            active[0].element
+        );
+
+    },
+
+
+    /* =========================
+       COLLECT ALL
+       ========================= */
+
+    collectAll(){
+
+        const active=
+            this.collectibles.filter(
+                c=>
+                    c.active
+            );
+
+
+        active.forEach(
+            c=>{
+                this.collect(
+                    c.element
+                );
+            }
+        );
+
+    },
+
+
+    /* =========================
+       COLLECTION COMPLETE
+       ========================= */
+
+    completeCollection(){
+
+        this.tokens+=250;
+
+
+        this.message(
+            "🏆 COLLECTION COMPLETE! +250 tokens"
+        );
+
+
+        if(
+            typeof SpiderProgress239!==
+            "undefined"
+        ){
+
+            SpiderProgress239.addXP(
+                250
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       RESET
+       ========================= */
+
+    reset(){
+
+        this.collectibles.forEach(
+            c=>{
+
+                if(
+                    c.element &&
+                    c.element.parentNode
+                ){
+
+                    c.element.parentNode
+                        .removeChild(
+                            c.element
+                        );
+
+                }
+
+            }
+        );
+
+
+        this.collectibles=[];
+
+        this.collected=0;
+
+        this.tokens=0;
+
+        this.nextId=1;
+
+
+        this.spawnInitial();
+
+        this.updateHUD();
+
+
+        this.message(
+            "↻ Collectibles reset."
+        );
+
+    },
+
+
+    /* =========================
+       CURRENT DISTRICT
+       ========================= */
+
+    getDistrict(){
+
+        if(
+            typeof SpiderMap241!==
+            "undefined"
+        ){
+
+            return SpiderMap241
+                .currentLocation;
+
+        }
+
+        return "Downtown";
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const progress=
+            document.getElementById(
+                "collectProgress242"
+            );
+
+
+        const tokens=
+            document.getElementById(
+                "collectTokens242"
+            );
+
+
+        const district=
+            document.getElementById(
+                "collectDistrict242"
+            );
+
+
+        if(progress){
+
+            progress.textContent=
+                "Collection: "+
+                this.collected+
+                " / "+
+                this.total;
+
+        }
+
+
+        if(tokens){
+
+            tokens.textContent=
+                "Tokens: "+
+                this.tokens;
+
+        }
+
+
+        if(district){
+
+            district.textContent=
+                "District: "+
+                this.getDistrict();
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "collectMessage242"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V242
+ ===================================================== */
+
+SpiderCollect242.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="i")
+            SpiderCollect242.spawn();
+
+
+        if(key==="c")
+            SpiderCollect242.collectNearest();
+
+
+        if(key==="a")
+            SpiderCollect242.collectAll();
+
+
+        if(key==="0")
+            SpiderCollect242.reset();
+
+    }
+);
