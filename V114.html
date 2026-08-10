@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V114</title>
+
+<style>
+
+#v114HUD{
+  position:fixed;
+  right:12px;
+  top:535px;
+  z-index:13600;
+  width:min(220px,58vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v114Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v114Stats{
+  margin-top:7px;
+  font-size:10px;
+  line-height:1.6;
+  opacity:.8;
+}
+
+#v114Controls{
+  margin-top:9px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+}
+
+#v114Controls button{
+  flex:1;
+  min-width:85px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v114TrafficLayer{
+  position:fixed;
+  inset:0;
+  z-index:10500;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.v114Car{
+  position:absolute;
+  width:24px;
+  height:12px;
+  border-radius:4px;
+  background:#777;
+  box-shadow:0 0 4px #000;
+}
+
+.v114Car::before{
+  content:"";
+  position:absolute;
+  left:4px;
+  top:-3px;
+  width:15px;
+  height:5px;
+  background:#444;
+  border-radius:3px;
+}
+
+.v114Pedestrian{
+  position:absolute;
+  width:7px;
+  height:13px;
+  border-radius:5px;
+  background:#aaa;
+}
+
+.v114Light{
+  position:absolute;
+  width:10px;
+  height:28px;
+  border-radius:5px;
+  background:#111;
+  border:1px solid #ffffff40;
+}
+
+.v114Light::after{
+  content:"";
+  position:absolute;
+  width:7px;
+  height:7px;
+  left:1px;
+  top:3px;
+  border-radius:50%;
+  background:#555;
+}
+
+#v114Message{
+  position:fixed;
+  left:50%;
+  top:24%;
+  transform:translateX(-50%);
+  z-index:13700;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V114
+     DYNAMIC CITY TRAFFIC SYSTEM
+     ========================================================= -->
+
+<div id="v114HUD">
+
+  <div id="v114Title">
+    🚗 CITY TRAFFIC
+  </div>
+
+  <div id="v114Stats">
+    Cars: 0<br>
+    Pedestrians: 0<br>
+    Density: 60%<br>
+    Traffic Lights: 4<br>
+    Status: Active
+  </div>
+
+  <div id="v114Controls">
+
+    <button onclick="V114.setDensity(20)">
+      LOW
+    </button>
+
+    <button onclick="V114.setDensity(60)">
+      NORMAL
+    </button>
+
+    <button onclick="V114.setDensity(90)">
+      HIGH
+    </button>
+
+    <button onclick="V114.toggle()">
+      ⏯ TRAFFIC
+    </button>
+
+    <button onclick="V114.clear()">
+      🧹 CLEAR
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="v114TrafficLayer"></div>
+
+
+<div id="v114Message">
+  V114
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V114
+   DYNAMIC CITY TRAFFIC SYSTEM
+   ========================================================= */
+
+const V114 = {
+
+  version:"V114",
+
+  saveKey:
+    "WEBBOUND_V114_TRAFFIC",
+
+  density:60,
+
+  maxCars:18,
+
+  maxPedestrians:14,
+
+  running:true,
+
+  cars:[],
+
+  pedestrians:[],
+
+  lights:[],
+
+  timer:null,
+
+  messageTimer:null,
+
+  carId:0,
+
+  pedestrianId:0,
+
+  lightCycle:0,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.createTrafficLights();
+
+    this.rebuild();
+
+    this.updateHUD();
+
+    this.start();
+
+    console.log(
+      "WEBBOUND V114 TRAFFIC SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          if(
+            !this.running
+          ){
+
+            return;
+
+          }
+
+
+          this.updateCars();
+
+          this.updatePedestrians();
+
+          this.updateLights();
+
+          this.updateHUD();
+
+        },
+        100
+      );
+
+  },
+
+
+  /* =======================================================
+     SET DENSITY
+     ======================================================= */
+
+  setDensity(value){
+
+    this.density=
+      Math.max(
+        0,
+        Math.min(
+          100,
+          Number(value)||0
+        )
+      );
+
+
+    this.calculateLimits();
+
+    this.rebuild();
+
+    this.save();
+
+
+    this.message(
+      "🚗 Traffic density: "+
+      this.density+
+      "%"
+    );
+
+  },
+
+
+  /* =======================================================
+     CALCULATE LIMITS
+     ======================================================= */
+
+  calculateLimits(){
+
+    this.maxCars=
+      Math.max(
+        2,
+        Math.round(
+          4+
+          (
+            this.density*
+            0.18
+          )
+        )
+      );
+
+
+    this.maxPedestrians=
+      Math.max(
+        3,
+        Math.round(
+          4+
+          (
+            this.density*
+            0.10
+          )
+        )
+      );
+
+  },
+
+
+  /* =======================================================
+     REBUILD
+     ======================================================= */
+
+  rebuild(){
+
+    this.clear();
+
+    this.calculateLimits();
+
+
+    for(
+      let i=0;
+      i<this.maxCars;
+      i++
+    ){
+
+      this.createCar();
+
+    }
+
+
+    for(
+      let i=0;
+      i<this.maxPedestrians;
+      i++
+    ){
+
+      this.createPedestrian();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CREATE CAR
+     ======================================================= */
+
+  createCar(){
+
+    const layer=
+      document.getElementById(
+        "v114TrafficLayer"
+      );
+
+
+    if(!layer){
+
+      return;
+
+    }
+
+
+    const element=
+      document.createElement(
+        "div"
+      );
+
+
+    element.className=
+      "v114Car";
+
+
+    const car={
+
+      id:
+        ++this.carId,
+
+      element:
+        element,
+
+      x:
+        Math.random()*100,
+
+      y:
+        20+
+        Math.random()*65,
+
+      speed:
+        0.03+
+        Math.random()*0.07,
+
+      direction:
+        Math.random()>0.5
+        ? 1
+        : -1,
+
+      lane:
+        Math.floor(
+          Math.random()*5
+        )
+
+    };
+
+
+    element.style.left=
+      car.x+
+      "%";
+
+
+    element.style.top=
+      car.y+
+      "%";
+
+
+    if(
+      car.direction<0
+    ){
+
+      element.style.transform=
+        "scaleX(-1)";
+
+    }
+
+
+    layer.appendChild(
+      element
+    );
+
+
+    this.cars.push(
+      car
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE CARS
+     ======================================================= */
+
+  updateCars(){
+
+    this.cars.forEach(
+      car=>{
+
+        car.x+=
+          car.speed*
+          car.direction;
+
+
+        if(
+          car.x>105
+        ){
+
+          car.x=-5;
+
+        }
+
+
+        if(
+          car.x<-5
+        ){
+
+          car.x=105;
+
+        }
+
+
+        car.element.style.left=
+          car.x+
+          "%";
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     CREATE PEDESTRIAN
+     ======================================================= */
+
+  createPedestrian(){
+
+    const layer=
+      document.getElementById(
+        "v114TrafficLayer"
+      );
+
+
+    if(!layer){
+
+      return;
+
+    }
+
+
+    const element=
+      document.createElement(
+        "div"
+      );
+
+
+    element.className=
+      "v114Pedestrian";
+
+
+    const pedestrian={
+
+      id:
+        ++this.pedestrianId,
+
+      element:
+        element,
+
+      x:
+        Math.random()*100,
+
+      y:
+        25+
+        Math.random()*65,
+
+      speed:
+        0.008+
+        Math.random()*0.018,
+
+      direction:
+        Math.random()>0.5
+        ? 1
+        : -1
+
+    };
+
+
+    element.style.left=
+      pedestrian.x+
+      "%";
+
+
+    element.style.top=
+      pedestrian.y+
+      "%";
+
+
+    layer.appendChild(
+      element
+    );
+
+
+    this.pedestrians.push(
+      pedestrian
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE PEDESTRIANS
+     ======================================================= */
+
+  updatePedestrians(){
+
+    this.pedestrians.forEach(
+      pedestrian=>{
+
+        pedestrian.x+=
+          pedestrian.speed*
+          pedestrian.direction;
+
+
+        if(
+          pedestrian.x>102
+        ){
+
+          pedestrian.x=-2;
+
+        }
+
+
+        if(
+          pedestrian.x<-2
+        ){
+
+          pedestrian.x=102;
+
+        }
+
+
+        pedestrian.element.style.left=
+          pedestrian.x+
+          "%";
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     CREATE TRAFFIC LIGHTS
+     ======================================================= */
+
+  createTrafficLights(){
+
+    const layer=
+      document.getElementById(
+        "v114TrafficLayer"
+      );
+
+
+    if(!layer){
+
+      return;
+
+    }
+
+
+    this.lights=[];
+
+
+    const positions=[
+
+      [20,18],
+
+      [48,28],
+
+      [75,22],
+
+      [88,60]
+
+    ];
+
+
+    positions.forEach(
+      position=>{
+
+        const element=
+          document.createElement(
+            "div"
+          );
+
+
+        element.className=
+          "v114Light";
+
+
+        element.style.left=
+          position[0]+
+          "%";
+
+
+        element.style.top=
+          position[1]+
+          "%";
+
+
+        layer.appendChild(
+          element
+        );
+
+
+        this.lights.push({
+
+          element:
+            element,
+
+          state:
+            "green",
+
+          timer:
+            Math.random()*100
+
+        });
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE LIGHTS
+     ======================================================= */
+
+  updateLights(){
+
+    this.lightCycle+=0.1;
+
+
+    this.lights.forEach(
+      light=>{
+
+        light.timer+=0.1;
+
+
+        if(
+          light.timer>12
+        ){
+
+          light.timer=0;
+
+
+          if(
+            light.state==="green"
+          ){
+
+            light.state="red";
+
+          }
+          else{
+
+            light.state="green";
+
+          }
+
+        }
+
+
+        light.element.style.opacity=
+          light.state==="green"
+          ? "1"
+          : ".65";
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.running=
+      !this.running;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+
+      this.running
+      ? "▶️ Traffic active"
+      : "⏸ Traffic paused"
+
+    );
+
+  },
+
+
+  /* =======================================================
+     CLEAR
+     ======================================================= */
+
+  clear(){
+
+    this.cars.forEach(
+      car=>{
+
+        if(
+          car.element &&
+          car.element.parentNode
+        ){
+
+          car.element.parentNode
+            .removeChild(
+              car.element
+            );
+
+        }
+
+      }
+    );
+
+
+    this.pedestrians.forEach(
+      pedestrian=>{
+
+        if(
+          pedestrian.element &&
+          pedestrian.element.parentNode
+        ){
+
+          pedestrian.element.parentNode
+            .removeChild(
+              pedestrian.element
+            );
+
+        }
+
+      }
+    );
+
+
+    this.cars=[];
+
+    this.pedestrians=[];
+
+  },
+
+
+  /* =======================================================
+     GET TRAFFIC DATA
+     ======================================================= */
+
+  getData(){
+
+    return{
+
+      density:
+        this.density,
+
+      cars:
+        this.cars.length,
+
+      pedestrians:
+        this.pedestrians.length,
+
+      running:
+        this.running,
+
+      trafficLights:
+        this.lights.length
+
+    };
+
+  },
+
+
+  /* =======================================================
+     CALLBACK
+     ======================================================= */
+
+  onTrafficChange(){
+
+    if(
+      typeof window.onWebboundTrafficChange===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundTrafficChange(
+          this.getData()
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V114 TRAFFIC CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const stats=
+      document.getElementById(
+        "v114Stats"
+      );
+
+
+    if(!stats){
+
+      return;
+
+    }
+
+
+    stats.innerHTML=
+
+      "Cars: "+
+      this.cars.length+
+      "<br>"+
+
+      "Pedestrians: "+
+      this.pedestrians.length+
+      "<br>"+
+
+      "Density: "+
+      this.density+
+      "%"+
+      "<br>"+
+
+      "Traffic Lights: "+
+      this.lights.length+
+      "<br>"+
+
+      "Status: "+
+      (
+        this.running
+        ? "Active"
+        : "Paused"
+      );
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:
+          this.version,
+
+        density:
+          this.density,
+
+        running:
+          this.running
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V114 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        this.calculateLimits();
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.density)
+        )
+      ){
+
+        this.density=
+          Math.max(
+            0,
+            Math.min(
+              100,
+              Number(data.density)
+            )
+          );
+
+      }
+
+
+      if(
+        typeof data.running===
+        "boolean"
+      ){
+
+        this.running=
+          data.running;
+
+      }
+
+
+      this.calculateLimits();
+
+    }
+    catch(error){
+
+      console.error(
+        "V114 LOAD ERROR:",
+        error
+      );
+
+      this.calculateLimits();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      density:
+        this.density,
+
+      running:
+        this.running,
+
+      cars:
+        this.cars.length,
+
+      pedestrians:
+        this.pedestrians.length
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.density)
+      )
+    ){
+
+      this.density=
+        Math.max(
+          0,
+          Math.min(
+            100,
+            Number(data.density)
+          )
+        );
+
+    }
+
+
+    if(
+      typeof data.running===
+      "boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    this.calculateLimits();
+
+    this.rebuild();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v114Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1700
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      V = toggle traffic
+    */
+
+    if(
+      event.code==="KeyV"
+    ){
+
+      V114.toggle();
+
+    }
+
+
+    /*
+      9 = low traffic
+    */
+
+    if(
+      event.code==="Digit9"
+    ){
+
+      V114.setDensity(
+        20
+      );
+
+    }
+
+
+    /*
+      0 = high traffic
+    */
+
+    if(
+      event.code==="Digit0"
+    ){
+
+      V114.setDensity(
+        90
+      );
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V114.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V114.init();
+
+
+console.log(
+  "WEBBOUND V114 DYNAMIC CITY TRAFFIC READY"
+);
+
+</script>
+
+</body>
+</html>
