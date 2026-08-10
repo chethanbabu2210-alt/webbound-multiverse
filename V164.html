@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V164 — MISSION SYSTEM</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(620px,90vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#missionHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.7;
+}
+
+.progress{
+ height:8px;
+ background:#ffffff12;
+ border-radius:7px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+.progressFill{
+ height:100%;
+ width:0%;
+ background:#b48ad4;
+ transition:.3s;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.6;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+.complete{
+ opacity:.55;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="line lineH"></div>
+  <div class="line lineV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🌳 PARK</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🎯 WEBBOUND V164 — MISSION SYSTEM
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    🎯 MISSIONS<br>
+    <span id="missionCount">0/5</span>
+   </div>
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cashText">500</span>
+   </div>
+
+   <div class="stat">
+    ⭐ XP<br>
+    <span id="xpText">0</span>
+   </div>
+
+   <div class="stat">
+    🏆 COMPLETED<br>
+    <span id="completedText">0</span>
+   </div>
+
+  </div>
+
+  <div id="missionHud">
+
+   <b id="activeTitle">
+    No active mission
+   </b>
+
+   <br>
+
+   <span id="activeDescription">
+    Open the mission board to begin.
+   </span>
+
+   <br>
+
+   Progress:
+   <span id="activeProgress">0/0</span>
+
+   <div class="progress">
+    <div
+     id="progressFill"
+     class="progressFill">
+    </div>
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V164.missionBoard()">
+   🎯 MISSIONS
+  </button>
+
+  <button onclick="V164.performAction()">
+   🕹️ ACTION
+  </button>
+
+  <button onclick="V164.explore()">
+   🧭 EXPLORE
+  </button>
+
+  <button onclick="V164.collect()">
+   🔎 COLLECT
+  </button>
+
+  <button onclick="V164.completeMission()">
+   🏆 COMPLETE
+  </button>
+
+  <button onclick="V164.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V164
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V164.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V164={
+
+ saveKey:"WEBBOUND_V164",
+
+ cash:500,
+
+ xp:0,
+
+ completed:0,
+
+ activeMission:0,
+
+ progress:0,
+
+ missions:[
+
+  {
+   title:"🧭 City Explorer",
+   description:"Explore the city 3 times.",
+   target:3,
+   rewardCash:100,
+   rewardXP:40
+  },
+
+  {
+   title:"🔎 Search Operation",
+   description:"Perform 5 search actions.",
+   target:5,
+   rewardCash:150,
+   rewardXP:60
+  },
+
+  {
+   title:"🏃 Street Training",
+   description:"Complete 4 actions.",
+   target:4,
+   rewardCash:125,
+   rewardXP:50
+  },
+
+  {
+   title:"🌆 City Guardian",
+   description:"Complete 7 total actions.",
+   target:7,
+   rewardCash:250,
+   rewardXP:100
+  },
+
+  {
+   title:"⭐ Rising Hero",
+   description:"Reach 10 mission progress.",
+   target:10,
+   rewardCash:400,
+   rewardXP:150
+  }
+
+ ],
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🎯 V164 Mission System ready"
+  );
+
+ },
+
+ /* =========================
+    ACTION
+ ========================= */
+
+ performAction(){
+
+  this.addProgress(1);
+
+  this.notify(
+   "🕹️ Action completed."
+  );
+
+ },
+
+ /* =========================
+    EXPLORE
+ ========================= */
+
+ explore(){
+
+  const player=
+   document.getElementById(
+    "player"
+   );
+
+  player.style.left=
+   15+
+   Math.random()*70+
+   "%";
+
+  player.style.top=
+   20+
+   Math.random()*65+
+   "%";
+
+  this.addProgress(1);
+
+  this.notify(
+   "🧭 Exploration complete."
+  );
+
+ },
+
+ /* =========================
+    COLLECT
+ ========================= */
+
+ collect(){
+
+  const reward=
+   20+
+   Math.floor(
+    Math.random()*31
+   );
+
+  this.cash+=reward;
+
+  this.addProgress(1);
+
+  this.notify(
+   "🔎 Item collected! +₹"+
+   reward
+  );
+
+ },
+
+ /* =========================
+    PROGRESS
+ ========================= */
+
+ addProgress(amount){
+
+  if(
+   this.activeMission<0 ||
+   this.activeMission>=
+   this.missions.length
+  )
+   return;
+
+  this.progress+=amount;
+
+  const mission=
+   this.missions[
+    this.activeMission
+   ];
+
+  if(
+   this.progress>
+   mission.target
+  ){
+
+   this.progress=
+    mission.target;
+
+  }
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    MISSION BOARD
+ ========================= */
+
+ missionBoard(){
+
+  let html="";
+
+  this.missions.forEach(
+   (mission,index)=>{
+
+    const isActive=
+     index===
+     this.activeMission;
+
+    const isDone=
+     index<
+     this.completed;
+
+    html+=`
+
+    <div class="card ${
+     isDone
+     ?"complete"
+     :""
+    }">
+
+     <b>
+      ${mission.title}
+     </b>
+
+     ${mission.description}
+
+     <br><br>
+
+     Reward:
+     ₹${mission.rewardCash}
+     +
+     ${mission.rewardXP} XP
+
+     <br>
+
+     ${
+      isDone
+      ?"🏆 COMPLETED"
+      :isActive
+      ?"🎯 ACTIVE"
+      :"🔒 AVAILABLE"
+     }
+
+     ${
+      !isDone && !isActive
+      ?`
+       <button
+        onclick="
+         V164.selectMission(
+          ${index}
+         )
+        ">
+        SELECT MISSION
+       </button>
+      `
+      :""
+     }
+
+    </div>
+
+    `;
+
+   }
+  );
+
+  this.open(
+   "🎯 MISSION BOARD",
+   html
+  );
+
+ },
+
+ /* =========================
+    SELECT
+ ========================= */
+
+ selectMission(index){
+
+  if(
+   index<0 ||
+   index>=
+   this.missions.length
+  )
+   return;
+
+  if(
+   index<
+   this.completed
+  ){
+
+   this.notify(
+    "🏆 Mission already completed."
+   );
+
+   return;
+
+  }
+
+  this.activeMission=index;
+
+  this.progress=0;
+
+  this.close();
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🎯 New mission selected!"
+  );
+
+ },
+
+ /* =========================
+    COMPLETE
+ ========================= */
+
+ completeMission(){
+
+  if(
+   this.activeMission<0 ||
+   this.activeMission>=
+   this.missions.length
+  ){
+
+   this.notify(
+    "🎯 Select a mission first."
+   );
+
+   return;
+
+  }
+
+  const mission=
+   this.missions[
+    this.activeMission
+   ];
+
+  if(
+   this.progress<
+   mission.target
+  ){
+
+   this.notify(
+    "❌ Mission not complete: "+
+    this.progress+
+    "/"+
+    mission.target
+   );
+
+   return;
+
+  }
+
+  this.cash+=
+   mission.rewardCash;
+
+  this.xp+=
+   mission.rewardXP;
+
+  this.completed++;
+
+  this.activeMission=
+   Math.min(
+    this.completed,
+    this.missions.length-1
+   );
+
+  this.progress=0;
+
+  this.notify(
+   "🏆 Mission complete! +₹"+
+   mission.rewardCash+
+   " +"+
+   mission.rewardXP+
+   " XP"
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const active=
+   this.missions[
+    this.activeMission
+   ];
+
+  document.getElementById(
+   "missionCount"
+  ).textContent=
+   this.completed+
+   "/"+
+   this.missions.length;
+
+  document.getElementById(
+   "completedText"
+  ).textContent=
+   this.completed;
+
+  document.getElementById(
+   "cashText"
+  ).textContent=
+   this.cash;
+
+  document.getElementById(
+   "xpText"
+  ).textContent=
+   this.xp;
+
+  if(active){
+
+   document.getElementById(
+    "activeTitle"
+   ).textContent=
+    active.title;
+
+   document.getElementById(
+    "activeDescription"
+   ).textContent=
+    active.description;
+
+   document.getElementById(
+    "activeProgress"
+   ).textContent=
+    this.progress+
+    "/"+
+    active.target;
+
+   document.getElementById(
+    "progressFill"
+   ).style.width=
+    (
+     this.progress/
+     active.target*
+     100
+    )+
+    "%";
+
+  }
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    xp:this.xp,
+
+    completed:this.completed,
+
+    activeMission:
+     this.activeMission,
+
+    progress:this.progress
+
+   })
+  );
+
+  this.notify(
+   "💾 V164 saved"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   this.cash=
+    Number.isFinite(data.cash)
+    ?data.cash
+    :500;
+
+   this.xp=
+    Number.isFinite(data.xp)
+    ?data.xp
+    :0;
+
+   this.completed=
+    Number.isFinite(
+     data.completed
+    )
+    ?Math.min(
+      data.completed,
+      this.missions.length
+     )
+    :0;
+
+   this.activeMission=
+    Number.isFinite(
+     data.activeMission
+    )
+    ?Math.min(
+      data.activeMission,
+      this.missions.length-1
+     )
+    :0;
+
+   this.progress=
+    Number.isFinite(
+     data.progress
+    )
+    ?data.progress
+    :0;
+
+  }
+  catch(error){
+
+   console.log(
+    "V164 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V164.init();
+
+console.log(
+ "WEBBOUND V164 MISSION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
