@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V179 — REPUTATION & FACTIONS</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#314e5a,#091116);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.4;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(800px,92vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#repHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.7;
+}
+
+.bar{
+ height:8px;
+ background:#ffffff12;
+ border-radius:7px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+.fill{
+ height:100%;
+ width:0%;
+ background:#8fb8df;
+ transition:.3s;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="line lineH"></div>
+  <div class="line lineV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🏛️ FACTION HQ</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🏛️ WEBBOUND V179 — REPUTATION SYSTEM
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    ⭐ CITY REP<br>
+    <span id="cityRepText">0</span>
+   </div>
+
+   <div class="stat">
+    🏛️ FACTIONS<br>
+    <span id="factionCount">4</span>
+   </div>
+
+   <div class="stat">
+    🏆 RANK<br>
+    <span id="rankText">Unknown</span>
+   </div>
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cashText">5000</span>
+   </div>
+
+  </div>
+
+  <div id="repHud">
+
+   <b>🌆 CITY REPUTATION</b>
+
+   <br>
+
+   Current:
+   <span id="repDescription">
+    Unknown
+   </span>
+
+   <br>
+
+   Next rank:
+   <span id="nextRank">
+    25
+   </span>
+
+   <div class="bar">
+    <div id="repFill" class="fill"></div>
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V179.factions()">
+   🏛️ FACTIONS
+  </button>
+
+  <button onclick="V179.addRep(10)">
+   ⭐ +10 REP
+  </button>
+
+  <button onclick="V179.loseRep(5)">
+   ⚠️ -5 REP
+  </button>
+
+  <button onclick="V179.factionAction()">
+   🎯 FACTION TASK
+  </button>
+
+  <button onclick="V179.rankInfo()">
+   🏆 RANKS
+  </button>
+
+  <button onclick="V179.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V179
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V179.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V179={
+
+ saveKey:"WEBBOUND_V179",
+
+ cash:5000,
+
+ cityRep:0,
+
+ selectedFaction:null,
+
+ factionsData:[
+
+  {
+   id:"civic",
+   name:"🏛️ Civic Alliance",
+   description:
+    "A group focused on improving the city.",
+   rep:0,
+   color:"Civic"
+  },
+
+  {
+   id:"business",
+   name:"💼 Business Network",
+   description:
+    "Entrepreneurs and companies controlling major commerce.",
+   rep:0,
+   color:"Business"
+  },
+
+  {
+   id:"tech",
+   name:"💻 Tech Collective",
+   description:
+    "Developers and innovators building the city's future.",
+   rep:0,
+   color:"Technology"
+  },
+
+  {
+   id:"community",
+   name:"🤝 Community Union",
+   description:
+    "Local residents working together to protect their neighborhoods.",
+   rep:0,
+   color:"Community"
+  }
+
+ ],
+
+ ranks:[
+
+  {
+   min:0,
+   name:"Unknown",
+   description:
+    "Nobody knows your name yet."
+  },
+
+  {
+   min:25,
+   name:"Recognized",
+   description:
+    "People are beginning to recognize you."
+  },
+
+  {
+   min:75,
+   name:"Respected",
+   description:
+    "Your reputation is spreading across the city."
+  },
+
+  {
+   min:150,
+   name:"Influential",
+   description:
+    "Organizations are starting to seek your help."
+  },
+
+  {
+   min:300,
+   name:"Elite",
+   description:
+    "You are one of the city's most influential people."
+  },
+
+  {
+   min:500,
+   name:"Legend",
+   description:
+    "Your name has become part of the city's history."
+  }
+
+ ],
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🏛️ V179 Reputation System ready"
+  );
+
+ },
+
+ /* =========================
+    REP
+ ========================= */
+
+ addRep(amount){
+
+  amount=
+   Math.max(
+    0,
+    Math.floor(amount)
+   );
+
+  const oldRank=
+   this.rank();
+
+  this.cityRep+=amount;
+
+  if(
+   this.selectedFaction
+  ){
+
+   this.changeFactionRep(
+    this.selectedFaction,
+    Math.ceil(
+     amount/2
+    )
+   );
+
+  }
+
+  const newRank=
+   this.rank();
+
+  this.update();
+
+  this.save();
+
+  if(
+   oldRank.name!==
+   newRank.name
+  ){
+
+   this.notify(
+    "🏆 New reputation rank: "+
+    newRank.name
+   );
+
+  }
+  else{
+
+   this.notify(
+    "⭐ +"+
+    amount+
+    " City Reputation"
+   );
+
+  }
+
+ },
+
+ loseRep(amount){
+
+  amount=
+   Math.max(
+    0,
+    Math.floor(amount)
+   );
+
+  this.cityRep=
+   Math.max(
+    0,
+    this.cityRep-
+    amount
+   );
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "⚠️ -"+
+   amount+
+   " Reputation"
+  );
+
+ },
+
+ /* =========================
+    FACTIONS
+ ========================= */
+
+ factions(){
+
+  let html="";
+
+  this.factionsData.forEach(
+   faction=>{
+
+    const level=
+     this.factionLevel(
+      faction.rep
+     );
+
+    const selected=
+     this.selectedFaction===
+     faction.id;
+
+    html+=`
+
+    <div class="card">
+
+     <b>${faction.name}</b>
+
+     <br>
+
+     ${faction.description}
+
+     <br><br>
+
+     ⭐ Reputation:
+     ${faction.rep}
+
+     <br>
+
+     🏆 Level:
+     ${level}
+
+     <br>
+
+     ${
+      selected
+      ?"🟢 SELECTED"
+      :`
+       <button
+        onclick="
+         V179.selectFaction(
+          '${faction.id}'
+         )
+        ">
+        🤝 WORK WITH FACTION
+       </button>
+      `
+     }
+
+    </div>
+
+    `;
+
+  });
+
+  this.open(
+   "🏛️ FACTION NETWORK",
+   html
+  );
+
+ },
+
+ selectFaction(id){
+
+  const faction=
+   this.factionsData.find(
+    f=>f.id===id
+   );
+
+  if(!faction)
+   return;
+
+  this.selectedFaction=id;
+
+  this.update();
+
+  this.save();
+
+  this.factions();
+
+  this.notify(
+   "🤝 Working with "+
+   faction.name
+  );
+
+ },
+
+ factionAction(){
+
+  if(
+   !this.selectedFaction
+  ){
+
+   this.notify(
+    "🏛️ Select a faction first."
+   );
+
+   return;
+
+  }
+
+  const faction=
+   this.factionsData.find(
+    f=>
+     f.id===
+     this.selectedFaction
+   );
+
+  const reward=
+   5+
+   Math.floor(
+    Math.random()*11
+   );
+
+  this.changeFactionRep(
+   faction.id,
+   reward
+  );
+
+  this.cityRep+=
+   Math.ceil(
+    reward/2
+   );
+
+  this.cash+=
+   100+
+   Math.floor(
+    Math.random()*401
+   );
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🎯 Faction task completed! +"+
+   reward+
+   " "+faction.name+
+   " reputation"
+  );
+
+ },
+
+ /* =========================
+    FACTION REP
+ ========================= */
+
+ changeFactionRep(
+  id,
+  amount
+ ){
+
+  const faction=
+   this.factionsData.find(
+    f=>f.id===id
+   );
+
+  if(!faction)
+   return;
+
+  faction.rep=
+   Math.max(
+    0,
+    faction.rep+
+    amount
+   );
+
+ },
+
+ factionLevel(rep){
+
+  if(rep>=300)
+   return"Legendary";
+
+  if(rep>=150)
+   return"Elite";
+
+  if(rep>=75)
+   return"Trusted";
+
+  if(rep>=25)
+   return"Member";
+
+  return"Newcomer";
+
+ },
+
+ /* =========================
+    RANK
+ ========================= */
+
+ rank(){
+
+  let result=
+   this.ranks[0];
+
+  this.ranks.forEach(
+   r=>{
+
+    if(
+     this.cityRep>=
+     r.min
+    )
+     result=r;
+
+   }
+  );
+
+  return result;
+
+ },
+
+ rankInfo(){
+
+  let html="";
+
+  this.ranks.forEach(
+   rank=>{
+
+    html+=`
+
+    <div class="card">
+
+     <b>${rank.name}</b>
+
+     <br>
+
+     Required Reputation:
+     ${rank.min}
+
+     <br>
+
+     ${rank.description}
+
+    </div>
+
+    `;
+
+  });
+
+  this.open(
+   "🏆 REPUTATION RANKS",
+   html
+  );
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const rank=
+   this.rank();
+
+  document.getElementById(
+   "cityRepText"
+  ).textContent=
+   this.cityRep;
+
+  document.getElementById(
+   "factionCount"
+  ).textContent=
+   this.factionsData.length;
+
+  document.getElementById(
+   "rankText"
+  ).textContent=
+   rank.name;
+
+  document.getElementById(
+   "cashText"
+  ).textContent=
+   this.cash.toLocaleString();
+
+  document.getElementById(
+   "repDescription"
+  ).textContent=
+   rank.description;
+
+  const next=
+   this.ranks.find(
+    r=>
+     r.min>
+     this.cityRep
+   );
+
+  if(next){
+
+   document.getElementById(
+    "nextRank"
+   ).textContent=
+    next.min+
+    " REP";
+
+   const previous=
+    [...this.ranks]
+    .reverse()
+    .find(
+     r=>
+      r.min<=
+      this.cityRep
+    );
+
+   const base=
+    previous?
+    previous.min:
+    0;
+
+   const percent=
+    (
+     (this.cityRep-base)/
+     (next.min-base)
+    )*100;
+
+   document.getElementById(
+    "repFill"
+   ).style.width=
+    Math.max(
+     0,
+     Math.min(
+      100,
+      percent
+     )
+    )+"%";
+
+  }
+  else{
+
+   document.getElementById(
+    "nextRank"
+   ).textContent=
+    "MAX";
+
+   document.getElementById(
+    "repFill"
+   ).style.width=
+    "100%";
+
+  }
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    cityRep:this.cityRep,
+
+    selectedFaction:
+     this.selectedFaction,
+
+    factions:
+     this.factionsData
+
+   })
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(
+    Number.isFinite(
+     data.cash
+    )
+   )
+    this.cash=
+     Math.max(
+      0,
+      data.cash
+     );
+
+   if(
+    Number.isFinite(
+     data.cityRep
+    )
+   )
+    this.cityRep=
+     Math.max(
+      0,
+      data.cityRep
+     );
+
+   if(
+    typeof data.selectedFaction===
+    "string"
+   )
+    this.selectedFaction=
+     data.selectedFaction;
+
+   if(
+    Array.isArray(
+     data.factions
+    )
+   ){
+
+    data.factions.forEach(
+     saved=>{
+
+      const faction=
+       this.factionsData.find(
+        f=>f.id===saved.id
+       );
+
+      if(
+       faction &&
+       Number.isFinite(
+        saved.rep
+       )
+      ){
+
+       faction.rep=
+        Math.max(
+         0,
+         saved.rep
+        );
+
+      }
+
+     }
+    );
+
+   }
+
+  }
+  catch(error){
+
+   console.log(
+    "V179 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V179.init();
+
+console.log(
+ "WEBBOUND V179 REPUTATION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
