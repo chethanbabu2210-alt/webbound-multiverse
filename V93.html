@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V93</title>
+
+<style>
+
+#v93HUD{
+  position:fixed;
+  left:12px;
+  top:105px;
+  z-index:9300;
+
+  width:190px;
+
+  padding:12px;
+
+  background:#05070ee8;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:12px;
+
+  font:12px Arial,sans-serif;
+}
+
+#v93Title{
+  font-weight:bold;
+  margin-bottom:7px;
+}
+
+#v93MissionName{
+  font-size:13px;
+  margin-bottom:5px;
+}
+
+#v93Objective{
+  opacity:.8;
+  line-height:18px;
+}
+
+#v93Progress{
+  height:6px;
+  margin-top:8px;
+
+  background:#ffffff18;
+
+  border-radius:5px;
+
+  overflow:hidden;
+}
+
+#v93ProgressBar{
+  width:0%;
+  height:100%;
+
+  background:white;
+}
+
+#v93Menu{
+  position:fixed;
+
+  left:50%;
+  top:50%;
+
+  transform:translate(-50%,-50%);
+
+  width:min(430px,90%);
+
+  max-height:75vh;
+
+  overflow:auto;
+
+  z-index:9400;
+
+  padding:18px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff35;
+  border-radius:16px;
+
+  font-family:Arial,sans-serif;
+
+  display:none;
+}
+
+#v93Menu h2{
+  margin-top:0;
+}
+
+.v93MissionCard{
+  padding:11px;
+  margin:7px 0;
+
+  background:#111827;
+
+  border:1px solid #ffffff20;
+
+  border-radius:10px;
+}
+
+.v93MissionCard button{
+  width:100%;
+  margin-top:7px;
+
+  padding:8px;
+
+  background:#05070e;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+}
+
+#v93Close{
+  width:100%;
+
+  padding:10px;
+
+  margin-top:10px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:9px;
+}
+
+#v93Message{
+  position:fixed;
+
+  left:50%;
+  top:20%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  padding:11px 16px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+  display:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V93 MISSION HUD
+     ========================================================= -->
+
+<div id="v93HUD">
+
+  <div id="v93Title">
+    🎯 CURRENT MISSION
+  </div>
+
+  <div id="v93MissionName">
+    No active mission
+  </div>
+
+  <div id="v93Objective">
+    Press M to open missions.
+  </div>
+
+  <div id="v93Progress">
+    <div id="v93ProgressBar"></div>
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     MISSION MENU
+     ========================================================= -->
+
+<div id="v93Menu">
+
+  <h2>🎯 MISSIONS</h2>
+
+  <div id="v93MissionList">
+    No missions available.
+  </div>
+
+  <button id="v93Close"
+          onclick="V93.closeMenu()">
+    ❌ CLOSE
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v93Message">
+  V93
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V93
+   MISSION + QUEST SYSTEM
+   ========================================================= */
+
+const V93 = {
+
+  version:"V93",
+
+  saveKey:
+    "WEBBOUND_V93_MISSIONS",
+
+  missions:[],
+
+  activeMission:null,
+
+  nextID:1,
+
+  menuOpen:false,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.createDefaultMissions();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V93 MISSION SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     CREATE DEFAULT MISSIONS
+     ======================================================= */
+
+  createDefaultMissions(){
+
+    if(
+      this.missions.length>0
+    ){
+
+      return;
+
+    }
+
+
+    this.createMission({
+
+      id:"city_patrol",
+
+      title:"City Patrol",
+
+      description:
+        "Explore the city and complete a simple patrol.",
+
+      objectives:[
+
+        {
+          id:"explore",
+
+          text:
+            "Explore the city",
+
+          required:3,
+
+          progress:0,
+
+          completed:false
+
+        },
+
+        {
+          id:"talk",
+
+          text:
+            "Talk to a citizen",
+
+          required:1,
+
+          progress:0,
+
+          completed:false
+
+        }
+
+      ],
+
+      reward:{
+        score:100,
+        experience:25
+      }
+
+    });
+
+
+    this.createMission({
+
+      id:"friendly_face",
+
+      title:"Friendly Face",
+
+      description:
+        "Build a positive relationship with a citizen.",
+
+      objectives:[
+
+        {
+          id:"relationship",
+
+          text:
+            "Reach a positive NPC relationship",
+
+          required:10,
+
+          progress:0,
+
+          completed:false
+
+        }
+
+      ],
+
+      reward:{
+        score:150,
+        experience:40
+      }
+
+    });
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     CREATE MISSION
+     ======================================================= */
+
+  createMission(
+    options={}
+  ){
+
+    const mission={
+
+      id:
+        options.id ||
+        "mission_"+this.nextID++,
+
+      title:
+        String(
+          options.title ||
+          "Unnamed Mission"
+        ),
+
+      description:
+        String(
+          options.description ||
+          ""
+        ),
+
+      objectives:
+        Array.isArray(
+          options.objectives
+        )
+        ? options.objectives
+        : [],
+
+      reward:
+        options.reward || {},
+
+      status:"available",
+
+      createdAt:
+        new Date().toISOString()
+
+    };
+
+
+    mission.objectives=
+      mission.objectives.map(
+        (objective,index)=>({
+
+          id:
+            objective.id ||
+            "objective_"+index,
+
+          text:
+            String(
+              objective.text ||
+              "Complete objective"
+            ),
+
+          required:
+            Math.max(
+              1,
+              Number(
+                objective.required
+              ) || 1
+            ),
+
+          progress:
+            Math.max(
+              0,
+              Number(
+                objective.progress
+              ) || 0
+            ),
+
+          completed:
+            objective.completed===true
+
+        })
+      );
+
+
+    this.missions.push(
+      mission
+    );
+
+
+    return mission;
+
+  },
+
+
+  /* =======================================================
+     FIND MISSION
+     ======================================================= */
+
+  findMission(id){
+
+    return this.missions.find(
+      mission=>
+        mission.id===id
+    );
+
+  },
+
+
+  /* =======================================================
+     START MISSION
+     ======================================================= */
+
+  startMission(id){
+
+    const mission=
+      this.findMission(id);
+
+
+    if(!mission){
+
+      this.message(
+        "Mission not found."
+      );
+
+      return false;
+
+    }
+
+
+    if(
+      mission.status==="completed"
+    ){
+
+      this.message(
+        "Mission already completed."
+      );
+
+      return false;
+
+    }
+
+
+    this.missions.forEach(
+      item=>{
+
+        if(
+          item.status==="active"
+        ){
+
+          item.status="available";
+
+        }
+
+      }
+    );
+
+
+    mission.status="active";
+
+    this.activeMission=
+      mission.id;
+
+
+    this.updateHUD();
+
+    this.renderMenu();
+
+    this.save();
+
+
+    this.message(
+      "🎯 Mission started: "+
+      mission.title
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     UPDATE OBJECTIVE
+     ======================================================= */
+
+  updateObjective(
+    missionID,
+    objectiveID,
+    amount=1
+  ){
+
+    const mission=
+      this.findMission(
+        missionID
+      );
+
+
+    if(!mission){
+
+      return false;
+
+    }
+
+
+    const objective=
+      mission.objectives.find(
+        item=>
+          item.id===objectiveID
+      );
+
+
+    if(!objective){
+
+      return false;
+
+    }
+
+
+    if(
+      objective.completed
+    ){
+
+      return true;
+
+    }
+
+
+    const value=
+      Number(amount);
+
+
+    if(
+      !Number.isFinite(value)
+    ){
+
+      return false;
+
+    }
+
+
+    objective.progress=
+      Math.min(
+        objective.required,
+        objective.progress+
+        value
+      );
+
+
+    if(
+      objective.progress>=
+      objective.required
+    ){
+
+      objective.progress=
+        objective.required;
+
+      objective.completed=
+        true;
+
+      this.message(
+        "✅ Objective complete"
+      );
+
+    }
+
+
+    this.checkMissionComplete(
+      mission
+    );
+
+
+    this.updateHUD();
+
+    this.save();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     CHECK MISSION
+     ======================================================= */
+
+  checkMissionComplete(
+    mission
+  ){
+
+    if(!mission){
+
+      return false;
+
+    }
+
+
+    const complete=
+      mission.objectives.length>0 &&
+      mission.objectives.every(
+        objective=>
+          objective.completed
+      );
+
+
+    if(!complete){
+
+      return false;
+
+    }
+
+
+    mission.status=
+      "completed";
+
+
+    if(
+      this.activeMission===
+      mission.id
+    ){
+
+      this.activeMission=
+        null;
+
+    }
+
+
+    this.giveReward(
+      mission.reward
+    );
+
+
+    this.message(
+      "🏆 MISSION COMPLETE: "+
+      mission.title
+    );
+
+
+    this.updateHUD();
+
+    this.save();
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     REWARD
+     ======================================================= */
+
+  giveReward(
+    reward={}
+  ){
+
+    const scoreReward=
+      Number(
+        reward.score
+      ) || 0;
+
+
+    const experienceReward=
+      Number(
+        reward.experience
+      ) || 0;
+
+
+    if(
+      typeof score!=="undefined"
+    ){
+
+      score=
+        Number(score)||
+        0;
+
+      score+=
+        scoreReward;
+
+    }
+
+
+    /*
+      If the existing game has an XP
+      variable, use it automatically.
+    */
+
+    if(
+      typeof experience!=="undefined"
+    ){
+
+      experience=
+        Number(experience)||
+        0;
+
+      experience+=
+        experienceReward;
+
+    }
+
+
+    if(
+      typeof V55!=="undefined" &&
+      Number.isFinite(
+        Number(
+          reward.skillPoints
+        )
+      )
+    ){
+
+      V55.points=
+        Number(V55.points)||
+        0;
+
+      V55.points+=
+        Number(
+          reward.skillPoints
+        );
+
+    }
+
+
+    this.message(
+      "🎁 Reward received"
+    );
+
+  },
+
+
+  /* =======================================================
+     CANCEL MISSION
+     ======================================================= */
+
+  cancelMission(){
+
+    if(
+      !this.activeMission
+    ){
+
+      return;
+
+    }
+
+
+    const mission=
+      this.findMission(
+        this.activeMission
+      );
+
+
+    if(mission){
+
+      mission.status=
+        "available";
+
+    }
+
+
+    this.activeMission=
+      null;
+
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "Mission cancelled"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET ACTIVE MISSION
+     ======================================================= */
+
+  getActiveMission(){
+
+    if(
+      !this.activeMission
+    ){
+
+      return null;
+
+    }
+
+
+    return this.findMission(
+      this.activeMission
+    );
+
+  },
+
+
+  /* =======================================================
+     OPEN MENU
+     ======================================================= */
+
+  openMenu(){
+
+    const menu=
+      document.getElementById(
+        "v93Menu"
+      );
+
+
+    if(!menu){
+
+      return;
+
+    }
+
+
+    this.menuOpen=true;
+
+    menu.style.display=
+      "block";
+
+
+    this.renderMenu();
+
+  },
+
+
+  /* =======================================================
+     CLOSE MENU
+     ======================================================= */
+
+  closeMenu(){
+
+    const menu=
+      document.getElementById(
+        "v93Menu"
+      );
+
+
+    if(menu){
+
+      menu.style.display=
+        "none";
+
+    }
+
+
+    this.menuOpen=false;
+
+  },
+
+
+  /* =======================================================
+     RENDER MENU
+     ======================================================= */
+
+  renderMenu(){
+
+    const list=
+      document.getElementById(
+        "v93MissionList"
+      );
+
+
+    if(!list){
+
+      return;
+
+    }
+
+
+    list.innerHTML="";
+
+
+    if(
+      this.missions.length===0
+    ){
+
+      list.textContent=
+        "No missions available.";
+
+      return;
+
+    }
+
+
+    this.missions.forEach(
+      mission=>{
+
+        const card=
+          document.createElement(
+            "div"
+          );
+
+
+        card.className=
+          "v93MissionCard";
+
+
+        const completed=
+          mission.status===
+          "completed";
+
+
+        let objectives="";
+
+
+        mission.objectives.forEach(
+          objective=>{
+
+            objectives+=
+              "• "+
+              objective.text+
+              " ("+
+              objective.progress+
+              "/"+
+              objective.required+
+              ")<br>";
+
+          }
+        );
+
+
+        card.innerHTML=
+
+          "<strong>"+
+          mission.title+
+          "</strong><br><br>"+
+
+          "<span>"+
+          mission.description+
+          "</span><br><br>"+
+
+          objectives;
+
+
+        if(
+          !completed
+        ){
+
+          const button=
+            document.createElement(
+              "button"
+            );
+
+
+          button.textContent=
+            mission.status==="active"
+            ? "🎯 ACTIVE"
+            : "▶ START";
+
+
+          button.onclick=
+            ()=>{
+
+              this.startMission(
+                mission.id
+              );
+
+            };
+
+
+          card.appendChild(
+            button
+          );
+
+        }
+        else{
+
+          const label=
+            document.createElement(
+              "div"
+            );
+
+
+          label.style.marginTop=
+            "8px";
+
+          label.style.opacity=
+            ".7";
+
+          label.textContent=
+            "🏆 COMPLETED";
+
+          card.appendChild(
+            label
+          );
+
+        }
+
+
+        list.appendChild(
+          card
+        );
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const name=
+      document.getElementById(
+        "v93MissionName"
+      );
+
+    const objective=
+      document.getElementById(
+        "v93Objective"
+      );
+
+    const bar=
+      document.getElementById(
+        "v93ProgressBar"
+      );
+
+
+    const mission=
+      this.getActiveMission();
+
+
+    if(!mission){
+
+      if(name){
+
+        name.textContent=
+          "No active mission";
+
+      }
+
+
+      if(objective){
+
+        objective.textContent=
+          "Press M to open missions.";
+
+      }
+
+
+      if(bar){
+
+        bar.style.width=
+          "0%";
+
+      }
+
+      return;
+
+    }
+
+
+    if(name){
+
+      name.textContent=
+        mission.title;
+
+    }
+
+
+    const current=
+      mission.objectives.find(
+        item=>
+          !item.completed
+      );
+
+
+    if(current){
+
+      if(objective){
+
+        objective.textContent=
+          current.text+
+          " ("+
+          current.progress+
+          "/"+
+          current.required+
+          ")";
+
+      }
+
+    }
+    else{
+
+      if(objective){
+
+        objective.textContent=
+          "All objectives complete";
+
+      }
+
+    }
+
+
+    let total=0;
+
+    let progress=0;
+
+
+    mission.objectives.forEach(
+      item=>{
+
+        total+=
+          item.required;
+
+        progress+=
+          Math.min(
+            item.progress,
+            item.required
+          );
+
+      }
+    );
+
+
+    const percent=
+      total>0
+      ? (
+          progress/
+          total
+        )*100
+      : 0;
+
+
+    if(bar){
+
+      bar.style.width=
+        percent+"%";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v93Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     V92 INTEGRATION
+     ======================================================= */
+
+  integrateV92(){
+
+    if(
+      typeof V92==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    /*
+      When the player talks to an NPC,
+      the mission system can update
+      dialogue objectives.
+    */
+
+    if(
+      V92.__v93IntegrationInstalled
+    ){
+
+      return;
+
+    }
+
+
+    V92.__v93IntegrationInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        nextID:this.nextID,
+
+        activeMission:
+          this.activeMission,
+
+        missions:
+          this.missions
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V93 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.missions
+        )
+      ){
+
+        this.missions=
+          data.missions;
+
+      }
+
+
+      if(
+        typeof data.activeMission===
+        "string"
+      ){
+
+        this.activeMission=
+          data.activeMission;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.nextID)
+        )
+      ){
+
+        this.nextID=
+          Number(data.nextID);
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V93 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      nextID:this.nextID,
+
+      activeMission:
+        this.activeMission,
+
+      missions:
+        this.missions
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Array.isArray(
+        data.missions
+      )
+    ){
+
+      this.missions=
+        data.missions;
+
+    }
+
+
+    if(
+      typeof data.activeMission===
+      "string"
+    ){
+
+      this.activeMission=
+        data.activeMission;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.nextID)
+      )
+    ){
+
+      this.nextID=
+        Number(data.nextID);
+
+    }
+
+
+    this.updateHUD();
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      M = Mission menu
+    */
+
+    if(
+      event.code==="KeyM"
+    ){
+
+      if(
+        V93.menuOpen
+      ){
+
+        V93.closeMenu();
+
+      }
+      else{
+
+        V93.openMenu();
+
+      }
+
+    }
+
+
+    /*
+      Escape = close menu
+    */
+
+    if(
+      event.code==="Escape"
+    ){
+
+      if(
+        V93.menuOpen
+      ){
+
+        V93.closeMenu();
+
+      }
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V93.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V93.init();
+
+V93.integrateV92();
+
+
+/* =========================================================
+   EXAMPLE API
+
+   Start a mission:
+
+   V93.startMission(
+     "city_patrol"
+   );
+
+
+   Update objective:
+
+   V93.updateObjective(
+     "city_patrol",
+     "explore",
+     1
+   );
+
+
+   Create your own mission:
+
+   V93.createMission({
+
+     id:"rescue_01",
+
+     title:"Rescue Mission",
+
+     description:
+       "Help someone in trouble.",
+
+     objectives:[
+
+       {
+         id:"reach",
+         text:"Reach the location",
+         required:1
+       },
+
+       {
+         id:"help",
+         text:"Help the citizen",
+         required:1
+       }
+
+     ],
+
+     reward:{
+       score:250,
+       experience:50
+     }
+
+   });
+
+
+   ========================================================= */
+
+console.log(
+  "WEBBOUND V93 MISSION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
