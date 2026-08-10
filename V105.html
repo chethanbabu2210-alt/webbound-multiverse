@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V105</title>
+
+<style>
+
+#v105Clock{
+  position:fixed;
+  left:12px;
+  top:120px;
+  z-index:10800;
+  min-width:145px;
+  padding:11px 13px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:11px;
+  font-family:Arial,sans-serif;
+}
+
+#v105Time{
+  font-size:16px;
+  font-weight:bold;
+}
+
+#v105Period{
+  margin-top:4px;
+  font-size:10px;
+  opacity:.7;
+}
+
+#v105Date{
+  margin-top:3px;
+  font-size:10px;
+  opacity:.6;
+}
+
+#v105Controls{
+  position:fixed;
+  left:12px;
+  top:220px;
+  z-index:10801;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#v105Controls button{
+  padding:8px 11px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:10px;
+}
+
+#v105Overlay{
+  position:fixed;
+  inset:0;
+  z-index:10700;
+  pointer-events:none;
+  background:rgba(5,10,35,0);
+  transition:background 1s linear;
+}
+
+#v105Message{
+  position:fixed;
+  left:50%;
+  top:18%;
+  transform:translateX(-50%);
+  z-index:10900;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V105 DAY / NIGHT CLOCK
+     ========================================================= -->
+
+<div id="v105Clock">
+
+  <div id="v105Time">
+    08:00
+  </div>
+
+  <div id="v105Period">
+    ☀️ MORNING
+  </div>
+
+  <div id="v105Date">
+    Day 1
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v105Controls">
+
+  <button onclick="V105.toggle()">
+    ⏱️ PAUSE / PLAY
+  </button>
+
+  <button onclick="V105.addHour()">
+    ➕ +1 HOUR
+  </button>
+
+  <button onclick="V105.setTime(8)">
+    ☀️ MORNING
+  </button>
+
+  <button onclick="V105.setTime(14)">
+    🌤️ AFTERNOON
+  </button>
+
+  <button onclick="V105.setTime(19)">
+    🌆 EVENING
+  </button>
+
+  <button onclick="V105.setTime(23)">
+    🌙 NIGHT
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     SCREEN LIGHTING
+     ========================================================= -->
+
+<div id="v105Overlay"></div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v105Message">
+  V105
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V105
+   DAY / NIGHT TIME SYSTEM
+   ========================================================= */
+
+const V105 = {
+
+  version:"V105",
+
+  saveKey:
+    "WEBBOUND_V105_TIME",
+
+  hour:8,
+
+  minute:0,
+
+  day:1,
+
+  running:true,
+
+  /*
+    One real second =
+    one game minute.
+  */
+
+  minuteSpeed:1,
+
+  timer:null,
+
+  lastPeriod:"",
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.update();
+
+    this.start();
+
+    console.log(
+      "WEBBOUND V105 DAY/NIGHT SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          if(
+            this.running
+          ){
+
+            this.advance(
+              this.minuteSpeed
+            );
+
+          }
+
+        },
+        1000
+      );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.running=
+      !this.running;
+
+
+    this.message(
+      this.running
+      ? "▶️ TIME RUNNING"
+      : "⏸️ TIME PAUSED"
+    );
+
+  },
+
+
+  /* =======================================================
+     ADVANCE TIME
+     ======================================================= */
+
+  advance(minutes){
+
+    let total=
+      this.hour*60+
+      this.minute+
+      Number(minutes);
+
+
+    if(
+      !Number.isFinite(total)
+    ){
+
+      return;
+
+    }
+
+
+    while(
+      total>=1440
+    ){
+
+      total-=1440;
+
+      this.day++;
+
+    }
+
+
+    while(
+      total<0
+    ){
+
+      total+=1440;
+
+      this.day=
+        Math.max(
+          1,
+          this.day-1
+        );
+
+    }
+
+
+    this.hour=
+      Math.floor(
+        total/60
+      );
+
+    this.minute=
+      Math.floor(
+        total%60
+      );
+
+
+    this.update();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     ADD HOUR
+     ======================================================= */
+
+  addHour(){
+
+    this.advance(60);
+
+  },
+
+
+  /* =======================================================
+     SET TIME
+     ======================================================= */
+
+  setTime(hour){
+
+    const h=
+      Number(hour);
+
+
+    if(
+      !Number.isFinite(h)
+    ){
+
+      return;
+
+    }
+
+
+    this.hour=
+      Math.max(
+        0,
+        Math.min(
+          23,
+          Math.floor(h)
+        )
+      );
+
+
+    this.minute=0;
+
+
+    this.update();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     GET PERIOD
+     ======================================================= */
+
+  getPeriod(){
+
+    const h=
+      this.hour;
+
+
+    if(
+      h>=5 &&
+      h<8
+    ){
+
+      return{
+
+        name:"DAWN",
+
+        icon:"🌅",
+
+        light:.75
+
+      };
+
+    }
+
+
+    if(
+      h>=8 &&
+      h<12
+    ){
+
+      return{
+
+        name:"MORNING",
+
+        icon:"☀️",
+
+        light:1
+
+      };
+
+    }
+
+
+    if(
+      h>=12 &&
+      h<17
+    ){
+
+      return{
+
+        name:"AFTERNOON",
+
+        icon:"🌤️",
+
+        light:.95
+
+      };
+
+    }
+
+
+    if(
+      h>=17 &&
+      h<20
+    ){
+
+      return{
+
+        name:"EVENING",
+
+        icon:"🌆",
+
+        light:.7
+
+      };
+
+    }
+
+
+    if(
+      h>=20 ||
+      h<5
+    ){
+
+      return{
+
+        name:"NIGHT",
+
+        icon:"🌙",
+
+        light:.35
+
+      };
+
+    }
+
+
+    return{
+
+      name:"DAY",
+
+      icon:"☀️",
+
+      light:1
+
+    };
+
+  },
+
+
+  /* =======================================================
+     FORMAT TIME
+     ======================================================= */
+
+  formatTime(){
+
+    const h=
+      String(
+        this.hour
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+    const m=
+      String(
+        this.minute
+      ).padStart(
+        2,
+        "0"
+      );
+
+
+    return h+
+      ":"+
+      m;
+
+  },
+
+
+  /* =======================================================
+     UPDATE UI
+     ======================================================= */
+
+  update(){
+
+    const period=
+      this.getPeriod();
+
+
+    const timeBox=
+      document.getElementById(
+        "v105Time"
+      );
+
+    const periodBox=
+      document.getElementById(
+        "v105Period"
+      );
+
+    const dateBox=
+      document.getElementById(
+        "v105Date"
+      );
+
+
+    if(timeBox){
+
+      timeBox.textContent=
+        this.formatTime();
+
+    }
+
+
+    if(periodBox){
+
+      periodBox.textContent=
+        period.icon+
+        " "+
+        period.name;
+
+    }
+
+
+    if(dateBox){
+
+      dateBox.textContent=
+        "Day "+
+        this.day;
+
+    }
+
+
+    this.updateLighting(
+      period
+    );
+
+
+    if(
+      period.name!==
+      this.lastPeriod
+    ){
+
+      this.lastPeriod=
+        period.name;
+
+
+      this.triggerPeriodEvent(
+        period.name
+      );
+
+    }
+
+
+    /*
+      Optional connection to
+      future world systems.
+    */
+
+    if(
+      typeof window.onWebboundTimeChange===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundTimeChange({
+
+          hour:this.hour,
+
+          minute:this.minute,
+
+          day:this.day,
+
+          period:period.name
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V105 TIME CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LIGHTING
+     ======================================================= */
+
+  updateLighting(period){
+
+    const overlay=
+      document.getElementById(
+        "v105Overlay"
+      );
+
+
+    if(!overlay){
+
+      return;
+
+    }
+
+
+    if(
+      period.name==="NIGHT"
+    ){
+
+      overlay.style.background=
+        "rgba(5,10,35,.28)";
+
+    }
+    else if(
+      period.name==="EVENING"
+    ){
+
+      overlay.style.background=
+        "rgba(40,20,10,.12)";
+
+    }
+    else if(
+      period.name==="DAWN"
+    ){
+
+      overlay.style.background=
+        "rgba(30,20,10,.08)";
+
+    }
+    else{
+
+      overlay.style.background=
+        "rgba(0,0,0,0)";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     PERIOD EVENTS
+     ======================================================= */
+
+  triggerPeriodEvent(period){
+
+    if(
+      period==="NIGHT"
+    ){
+
+      this.message(
+        "🌙 Night has begun"
+      );
+
+    }
+    else if(
+      period==="DAWN"
+    ){
+
+      this.message(
+        "🌅 Dawn is breaking"
+      );
+
+    }
+    else if(
+      period==="EVENING"
+    ){
+
+      this.message(
+        "🌆 Evening has arrived"
+      );
+
+    }
+    else if(
+      period==="MORNING"
+    ){
+
+      this.message(
+        "☀️ A new morning begins"
+      );
+
+    }
+
+
+    if(
+      typeof window.onWebboundPeriodChange===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundPeriodChange(
+          period
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V105 PERIOD CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     IS NIGHT
+     ======================================================= */
+
+  isNight(){
+
+    return(
+      this.hour>=20 ||
+      this.hour<5
+    );
+
+  },
+
+
+  /* =======================================================
+     IS DAY
+     ======================================================= */
+
+  isDay(){
+
+    return !this.isNight();
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        hour:this.hour,
+
+        minute:this.minute,
+
+        day:this.day,
+
+        running:this.running
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V105 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.hour)
+        )
+      ){
+
+        this.hour=
+          Math.max(
+            0,
+            Math.min(
+              23,
+              Number(data.hour)
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.minute)
+        )
+      ){
+
+        this.minute=
+          Math.max(
+            0,
+            Math.min(
+              59,
+              Number(data.minute)
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.day)
+        )
+      ){
+
+        this.day=
+          Math.max(
+            1,
+            Number(data.day)
+          );
+
+      }
+
+
+      if(
+        typeof data.running===
+        "boolean"
+      ){
+
+        this.running=
+          data.running;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V105 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      hour:this.hour,
+
+      minute:this.minute,
+
+      day:this.day,
+
+      running:this.running
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.hour)
+      )
+    ){
+
+      this.hour=
+        Math.max(
+          0,
+          Math.min(
+            23,
+            Number(data.hour)
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.minute)
+      )
+    ){
+
+      this.minute=
+        Math.max(
+          0,
+          Math.min(
+            59,
+            Number(data.minute)
+          )
+        );
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.day)
+      )
+    ){
+
+      this.day=
+        Math.max(
+          1,
+          Number(data.day)
+        );
+
+    }
+
+
+    if(
+      typeof data.running===
+      "boolean"
+    ){
+
+      this.running=
+        data.running;
+
+    }
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v105Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      V105.toggle();
+
+    }
+
+
+    if(
+      event.code==="KeyN"
+    ){
+
+      V105.addHour();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V105.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V105.init();
+
+
+console.log(
+  "WEBBOUND V105 DAY/NIGHT SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
