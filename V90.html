@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V90</title>
+
+<style>
+
+#v90WeatherHUD{
+  position:fixed;
+  right:12px;
+  top:95px;
+  z-index:9000;
+
+  min-width:145px;
+  padding:10px 13px;
+
+  background:#05070ee0;
+  color:white;
+
+  border:1px solid #ffffff30;
+  border-radius:11px;
+
+  font:12px Arial,sans-serif;
+  text-align:center;
+}
+
+#v90WeatherIcon{
+  font-size:22px;
+}
+
+#v90WeatherName{
+  margin-top:3px;
+  font-weight:bold;
+}
+
+#v90WeatherInfo{
+  margin-top:3px;
+  opacity:.7;
+}
+
+#v90Controls{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%);
+
+  z-index:9001;
+
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:5px;
+
+  padding:8px;
+
+  background:#05070ee5;
+
+  border:1px solid #ffffff25;
+  border-radius:12px;
+}
+
+#v90Controls button{
+  padding:8px 10px;
+
+  background:#111827;
+  color:white;
+
+  border:1px solid #ffffff25;
+  border-radius:8px;
+
+  font-size:11px;
+}
+
+#v90Message{
+  position:fixed;
+
+  left:50%;
+  top:20%;
+
+  transform:translateX(-50%);
+
+  z-index:9900;
+
+  padding:11px 17px;
+
+  background:#05070ef5;
+  color:white;
+
+  border:1px solid #ffffff35;
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+  display:none;
+}
+
+#v90Rain{
+  position:fixed;
+  inset:0;
+
+  z-index:8990;
+
+  pointer-events:none;
+
+  display:none;
+
+  background:
+    repeating-linear-gradient(
+      105deg,
+      transparent 0px,
+      transparent 9px,
+      rgba(255,255,255,.20) 10px,
+      transparent 11px
+    );
+
+  animation:v90RainMove .35s linear infinite;
+}
+
+@keyframes v90RainMove{
+
+  from{
+    background-position:0 0;
+  }
+
+  to{
+    background-position:-25px 55px;
+  }
+
+}
+
+#v90Fog{
+  position:fixed;
+  inset:0;
+
+  z-index:8980;
+
+  pointer-events:none;
+
+  display:none;
+
+  background:
+    rgba(210,220,225,.16);
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     WEATHER HUD
+     ========================================================= -->
+
+<div id="v90WeatherHUD">
+
+  <div id="v90WeatherIcon">
+    ☀️
+  </div>
+
+  <div id="v90WeatherName">
+    CLEAR
+  </div>
+
+  <div id="v90WeatherInfo">
+    NORMAL
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     WEATHER EFFECTS
+     ========================================================= -->
+
+<div id="v90Rain"></div>
+
+<div id="v90Fog"></div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v90Controls">
+
+  <button onclick="V90.setWeather('clear')">
+    ☀️ CLEAR
+  </button>
+
+  <button onclick="V90.setWeather('cloudy')">
+    ☁️ CLOUDY
+  </button>
+
+  <button onclick="V90.setWeather('rain')">
+    🌧️ RAIN
+  </button>
+
+  <button onclick="V90.setWeather('storm')">
+    ⛈️ STORM
+  </button>
+
+  <button onclick="V90.setWeather('fog')">
+    🌫️ FOG
+  </button>
+
+  <button onclick="V90.randomWeather()">
+    🎲 RANDOM
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v90Message">
+  Weather changed
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V90
+   WEATHER SYSTEM
+   ========================================================= */
+
+const V90 = {
+
+  version:"V90",
+
+  saveKey:
+    "WEBBOUND_V90_WEATHER",
+
+  weather:"clear",
+
+  intensity:0,
+
+  automatic:true,
+
+  weatherTypes:{
+
+    clear:{
+      name:"CLEAR",
+      icon:"☀️",
+      intensity:0
+    },
+
+    cloudy:{
+      name:"CLOUDY",
+      icon:"☁️",
+      intensity:.25
+    },
+
+    rain:{
+      name:"RAIN",
+      icon:"🌧️",
+      intensity:.65
+    },
+
+    storm:{
+      name:"STORM",
+      icon:"⛈️",
+      intensity:1
+    },
+
+    fog:{
+      name:"FOG",
+      icon:"🌫️",
+      intensity:.55
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.applyWeather();
+
+    console.log(
+      "WEBBOUND V90 WEATHER SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     SET WEATHER
+     ======================================================= */
+
+  setWeather(type){
+
+    type=
+      String(type || "")
+      .toLowerCase();
+
+
+    if(
+      !this.weatherTypes[type]
+    ){
+
+      console.warn(
+        "V90: Unknown weather:",
+        type
+      );
+
+      return false;
+
+    }
+
+
+    this.weather=type;
+
+    this.intensity=
+      this.weatherTypes[type]
+        .intensity;
+
+
+    this.applyWeather();
+
+    this.save();
+
+    this.message(
+      this.weatherTypes[type].icon+
+      " "+
+      this.weatherTypes[type].name
+    );
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     RANDOM WEATHER
+     ======================================================= */
+
+  randomWeather(){
+
+    const types=[
+      "clear",
+      "cloudy",
+      "rain",
+      "storm",
+      "fog"
+    ];
+
+
+    const random=
+      types[
+        Math.floor(
+          Math.random()*
+          types.length
+        )
+      ];
+
+
+    this.setWeather(
+      random
+    );
+
+  },
+
+
+  /* =======================================================
+     APPLY WEATHER
+     ======================================================= */
+
+  applyWeather(){
+
+    const data=
+      this.weatherTypes[
+        this.weather
+      ];
+
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    const icon=
+      document.getElementById(
+        "v90WeatherIcon"
+      );
+
+    const name=
+      document.getElementById(
+        "v90WeatherName"
+      );
+
+    const info=
+      document.getElementById(
+        "v90WeatherInfo"
+      );
+
+
+    if(icon){
+
+      icon.textContent=
+        data.icon;
+
+    }
+
+
+    if(name){
+
+      name.textContent=
+        data.name;
+
+    }
+
+
+    if(info){
+
+      info.textContent=
+        this.getDescription();
+
+    }
+
+
+    this.updateEffects();
+
+  },
+
+
+  /* =======================================================
+     DESCRIPTION
+     ======================================================= */
+
+  getDescription(){
+
+    switch(this.weather){
+
+      case"clear":
+        return"Normal visibility";
+
+      case"cloudy":
+        return"Overcast sky";
+
+      case"rain":
+        return"Wet roads";
+
+      case"storm":
+        return"Heavy weather";
+
+      case"fog":
+        return"Reduced visibility";
+
+      default:
+        return"Normal";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     EFFECTS
+     ======================================================= */
+
+  updateEffects(){
+
+    const rain=
+      document.getElementById(
+        "v90Rain"
+      );
+
+    const fog=
+      document.getElementById(
+        "v90Fog"
+      );
+
+
+    if(rain){
+
+      rain.style.display=
+        (
+          this.weather==="rain" ||
+          this.weather==="storm"
+        )
+        ? "block"
+        : "none";
+
+    }
+
+
+    if(fog){
+
+      fog.style.display=
+        this.weather==="fog"
+        ? "block"
+        : "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     AUTO WEATHER
+     ======================================================= */
+
+  update(){
+
+    if(!this.automatic){
+
+      return;
+
+    }
+
+
+    /*
+      V89 compatibility.
+
+      At night, storms/rain remain possible.
+      Clear weather is not forcibly changed.
+    */
+
+    if(
+      typeof V89!=="undefined"
+    ){
+
+      if(
+        typeof V89.isNight===
+        "function"
+      ){
+
+        /*
+          Future versions can use this
+          hook for advanced weather logic.
+        */
+
+        const night=
+          V89.isNight();
+
+        if(night){
+
+          /*
+            Keep current weather.
+          */
+
+        }
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     TOGGLE AUTOMATIC WEATHER
+     ======================================================= */
+
+  toggleAutomatic(){
+
+    this.automatic=
+      !this.automatic;
+
+
+    this.message(
+      this.automatic
+      ? "🎲 Auto weather ON"
+      : "🔒 Auto weather OFF"
+    );
+
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v90Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        weather:this.weather,
+
+        intensity:this.intensity,
+
+        automatic:this.automatic
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V90 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.weather===
+        "string" &&
+        this.weatherTypes[
+          data.weather
+        ]
+      ){
+
+        this.weather=
+          data.weather;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.intensity)
+        )
+      ){
+
+        this.intensity=
+          Number(data.intensity);
+
+      }
+
+
+      if(
+        typeof data.automatic===
+        "boolean"
+      ){
+
+        this.automatic=
+          data.automatic;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V90 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      weather:this.weather,
+
+      intensity:this.intensity,
+
+      automatic:this.automatic
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.weather===
+      "string" &&
+      this.weatherTypes[
+        data.weather
+      ]
+    ){
+
+      this.weather=
+        data.weather;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.intensity)
+      )
+    ){
+
+      this.intensity=
+        Number(data.intensity);
+
+    }
+
+
+    if(
+      typeof data.automatic===
+      "boolean"
+    ){
+
+      this.automatic=
+        data.automatic;
+
+    }
+
+
+    this.applyWeather();
+
+  },
+
+
+  /* =======================================================
+     V89 COMPATIBILITY
+     ======================================================= */
+
+  installV89Compatibility(){
+
+    if(
+      typeof V89==="undefined"
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      V89.__v90CompatibilityInstalled
+    ){
+
+      return;
+
+    }
+
+
+    V89.__v90CompatibilityInstalled=
+      true;
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    setInterval(
+      ()=>{
+
+        this.update();
+
+      },
+      5000
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      Y = random weather
+    */
+
+    if(
+      event.code==="KeyY"
+    ){
+
+      V90.randomWeather();
+
+    }
+
+
+    /*
+      H = automatic weather
+    */
+
+    if(
+      event.code==="KeyH"
+    ){
+
+      V90.toggleAutomatic();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+    V90.save();
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V90.init();
+
+V90.installV89Compatibility();
+
+V90.start();
+
+
+/* =========================================================
+   FUTURE API
+
+   V90.setWeather("rain");
+
+   V90.setWeather("storm");
+
+   V90.setWeather("clear");
+
+   V90.randomWeather();
+
+   V90.toggleAutomatic();
+
+   V90.collect();
+
+   ========================================================= */
+
+</script>
+
+</body>
+</html>
