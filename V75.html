@@ -1,0 +1,1079 @@
+<!-- =========================================================
+ WEBBOUND V75
+ INVENTORY + GADGET SYSTEM
+ BUILDS ON V60 - V74
+ ========================================================= -->
+
+<style>
+
+#v75Inventory{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:9920;
+
+  width:min(520px,92%);
+  max-height:82vh;
+  overflow:auto;
+
+  padding:20px;
+
+  background:#05070ef7;
+  color:white;
+
+  border:1px solid #ffffff35;
+  border-radius:18px;
+
+  font-family:Arial,sans-serif;
+
+  display:none;
+
+  box-shadow:0 20px 70px #000b;
+}
+
+#v75Inventory h2{
+  margin-top:0;
+}
+
+#v75Selected{
+  padding:10px;
+  margin-bottom:12px;
+
+  background:#ffffff0b;
+  border:1px solid #ffffff20;
+  border-radius:10px;
+
+  font-size:13px;
+}
+
+#v75Items{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.v75Item{
+
+  padding:12px;
+
+  background:#111827;
+
+  border:1px solid #ffffff20;
+  border-radius:11px;
+
+  color:white;
+
+  text-align:left;
+}
+
+.v75Item.active{
+  border-color:#ffffff80;
+  background:#1f2937;
+}
+
+.v75ItemName{
+  font-weight:bold;
+}
+
+.v75ItemInfo{
+  margin-top:5px;
+  font-size:11px;
+  color:#cbd5e1;
+}
+
+.v75Item button{
+  width:100%;
+  margin-top:8px;
+
+  padding:8px;
+
+  background:#05070e;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+}
+
+#v75Close{
+  width:100%;
+  margin-top:12px;
+
+  padding:11px;
+
+  background:#111827;
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+}
+
+#v75HUD{
+  position:fixed;
+  right:15px;
+  bottom:65px;
+
+  z-index:8200;
+
+  padding:9px 12px;
+
+  background:#05070ed9;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:10px;
+
+  font:12px Arial,sans-serif;
+}
+
+</style>
+
+
+<!-- =========================================================
+ INVENTORY UI
+ ========================================================= -->
+
+<div id="v75Inventory">
+
+  <h2>🎒 INVENTORY</h2>
+
+  <div id="v75Selected">
+    Selected: None
+  </div>
+
+  <div id="v75Items"></div>
+
+  <button id="v75Close"
+          onclick="V75.close()">
+
+    ❌ CLOSE
+
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+ INVENTORY HUD
+ ========================================================= -->
+
+<div id="v75HUD">
+
+  🎒 <span id="v75HUDItem">
+    Web Shooter
+  </span>
+
+  ×
+
+  <span id="v75HUDQuantity">
+    100
+  </span>
+
+</div>
+
+
+<script>
+
+const V75 = {
+
+  version:"V75",
+
+  openState:false,
+
+  selected:"web_shooter",
+
+
+  /* =======================================================
+     INVENTORY
+     ======================================================= */
+
+  items:{
+
+    web_shooter:{
+
+      id:"web_shooter",
+
+      name:"🕸️ Web Shooter",
+
+      type:"gadget",
+
+      quantity:100,
+
+      max:100,
+
+      description:
+        "Standard web equipment."
+
+    },
+
+
+    impact_web:{
+
+      id:"impact_web",
+
+      name:"💥 Impact Web",
+
+      type:"gadget",
+
+      quantity:10,
+
+      max:20,
+
+      description:
+        "A stronger web projectile."
+
+    },
+
+
+    electric_web:{
+
+      id:"electric_web",
+
+      name:"⚡ Electric Web",
+
+      type:"gadget",
+
+      quantity:8,
+
+      max:20,
+
+      description:
+        "Temporarily disrupts electronic targets."
+
+    },
+
+
+    web_bomb:{
+
+      id:"web_bomb",
+
+      name:"🕸️ Web Bomb",
+
+      type:"gadget",
+
+      quantity:5,
+
+      max:10,
+
+      description:
+        "A throwable web-based gadget."
+
+    },
+
+
+    repair_kit:{
+
+      id:"repair_kit",
+
+      name:"🔧 Repair Kit",
+
+      type:"utility",
+
+      quantity:3,
+
+      max:5,
+
+      description:
+        "Restores equipment condition."
+
+    },
+
+
+    energy_cell:{
+
+      id:"energy_cell",
+
+      name:"🔋 Energy Cell",
+
+      type:"utility",
+
+      quantity:5,
+
+      max:10,
+
+      description:
+        "Restores a portion of energy."
+
+    }
+
+  },
+
+
+  /* =======================================================
+     OPEN
+     ======================================================= */
+
+  open(){
+
+    this.openState=true;
+
+    const box=
+      document.getElementById(
+        "v75Inventory"
+      );
+
+    if(box){
+
+      box.style.display=
+        "block";
+
+    }
+
+    this.render();
+
+  },
+
+
+  /* =======================================================
+     CLOSE
+     ======================================================= */
+
+  close(){
+
+    this.openState=false;
+
+    const box=
+      document.getElementById(
+        "v75Inventory"
+      );
+
+    if(box){
+
+      box.style.display=
+        "none";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SELECT ITEM
+     ======================================================= */
+
+  select(id){
+
+    const item=
+      this.items[id];
+
+    if(!item){
+
+      return;
+
+    }
+
+
+    if(item.quantity<=0){
+
+      this.message(
+        "❌ "+item.name+
+        " is empty."
+      );
+
+      return;
+
+    }
+
+
+    this.selected=id;
+
+    this.updateHUD();
+
+    this.render();
+
+
+    this.message(
+      "🎒 Selected: "+
+      item.name
+    );
+
+  },
+
+
+  /* =======================================================
+     USE ITEM
+     ======================================================= */
+
+  use(id=this.selected){
+
+    const item=
+      this.items[id];
+
+    if(!item){
+
+      return;
+
+    }
+
+
+    if(item.quantity<=0){
+
+      this.message(
+        "❌ No "+
+        item.name+
+        " remaining."
+      );
+
+      return;
+
+    }
+
+
+    /*
+      Do not consume the normal
+      web shooter as a generic item.
+    */
+
+    if(
+      id==="web_shooter"
+    ){
+
+      this.message(
+        "🕸️ Web Shooter ready."
+      );
+
+      return;
+
+    }
+
+
+    item.quantity--;
+
+
+    /*
+      Utility effects.
+    */
+
+    if(
+      id==="energy_cell" &&
+      typeof energy!=="undefined"
+    ){
+
+      energy=
+        Math.min(
+          100,
+          Number(energy)+25
+        );
+
+      this.message(
+        "🔋 Energy restored."
+      );
+
+    }
+
+
+    else if(
+      id==="repair_kit"
+    ){
+
+      /*
+        Connect to vehicle system
+        only if it exposes health.
+      */
+
+      if(
+        typeof V57!=="undefined" &&
+        typeof V57.health==="number"
+      ){
+
+        V57.health=
+          Math.min(
+            100,
+            V57.health+25
+          );
+
+      }
+
+      this.message(
+        "🔧 Equipment repaired."
+      );
+
+    }
+
+
+    else{
+
+      this.message(
+        "🎒 Used "+
+        item.name
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.render();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     ADD ITEM
+     ======================================================= */
+
+  add(id,amount=1){
+
+    const item=
+      this.items[id];
+
+    if(!item){
+
+      return false;
+
+    }
+
+
+    const value=
+      Math.max(
+        0,
+        Number(amount)||0
+      );
+
+
+    item.quantity=
+      Math.min(
+        item.max,
+        item.quantity+value
+      );
+
+
+    this.updateHUD();
+
+    this.render();
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     REMOVE ITEM
+     ======================================================= */
+
+  remove(id,amount=1){
+
+    const item=
+      this.items[id];
+
+    if(!item){
+
+      return false;
+
+    }
+
+
+    item.quantity=
+      Math.max(
+        0,
+        item.quantity-
+        (
+          Number(amount)||0
+        )
+      );
+
+
+    this.updateHUD();
+
+    this.render();
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     GET QUANTITY
+     ======================================================= */
+
+  getQuantity(id){
+
+    if(
+      !this.items[id]
+    ){
+
+      return 0;
+
+    }
+
+
+    return this.items[id].quantity;
+
+  },
+
+
+  /* =======================================================
+     RENDER
+     ======================================================= */
+
+  render(){
+
+    const list=
+      document.getElementById(
+        "v75Items"
+      );
+
+
+    const selected=
+      document.getElementById(
+        "v75Selected"
+      );
+
+
+    if(!list){
+
+      return;
+
+    }
+
+
+    list.innerHTML="";
+
+
+    Object.values(
+      this.items
+    ).forEach(
+      item=>{
+
+        const card=
+          document.createElement(
+            "div"
+          );
+
+
+        card.className=
+          "v75Item"+
+          (
+            item.id===this.selected
+            ? " active"
+            : ""
+          );
+
+
+        card.innerHTML=
+
+          "<div class='v75ItemName'>"+
+          item.name+
+          "</div>"+
+
+          "<div class='v75ItemInfo'>"+
+          item.description+
+          "<br>"+
+          "Type: "+
+          item.type+
+          "<br>"+
+          "Quantity: "+
+          item.quantity+
+          "/"+
+          item.max+
+          "</div>"+
+
+          "<button onclick=\"V75.select('"+
+          item.id+
+          "')\">"+
+          "SELECT"+
+          "</button>"+
+
+          "<button onclick=\"V75.use('"+
+          item.id+
+          "')\">"+
+          "USE"+
+          "</button>";
+
+
+        list.appendChild(
+          card
+        );
+
+      }
+    );
+
+
+    if(selected){
+
+      const item=
+        this.items[
+          this.selected
+        ];
+
+
+      selected.textContent=
+        item
+        ? "Selected: "+
+          item.name+
+          " × "+
+          item.quantity
+        : "Selected: None";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const item=
+      this.items[
+        this.selected
+      ];
+
+
+    const name=
+      document.getElementById(
+        "v75HUDItem"
+      );
+
+
+    const quantity=
+      document.getElementById(
+        "v75HUDQuantity"
+      );
+
+
+    if(item){
+
+      if(name){
+
+        name.textContent=
+          item.name;
+
+      }
+
+
+      if(quantity){
+
+        quantity.textContent=
+          item.quantity;
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof V68!=="undefined" &&
+      typeof V68.message==="function"
+    ){
+
+      V68.message(text);
+
+      return;
+
+    }
+
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    if(
+      typeof V60!=="undefined" &&
+      typeof V60.save==="function"
+    ){
+
+      V60.save();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT SAVE DATA
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      selected:
+        this.selected,
+
+      items:
+        JSON.parse(
+          JSON.stringify(
+            this.items
+          )
+        )
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD SAVE DATA
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.selected==="string" &&
+      this.items[data.selected]
+    ){
+
+      this.selected=
+        data.selected;
+
+    }
+
+
+    if(
+      data.items &&
+      typeof data.items==="object"
+    ){
+
+      Object.keys(
+        data.items
+      ).forEach(
+        id=>{
+
+          if(
+            this.items[id] &&
+            typeof data.items[id].quantity==="number"
+          ){
+
+            this.items[id].quantity=
+              Math.max(
+                0,
+                Math.min(
+                  this.items[id].max,
+                  data.items[id].quantity
+                )
+              );
+
+          }
+
+        }
+      );
+
+    }
+
+
+    this.updateHUD();
+
+    this.render();
+
+  }
+
+};
+
+
+/* =========================================================
+ V60 SAVE / LOAD INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60!=="undefined"
+){
+
+  const v75OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v75OriginalCollect();
+
+    data.v75=
+      V75.collect();
+
+    return data;
+
+  };
+
+
+  const v75OriginalApply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    v75OriginalApply(data);
+
+
+    if(
+      data &&
+      data.v75
+    ){
+
+      V75.apply(
+        data.v75
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ KEYBOARD CONTROLS
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      I = inventory
+    */
+
+    if(
+      event.code==="KeyI"
+    ){
+
+      event.preventDefault();
+
+
+      if(V75.openState){
+
+        V75.close();
+
+      }
+      else{
+
+        V75.open();
+
+      }
+
+    }
+
+
+    /*
+      Number keys select gadgets.
+    */
+
+    if(
+      event.code==="Digit1"
+    ){
+
+      V75.select(
+        "web_shooter"
+      );
+
+    }
+
+
+    if(
+      event.code==="Digit2"
+    ){
+
+      V75.select(
+        "impact_web"
+      );
+
+    }
+
+
+    if(
+      event.code==="Digit3"
+    ){
+
+      V75.select(
+        "electric_web"
+      );
+
+    }
+
+
+    if(
+      event.code==="Digit4"
+    ){
+
+      V75.select(
+        "web_bomb"
+      );
+
+    }
+
+
+    /*
+      Q uses selected item.
+    */
+
+    if(
+      event.code==="KeyQ"
+    ){
+
+      event.preventDefault();
+
+      V75.use();
+
+    }
+
+
+    /*
+      Escape closes inventory.
+    */
+
+    if(
+      event.code==="Escape" &&
+      V75.openState
+    ){
+
+      V75.close();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V75.updateHUD();
+
+V75.render();
+
+
+console.log(
+  "WEBBOUND V75 INVENTORY SYSTEM READY"
+);
+
+</script>e thara mathadthya 
