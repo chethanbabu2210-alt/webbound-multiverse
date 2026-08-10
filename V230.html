@@ -1,0 +1,1047 @@
+<!-- =====================================================
+ V230 — NPC + CIVILIAN SYSTEM
+ Add after V229
+ ===================================================== -->
+
+<style>
+
+#npcHud230{
+
+    position:fixed;
+
+    left:12px;
+    top:185px;
+
+    width:min(260px,52vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:4800;
+
+}
+
+.npcTitle230{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#npcCount230,
+#npcActivity230,
+#npcAlert230{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= NPC ================= */
+
+.npc230{
+
+    position:absolute;
+
+    width:10px;
+    height:18px;
+
+    border-radius:5px;
+
+    background:#d9dddf;
+
+    z-index:1200;
+
+    transition:
+        left .35s,
+        top .35s;
+
+}
+
+
+/* ================= POLICE ================= */
+
+.police230{
+
+    width:12px;
+    height:20px;
+
+    border-radius:4px;
+
+}
+
+
+/* ================= CIVILIAN ================= */
+
+.civilian230{
+
+    border-radius:50% 50% 40% 40%;
+
+}
+
+
+/* ================= NPC DIALOGUE ================= */
+
+#npcDialogue230{
+
+    position:fixed;
+
+    left:50%;
+    bottom:130px;
+
+    transform:
+        translateX(-50%);
+
+    width:min(330px,80vw);
+
+    padding:12px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff30;
+
+    border-radius:10px;
+
+    z-index:5500;
+
+    display:none;
+
+}
+
+#npcSpeaker230{
+
+    font-size:9px;
+    font-weight:bold;
+
+}
+
+#npcText230{
+
+    margin-top:6px;
+
+    font-size:9px;
+
+    line-height:1.5;
+
+}
+
+
+/* ================= NPC CONTROLS ================= */
+
+#npcControls230{
+
+    position:fixed;
+
+    left:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5000;
+
+}
+
+#npcControls230 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="npcHud230">
+
+    <div class="npcTitle230">
+        👥 NPC SYSTEM — V230
+    </div>
+
+    <div id="npcCount230">
+        Civilians: 0
+    </div>
+
+    <div id="npcActivity230">
+        Activity: Normal
+    </div>
+
+    <div id="npcAlert230">
+        Alert: LOW
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ DIALOGUE
+ ===================================================== -->
+
+<div id="npcDialogue230">
+
+    <div id="npcSpeaker230">
+        Civilian
+    </div>
+
+    <div id="npcText230">
+        Hello!
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="npcControls230">
+
+    <button onclick="SpiderNPC230.spawnCivilian()">
+        👤 CIVILIAN
+    </button>
+
+    <button onclick="SpiderNPC230.spawnPolice()">
+        👮 POLICE
+    </button>
+
+    <button onclick="SpiderNPC230.talk()">
+        💬 TALK
+    </button>
+
+    <button onclick="SpiderNPC230.cityEvent()">
+        🚨 EVENT
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V230 NPC ENGINE
+ ===================================================== */
+
+const SpiderNPC230={
+
+
+    /* =========================
+       DATA
+    ========================= */
+
+    civilians:[],
+
+    police:[],
+
+    nextId:1,
+
+    activity:"Normal",
+
+    alertLevel:"LOW",
+
+    maxCivilians:18,
+
+    maxPolice:5,
+
+    initialized:false,
+
+
+    /* =========================
+       DIALOGUE
+    ========================= */
+
+    civilianDialogue:[
+
+        "Spider-Man! Over here!",
+
+        "The city feels safer with you around.",
+
+        "Did you see what happened nearby?",
+
+        "Thank you for helping!",
+
+        "I think something strange is happening.",
+
+        "Be careful out there!"
+
+    ],
+
+
+    policeDialogue:[
+
+        "Area secured.",
+
+        "We could use some help here.",
+
+        "Stay alert, Spider-Man.",
+
+        "The situation is under control."
+
+    ],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.spawnInitialCrowd();
+
+        this.startMovement();
+
+        this.updateHUD();
+
+        this.initialized=true;
+
+
+        this.message(
+            "👥 City population system online."
+        );
+
+    },
+
+
+    /* =========================
+       GET CITY ROOT
+       ========================= */
+
+    getRoot(){
+
+        /*
+         * Use the existing game area
+         * if available.
+         */
+
+        return document.body;
+
+    },
+
+
+    /* =========================
+       SPAWN CIVILIAN
+       ========================= */
+
+    spawnCivilian(){
+
+        if(
+            this.civilians.length>=
+            this.maxCivilians
+        ){
+
+            this.message(
+                "👥 Civilian limit reached."
+            );
+
+            return;
+
+        }
+
+
+        const id=
+            "civilian230_"+
+            this.nextId++;
+
+
+        const npc=
+            document.createElement(
+                "div"
+            );
+
+
+        npc.id=id;
+
+        npc.className=
+            "npc230 civilian230";
+
+
+        npc.dataset.type=
+            "civilian";
+
+
+        npc.dataset.state=
+            "walking";
+
+
+        npc.style.left=
+            (
+                10+
+                Math.random()*75
+            )+"vw";
+
+
+        npc.style.top=
+            (
+                20+
+                Math.random()*65
+            )+"vh";
+
+
+        npc.addEventListener(
+            "click",
+            ()=>{
+
+                this.talkTo(
+                    npc
+                );
+
+            }
+        );
+
+
+        this.getRoot().appendChild(
+            npc
+        );
+
+
+        this.civilians.push({
+
+            id:id,
+
+            element:npc,
+
+            state:"walking",
+
+            active:true
+
+        });
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       SPAWN POLICE
+       ========================= */
+
+    spawnPolice(){
+
+        if(
+            this.police.length>=
+            this.maxPolice
+        ){
+
+            this.message(
+                "👮 Police limit reached."
+            );
+
+            return;
+
+        }
+
+
+        const id=
+            "police230_"+
+            this.nextId++;
+
+
+        const npc=
+            document.createElement(
+                "div"
+            );
+
+
+        npc.id=id;
+
+        npc.className=
+            "npc230 police230";
+
+
+        npc.dataset.type=
+            "police";
+
+
+        npc.dataset.state=
+            "patrol";
+
+
+        npc.style.left=
+            (
+                10+
+                Math.random()*75
+            )+"vw";
+
+
+        npc.style.top=
+            (
+                20+
+                Math.random()*65
+            )+"vh";
+
+
+        npc.addEventListener(
+            "click",
+            ()=>{
+
+                this.talkTo(
+                    npc
+                );
+
+            }
+        );
+
+
+        this.getRoot().appendChild(
+            npc
+        );
+
+
+        this.police.push({
+
+            id:id,
+
+            element:npc,
+
+            state:"patrol",
+
+            active:true
+
+        });
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       INITIAL CROWD
+       ========================= */
+
+    spawnInitialCrowd(){
+
+        for(
+            let i=0;
+            i<10;
+            i++
+        ){
+
+            this.spawnCivilian();
+
+        }
+
+
+        for(
+            let i=0;
+            i<2;
+            i++
+        ){
+
+            this.spawnPolice();
+
+        }
+
+    },
+
+
+    /* =========================
+       MOVEMENT
+       ========================= */
+
+    startMovement(){
+
+        setInterval(
+            ()=>{
+
+                this.moveNPCs();
+
+            },
+            1800
+        );
+
+    },
+
+
+    moveNPCs(){
+
+        const all=[
+
+            ...this.civilians,
+
+            ...this.police
+
+        ];
+
+
+        all.forEach(
+            npc=>{
+
+                if(
+                    !npc.active ||
+                    !npc.element
+                )
+                    return;
+
+
+                /*
+                 * Don't move NPCs during
+                 * dialogue.
+                 */
+
+                if(
+                    npc.element.dataset
+                    .talking==="true"
+                )
+                    return;
+
+
+                const currentLeft=
+                    parseFloat(
+                        npc.element.style.left
+                    );
+
+
+                const currentTop=
+                    parseFloat(
+                        npc.element.style.top
+                    );
+
+
+                const newLeft=
+                    Math.max(
+                        5,
+                        Math.min(
+                            90,
+                            currentLeft+
+                            (
+                                Math.random()*
+                                12-
+                                6
+                            )
+                        )
+                    );
+
+
+                const newTop=
+                    Math.max(
+                        15,
+                        Math.min(
+                            85,
+                            currentTop+
+                            (
+                                Math.random()*
+                                10-
+                                5
+                            )
+                        )
+                    );
+
+
+                npc.element.style.left=
+                    newLeft+"vw";
+
+
+                npc.element.style.top=
+                    newTop+"vh";
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       TALK
+       ========================= */
+
+    talk(){
+
+        const all=[
+
+            ...this.civilians,
+
+            ...this.police
+
+        ].filter(
+            npc=>npc.active
+        );
+
+
+        if(!all.length){
+
+            this.message(
+                "💬 No NPC nearby."
+            );
+
+            return;
+
+        }
+
+
+        this.talkTo(
+            all[0].element
+        );
+
+    },
+
+
+    /* =========================
+       TALK TO NPC
+       ========================= */
+
+    talkTo(element){
+
+        if(!element)
+            return;
+
+
+        const type=
+            element.dataset.type;
+
+
+        const lines=
+            type==="police"
+            ?this.policeDialogue
+            :this.civilianDialogue;
+
+
+        const text=
+            lines[
+                Math.floor(
+                    Math.random()*
+                    lines.length
+                )
+            ];
+
+
+        const speaker=
+            document.getElementById(
+                "npcSpeaker230"
+            );
+
+
+        const dialogue=
+            document.getElementById(
+                "npcDialogue230"
+            );
+
+
+        const textElement=
+            document.getElementById(
+                "npcText230"
+            );
+
+
+        if(speaker){
+
+            speaker.textContent=
+                type==="police"
+                ?"👮 Police"
+                :"👤 Civilian";
+
+        }
+
+
+        if(textElement){
+
+            textElement.textContent=
+                text;
+
+        }
+
+
+        if(dialogue){
+
+            dialogue.style.display=
+                "block";
+
+        }
+
+
+        element.dataset.talking=
+            "true";
+
+
+        setTimeout(
+            ()=>{
+
+                element.dataset.talking=
+                    "false";
+
+
+                if(dialogue){
+
+                    dialogue.style.display=
+                        "none";
+
+                }
+
+            },
+            3000
+        );
+
+    },
+
+
+    /* =========================
+       CITY EVENT
+       ========================= */
+
+    cityEvent(){
+
+        const events=[
+
+            "🚨 Suspicious activity reported.",
+
+            "🚗 Traffic disruption nearby.",
+
+            "👥 Crowd gathering in the area.",
+
+            "📢 Emergency alert received.",
+
+            "👮 Police requesting assistance."
+
+        ];
+
+
+        this.activity=
+            events[
+                Math.floor(
+                    Math.random()*
+                    events.length
+                )
+            ];
+
+
+        this.alertLevel=
+            "MEDIUM";
+
+
+        this.updateHUD();
+
+
+        this.message(
+            this.activity
+        );
+
+
+        /*
+         * Connect event to missions.
+         */
+
+        if(
+            typeof SpiderMission228!==
+            "undefined"
+        ){
+
+            SpiderMission228.message(
+                "📢 City event detected."
+            );
+
+        }
+
+
+        setTimeout(
+            ()=>{
+
+                this.activity=
+                    "Normal";
+
+                this.alertLevel=
+                    "LOW";
+
+                this.updateHUD();
+
+            },
+            5000
+        );
+
+    },
+
+
+    /* =========================
+       REMOVE NPC
+       ========================= */
+
+    removeNPC(id){
+
+        const all=[
+
+            ...this.civilians,
+
+            ...this.police
+
+        ];
+
+
+        const npc=
+            all.find(
+                n=>n.id===id
+            );
+
+
+        if(!npc)
+            return;
+
+
+        npc.active=false;
+
+
+        if(
+            npc.element &&
+            npc.element.parentNode
+        ){
+
+            npc.element.parentNode
+                .removeChild(
+                    npc.element
+                );
+
+        }
+
+
+        this.civilians=
+            this.civilians.filter(
+                n=>n.id!==id
+            );
+
+
+        this.police=
+            this.police.filter(
+                n=>n.id!==id
+            );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const count=
+            document.getElementById(
+                "npcCount230"
+            );
+
+
+        const activity=
+            document.getElementById(
+                "npcActivity230"
+            );
+
+
+        const alert=
+            document.getElementById(
+                "npcAlert230"
+            );
+
+
+        if(count){
+
+            count.textContent=
+                "Civilians: "+
+                this.civilians.length+
+                " | Police: "+
+                this.police.length;
+
+        }
+
+
+        if(activity){
+
+            activity.textContent=
+                "Activity: "+
+                this.activity;
+
+        }
+
+
+        if(alert){
+
+            alert.textContent=
+                "Alert: "+
+                this.alertLevel;
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V230
+ ===================================================== */
+
+SpiderNPC230.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="n")
+            SpiderNPC230.spawnCivilian();
+
+
+        if(key==="o")
+            SpiderNPC230.spawnPolice();
+
+
+        if(key==="t")
+            SpiderNPC230.talk();
+
+
+        if(key==="e")
+            SpiderNPC230.cityEvent();
+
+    }
+);
