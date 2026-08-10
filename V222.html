@@ -1,0 +1,1103 @@
+<!-- =====================================================
+ V222 — WEB SWINGING TRAVERSAL SYSTEM
+ Add after V221
+ ===================================================== -->
+
+<style>
+
+#webTraversal222{
+    position:fixed;
+    inset:0;
+    z-index:1800;
+    pointer-events:none;
+}
+
+.webLine222{
+    position:absolute;
+
+    height:2px;
+
+    background:#ffffff;
+
+    transform-origin:left center;
+
+    box-shadow:
+        0 0 4px #ffffff88;
+
+    z-index:1810;
+}
+
+.webAnchor222{
+    position:absolute;
+
+    width:9px;
+    height:9px;
+
+    border:2px solid white;
+    border-radius:50%;
+
+    transform:translate(-50%,-50%);
+
+    z-index:1820;
+
+    opacity:.7;
+}
+
+.webAnchor222.active{
+    transform:
+        translate(-50%,-50%)
+        scale(1.5);
+
+    opacity:1;
+}
+
+
+/* ================= HUD ================= */
+
+#webHud222{
+
+    position:fixed;
+
+    left:12px;
+    bottom:145px;
+
+    width:min(220px,48vw);
+
+    padding:9px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:3000;
+
+}
+
+.webTitle222{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#webState222,
+#webDistance222{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#webControls222{
+
+    position:fixed;
+
+    right:12px;
+    bottom:75px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:3100;
+
+}
+
+#webControls222 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+
+/* ================= SWING INDICATOR ================= */
+
+#swingIndicator222{
+
+    position:fixed;
+
+    left:50%;
+    top:50%;
+
+    transform:
+        translate(-50%,-50%);
+
+    width:18px;
+    height:18px;
+
+    border:
+        1px solid #ffffff55;
+
+    border-radius:50%;
+
+    z-index:2500;
+
+    pointer-events:none;
+
+}
+
+#swingIndicator222:after{
+
+    content:"";
+
+    position:absolute;
+
+    left:50%;
+    top:50%;
+
+    width:3px;
+    height:3px;
+
+    transform:
+        translate(-50%,-50%);
+
+    background:white;
+
+    border-radius:50%;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ WEB WORLD
+ ===================================================== -->
+
+<div id="webTraversal222"></div>
+
+
+<!-- =====================================================
+ SWING INDICATOR
+ ===================================================== -->
+
+<div id="swingIndicator222"></div>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="webHud222">
+
+    <div class="webTitle222">
+        🕸️ WEB TRAVERSAL — V222
+    </div>
+
+    <div id="webState222">
+        State: READY
+    </div>
+
+    <div id="webDistance222">
+        Anchor: NONE
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="webControls222">
+
+    <button
+        onclick="SpiderWeb222.shoot()">
+        🕸️ SHOOT WEB
+    </button>
+
+    <button
+        onclick="SpiderWeb222.swing()">
+        🏙️ SWING
+    </button>
+
+    <button
+        onclick="SpiderWeb222.release()">
+        ✋ RELEASE
+    </button>
+
+    <button
+        onclick="SpiderWeb222.reset()">
+        🔄 RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V222 WEB SWING ENGINE
+ ===================================================== */
+
+const SpiderWeb222={
+
+    state:"READY",
+
+    anchor:null,
+
+    line:null,
+
+    swingTimer:null,
+
+    swingProgress:0,
+
+    velocity:0,
+
+    running:true,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.createAnchors();
+
+        this.updateHUD();
+
+        this.message(
+            "🕸️ Web traversal ready."
+        );
+
+    },
+
+
+    /* =========================
+       CREATE ANCHORS
+    ========================= */
+
+    createAnchors(){
+
+        const world=
+            document.getElementById(
+                "webTraversal222"
+            );
+
+        if(!world)
+            return;
+
+
+        const positions=[
+
+            [15,25],
+            [30,18],
+            [48,22],
+            [65,16],
+            [82,27],
+            [22,38],
+            [55,35],
+            [75,40]
+
+        ];
+
+
+        positions.forEach(
+            (pos,index)=>{
+
+                const anchor=
+                    document.createElement(
+                        "div"
+                    );
+
+                anchor.className=
+                    "webAnchor222";
+
+                anchor.id=
+                    "webAnchor222_"+
+                    index;
+
+                anchor.style.left=
+                    pos[0]+"%";
+
+                anchor.style.top=
+                    pos[1]+"%";
+
+                anchor.onclick=
+                    ()=>{
+                        this.selectAnchor(
+                            index
+                        );
+                    };
+
+
+                world.appendChild(
+                    anchor
+                );
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       SELECT ANCHOR
+    ========================= */
+
+    selectAnchor(index){
+
+        const anchor=
+            document.getElementById(
+                "webAnchor222_"+
+                index
+            );
+
+        if(!anchor)
+            return;
+
+
+        document
+            .querySelectorAll(
+                ".webAnchor222"
+            )
+            .forEach(
+                a=>{
+                    a.classList.remove(
+                        "active"
+                    );
+                }
+            );
+
+
+        anchor.classList.add(
+            "active"
+        );
+
+
+        const rect=
+            anchor.getBoundingClientRect();
+
+
+        this.anchor={
+
+            x:
+                rect.left+
+                rect.width/2,
+
+            y:
+                rect.top+
+                rect.height/2,
+
+            element:
+                anchor
+
+        };
+
+
+        this.state=
+            "ANCHOR SELECTED";
+
+
+        this.drawLine();
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       SHOOT WEB
+    ========================= */
+
+    shoot(){
+
+        /*
+         * Choose nearest anchor to
+         * screen center.
+         */
+
+        const anchors=
+            [
+                ...
+                document.querySelectorAll(
+                    ".webAnchor222"
+                )
+            ];
+
+
+        if(!anchors.length)
+            return;
+
+
+        let best=null;
+
+        let bestDistance=
+            Infinity;
+
+
+        const cx=
+            window.innerWidth/2;
+
+        const cy=
+            window.innerHeight/2;
+
+
+        anchors.forEach(
+            anchor=>{
+
+                const rect=
+                    anchor.getBoundingClientRect();
+
+                const ax=
+                    rect.left+
+                    rect.width/2;
+
+                const ay=
+                    rect.top+
+                    rect.height/2;
+
+
+                const distance=
+                    Math.hypot(
+                        ax-cx,
+                        ay-cy
+                    );
+
+
+                if(
+                    distance<
+                    bestDistance
+                ){
+
+                    bestDistance=
+                        distance;
+
+                    best=anchor;
+
+                }
+
+            }
+        );
+
+
+        if(best){
+
+            const id=
+                Number(
+                    best.id.split("_").pop()
+                );
+
+            this.selectAnchor(
+                id
+            );
+
+            this.state=
+                "WEB ATTACHED";
+
+            this.updateHUD();
+
+            this.message(
+                "🕸️ Web attached!"
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       DRAW WEB
+    ========================= */
+
+    drawLine(){
+
+        if(
+            !this.anchor
+        )
+            return;
+
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+
+        if(!player)
+            return;
+
+
+        const rect=
+            player.getBoundingClientRect();
+
+
+        const px=
+            rect.left+
+            rect.width/2;
+
+        const py=
+            rect.top+
+            rect.height/2;
+
+
+        const ax=
+            this.anchor.x;
+
+        const ay=
+            this.anchor.y;
+
+
+        const dx=
+            ax-px;
+
+        const dy=
+            ay-py;
+
+
+        const length=
+            Math.hypot(
+                dx,
+                dy
+            );
+
+
+        const angle=
+            Math.atan2(
+                dy,
+                dx
+            )*
+            180/
+            Math.PI;
+
+
+        if(!this.line){
+
+            this.line=
+                document.createElement(
+                    "div"
+                );
+
+            this.line.className=
+                "webLine222";
+
+            document
+                .getElementById(
+                    "webTraversal222"
+                )
+                .appendChild(
+                    this.line
+                );
+
+        }
+
+
+        this.line.style.left=
+            px+"px";
+
+        this.line.style.top=
+            py+"px";
+
+        this.line.style.width=
+            length+"px";
+
+        this.line.style.transform=
+            "rotate("+
+            angle+
+            "deg)";
+
+
+        this.updateDistance(
+            length
+        );
+
+    },
+
+
+    /* =========================
+       SWING
+    ========================= */
+
+    swing(){
+
+        if(
+            !this.anchor
+        ){
+
+            this.shoot();
+
+        }
+
+
+        if(
+            !this.anchor
+        )
+            return;
+
+
+        this.state=
+            "SWINGING";
+
+        this.swingProgress=0;
+
+        this.velocity=
+            1;
+
+        clearInterval(
+            this.swingTimer
+        );
+
+
+        this.swingTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        this.state!==
+                        "SWINGING"
+                    )
+                        return;
+
+
+                    this.swingProgress+=
+                        this.velocity;
+
+
+                    this.velocity+=
+                        Math.sin(
+                            this.swingProgress/
+                            18
+                        )*.04;
+
+
+                    this.velocity=
+                        Math.max(
+                            .4,
+                            Math.min(
+                                1.8,
+                                this.velocity
+                            )
+                        );
+
+
+                    this.movePlayer();
+
+                    this.drawLine();
+
+                },
+                40
+            );
+
+
+        this.message(
+            "🏙️ Swinging!"
+        );
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       MOVE PLAYER
+    ========================= */
+
+    movePlayer(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+
+        if(!player)
+            return;
+
+
+        const centerX=
+            window.innerWidth/2;
+
+        const centerY=
+            window.innerHeight/2;
+
+
+        const angle=
+            this.swingProgress/
+            35;
+
+
+        const radius=
+            100+
+            Math.min(
+                180,
+                this.getAnchorDistance()
+            )*
+            .25;
+
+
+        const x=
+            centerX+
+            Math.sin(angle)*
+            radius;
+
+
+        const y=
+            centerY+
+            Math.cos(angle)*
+            radius*
+            .35;
+
+
+        /*
+         * If the existing player uses
+         * left/top positioning, update it.
+         */
+
+        if(
+            player.style
+        ){
+
+            player.style.left=
+                x+"px";
+
+            player.style.top=
+                y+"px";
+
+        }
+
+    },
+
+
+    /* =========================
+       RELEASE
+    ========================= */
+
+    release(){
+
+        if(
+            this.state!==
+            "SWINGING"
+        ){
+
+            this.message(
+                "🕸️ Nothing to release."
+            );
+
+            return;
+
+        }
+
+
+        this.state=
+            "AIRBORNE";
+
+
+        clearInterval(
+            this.swingTimer
+        );
+
+
+        this.swingTimer=null;
+
+
+        this.message(
+            "💨 Web released!"
+        );
+
+
+        /*
+         * Continue a short airborne
+         * movement.
+         */
+
+        let frames=0;
+
+
+        const airTimer=
+            setInterval(
+                ()=>{
+
+                    frames++;
+
+
+                    const player=
+                        document.getElementById(
+                            "spiderman"
+                        );
+
+
+                    if(
+                        player
+                    ){
+
+                        const top=
+                            parseFloat(
+                                player.style.top
+                            )||50;
+
+
+                        player.style.top=
+                            (
+                                top+
+                                2
+                            )+
+                            "px";
+
+                    }
+
+
+                    if(
+                        frames>=18
+                    ){
+
+                        clearInterval(
+                            airTimer
+                        );
+
+                        this.state=
+                            "READY";
+
+                        this.removeLine();
+
+                        this.updateHUD();
+
+                    }
+
+                },
+                40
+            );
+
+    },
+
+
+    /* =========================
+       DISTANCE
+    ========================= */
+
+    getAnchorDistance(){
+
+        if(
+            !this.anchor
+        )
+            return 0;
+
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+
+        if(!player)
+            return 0;
+
+
+        const rect=
+            player.getBoundingClientRect();
+
+
+        const px=
+            rect.left+
+            rect.width/2;
+
+        const py=
+            rect.top+
+            rect.height/2;
+
+
+        return Math.hypot(
+            this.anchor.x-px,
+            this.anchor.y-py
+        );
+
+    },
+
+
+    /* =========================
+       DISTANCE HUD
+    ========================= */
+
+    updateDistance(distance){
+
+        const hud=
+            document.getElementById(
+                "webDistance222"
+            );
+
+
+        if(hud){
+
+            hud.textContent=
+                "Anchor: "+
+                Math.round(distance)+
+                " px";
+
+        }
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const state=
+            document.getElementById(
+                "webState222"
+            );
+
+
+        if(state){
+
+            state.textContent=
+                "State: "+
+                this.state;
+
+        }
+
+        if(
+            this.anchor
+        ){
+
+            this.drawLine();
+
+        }
+
+    },
+
+
+    /* =========================
+       REMOVE LINE
+    ========================= */
+
+    removeLine(){
+
+        if(this.line){
+
+            this.line.remove();
+
+            this.line=null;
+
+        }
+
+
+        this.anchor=null;
+
+
+        document
+            .querySelectorAll(
+                ".webAnchor222"
+            )
+            .forEach(
+                a=>{
+                    a.classList.remove(
+                        "active"
+                    );
+                }
+            );
+
+
+        this.updateDistance(
+            0
+        );
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    reset(){
+
+        clearInterval(
+            this.swingTimer
+        );
+
+
+        this.swingTimer=null;
+
+        this.state=
+            "READY";
+
+        this.velocity=0;
+
+        this.swingProgress=0;
+
+        this.removeLine();
+
+        this.updateHUD();
+
+        this.message(
+            "🔄 Web traversal reset."
+        );
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V222
+ ===================================================== */
+
+SpiderWeb222.init();
+
+
+/* =====================================================
+ KEYBOARD CONTROLS
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="f")
+            SpiderWeb222.shoot();
+
+
+        if(key==="g")
+            SpiderWeb222.swing();
+
+
+        if(key==="v")
+            SpiderWeb222.release();
+
+    }
+);
