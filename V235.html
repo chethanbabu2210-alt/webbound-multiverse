@@ -1,0 +1,743 @@
+<!-- =====================================================
+ V235 — SUIT + GADGET SYSTEM
+ Add after V234
+ ===================================================== -->
+
+<style>
+
+#suitHud235{
+
+    position:fixed;
+
+    left:12px;
+    top:535px;
+
+    width:min(255px,51vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:4800;
+
+}
+
+.suitTitle235{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#suitName235,
+#suitPower235,
+#gadgetName235,
+#webEnergy235{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= GADGET MESSAGE ================= */
+
+#gadgetMessage235{
+
+    position:fixed;
+
+    left:50%;
+    bottom:210px;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 16px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff30;
+
+    border-radius:9px;
+
+    font-size:9px;
+
+    z-index:6000;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#gadgetMessage235.show{
+
+    animation:
+        gadgetPopup235 .9s forwards;
+
+}
+
+@keyframes gadgetPopup235{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            translateY(8px);
+    }
+
+    20%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            translateY(0);
+    }
+
+    80%{
+        opacity:1;
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#suitControls235{
+
+    position:fixed;
+
+    left:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5000;
+
+}
+
+#suitControls235 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="suitHud235">
+
+    <div class="suitTitle235">
+        🕷️ SUIT & GADGETS — V235
+    </div>
+
+    <div id="suitName235">
+        Suit: Classic
+    </div>
+
+    <div id="suitPower235">
+        Power: 100
+    </div>
+
+    <div id="gadgetName235">
+        Gadget: Web Shooter
+    </div>
+
+    <div id="webEnergy235">
+        Energy: 100
+    </div>
+
+</div>
+
+
+<div id="gadgetMessage235">
+    GADGET
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="suitControls235">
+
+    <button onclick="SpiderSuit235.nextSuit()">
+        🕷️ SUIT
+    </button>
+
+    <button onclick="SpiderSuit235.nextGadget()">
+        🔧 GADGET
+    </button>
+
+    <button onclick="SpiderSuit235.useGadget()">
+        ⚡ USE
+    </button>
+
+    <button onclick="SpiderSuit235.recharge()">
+        🔋 RECHARGE
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V235 SUIT ENGINE
+ ===================================================== */
+
+const SpiderSuit235={
+
+
+    /* =========================
+       SUITS
+    ========================= */
+
+    suits:[
+
+        {
+            name:"Classic",
+
+            power:100,
+
+            description:
+                "Balanced suit"
+
+        },
+
+        {
+            name:"Stealth",
+
+            power:120,
+
+            description:
+                "Improved stealth"
+
+        },
+
+        {
+            name:"Velocity",
+
+            power:110,
+
+            description:
+                "Improved movement"
+
+        },
+
+        {
+            name:"Tech",
+
+            power:140,
+
+            description:
+                "Improved gadget capacity"
+
+        }
+
+    ],
+
+
+    suitIndex:0,
+
+
+    /* =========================
+       GADGETS
+    ========================= */
+
+    gadgets:[
+
+        {
+            name:"Web Shooter",
+
+            cost:10,
+
+            effect:
+                "Web attack"
+
+        },
+
+        {
+            name:"Impact Web",
+
+            cost:20,
+
+            effect:
+                "Strong web attack"
+
+        },
+
+        {
+            name:"Web Bomb",
+
+            cost:30,
+
+            effect:
+                "Area web effect"
+
+        },
+
+        {
+            name:"Electric Web",
+
+            cost:25,
+
+            effect:
+                "Electric stun"
+
+        }
+
+    ],
+
+
+    gadgetIndex:0,
+
+
+    energy:100,
+
+    maxEnergy:100,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.message(
+            "🕷️ Suit system online."
+        );
+
+    },
+
+
+    /* =========================
+       CURRENT SUIT
+    ========================= */
+
+    currentSuit(){
+
+        return this.suits[
+            this.suitIndex
+        ];
+
+    },
+
+
+    /* =========================
+       CURRENT GADGET
+    ========================= */
+
+    currentGadget(){
+
+        return this.gadgets[
+            this.gadgetIndex
+        ];
+
+    },
+
+
+    /* =========================
+       NEXT SUIT
+    ========================= */
+
+    nextSuit(){
+
+        this.suitIndex=
+            (
+                this.suitIndex+
+                1
+            )%
+            this.suits.length;
+
+
+        const suit=
+            this.currentSuit();
+
+
+        this.message(
+            "🕷️ Suit equipped: "+
+            suit.name
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       NEXT GADGET
+       ========================= */
+
+    nextGadget(){
+
+        this.gadgetIndex=
+            (
+                this.gadgetIndex+
+                1
+            )%
+            this.gadgets.length;
+
+
+        const gadget=
+            this.currentGadget();
+
+
+        this.message(
+            "🔧 Gadget selected: "+
+            gadget.name
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       USE GADGET
+       ========================= */
+
+    useGadget(){
+
+        const gadget=
+            this.currentGadget();
+
+
+        if(
+            this.energy<
+            gadget.cost
+        ){
+
+            this.message(
+                "🔋 Not enough gadget energy."
+            );
+
+            return;
+
+        }
+
+
+        this.energy=
+            Math.max(
+                0,
+                this.energy-
+                gadget.cost
+            );
+
+
+        this.message(
+            "⚡ "+
+            gadget.name+
+            " used!"
+        );
+
+
+        /*
+         * Connect with combat.
+         */
+
+        if(
+            typeof SpiderCombat233!==
+            "undefined"
+        ){
+
+            if(
+                SpiderCombat233
+                    .enemies.length
+            ){
+
+                const enemy=
+                    SpiderCombat233
+                        .getNearestEnemy();
+
+
+                if(enemy){
+
+                    let damage=15;
+
+
+                    if(
+                        gadget.name===
+                        "Impact Web"
+                    )
+                        damage=30;
+
+
+                    if(
+                        gadget.name===
+                        "Web Bomb"
+                    )
+                        damage=25;
+
+
+                    if(
+                        gadget.name===
+                        "Electric Web"
+                    )
+                        damage=20;
+
+
+                    SpiderCombat233
+                        .damageEnemy(
+                            enemy.element,
+                            damage
+                        );
+
+                }
+
+            }
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       RECHARGE
+    ========================= */
+
+    recharge(){
+
+        this.energy=
+            Math.min(
+                this.maxEnergy,
+                this.energy+30
+            );
+
+
+        this.message(
+            "🔋 Gadget energy restored."
+        );
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       PASSIVE RECHARGE
+    ========================= */
+
+    startRecharge(){
+
+        setInterval(
+            ()=>{
+
+                if(
+                    this.energy<
+                    this.maxEnergy
+                ){
+
+                    this.energy=
+                        Math.min(
+                            this.maxEnergy,
+                            this.energy+2
+                        );
+
+                    this.updateHUD();
+
+                }
+
+            },
+            1000
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const suit=
+            this.currentSuit();
+
+
+        const gadget=
+            this.currentGadget();
+
+
+        const suitName=
+            document.getElementById(
+                "suitName235"
+            );
+
+
+        const power=
+            document.getElementById(
+                "suitPower235"
+            );
+
+
+        const gadgetName=
+            document.getElementById(
+                "gadgetName235"
+            );
+
+
+        const energy=
+            document.getElementById(
+                "webEnergy235"
+            );
+
+
+        if(suitName){
+
+            suitName.textContent=
+                "Suit: "+
+                suit.name;
+
+        }
+
+
+        if(power){
+
+            power.textContent=
+                "Power: "+
+                suit.power;
+
+        }
+
+
+        if(gadgetName){
+
+            gadgetName.textContent=
+                "Gadget: "+
+                gadget.name;
+
+        }
+
+
+        if(energy){
+
+            energy.textContent=
+                "Energy: "+
+                this.energy;
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        const box=
+            document.getElementById(
+                "gadgetMessage235"
+            );
+
+
+        if(box){
+
+            box.textContent=text;
+
+            box.classList.remove(
+                "show"
+            );
+
+            void box.offsetWidth;
+
+            box.classList.add(
+                "show"
+            );
+
+        }
+
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V235
+ ===================================================== */
+
+SpiderSuit235.init();
+
+SpiderSuit235.startRecharge();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="1")
+            SpiderSuit235.nextSuit();
+
+
+        if(key==="2")
+            SpiderSuit235.nextGadget();
+
+
+        if(key==="g")
+            SpiderSuit235.useGadget();
+
+
+        if(key==="r")
+            SpiderSuit235.recharge();
+
+    }
+);
