@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V137</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  overflow:hidden;
+  background:#081018;
+  color:#fff;
+  font-family:Arial,sans-serif;
+}
+
+#world{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:linear-gradient(#172633,#0b141d);
+}
+
+.road{
+  position:absolute;
+  background:#252b31;
+  z-index:5;
+}
+
+.road.h{
+  height:38px;
+  left:0;
+  right:0;
+}
+
+.road.v{
+  width:38px;
+  top:0;
+  bottom:0;
+}
+
+#buildings{
+  position:absolute;
+  inset:0;
+  z-index:10;
+}
+
+.building{
+  position:absolute;
+  background:#1b2936;
+  border:1px solid #ffffff18;
+  border-radius:8px;
+  box-shadow:0 5px 14px #0007;
+}
+
+.label{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  font-size:9px;
+  white-space:nowrap;
+}
+
+#player{
+  position:absolute;
+  width:22px;
+  height:30px;
+  background:#278be5;
+  border-radius:9px 9px 4px 4px;
+  transform:translate(-50%,-50%);
+  z-index:6000;
+}
+
+#player:before{
+  content:"";
+  position:absolute;
+  width:13px;
+  height:13px;
+  left:4.5px;
+  top:-9px;
+  border-radius:50%;
+  background:#c9936c;
+}
+
+.npc{
+  position:absolute;
+  width:17px;
+  height:25px;
+  border-radius:8px 8px 4px 4px;
+  z-index:3000;
+}
+
+.npc:before{
+  content:"";
+  position:absolute;
+  width:10px;
+  height:10px;
+  left:3.5px;
+  top:-8px;
+  border-radius:50%;
+  background:#c9936c;
+}
+
+.npcName{
+  position:absolute;
+  bottom:28px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:7px;
+  white-space:nowrap;
+  text-shadow:0 1px 3px #000;
+}
+
+.car{
+  position:absolute;
+  width:27px;
+  height:13px;
+  border-radius:4px;
+  z-index:2400;
+}
+
+.bus{
+  position:absolute;
+  width:42px;
+  height:18px;
+  background:#3975a8;
+  border-radius:5px;
+  z-index:2500;
+  box-shadow:0 2px 8px #000;
+}
+
+.bus:after{
+  content:"";
+  position:absolute;
+  left:7px;
+  right:7px;
+  top:3px;
+  height:7px;
+  background:#9fc0ce;
+  border-radius:2px;
+}
+
+.emergency{
+  position:absolute;
+  width:39px;
+  height:17px;
+  border-radius:5px;
+  z-index:5000;
+  box-shadow:0 2px 9px #000;
+  border:1px solid #fff5;
+}
+
+.police{
+  background:#285080;
+}
+
+.ambulance{
+  background:#e8e8e8;
+  color:#b22;
+}
+
+.fire{
+  background:#c63c2d;
+}
+
+.emergency:before{
+  content:"";
+  position:absolute;
+  left:7px;
+  right:7px;
+  top:3px;
+  height:7px;
+  background:#9fc0ce;
+  border-radius:2px;
+}
+
+.emergency:after{
+  content:"";
+  position:absolute;
+  width:6px;
+  height:3px;
+  top:-3px;
+  left:16px;
+  background:#e33;
+  box-shadow:0 0 7px #f33;
+}
+
+.station{
+  position:absolute;
+  width:30px;
+  height:30px;
+  border-radius:7px;
+  z-index:2000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:17px;
+  background:#182c3b;
+  border:1px solid #ffffff30;
+}
+
+.incident{
+  position:absolute;
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  z-index:4500;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+  50%{
+    transform:scale(1.25);
+  }
+}
+
+.incidentLabel{
+  position:absolute;
+  top:-17px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:7px;
+  white-space:nowrap;
+}
+
+#hud{
+  position:fixed;
+  left:10px;
+  bottom:10px;
+  width:min(420px,92vw);
+  padding:13px;
+  background:#03070cf2;
+  border:1px solid #ffffff25;
+  border-radius:14px;
+  z-index:8000;
+}
+
+#title{
+  font-size:14px;
+  font-weight:bold;
+}
+
+#stats{
+  margin-top:8px;
+  font-size:10px;
+  line-height:1.65;
+}
+
+.buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:9px;
+}
+
+button{
+  flex:1;
+  min-width:85px;
+  padding:8px;
+  border:1px solid #ffffff18;
+  border-radius:8px;
+  background:#172535;
+  color:#fff;
+  font-size:9px;
+}
+
+#clock{
+  position:fixed;
+  right:10px;
+  top:10px;
+  z-index:8000;
+  padding:9px 12px;
+  background:#03070cf2;
+  border:1px solid #ffffff25;
+  border-radius:10px;
+  font-size:11px;
+}
+
+#message{
+  position:fixed;
+  left:50%;
+  top:17%;
+  transform:translateX(-50%);
+  z-index:9000;
+  display:none;
+  padding:10px 15px;
+  background:#03070cf5;
+  border:1px solid #ffffff30;
+  border-radius:10px;
+  font-size:11px;
+  text-align:center;
+}
+
+#panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(450px,92vw);
+  max-height:78vh;
+  overflow:auto;
+  display:none;
+  padding:15px;
+  background:#03070cf9;
+  border:1px solid #ffffff30;
+  border-radius:16px;
+  z-index:10000;
+}
+
+#panelTitle{
+  font-weight:bold;
+  font-size:14px;
+}
+
+.row{
+  margin-top:8px;
+  padding:10px;
+  background:#111c28;
+  border-radius:9px;
+  font-size:10px;
+}
+
+.close{
+  width:100%;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="world">
+
+  <div class="road h" style="top:27%"></div>
+  <div class="road h" style="top:67%"></div>
+
+  <div class="road v" style="left:24%"></div>
+  <div class="road v" style="left:56%"></div>
+  <div class="road v" style="left:78%"></div>
+
+  <div id="buildings"></div>
+
+  <div id="player"></div>
+
+</div>
+
+<div id="clock">📅 Day 1 • 🕐 08:00</div>
+
+<div id="message"></div>
+
+<div id="hud">
+
+  <div id="title">
+    🚨 WEBBOUND V137 — EMERGENCY SERVICES
+  </div>
+
+  <div id="stats"></div>
+
+  <div class="buttons">
+
+    <button onclick="V137.emergencyPanel()">
+      🚨 EMERGENCY
+    </button>
+
+    <button onclick="V137.dispatch()">
+      📡 DISPATCH
+    </button>
+
+    <button onclick="V137.cityPanel()">
+      🏙️ CITY
+    </button>
+
+    <button onclick="V137.advanceHour()">
+      ⏩ +1 HOUR
+    </button>
+
+    <button onclick="V137.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+  </div>
+
+</div>
+
+<div id="panel">
+
+  <div id="panelTitle">
+    WEBBOUND V137
+  </div>
+
+  <div id="panelContent"></div>
+
+  <button class="close" onclick="V137.closePanel()">
+    CLOSE
+  </button>
+
+</div>
+
+<script>
+
+const V137={
+
+  saveKey:"WEBBOUND_V134",
+
+  running:true,
+
+  hour:8,
+
+  day:1,
+
+  keys:{},
+
+  player:{
+    x:window.innerWidth/2,
+    y:window.innerHeight/2,
+    money:1000,
+    reputation:0,
+    job:null
+  },
+
+  npcs:[],
+
+  cars:[],
+
+  buses:[],
+
+  emergencyVehicles:[],
+
+  stations:[],
+
+  incidents:[],
+
+  stats:{
+    calls:0,
+    resolved:0,
+    active:0,
+    policeCalls:0,
+    medicalCalls:0,
+    fireCalls:0,
+    responseScore:100
+  },
+
+  /* ======================================
+     INIT
+     ====================================== */
+
+  init(){
+
+    this.load();
+
+    this.createBuildings();
+
+    this.createStations();
+
+    this.createNPCs();
+
+    this.createCars();
+
+    this.createBuses();
+
+    this.createEmergencyVehicles();
+
+    this.keyboard();
+
+    this.render();
+
+    setInterval(
+      ()=>{
+        if(this.running){
+          this.update();
+        }
+      },
+      40
+    );
+
+    setInterval(
+      ()=>{
+        if(this.running){
+          this.randomIncident();
+        }
+      },
+      7000
+    );
+
+    this.message(
+      "🚨 V137 emergency system online"
+    );
+
+  },
+
+  /* ======================================
+     BUILDINGS
+     ====================================== */
+
+  createBuildings(){
+
+    const root=
+      document.getElementById(
+        "buildings"
+      );
+
+    root.innerHTML="";
+
+    const data=[
+
+      ["🏠 Homes",5,6,17,18],
+
+      ["🏫 School",29,7,17,15],
+
+      ["🏥 Hospital",60,7,14,15],
+
+      ["🏢 Offices",81,7,15,16],
+
+      ["🏪 Shops",81,45,15,16],
+
+      ["🌳 Park",29,47,18,17],
+
+      ["🍽️ Restaurant",60,46,15,15],
+
+      ["🏭 Factory",5,46,17,16]
+
+    ];
+
+    data.forEach(
+      d=>{
+
+        const el=
+          document.createElement(
+            "div"
+          );
+
+        el.className="building";
+
+        el.style.left=d[1]+"%";
+        el.style.top=d[2]+"%";
+        el.style.width=d[3]+"%";
+        el.style.height=d[4]+"%";
+
+        const label=
+          document.createElement(
+            "div"
+          );
+
+        label.className="label";
+        label.textContent=d[0];
+
+        el.appendChild(label);
+
+        root.appendChild(el);
+
+      }
+    );
+
+  },
+
+  /* ======================================
+     STATIONS
+     ====================================== */
+
+  createStations(){
+
+    const data=[
+
+      {
+        type:"police",
+        icon:"🚓",
+        name:"Police Station",
+        x:.12,
+        y:.20
+      },
+
+      {
+        type:"medical",
+        icon:"🏥",
+        name:"Medical Center",
+        x:.65,
+        y:.18
+      },
+
+      {
+        type:"fire",
+        icon:"🚒",
+        name:"Fire Station",
+        x:.87,
+        y:.35
+      }
+
+    ];
+
+    data.forEach(
+      d=>{
+
+        const el=
+          document.createElement(
+            "div"
+          );
+
+        el.className="station";
+
+        el.textContent=d.icon;
+
+        el.style.left=
+          `calc(${d.x*100}% - 15px)`;
+
+        el.style.top=
+          `calc(${d.y*100}% - 15px)`;
+
+        document
+          .getElementById("world")
+          .appendChild(el);
+
+        this.stations.push({
+
+          type:d.type,
+
+          name:d.name,
+
+          x:
+            window.innerWidth*d.x,
+
+          y:
+            window.innerHeight*d.y,
+
+          element:el
+
+        });
+
+      }
+    );
+
+  },
+
+  /* ======================================
+     NPCS
+     ====================================== */
+
+  createNPCs(){
+
+    if(
+      this.npcs.length>0
+    ){
+
+      this.npcs.forEach(
+        n=>{
+          n.element=null;
+        }
+      );
+
+      return;
+
+    }
+
+    const names=[
+      "Alex","Sam","Ryan","Maya",
+      "Arun","Riya","Dev","Asha",
+      "Noah","Leo","Avi","Zara",
+      "Kiran","Nikhil","Anu",
+      "Rahul","Meera","Vikram"
+    ];
+
+    for(
+      let i=0;
+      i<18;
+      i++
+    ){
+
+      this.npcs.push({
+
+        id:i+1,
+
+        name:
+          names[
+            i%names.length
+          ],
+
+        x:
+          Math.random()*
+          window.innerWidth,
+
+        y:
+          160+
+          Math.random()*
+          Math.max(
+            1,
+            window.innerHeight-220
+          ),
+
+        targetX:
+          Math.random()*
+          window.innerWidth,
+
+        targetY:
+          170+
+          Math.random()*
+          Math.max(
+            1,
+            window.innerHeight-230
+          ),
+
+        happiness:
+          50+
+          Math.floor(
+            Math.random()*45
+          ),
+
+        money:
+          500+
+          Math.floor(
+            Math.random()*3000
+          ),
+
+        element:null
+
+      });
+
+    }
+
+  },
+
+  /* ======================================
+     CARS
+     ====================================== */
+
+  createCars(){
+
+    if(
+      this.cars.length>0
+    ){
+
+      this.cars.forEach(
+        c=>{
+          c.element=null;
+        }
+      );
+
+      return;
+
+    }
+
+    for(
+      let i=0;
+      i<12;
+      i++
+    ){
+
+      const horizontal=
+        Math.random()>.5;
+
+      this.cars.push({
+
+        x:
+          horizontal
+          ? Math.random()*
+            window.innerWidth
+          : window.innerWidth*.24,
+
+        y:
+          horizontal
+          ? this.randomRoadY()
+          : Math.random()*
+            window.innerHeight,
+
+        horizontal,
+
+        speed:
+          1+
+          Math.random()*1.4,
+
+        direction:
+          Math.random()>.5
+          ? 1
+          : -1,
+
+        element:null
+
+      });
+
+    }
+
+  },
+
+  randomRoadY(){
+
+    return Math.random()>.5
+      ? window.innerHeight*.27+12
+      : window.innerHeight*.67+12;
+
+  },
+
+  /* ======================================
+     BUSES
+     ====================================== */
+
+  createBuses(){
+
+    if(
+      this.buses.length>0
+    ){
+
+      this.buses.forEach(
+        b=>{
+          b.element=null;
+        }
+      );
+
+      return;
+
+    }
+
+    for(
+      let i=0;
+      i<3;
+      i++
+    ){
+
+      this.buses.push({
+
+        x:
+          window.innerWidth*
+          (.2+i*.25),
+
+        y:
+          window.innerHeight*.27,
+
+        targetX:
+          window.innerWidth*
+          (.2+i*.25),
+
+        targetY:
+          window.innerHeight*.67,
+
+        speed:.6,
+
+        passengers:
+          Math.floor(
+            Math.random()*8
+          ),
+
+        element:null
+
+      });
+
+    }
+
+  },
+
+  /* ======================================
+     EMERGENCY VEHICLES
+     ====================================== */
+
+  createEmergencyVehicles(){
+
+    if(
+      this.emergencyVehicles.length>0
+    ){
+
+      this.emergencyVehicles.forEach(
+        v=>{
+          v.element=null;
+        }
+      );
+
+      return;
+
+    }
+
+    const types=[
+
+      "police",
+      "police",
+      "medical",
+      "medical",
+      "fire",
+      "fire"
+
+    ];
+
+    types.forEach(
+      (type,index)=>{
+
+        const station=
+          this.findStation(type);
+
+        this.emergencyVehicles.push({
+
+          id:index+1,
+
+          type,
+
+          x:station.x,
+
+          y:station.y,
+
+          targetX:station.x,
+
+          targetY:station.y,
+
+          speed:
+            type==="police"
+            ? 1.6
+            : type==="medical"
+            ? 1.4
+            : 1.25,
+
+          available:true,
+
+          incidentId:null,
+
+          element:null
+
+        });
+
+      }
+    );
+
+  },
+
+  /* ======================================
+     UPDATE
+     ====================================== */
+
+  update(){
+
+    this.movePlayer();
+
+    this.updateNPCs();
+
+    this.updateCars();
+
+    this.updateBuses();
+
+    this.updateEmergencyVehicles();
+
+    this.updateIncidents();
+
+    this.updateTime();
+
+    this.updateHUD();
+
+  },
+
+  /* ======================================
+     NPC UPDATE
+     ====================================== */
+
+  updateNPCs(){
+
+    this.npcs.forEach(
+      npc=>{
+
+        const dx=
+          npc.targetX-npc.x;
+
+        const dy=
+          npc.targetY-npc.y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+        if(
+          d<10
+        ){
+
+          npc.targetX=
+            Math.random()*
+            window.innerWidth;
+
+          npc.targetY=
+            160+
+            Math.random()*
+            Math.max(
+              1,
+              window.innerHeight-220
+            );
+
+          return;
+
+        }
+
+        npc.x+=
+          dx/d*.42;
+
+        npc.y+=
+          dy/d*.42;
+
+      }
+    );
+
+  },
+
+  /* ======================================
+     CAR UPDATE
+     ====================================== */
+
+  updateCars(){
+
+    this.cars.forEach(
+      car=>{
+
+        if(
+          car.horizontal
+        ){
+
+          car.x+=
+            car.speed*
+            car.direction;
+
+        }
+        else{
+
+          car.y+=
+            car.speed*
+            car.direction;
+
+        }
+
+        if(
+          car.x<
+          -60||
+          car.x>
+          window.innerWidth+60
+        ){
+
+          car.x=
+            car.direction>0
+            ? -60
+            : window.innerWidth+60;
+
+        }
+
+        if(
+          car.y<
+          -60||
+          car.y>
+          window.innerHeight+60
+        ){
+
+          car.y=
+            car.direction>0
+            ? -60
+            : window.innerHeight+60;
+
+        }
+
+      }
+    );
+
+  },
+
+  /* ======================================
+     BUS UPDATE
+     ====================================== */
+
+  updateBuses(){
+
+    this.buses.forEach(
+      bus=>{
+
+        const dx=
+          bus.targetX-bus.x;
+
+        const dy=
+          bus.targetY-bus.y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+        if(
+          d<10
+        ){
+
+          const nextX=
+            Math.random()*
+            window.innerWidth;
+
+          bus.targetX=nextX;
+
+          bus.targetY=
+            Math.random()>.5
+            ? window.innerHeight*.27
+            : window.innerHeight*.67;
+
+          return;
+
+        }
+
+        bus.x+=
+          dx/d*
+          bus.speed;
+
+        bus.y+=
+          dy/d*
+          bus.speed;
+
+      }
+    );
+
+  },
+
+  /* ======================================
+     RANDOM INCIDENTS
+     ====================================== */
+
+  randomIncident(){
+
+    if(
+      this.incidents.length>=3
+    )
+      return;
+
+    const types=[
+
+      {
+        type:"police",
+        icon:"🚨",
+        name:"Security Call"
+      },
+
+      {
+        type:"medical",
+        icon:"⚕️",
+        name:"Medical Call"
+      },
+
+      {
+        type:"fire",
+        icon:"🔥",
+        name:"Fire Call"
+      }
+
+    ];
+
+    const data=
+      types[
+        Math.floor(
+          Math.random()*types.length
+        )
+      ];
+
+    const incident={
+
+      id:
+        Date.now(),
+
+      type:data.type,
+
+      icon:data.icon,
+
+      name:data.name,
+
+      x:
+        50+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerWidth-100
+        ),
+
+      y:
+        170+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerHeight-220
+        ),
+
+      assigned:false,
+
+      resolved:false,
+
+      element:null
+
+    };
+
+    this.incidents.push(
+      incident
+    );
+
+    this.stats.calls++;
+
+    this.stats.active=
+      this.incidents.length;
+
+    if(
+      data.type==="police"
+    )
+      this.stats.policeCalls++;
+
+    if(
+      data.type==="medical"
+    )
+      this.stats.medicalCalls++;
+
+    if(
+      data.type==="fire"
+    )
+      this.stats.fireCalls++;
+
+    this.message(
+      data.icon+
+      " "+
+      data.name+
+      " — dispatch required"
+    );
+
+  },
+
+  /* ======================================
+     DISPATCH
+     ====================================== */
+
+  dispatch(){
+
+    const incident=
+      this.incidents.find(
+        i=>!i.assigned
+      );
+
+    if(!incident){
+
+      this.message(
+        "📡 No unassigned incidents"
+      );
+
+      return;
+
+    }
+
+    const vehicle=
+      this.emergencyVehicles.find(
+        v=>
+          v.available &&
+          this.vehicleMatches(
+            v,
+            incident
+          )
+      );
+
+    if(!vehicle){
+
+      this.message(
+        "⚠️ No available unit"
+      );
+
+      this.stats.responseScore=
+        Math.max(
+          0,
+          this.stats.responseScore-2
+        );
+
+      return;
+
+    }
+
+    incident.assigned=true;
+
+    vehicle.available=false;
+
+    vehicle.incidentId=
+      incident.id;
+
+    vehicle.targetX=
+      incident.x;
+
+    vehicle.targetY=
+      incident.y;
+
+    this.message(
+      "📡 "+
+      this.typeName(
+        vehicle.type
+      )+
+      " dispatched"
+    );
+
+  },
+
+  vehicleMatches(
+    vehicle,
+    incident
+  ){
+
+    return vehicle.type===
+      incident.type;
+
+  },
+
+  /* ======================================
+     EMERGENCY VEHICLE UPDATE
+     ====================================== */
+
+  updateEmergencyVehicles(){
+
+    this.emergencyVehicles.forEach(
+      vehicle=>{
+
+        const dx=
+          vehicle.targetX-
+          vehicle.x;
+
+        const dy=
+          vehicle.targetY-
+          vehicle.y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+        if(
+          d<12
+        ){
+
+          if(
+            vehicle.incidentId
+          ){
+
+            const incident=
+              this.incidents.find(
+                i=>
+                  i.id===
+                  vehicle.incidentId
+              );
+
+            if(
+              incident &&
+              !incident.resolved
+            ){
+
+              incident.resolved=true;
+
+              this.stats.resolved++;
+
+              this.stats.responseScore=
+                Math.min(
+                  100,
+                  this.stats.responseScore+
+                  1
+                );
+
+              this.message(
+                "✅ "+
+                this.typeName(
+                  vehicle.type
+                )+
+                " resolved incident"
+              );
+
+            }
+
+            const station=
+              this.findStation(
+                vehicle.type
+              );
+
+            vehicle.targetX=
+              station.x;
+
+            vehicle.targetY=
+              station.y;
+
+            vehicle.incidentId=null;
+
+          }
+          else{
+
+            vehicle.available=true;
+
+          }
+
+          return;
+
+        }
+
+        vehicle.x+=
+          dx/d*
+          vehicle.speed;
+
+        vehicle.y+=
+  
