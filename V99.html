@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V99</title>
+
+<style>
+
+#v99HUD{
+
+  position:fixed;
+
+  right:12px;
+  top:155px;
+
+  z-index:9900;
+
+  padding:9px 12px;
+
+  background:#05070ee8;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+#v99HUD small{
+
+  display:block;
+
+  margin-top:3px;
+
+  opacity:.65;
+
+  font-weight:normal;
+
+}
+
+#v99Controls{
+
+  position:fixed;
+
+  right:12px;
+  top:220px;
+
+  z-index:9901;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:5px;
+
+}
+
+#v99Controls button{
+
+  padding:8px 10px;
+
+  background:#111827;
+
+  color:white;
+
+  border:1px solid #ffffff25;
+
+  border-radius:8px;
+
+  font-size:10px;
+
+}
+
+#v99Message{
+
+  position:fixed;
+
+  left:50%;
+  top:27%;
+
+  transform:translateX(-50%);
+
+  z-index:9950;
+
+  display:none;
+
+  padding:10px 15px;
+
+  background:#05070ef5;
+
+  color:white;
+
+  border:1px solid #ffffff30;
+
+  border-radius:10px;
+
+  font:bold 12px Arial,sans-serif;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V99 TRAFFIC HUD
+     ========================================================= -->
+
+<div id="v99HUD">
+
+  <span id="v99Status">
+    🚗 TRAFFIC ON
+  </span>
+
+  <small id="v99Count">
+    Vehicles: 0
+  </small>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v99Controls">
+
+  <button onclick="V99.toggle()">
+    🚗 TRAFFIC
+  </button>
+
+  <button onclick="V99.addVehicle()">
+    ➕ ADD VEHICLE
+  </button>
+
+  <button onclick="V99.clearVehicles()">
+    🗑️ CLEAR TRAFFIC
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v99Message">
+  V99
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V99
+   AMBIENT VEHICLE TRAFFIC SYSTEM
+   ========================================================= */
+
+const V99 = {
+
+  version:"V99",
+
+  saveKey:
+    "WEBBOUND_V99_TRAFFIC",
+
+  enabled:true,
+
+  maxVehicles:18,
+
+  spawnDistance:60,
+
+  updateRate:100,
+
+  lastUpdate:0,
+
+  vehicleId:1,
+
+  vehicles:[],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    console.log(
+      "WEBBOUND V99 TRAFFIC SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     PLAYER POSITION
+     ======================================================= */
+
+  getPlayerPosition(){
+
+    try{
+
+      if(
+        typeof player!=="undefined" &&
+        player &&
+        player.position
+      ){
+
+        return{
+
+          x:
+            Number(
+              player.position.x
+            ) || 0,
+
+          y:
+            Number(
+              player.position.y
+            ) || 0,
+
+          z:
+            Number(
+              player.position.z
+            ) || 0
+
+        };
+
+      }
+
+    }
+    catch(error){
+
+      console.warn(
+        "V99 PLAYER ERROR:",
+        error
+      );
+
+    }
+
+
+    return{
+
+      x:0,
+      y:0,
+      z:0
+
+    };
+
+  },
+
+
+  /* =======================================================
+     CREATE VEHICLE
+     ======================================================= */
+
+  createVehicle(){
+
+    const playerPos=
+      this.getPlayerPosition();
+
+
+    const side=
+      Math.random()<0.5
+      ? -1
+      : 1;
+
+
+    const distance=
+      20+
+      Math.random()*
+      this.spawnDistance;
+
+
+    const laneOffset=
+      Math.random()<0.5
+      ? -2
+      : 2;
+
+
+    return{
+
+      id:
+        this.vehicleId++,
+
+      type:
+        this.getRandomVehicleType(),
+
+      x:
+        playerPos.x+
+        side*distance,
+
+      y:
+        playerPos.y,
+
+      z:
+        playerPos.z+
+        laneOffset,
+
+      direction:
+        side===1
+        ? -1
+        : 1,
+
+      speed:
+        5+
+        Math.random()*7,
+
+      targetX:
+        playerPos.x+
+        side*distance*2,
+
+      targetZ:
+        playerPos.z+
+        laneOffset,
+
+      active:true,
+
+      createdAt:
+        Date.now()
+
+    };
+
+  },
+
+
+  /* =======================================================
+     VEHICLE TYPES
+     ======================================================= */
+
+  getRandomVehicleType(){
+
+    const types=[
+
+      "car",
+
+      "taxi",
+
+      "van",
+
+      "truck",
+
+      "sports"
+
+    ];
+
+
+    return types[
+      Math.floor(
+        Math.random()*
+        types.length
+      )
+    ];
+
+  },
+
+
+  /* =======================================================
+     ADD VEHICLE
+     ======================================================= */
+
+  addVehicle(){
+
+    if(
+      this.vehicles.length>=
+      this.maxVehicles
+    ){
+
+      this.message(
+        "🚗 Traffic limit reached"
+      );
+
+      return null;
+
+    }
+
+
+    const vehicle=
+      this.createVehicle();
+
+
+    this.vehicles.push(
+      vehicle
+    );
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    return vehicle;
+
+  },
+
+
+  /* =======================================================
+     INITIAL TRAFFIC
+     ======================================================= */
+
+  spawnInitial(){
+
+    if(
+      this.vehicles.length>0
+    ){
+
+      return;
+
+    }
+
+
+    for(
+      let i=0;
+      i<6;
+      i++
+    ){
+
+      this.addVehicle();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CLEAR TRAFFIC
+     ======================================================= */
+
+  clearVehicles(){
+
+    this.vehicles=[];
+
+    this.updateHUD();
+
+    this.save();
+
+    this.message(
+      "🗑️ Traffic cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     TOGGLE
+     ======================================================= */
+
+  toggle(){
+
+    this.enabled=
+      !this.enabled;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+
+      this.enabled
+      ? "🚗 Traffic ON"
+      : "🚗 Traffic OFF"
+
+    );
+
+  },
+
+
+  /* =======================================================
+     DISTANCE
+     ======================================================= */
+
+  getDistance(
+    vehicle,
+    playerPos
+  ){
+
+    const dx=
+      vehicle.x-
+      playerPos.x;
+
+    const dz=
+      vehicle.z-
+      playerPos.z;
+
+
+    return Math.sqrt(
+      dx*dx+
+      dz*dz
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE VEHICLE
+     ======================================================= */
+
+  updateVehicle(
+    vehicle,
+    delta,
+    playerPos
+  ){
+
+    if(
+      !vehicle.active
+    ){
+
+      return;
+
+    }
+
+
+    /*
+      Basic road movement.
+    */
+
+    vehicle.x+=
+      vehicle.direction*
+      vehicle.speed*
+      delta;
+
+
+    /*
+      Slight steering variation.
+    */
+
+    vehicle.z+=
+      Math.sin(
+        Date.now()/1000+
+        vehicle.id
+      )*
+      0.01;
+
+
+    /*
+      Remove/reposition vehicles
+      that travel too far away.
+    */
+
+    const distance=
+      this.getDistance(
+        vehicle,
+        playerPos
+      );
+
+
+    if(
+      distance>
+      this.spawnDistance*2
+    ){
+
+      const side=
+        Math.random()<0.5
+        ? -1
+        : 1;
+
+
+      const newDistance=
+        30+
+        Math.random()*25;
+
+
+      vehicle.x=
+        playerPos.x+
+        side*newDistance;
+
+
+      vehicle.z=
+        playerPos.z+
+        (
+          Math.random()<0.5
+          ? -2
+          : 2
+        );
+
+
+      vehicle.direction=
+        side===1
+        ? -1
+        : 1;
+
+
+      vehicle.speed=
+        5+
+        Math.random()*7;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     ENGINE CALLBACK
+     ======================================================= */
+
+  sendToGameEngine(){
+
+    /*
+      V99 does not assume how
+      your existing 3D vehicle
+      objects are structured.
+
+      If your main game exposes
+      this callback, it receives
+      the traffic data.
+    */
+
+    if(
+      typeof window.onWebboundTrafficUpdate===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundTrafficUpdate(
+          this.vehicles
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V99 ENGINE CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const now=
+      performance.now();
+
+
+    if(
+      now-
+      this.lastUpdate<
+      this.updateRate
+    ){
+
+      return;
+
+    }
+
+
+    const delta=
+      this.lastUpdate
+      ? (
+          now-
+          this.lastUpdate
+        )/1000
+      : 0;
+
+
+    this.lastUpdate=
+      now;
+
+
+    if(
+      !this.enabled
+    ){
+
+      return;
+
+    }
+
+
+    const playerPos=
+      this.getPlayerPosition();
+
+
+    for(
+      const vehicle of this.vehicles
+    ){
+
+      this.updateVehicle(
+        vehicle,
+        delta,
+        playerPos
+      );
+
+    }
+
+
+    this.sendToGameEngine();
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const status=
+      document.getElementById(
+        "v99Status"
+      );
+
+    const count=
+      document.getElementById(
+        "v99Count"
+      );
+
+
+    if(status){
+
+      status.textContent=
+        this.enabled
+        ? "🚗 TRAFFIC ON"
+        : "🚗 TRAFFIC OFF";
+
+    }
+
+
+    if(count){
+
+      count.textContent=
+        "Vehicles: "+
+        this.vehicles.length;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v99Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        enabled:this.enabled,
+
+        maxVehicles:this.maxVehicles,
+
+        vehicleId:this.vehicleId,
+
+        vehicles:this.vehicles
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V99 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.enabled===
+        "boolean"
+      ){
+
+        this.enabled=
+          data.enabled;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.maxVehicles
+          )
+        )
+      ){
+
+        this.maxVehicles=
+          Math.max(
+            1,
+            Math.min(
+              100,
+              Number(
+                data.maxVehicles
+              )
+            )
+          );
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(
+            data.vehicleId
+          )
+        )
+      ){
+
+        this.vehicleId=
+          Math.max(
+            1,
+            Number(
+              data.vehicleId
+            )
+          );
+
+      }
+
+
+      if(
+        Array.isArray(
+          data.vehicles
+        )
+      ){
+
+        this.vehicles=
+          data.vehicles
+          .filter(
+            vehicle=>
+              vehicle &&
+              Number.isFinite(
+                Number(vehicle.x)
+              ) &&
+              Number.isFinite(
+                Number(vehicle.z)
+              )
+          )
+          .map(
+            vehicle=>({
+
+              id:
+                Number(vehicle.id) ||
+                this.vehicleId++,
+
+              type:
+                String(
+                  vehicle.type ||
+                  "car"
+                ),
+
+              x:
+                Number(vehicle.x),
+
+              y:
+                Number(vehicle.y) || 0,
+
+              z:
+                Number(vehicle.z),
+
+              direction:
+                Number(vehicle.direction) ||
+                1,
+
+              speed:
+                Number(vehicle.speed) ||
+                5,
+
+              targetX:
+                Number(vehicle.targetX) ||
+                Number(vehicle.x),
+
+              targetZ:
+                Number(vehicle.targetZ) ||
+                Number(vehicle.z),
+
+              active:
+                vehicle.active!==false,
+
+              createdAt:
+                Number(
+                  vehicle.createdAt
+                ) ||
+                Date.now()
+
+            })
+          );
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V99 LOAD ERROR:",
+        error
+      );
+
+      this.vehicles=[];
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      enabled:this.enabled,
+
+      maxVehicles:this.maxVehicles,
+
+      vehicleId:this.vehicleId,
+
+      vehicles:this.vehicles
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.enabled===
+      "boolean"
+    ){
+
+      this.enabled=
+        data.enabled;
+
+    }
+
+
+    if(
+      Array.isArray(
+        data.vehicles
+      )
+    ){
+
+      this.vehicles=
+        data.vehicles;
+
+    }
+
+
+    this.updateHUD();
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    this.spawnInitial();
+
+
+    const loop=()=>{
+
+      this.update();
+
+      requestAnimationFrame(
+        loop
+      );
+
+    };
+
+
+    requestAnimationFrame(
+      loop
+    );
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      V = traffic ON/OFF
+    */
+
+    if(
+      event.code==="KeyV"
+    ){
+
+      V99.toggle();
+
+    }
+
+
+    /*
+      B = add vehicle
+    */
+
+    if(
+      event.code==="KeyB"
+    ){
+
+      V99.addVehicle();
+
+    }
+
+
+    /*
+      Shift + Delete = clear traffic
+    */
+
+    if(
+      event.code==="Delete" &&
+      event.shiftKey
+    ){
+
+      V99.clearVehicles();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V99.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V99.init();
+
+V99.start();
+
+
+console.log(
+  "WEBBOUND V99 TRAFFIC SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
