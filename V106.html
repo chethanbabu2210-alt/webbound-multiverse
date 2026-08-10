@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>WEBBOUND V106</title>
+
+<style>
+
+#v106HUD{
+  position:fixed;
+  left:12px;
+  top:330px;
+  z-index:11000;
+  width:min(190px,55vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+}
+
+#v106Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v106Weather{
+  margin-top:7px;
+  font-size:15px;
+}
+
+#v106Details{
+  margin-top:5px;
+  font-size:10px;
+  opacity:.7;
+  line-height:1.5;
+}
+
+#v106Controls{
+  position:fixed;
+  left:12px;
+  top:465px;
+  z-index:11001;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#v106Controls button{
+  padding:8px 11px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:10px;
+}
+
+#v106Rain{
+  position:fixed;
+  inset:0;
+  z-index:10900;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.v106Drop{
+  position:absolute;
+  top:-30px;
+  width:1px;
+  height:15px;
+  background:rgba(255,255,255,.55);
+  transform:rotate(12deg);
+  animation:v106RainFall linear infinite;
+}
+
+@keyframes v106RainFall{
+
+  from{
+    transform:translate3d(0,0,0) rotate(12deg);
+  }
+
+  to{
+    transform:translate3d(-80px,110vh,0) rotate(12deg);
+  }
+
+}
+
+#v106Fog{
+  position:fixed;
+  inset:0;
+  z-index:10850;
+  pointer-events:none;
+  background:rgba(220,225,230,0);
+  transition:background 2s ease;
+}
+
+#v106Flash{
+  position:fixed;
+  inset:0;
+  z-index:11100;
+  pointer-events:none;
+  background:white;
+  opacity:0;
+}
+
+#v106Message{
+  position:fixed;
+  left:50%;
+  top:18%;
+  transform:translateX(-50%);
+  z-index:11200;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     V106 WEATHER HUD
+     ========================================================= -->
+
+<div id="v106HUD">
+
+  <div id="v106Title">
+    🌦️ WEATHER
+  </div>
+
+  <div id="v106Weather">
+    ☀️ CLEAR
+  </div>
+
+  <div id="v106Details">
+    Temperature: 26°C<br>
+    Wind: 5 km/h
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     WEATHER CONTROLS
+     ========================================================= -->
+
+<div id="v106Controls">
+
+  <button onclick="V106.nextWeather()">
+    🔄 NEXT WEATHER
+  </button>
+
+  <button onclick="V106.setWeather('clear')">
+    ☀️ CLEAR
+  </button>
+
+  <button onclick="V106.setWeather('cloudy')">
+    ☁️ CLOUDY
+  </button>
+
+  <button onclick="V106.setWeather('rain')">
+    🌧️ RAIN
+  </button>
+
+  <button onclick="V106.setWeather('storm')">
+    ⛈️ STORM
+  </button>
+
+  <button onclick="V106.setWeather('fog')">
+    🌫️ FOG
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+     WEATHER EFFECTS
+     ========================================================= -->
+
+<div id="v106Fog"></div>
+
+<div id="v106Rain"></div>
+
+<div id="v106Flash"></div>
+
+
+<!-- =========================================================
+     MESSAGE
+     ========================================================= -->
+
+<div id="v106Message">
+  V106
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V106
+   WEATHER SYSTEM
+   ========================================================= */
+
+const V106 = {
+
+  version:"V106",
+
+  saveKey:
+    "WEBBOUND_V106_WEATHER",
+
+  currentWeather:"clear",
+
+  weatherIndex:0,
+
+  transitionTimer:null,
+
+  lightningTimer:null,
+
+  rainDrops:120,
+
+  weatherList:[
+
+    "clear",
+    "cloudy",
+    "rain",
+    "storm",
+    "fog"
+
+  ],
+
+  weatherData:{
+
+    clear:{
+      name:"CLEAR",
+      icon:"☀️",
+      temperature:26,
+      wind:5,
+      description:
+        "Clear skies"
+    },
+
+    cloudy:{
+      name:"CLOUDY",
+      icon:"☁️",
+      temperature:24,
+      wind:8,
+      description:
+        "Clouds cover the sky"
+    },
+
+    rain:{
+      name:"RAIN",
+      icon:"🌧️",
+      temperature:21,
+      wind:14,
+      description:
+        "Steady rainfall"
+    },
+
+    storm:{
+      name:"STORM",
+      icon:"⛈️",
+      temperature:19,
+      wind:35,
+      description:
+        "Heavy storm conditions"
+    },
+
+    fog:{
+      name:"FOG",
+      icon:"🌫️",
+      temperature:20,
+      wind:4,
+      description:
+        "Visibility is reduced"
+    }
+
+  },
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.createRainDrops();
+
+    this.update();
+
+    this.startWeatherCycle();
+
+    console.log(
+      "WEBBOUND V106 WEATHER SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET WEATHER
+     ======================================================= */
+
+  getWeather(){
+
+    return this.weatherData[
+      this.currentWeather
+    ] || this.weatherData.clear;
+
+  },
+
+
+  /* =======================================================
+     SET WEATHER
+     ======================================================= */
+
+  setWeather(type){
+
+    if(
+      !this.weatherData[type]
+    ){
+
+      return;
+
+    }
+
+
+    this.currentWeather=
+      type;
+
+
+    this.weatherIndex=
+      this.weatherList.indexOf(
+        type
+      );
+
+
+    this.update();
+
+    this.save();
+
+
+    this.message(
+      this.getWeather().icon+
+      " "+
+      this.getWeather().name
+    );
+
+  },
+
+
+  /* =======================================================
+     NEXT WEATHER
+     ======================================================= */
+
+  nextWeather(){
+
+    this.weatherIndex++;
+
+    if(
+      this.weatherIndex>=
+      this.weatherList.length
+    ){
+
+      this.weatherIndex=0;
+
+    }
+
+
+    this.currentWeather=
+      this.weatherList[
+        this.weatherIndex
+      ];
+
+
+    this.update();
+
+    this.save();
+
+
+    this.message(
+      this.getWeather().icon+
+      " "+
+      this.getWeather().name
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const weather=
+      this.getWeather();
+
+
+    const weatherBox=
+      document.getElementById(
+        "v106Weather"
+      );
+
+    const details=
+      document.getElementById(
+        "v106Details"
+      );
+
+
+    if(weatherBox){
+
+      weatherBox.textContent=
+        weather.icon+
+        " "+
+        weather.name;
+
+    }
+
+
+    if(details){
+
+      details.innerHTML=
+        "Temperature: "+
+        weather.temperature+
+        "°C<br>"+
+        "Wind: "+
+        weather.wind+
+        " km/h<br>"+
+        weather.description;
+
+    }
+
+
+    this.updateEffects(
+      weather
+    );
+
+
+    /*
+      Optional connection to V105.
+    */
+
+    if(
+      typeof window.onWebboundWeatherChange===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundWeatherChange({
+
+          type:this.currentWeather,
+
+          name:weather.name,
+
+          temperature:
+            weather.temperature,
+
+          wind:
+            weather.wind
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V106 WEATHER CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     UPDATE EFFECTS
+     ======================================================= */
+
+  updateEffects(weather){
+
+    const rain=
+      document.getElementById(
+        "v106Rain"
+      );
+
+    const fog=
+      document.getElementById(
+        "v106Fog"
+      );
+
+
+    if(
+      weather &&
+      (
+        this.currentWeather===
+        "rain" ||
+        this.currentWeather===
+        "storm"
+      )
+    ){
+
+      if(rain){
+
+        rain.style.display=
+          "block";
+
+        this.setRainIntensity(
+          this.currentWeather===
+          "storm"
+          ? 1
+          : .55
+        );
+
+      }
+
+    }
+    else{
+
+      if(rain){
+
+        rain.style.display=
+          "none";
+
+      }
+
+    }
+
+
+    if(
+      this.currentWeather===
+      "fog"
+    ){
+
+      if(fog){
+
+        fog.style.background=
+          "rgba(220,225,230,.22)";
+
+      }
+
+    }
+    else{
+
+      if(fog){
+
+        fog.style.background=
+          "rgba(220,225,230,0)";
+
+      }
+
+    }
+
+
+    if(
+      this.currentWeather===
+      "storm"
+    ){
+
+      this.startLightning();
+
+    }
+    else{
+
+      this.stopLightning();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CREATE RAIN
+     ======================================================= */
+
+  createRainDrops(){
+
+    const container=
+      document.getElementById(
+        "v106Rain"
+      );
+
+
+    if(!container){
+
+      return;
+
+    }
+
+
+    container.innerHTML="";
+
+
+    for(
+      let i=0;
+      i<this.rainDrops;
+      i++
+    ){
+
+      const drop=
+        document.createElement(
+          "div"
+        );
+
+
+      drop.className=
+        "v106Drop";
+
+
+      drop.style.left=
+        (
+          Math.random()*100
+        )+
+        "%";
+
+
+      drop.style.animationDuration=
+        (
+          .35+
+          Math.random()*.6
+        )+
+        "s";
+
+
+      drop.style.animationDelay=
+        (
+          Math.random()*1
+        )+
+        "s";
+
+
+      container.appendChild(
+        drop
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     RAIN INTENSITY
+     ======================================================= */
+
+  setRainIntensity(intensity){
+
+    const container=
+      document.getElementById(
+        "v106Rain"
+      );
+
+
+    if(!container){
+
+      return;
+
+    }
+
+
+    const drops=
+      container.querySelectorAll(
+        ".v106Drop"
+      );
+
+
+    drops.forEach(
+      drop=>{
+
+        drop.style.opacity=
+          String(
+            .25+
+            intensity*.65
+          );
+
+        drop.style.animationDuration=
+          (
+            .7-
+            intensity*.35+
+            Math.random()*.25
+          )+
+          "s";
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     LIGHTNING
+     ======================================================= */
+
+  startLightning(){
+
+    if(
+      this.lightningTimer
+    ){
+
+      return;
+
+    }
+
+
+    const strike=()=>{
+
+      if(
+        this.currentWeather!==
+        "storm"
+      ){
+
+        return;
+
+      }
+
+
+      const flash=
+        document.getElementById(
+          "v106Flash"
+        );
+
+
+      if(flash){
+
+        flash.style.opacity=
+          ".7";
+
+
+        setTimeout(
+          ()=>{
+
+            flash.style.opacity=
+              "0";
+
+          },
+          80
+        );
+
+      }
+
+
+      this.lightningTimer=
+        setTimeout(
+          strike,
+          3000+
+          Math.random()*7000
+        );
+
+    };
+
+
+    this.lightningTimer=
+      setTimeout(
+        strike,
+        2000+
+        Math.random()*5000
+      );
+
+  },
+
+
+  /* =======================================================
+     STOP LIGHTNING
+     ======================================================= */
+
+  stopLightning(){
+
+    if(
+      this.lightningTimer
+    ){
+
+      clearTimeout(
+        this.lightningTimer
+      );
+
+      this.lightningTimer=
+        null;
+
+    }
+
+
+    const flash=
+      document.getElementById(
+        "v106Flash"
+      );
+
+
+    if(flash){
+
+      flash.style.opacity=
+        "0";
+
+    }
+
+  },
+
+
+  /* =======================================================
+     WEATHER CYCLE
+     ======================================================= */
+
+  startWeatherCycle(){
+
+    clearInterval(
+      this.transitionTimer
+    );
+
+
+    this.transitionTimer=
+      setInterval(
+        ()=>{
+
+          /*
+            Small random chance of
+            weather changing naturally.
+          */
+
+          if(
+            Math.random()<.08
+          ){
+
+            this.nextWeather();
+
+          }
+
+        },
+        60000
+      );
+
+  },
+
+
+  /* =======================================================
+     IS RAINING
+     ======================================================= */
+
+  isRaining(){
+
+    return(
+      this.currentWeather===
+      "rain" ||
+      this.currentWeather===
+      "storm"
+    );
+
+  },
+
+
+  /* =======================================================
+     IS STORM
+     ======================================================= */
+
+  isStorm(){
+
+    return(
+      this.currentWeather===
+      "storm"
+    );
+
+  },
+
+
+  /* =======================================================
+     IS FOGGY
+     ======================================================= */
+
+  isFoggy(){
+
+    return(
+      this.currentWeather===
+      "fog"
+    );
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        currentWeather:
+          this.currentWeather,
+
+        weatherIndex:
+          this.weatherIndex
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V106 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        typeof data.currentWeather===
+        "string" &&
+        this.weatherData[
+          data.currentWeather
+        ]
+      ){
+
+        this.currentWeather=
+          data.currentWeather;
+
+      }
+
+
+      const index=
+        this.weatherList.indexOf(
+          this.currentWeather
+        );
+
+
+      this.weatherIndex=
+        index>=0
+        ? index
+        : 0;
+
+    }
+    catch(error){
+
+      console.error(
+        "V106 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      currentWeather:
+        this.currentWeather,
+
+      weatherIndex:
+        this.weatherIndex
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      typeof data.currentWeather===
+      "string" &&
+      this.weatherData[
+        data.currentWeather
+      ]
+    ){
+
+      this.currentWeather=
+        data.currentWeather;
+
+    }
+
+
+    this.weatherIndex=
+      Math.max(
+        0,
+        this.weatherList.indexOf(
+          this.currentWeather
+        )
+      );
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v106Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      W = next weather
+    */
+
+    if(
+      event.code==="KeyW"
+    ){
+
+      V106.nextWeather();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V106.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V106.init();
+
+
+console.log(
+  "WEBBOUND V106 WEATHER SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
