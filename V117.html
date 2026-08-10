@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V117</title>
+
+<style>
+
+#v117HUD{
+  position:fixed;
+  right:12px;
+  top:265px;
+  z-index:14300;
+  width:min(230px,60vw);
+  padding:13px;
+  background:#05070eeb;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:13px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v117Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v117Destination{
+  margin-top:8px;
+  font-size:14px;
+  font-weight:bold;
+}
+
+#v117Info{
+  margin-top:6px;
+  font-size:10px;
+  line-height:1.6;
+  opacity:.82;
+}
+
+#v117Arrow{
+  margin-top:9px;
+  text-align:center;
+  font-size:30px;
+  font-weight:bold;
+}
+
+#v117Controls{
+  margin-top:9px;
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+}
+
+#v117Controls button{
+  flex:1;
+  min-width:85px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v117Waypoint{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  z-index:14250;
+  display:none;
+  pointer-events:none;
+  text-align:center;
+  font-family:Arial,sans-serif;
+  color:white;
+  text-shadow:0 2px 5px #000;
+}
+
+#v117WaypointIcon{
+  font-size:38px;
+}
+
+#v117WaypointText{
+  margin-top:3px;
+  font-size:10px;
+  font-weight:bold;
+}
+
+#v117Message{
+  position:fixed;
+  left:50%;
+  top:20%;
+  transform:translateX(-50%);
+  z-index:14400;
+  display:none;
+  max-width:85%;
+  padding:11px 16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:11px;
+  font:bold 12px Arial,sans-serif;
+  text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V117
+     MISSION WAYPOINT + NAVIGATION SYSTEM
+     ========================================================= -->
+
+<div id="v117HUD">
+
+  <div id="v117Title">
+    🧭 MISSION NAVIGATION
+  </div>
+
+  <div id="v117Destination">
+    No Destination
+  </div>
+
+  <div id="v117Info">
+    Distance: --<br>
+    Status: No active waypoint
+  </div>
+
+  <div id="v117Arrow">
+    ↑
+  </div>
+
+  <div id="v117Controls">
+
+    <button onclick="V117.createWaypoint()">
+      📍 WAYPOINT
+    </button>
+
+    <button onclick="V117.randomDestination()">
+      🎲 RANDOM
+    </button>
+
+    <button onclick="V117.clearWaypoint()">
+      ❌ CLEAR
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="v117Waypoint">
+
+  <div id="v117WaypointIcon">
+    📍
+  </div>
+
+  <div id="v117WaypointText">
+    WAYPOINT
+  </div>
+
+</div>
+
+
+<div id="v117Message">
+  V117
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V117
+   MISSION WAYPOINT + NAVIGATION SYSTEM
+   ========================================================= */
+
+const V117 = {
+
+  version:"V117",
+
+  saveKey:
+    "WEBBOUND_V117_WAYPOINT",
+
+  waypoint:null,
+
+  destinationNames:[
+
+    "Downtown",
+
+    "Central Park",
+
+    "Police Station",
+
+    "City Hospital",
+
+    "Shopping District",
+
+    "Train Station",
+
+    "Harbor",
+
+    "Industrial Area",
+
+    "University",
+
+    "Residential Area"
+
+  ],
+
+  destinationId:0,
+
+  timer:null,
+
+  messageTimer:null,
+
+  initialized:false,
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.update();
+
+    this.start();
+
+    this.initialized=true;
+
+    console.log(
+      "WEBBOUND V117 WAYPOINT SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          this.update();
+
+        },
+        150
+      );
+
+  },
+
+
+  /* =======================================================
+     CREATE WAYPOINT
+     ======================================================= */
+
+  createWaypoint(){
+
+    /*
+      Create a destination in world
+      coordinates when a Three.js
+      player object is available.
+    */
+
+    let x=0;
+
+    let y=0;
+
+    let z=0;
+
+
+    if(
+      typeof player!=="undefined" &&
+      player &&
+      player.position
+    ){
+
+      x=
+        Number(
+          player.position.x
+        )||0;
+
+      y=
+        Number(
+          player.position.y
+        )||0;
+
+      z=
+        Number(
+          player.position.z
+        )||0;
+
+    }
+
+
+    /*
+      Put the destination some
+      distance away from the player.
+    */
+
+    const angle=
+      Math.random()*
+      Math.PI*
+      2;
+
+
+    const distance=
+      40+
+      Math.random()*
+      80;
+
+
+    this.destinationId++;
+
+
+    this.waypoint={
+
+      id:
+        this.destinationId,
+
+      name:
+        this.destinationNames[
+          Math.floor(
+            Math.random()*
+            this.destinationNames.length
+          )
+        ],
+
+      x:
+        x+
+        Math.cos(angle)*
+        distance,
+
+      y:
+        y,
+
+      z:
+        z+
+        Math.sin(angle)*
+        distance,
+
+      radius:5,
+
+      createdAt:
+        new Date().toISOString()
+
+    };
+
+
+    this.message(
+      "📍 New waypoint: "+
+      this.waypoint.name
+    );
+
+
+    this.update();
+
+    this.save();
+
+
+    this.callHook(
+      "created"
+    );
+
+  },
+
+
+  /* =======================================================
+     RANDOM DESTINATION
+     ======================================================= */
+
+  randomDestination(){
+
+    this.createWaypoint();
+
+  },
+
+
+  /* =======================================================
+     CLEAR WAYPOINT
+     ======================================================= */
+
+  clearWaypoint(){
+
+    if(
+      !this.waypoint
+    ){
+
+      this.message(
+        "No waypoint active."
+      );
+
+      return;
+
+    }
+
+
+    const old=
+      this.waypoint.name;
+
+
+    this.waypoint=
+      null;
+
+
+    this.update();
+
+    this.save();
+
+
+    this.message(
+      "❌ Waypoint cleared: "+
+      old
+    );
+
+
+    this.callHook(
+      "cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET PLAYER POSITION
+     ======================================================= */
+
+  getPlayerPosition(){
+
+    if(
+      typeof player!=="undefined" &&
+      player &&
+      player.position
+    ){
+
+      return{
+
+        x:
+          Number(
+            player.position.x
+          )||0,
+
+        y:
+          Number(
+            player.position.y
+          )||0,
+
+        z:
+          Number(
+            player.position.z
+          )||0
+
+      };
+
+    }
+
+
+    return{
+
+      x:0,
+
+      y:0,
+
+      z:0
+
+    };
+
+  },
+
+
+  /* =======================================================
+     DISTANCE
+     ======================================================= */
+
+  getDistance(){
+
+    if(
+      !this.waypoint
+    ){
+
+      return null;
+
+    }
+
+
+    const p=
+      this.getPlayerPosition();
+
+
+    const dx=
+      this.waypoint.x-
+      p.x;
+
+
+    const dy=
+      this.waypoint.y-
+      p.y;
+
+
+    const dz=
+      this.waypoint.z-
+      p.z;
+
+
+    return Math.sqrt(
+      dx*dx+
+      dy*dy+
+      dz*dz
+    );
+
+  },
+
+
+  /* =======================================================
+     DIRECTION
+     ======================================================= */
+
+  getDirection(){
+
+    if(
+      !this.waypoint
+    ){
+
+      return 0;
+
+    }
+
+
+    const p=
+      this.getPlayerPosition();
+
+
+    const dx=
+      this.waypoint.x-
+      p.x;
+
+
+    const dz=
+      this.waypoint.z-
+      p.z;
+
+
+    /*
+      Convert world direction into
+      a simple compass-style angle.
+    */
+
+    let angle=
+      Math.atan2(
+        dx,
+        dz
+      )*
+      180/
+      Math.PI;
+
+
+    if(angle<0){
+
+      angle+=360;
+
+    }
+
+
+    return angle;
+
+  },
+
+
+  /* =======================================================
+     DIRECTION NAME
+     ======================================================= */
+
+  getDirectionName(angle){
+
+    const directions=[
+
+      "N",
+
+      "NE",
+
+      "E",
+
+      "SE",
+
+      "S",
+
+      "SW",
+
+      "W",
+
+      "NW"
+
+    ];
+
+
+    const index=
+      Math.round(
+        angle/
+        45
+      )%8;
+
+
+    return directions[
+      index
+    ];
+
+  },
+
+
+  /* =======================================================
+     CHECK ARRIVAL
+     ======================================================= */
+
+  checkArrival(){
+
+    if(
+      !this.waypoint
+    ){
+
+      return;
+
+    }
+
+
+    const distance=
+      this.getDistance();
+
+
+    if(
+      distance===null
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      distance<=
+      this.waypoint.radius
+    ){
+
+      this.reachWaypoint();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     REACH WAYPOINT
+     ======================================================= */
+
+  reachWaypoint(){
+
+    if(
+      !this.waypoint
+    ){
+
+      return;
+
+    }
+
+
+    const destination=
+      this.waypoint;
+
+
+    this.message(
+      "📍 DESTINATION REACHED: "+
+      destination.name
+    );
+
+
+    /*
+      Notify V116 mission system.
+    */
+
+    if(
+      typeof V116!=="undefined" &&
+      typeof V116.objective===
+      "function"
+    ){
+
+      V116.objective(
+        1
+      );
+
+    }
+
+
+    this.callHook(
+      "reached",
+      destination
+    );
+
+
+    this.waypoint=
+      null;
+
+
+    this.update();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const destination=
+      document.getElementById(
+        "v117Destination"
+      );
+
+    const info=
+      document.getElementById(
+        "v117Info"
+      );
+
+    const arrow=
+      document.getElementById(
+        "v117Arrow"
+      );
+
+    const marker=
+      document.getElementById(
+        "v117Waypoint"
+      );
+
+
+    if(
+      !this.waypoint
+    ){
+
+      if(destination){
+
+        destination.textContent=
+          "No Destination";
+
+      }
+
+
+      if(info){
+
+        info.innerHTML=
+          "Distance: --"+
+          "<br>"+
+          "Status: No active waypoint";
+
+      }
+
+
+      if(arrow){
+
+        arrow.textContent=
+          "↑";
+
+      }
+
+
+      if(marker){
+
+        marker.style.display=
+          "none";
+
+      }
+
+
+      return;
+
+    }
+
+
+    const distance=
+      this.getDistance();
+
+
+    const angle=
+      this.getDirection();
+
+
+    const direction=
+      this.getDirectionName(
+        angle
+      );
+
+
+    if(destination){
+
+      destination.textContent=
+        this.waypoint.name;
+
+    }
+
+
+    if(info){
+
+      info.innerHTML=
+
+        "Distance: "+
+        this.formatDistance(
+          distance
+        )+
+        "<br>"+
+        "Direction: "+
+        direction+
+        " ("+
+        Math.round(angle)+
+        "°)"+
+        "<br>"+
+        "Status: Navigate";
+
+    }
+
+
+    if(arrow){
+
+      arrow.textContent=
+        this.getArrow(
+          direction
+        );
+
+    }
+
+
+    if(marker){
+
+      marker.style.display=
+        "block";
+
+      const text=
+        document.getElementById(
+          "v117WaypointText"
+        );
+
+
+      if(text){
+
+        text.textContent=
+          this.waypoint.name+
+          " • "+
+          this.formatDistance(
+            distance
+          );
+
+      }
+
+    }
+
+
+    this.checkArrival();
+
+  },
+
+
+  /* =======================================================
+     ARROW
+     ======================================================= */
+
+  getArrow(direction){
+
+    const arrows={
+
+      N:"↑",
+
+      NE:"↗",
+
+      E:"→",
+
+      SE:"↘",
+
+      S:"↓",
+
+      SW:"↙",
+
+      W:"←",
+
+      NW:"↖"
+
+    };
+
+
+    return(
+      arrows[direction]||
+      "↑"
+    );
+
+  },
+
+
+  /* =======================================================
+     FORMAT DISTANCE
+     ======================================================= */
+
+  formatDistance(distance){
+
+    if(
+      distance===null ||
+      !Number.isFinite(distance)
+    ){
+
+      return "--";
+
+    }
+
+
+    if(
+      distance<1000
+    ){
+
+      return(
+        Math.round(distance)+
+        " m"
+      );
+
+    }
+
+
+    return(
+      (
+        distance/
+        1000
+      ).toFixed(2)+
+      " km"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET DATA
+     ======================================================= */
+
+  getData(){
+
+    return{
+
+      version:
+        this.version,
+
+      active:
+        !!this.waypoint,
+
+      waypoint:
+        this.waypoint,
+
+      distance:
+        this.getDistance(),
+
+      direction:
+        this.getDirection()
+
+    };
+
+  },
+
+
+  /* =======================================================
+     MISSION HOOK
+     ======================================================= */
+
+  callHook(event,data){
+
+    if(
+      typeof window.onWebboundWaypointEvent===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundWaypointEvent({
+
+          event:
+            event,
+
+          waypoint:
+            data||
+            this.waypoint,
+
+          data:
+            this.getData()
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V117 WAYPOINT CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:
+          this.version,
+
+        destinationId:
+          this.destinationId,
+
+        waypoint:
+          this.waypoint
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V117 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      this.destinationId=
+        Number(
+          data.destinationId
+        )||0;
+
+
+      if(
+        data.waypoint &&
+        typeof data.waypoint==="object"
+      ){
+
+        const w=
+          data.waypoint;
+
+
+        if(
+          Number.isFinite(
+            Number(w.x)
+          ) &&
+          Number.isFinite(
+            Number(w.y)
+          ) &&
+          Number.isFinite(
+            Number(w.z)
+          )
+        ){
+
+          this.waypoint={
+
+            id:
+              Number(w.id)||
+              1,
+
+            name:
+              String(
+                w.name||
+                "Destination"
+              ),
+
+            x:
+              Number(w.x),
+
+            y:
+              Number(w.y),
+
+            z:
+              Number(w.z),
+
+            radius:
+              Number(w.radius)||
+              5,
+
+            createdAt:
+              w.createdAt||
+              new Date().toISOString()
+
+          };
+
+        }
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V117 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.destinationId=
+      Number(
+        data.destinationId
+      )||0;
+
+
+    this.waypoint=
+      null;
+
+
+    if(
+      data.waypoint &&
+      typeof data.waypoint==="object"
+    ){
+
+      const w=
+        data.waypoint;
+
+
+      if(
+        Number.isFinite(
+          Number(w.x)
+        ) &&
+        Number.isFinite(
+          Number(w.y)
+        ) &&
+        Number.isFinite(
+          Number(w.z)
+        )
+      ){
+
+        this.waypoint={
+
+          id:
+            Number(w.id)||
+            1,
+
+          name:
+            String(
+              w.name||
+              "Destination"
+            ),
+
+          x:
+            Number(w.x),
+
+          y:
+            Number(w.y),
+
+          z:
+            Number(w.z),
+
+          radius:
+            Number(w.radius)||
+            5,
+
+          createdAt:
+            w.createdAt||
+            new Date().toISOString()
+
+        };
+
+      }
+
+    }
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v117Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1900
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      G = create waypoint
+    */
+
+    if(
+      event.code==="KeyG"
+    ){
+
+      V117.createWaypoint();
+
+    }
+
+
+    /*
+      Backspace = clear waypoint
+    */
+
+    if(
+      event.code==="Backspace"
+    ){
+
+      event.preventDefault();
+
+      V117.clearWaypoint();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V117.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V117.init();
+
+
+console.log(
+  "WEBBOUND V117 MISSION WAYPOINT SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
