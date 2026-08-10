@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V133</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  overflow:hidden;
+  background:#0c1118;
+  font-family:Arial,sans-serif;
+  color:white;
+}
+
+#world{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 45%,#1d2c3b 0,#111923 45%,#090d13 100%);
+}
+
+#player{
+  position:absolute;
+  width:22px;
+  height:30px;
+  background:#2585dc;
+  border-radius:9px 9px 4px 4px;
+  box-shadow:0 3px 12px #000;
+  z-index:3000;
+  transform:translate(-50%,-50%);
+}
+
+#playerHead{
+  position:absolute;
+  width:13px;
+  height:13px;
+  left:4.5px;
+  top:-9px;
+  background:#c89470;
+  border-radius:50%;
+}
+
+.npc{
+  position:absolute;
+  width:17px;
+  height:25px;
+  border-radius:8px 8px 4px 4px;
+  box-shadow:0 2px 8px #000;
+  z-index:2000;
+}
+
+.npcHead{
+  position:absolute;
+  width:10px;
+  height:10px;
+  left:3.5px;
+  top:-8px;
+  background:#c89470;
+  border-radius:50%;
+}
+
+.npcName{
+  position:absolute;
+  bottom:29px;
+  left:50%;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font-size:7px;
+  text-shadow:0 1px 3px #000;
+}
+
+.npcStatus{
+  position:absolute;
+  bottom:39px;
+  left:50%;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font-size:7px;
+}
+
+#hud{
+  position:fixed;
+  left:10px;
+  bottom:10px;
+  width:min(370px,88vw);
+  padding:13px;
+  background:#05080df2;
+  border:1px solid #ffffff25;
+  border-radius:14px;
+  z-index:5000;
+}
+
+#title{
+  font-size:14px;
+  font-weight:bold;
+}
+
+#stats{
+  margin-top:8px;
+  font-size:10px;
+  line-height:1.65;
+}
+
+.buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:9px;
+}
+
+button{
+  border:1px solid #ffffff18;
+  background:#182333;
+  color:white;
+  border-radius:8px;
+  padding:8px;
+  font-size:9px;
+}
+
+.buttons button{
+  flex:1;
+  min-width:80px;
+}
+
+#clock{
+  position:fixed;
+  right:10px;
+  top:10px;
+  padding:9px 12px;
+  background:#05080df2;
+  border:1px solid #ffffff25;
+  border-radius:10px;
+  z-index:5000;
+  font-size:11px;
+}
+
+#inventory{
+  position:fixed;
+  right:10px;
+  bottom:10px;
+  width:min(310px,72vw);
+  max-height:40vh;
+  overflow:auto;
+  padding:12px;
+  background:#05080df2;
+  border:1px solid #ffffff25;
+  border-radius:14px;
+  z-index:5000;
+}
+
+.invTitle{
+  font-weight:bold;
+  font-size:12px;
+}
+
+.item{
+  margin-top:6px;
+  padding:8px;
+  background:#121c28;
+  border-radius:8px;
+  font-size:9px;
+  display:flex;
+  justify-content:space-between;
+  gap:5px;
+  align-items:center;
+}
+
+#panel{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  width:min(410px,90vw);
+  max-height:78vh;
+  overflow:auto;
+  background:#05080df9;
+  border:1px solid #ffffff30;
+  border-radius:16px;
+  padding:15px;
+  z-index:8000;
+  display:none;
+}
+
+#panelTitle{
+  font-size:14px;
+  font-weight:bold;
+}
+
+.panelRow{
+  margin-top:8px;
+  padding:9px;
+  background:#121b27;
+  border-radius:9px;
+  font-size:10px;
+}
+
+.panelRow button{
+  margin-left:4px;
+}
+
+.close{
+  width:100%;
+  margin-top:10px;
+}
+
+#message{
+  position:fixed;
+  top:20%;
+  left:50%;
+  transform:translateX(-50%);
+  background:#05080df5;
+  border:1px solid #ffffff30;
+  padding:10px 15px;
+  border-radius:10px;
+  z-index:9000;
+  font-size:11px;
+  font-weight:bold;
+  display:none;
+  text-align:center;
+}
+
+#questMarker{
+  position:absolute;
+  font-size:15px;
+  z-index:3500;
+  display:none;
+  animation:pulse 1s infinite alternate;
+}
+
+@keyframes pulse{
+  from{transform:translateY(0)}
+  to{transform:translateY(-5px)}
+}
+
+.questActive{
+  border:1px solid #ffffff40;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="world">
+
+  <div id="questMarker">❗</div>
+
+  <div id="player">
+    <div id="playerHead"></div>
+  </div>
+
+</div>
+
+<div id="clock">🕐 08:00</div>
+
+<div id="hud">
+
+  <div id="title">
+    🌍 WEBBOUND V133 — QUEST & RELATION SYSTEM
+  </div>
+
+  <div id="stats"></div>
+
+  <div class="buttons">
+
+    <button onclick="V133.spawnNPC()">
+      🚶 SPAWN
+    </button>
+
+    <button onclick="V133.spawnNPCs(5)">
+      👥 +5 NPC
+    </button>
+
+    <button onclick="V133.interact()">
+      🤝 TALK
+    </button>
+
+    <button onclick="V133.showQuests()">
+      📜 QUESTS
+    </button>
+
+    <button onclick="V133.market()">
+      🏪 MARKET
+    </button>
+
+    <button onclick="V133.advanceHour()">
+      ⏩ +1 HOUR
+    </button>
+
+    <button onclick="V133.toggle()">
+      ⏯️ PAUSE
+    </button>
+
+  </div>
+
+</div>
+
+<div id="inventory">
+
+  <div class="invTitle">
+    🎒 INVENTORY
+  </div>
+
+  <div id="inventoryList">
+    Empty
+  </div>
+
+</div>
+
+<div id="panel">
+
+  <div id="panelTitle">
+    WEBBOUND
+  </div>
+
+  <div id="panelContent"></div>
+
+  <button class="close" onclick="V133.closePanel()">
+    CLOSE
+  </button>
+
+</div>
+
+<div id="message"></div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V133
+   QUESTS + NPC RELATIONSHIPS + REPUTATION
+   ========================================================= */
+
+const V133={
+
+  version:"V133",
+
+  saveKey:"WEBBOUND_V133",
+
+  running:true,
+
+  hour:8,
+
+  nextId:1,
+
+  transactions:0,
+
+  questsCompleted:0,
+
+  selectedNPC:null,
+
+  messageTimer:null,
+
+  keys:{},
+
+  npcs:[],
+
+  inventory:{
+    Food:2,
+    Water:2
+  },
+
+  player:{
+    x:window.innerWidth/2,
+    y:window.innerHeight/2,
+    money:1000,
+    reputation:0
+  },
+
+  items:{
+
+    Food:{price:50,icon:"🍎"},
+    Water:{price:20,icon:"💧"},
+    Phone:{price:500,icon:"📱"},
+    Book:{price:120,icon:"📖"},
+    Backpack:{price:350,icon:"🎒"},
+    Shoes:{price:600,icon:"👟"},
+    Camera:{price:900,icon:"📷"},
+    Bicycle:{price:1500,icon:"🚲"}
+
+  },
+
+  types:[
+
+    {
+      name:"Student",
+      color:"#386a9d",
+      money:500,
+      speed:.55
+    },
+
+    {
+      name:"Worker",
+      color:"#76563e",
+      money:1800,
+      speed:.48
+    },
+
+    {
+      name:"Shopkeeper",
+      color:"#684778",
+      money:3500,
+      speed:.35
+    },
+
+    {
+      name:"Tourist",
+      color:"#8a713e",
+      money:2500,
+      speed:.42
+    },
+
+    {
+      name:"Doctor",
+      color:"#4a7775",
+      money:5000,
+      speed:.40
+    },
+
+    {
+      name:"Engineer",
+      color:"#465e78",
+      money:4200,
+      speed:.45
+    }
+
+  ],
+
+  names:[
+    "Alex","Sam","Ryan","Maya",
+    "Arun","Riya","Dev","Asha",
+    "Noah","Leo","Avi","Zara",
+    "Kiran","Nikhil","Anu",
+    "Rahul","Meera","Vikram"
+  ],
+
+  /* =======================================================
+     QUEST DATABASE
+     ======================================================= */
+
+  questTemplates:[
+
+    {
+      type:"delivery",
+      title:"Food Delivery",
+      description:"Deliver 2 Food items to a nearby NPC.",
+      item:"Food",
+      amount:2,
+      reward:150,
+      reputation:3
+    },
+
+    {
+      type:"delivery",
+      title:"Water Delivery",
+      description:"Deliver 3 Water items to a nearby NPC.",
+      item:"Water",
+      amount:3,
+      reward:120,
+      reputation:2
+    },
+
+    {
+      type:"trade",
+      title:"First Trade",
+      description:"Complete one successful trade.",
+      amount:1,
+      reward:200,
+      reputation:4
+    },
+
+    {
+      type:"friend",
+      title:"Make a Friend",
+      description:"Reach Friendly reputation with an NPC.",
+      amount:1,
+      reward:300,
+      reputation:6
+    }
+
+  ],
+
+  quests:[],
+
+  /* =======================================================
+     INIT
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.keyboard();
+
+    if(this.npcs.length===0){
+      this.spawnNPCs(10);
+    }
+
+    this.renderAll();
+
+    this.updateInventory();
+
+    this.updateHUD();
+
+    this.createQuests();
+
+    setInterval(
+      ()=>{
+        if(this.running){
+          this.update();
+        }
+      },
+      50
+    );
+
+    setInterval(
+      ()=>{
+        this.save();
+      },
+      30000
+    );
+
+    this.message(
+      "V133 quest system loaded"
+    );
+
+  },
+
+  /* =======================================================
+     SPAWN
+     ======================================================= */
+
+  spawnNPC(){
+
+    if(this.npcs.length>=40){
+
+      this.message(
+        "⚠️ Maximum NPC population reached"
+      );
+
+      return;
+
+    }
+
+    const type=
+      this.types[
+        Math.floor(
+          Math.random()*this.types.length
+        )
+      ];
+
+    const npc={
+
+      id:this.nextId++,
+
+      name:
+        this.names[
+          Math.floor(
+            Math.random()*this.names.length
+          )
+        ],
+
+      type:type.name,
+
+      color:type.color,
+
+      speed:type.speed,
+
+      money:
+        type.money+
+        Math.floor(
+          Math.random()*500
+        ),
+
+      x:
+        50+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerWidth-100
+        ),
+
+      y:
+        180+
+        Math.random()*
+        Math.max(
+          1,
+          window.innerHeight-250
+        ),
+
+      targetX:0,
+      targetY:0,
+
+      relationship:0,
+
+      friendship:"Stranger",
+
+      inventory:this.randomInventory(),
+
+      state:"walking",
+
+      destination:"home",
+
+      element:null
+
+    };
+
+    this.chooseDestination(npc);
+
+    this.npcs.push(npc);
+
+    this.createElement(npc);
+
+    this.updateHUD();
+
+    this.save();
+
+    return npc;
+
+  },
+
+  spawnNPCs(n){
+
+    for(let i=0;i<n;i++){
+      this.spawnNPC();
+    }
+
+  },
+
+  /* =======================================================
+     INVENTORY
+     ======================================================= */
+
+  randomInventory(){
+
+    const inv={};
+
+    const names=
+      Object.keys(this.items);
+
+    const count=
+      2+
+      Math.floor(
+        Math.random()*4
+      );
+
+    for(let i=0;i<count;i++){
+
+      const name=
+        names[
+          Math.floor(
+            Math.random()*names.length
+          )
+        ];
+
+      inv[name]=
+        (inv[name]||0)+1;
+
+    }
+
+    return inv;
+
+  },
+
+  /* =======================================================
+     CREATE NPC ELEMENT
+     ======================================================= */
+
+  createElement(npc){
+
+    const el=
+      document.createElement("div");
+
+    el.className="npc";
+
+    el.style.background=
+      npc.color;
+
+    el.innerHTML=
+      `
+      <div class="npcHead"></div>
+      <div class="npcName">${npc.name}</div>
+      <div class="npcStatus"></div>
+      `;
+
+    npc.element=el;
+
+    document
+      .getElementById("world")
+      .appendChild(el);
+
+    this.renderNPC(npc);
+
+  },
+
+  renderNPC(npc){
+
+    if(!npc.element)return;
+
+    npc.element.style.left=
+      npc.x+"px";
+
+    npc.element.style.top=
+      npc.y+"px";
+
+    const status=
+      npc.element.querySelector(
+        ".npcStatus"
+      );
+
+    if(status){
+
+      status.textContent=
+        npc.state==="trading"
+        ? "💱"
+        : npc.state==="talking"
+        ? "💬"
+        : npc.friendship==="Friend"
+        ? "💚"
+        : "";
+
+    }
+
+  },
+
+  /* =======================================================
+     DESTINATION
+     ======================================================= */
+
+  chooseDestination(npc){
+
+    const locations=[
+
+      [".12",".55"],
+      [".35",".32"],
+      [".65",".30"],
+      [".80",".55"],
+      [".45",".72"]
+
+    ];
+
+    const p=
+      locations[
+        Math.floor(
+          Math.random()*locations.length
+        )
+      ];
+
+    npc.targetX=
+      window.innerWidth*
+      Number(p[0]);
+
+    npc.targetY=
+      window.innerHeight*
+      Number(p[1]);
+
+  },
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    this.movePlayer();
+
+    this.npcs.forEach(
+      npc=>{
+        this.updateNPC(npc);
+      }
+    );
+
+    this.updateClock();
+
+    this.checkQuest();
+
+    this.updateHUD();
+
+  },
+
+  /* =======================================================
+     PLAYER
+     ======================================================= */
+
+  movePlayer(){
+
+    const speed=3;
+
+    if(
+      this.keys.ArrowUp||
+      this.keys.KeyW
+    ){
+      this.player.y-=speed;
+    }
+
+    if(
+      this.keys.ArrowDown||
+      this.keys.KeyS
+    ){
+      this.player.y+=speed;
+    }
+
+    if(
+      this.keys.ArrowLeft||
+      this.keys.KeyA
+    ){
+      this.player.x-=speed;
+    }
+
+    if(
+      this.keys.ArrowRight||
+      this.keys.KeyD
+    ){
+      this.player.x+=speed;
+    }
+
+    this.player.x=
+      Math.max(
+        15,
+        Math.min(
+          window.innerWidth-15,
+          this.player.x
+        )
+      );
+
+    this.player.y=
+      Math.max(
+        150,
+        Math.min(
+          window.innerHeight-30,
+          this.player.y
+        )
+      );
+
+    const el=
+      document.getElementById("player");
+
+    el.style.left=
+      this.player.x+"px";
+
+    el.style.top=
+      this.player.y+"px";
+
+  },
+
+  /* =======================================================
+     NPC MOVEMENT
+     ======================================================= */
+
+  updateNPC(npc){
+
+    if(
+      npc.state==="talking"||
+      npc.state==="trading"
+    ){
+      this.renderNPC(npc);
+      return;
+    }
+
+    const dx=
+      npc.targetX-npc.x;
+
+    const dy=
+      npc.targetY-npc.y;
+
+    const d=
+      Math.sqrt(
+        dx*dx+dy*dy
+      );
+
+    if(d<8){
+
+      npc.state="idle";
+
+      if(
+        Math.random()<.01
+      ){
+        this.chooseDestination(npc);
+        npc.state="walking";
+      }
+
+      this.renderNPC(npc);
+
+      return;
+
+    }
+
+    npc.state="walking";
+
+    npc.x+=
+      dx/d*npc.speed;
+
+    npc.y+=
+      dy/d*npc.speed;
+
+    npc.x=
+      Math.max(
+        20,
+        Math.min(
+          window.innerWidth-30,
+          npc.x
+        )
+      );
+
+    npc.y=
+      Math.max(
+        160,
+        Math.min(
+          window.innerHeight-50,
+          npc.y
+        )
+      );
+
+    this.renderNPC(npc);
+
+  },
+
+  /* =======================================================
+     CLOCK
+     ======================================================= */
+
+  updateClock(){
+
+    this.hour+=.025;
+
+    if(this.hour>=24){
+      this.hour-=24;
+    }
+
+    const h=
+      Math.floor(this.hour);
+
+    const m=
+      Math.floor(
+        (this.hour-h)*60
+      );
+
+    document.getElementById(
+      "clock"
+    ).textContent=
+      "🕐 "+
+      String(h).padStart(2,"0")+
+      ":"+
+      String(m).padStart(2,"0");
+
+  },
+
+  advanceHour(){
+
+    this.hour+=1;
+
+    if(this.hour>=24){
+      this.hour-=24;
+    }
+
+    this.message(
+      "🕐 Time advanced"
+    );
+
+    this.save();
+
+  },
+
+  /* =======================================================
+     NEAREST NPC
+     ======================================================= */
+
+  nearest(){
+
+    let best=null;
+
+    let distance=80;
+
+    this.npcs.forEach(
+      npc=>{
+
+        const dx=
+          npc.x-this.player.x;
+
+        const dy=
+          npc.y-this.player.y;
+
+        const d=
+          Math.sqrt(
+            dx*dx+dy*dy
+          );
+
+        if(d<distance){
+
+          distance=d;
+
+          best=npc;
+
+        }
+
+      }
+    );
+
+    return best;
+
+  },
+
+  /* =======================================================
+     TALK
+     ======================================================= */
+
+  interact(){
+
+    const npc=this.nearest();
+
+    if(!npc){
+
+      this.message(
+        "🚶 Move closer to an NPC"
+      );
+
+      return;
+
+    }
+
+    this.selectedNPC=npc;
+
+    npc.state="talking";
+
+    this.showNPC(npc);
+
+  },
+
+  /* =======================================================
+     NPC PANEL
+     ======================================================= */
+
+  showNPC(npc){
+
+    const panel=
+      document.getElementById(
+        "panel"
+      );
+
+    const title=
+      document.getElementById(
+        "panelTitle"
+      );
+
+    const content=
+      document.getElementById(
+        "panelContent"
+      );
+
+    title.textContent=
+      "👤 "+
+      npc.name+
+      " — "+
+      npc.type;
+
+    content.innerHTML="";
+
+    const relationship=
+      document.createElement(
+        "div"
+      );
+
+    relationship.className=
+      "panelRow";
+
+    relationship.innerHTML=
+      `
+      ❤️ Relationship:
+      ${npc.relationship}
+      <br>
+      Status:
+      ${npc.friendship}
+      <br>
+      💰 Money:
+      ₹${Math.floor(npc.money)}
+      `;
+
+    content.appendChild(
+      relationship
+    );
+
+    const actions=
+      document.createElement(
+        "div"
+      );
+
+    actions.className=
+      "panelRow";
+
+    actions.innerHTML=
+      `
+      <b>Interaction</b><br><br>
+
+      <button onclick="V133.greet()">
+      👋 Greet
+      </button>
+
+      <button onclick="V133.helpNPC()">
+      🤝 Help
+      </button>
+
+      <button onclick="V133.trade()">
+      💱 Trade
+      </button>
+      `;
+
+    content.appendChild(
+      actions
+    );
+
+    const items=
+      document.createElement(
+        "div"
+      );
+
+    items.className=
+      "panelRow";
+
+    items.innerHTML=
+      "<b>📦 Their Items</b><br>";
+
+    Object.entries(
+      npc.inventory
+    ).forEach(
+      ([name,qty])=>{
+
+        items.innerHTML+=
+          this.items[name].icon+
+          " "+
+          name+
+          " × "+
+          qty+
+          "<br>";
+
+      }
+    );
+
+    content.appendChild(items);
+
+    panel.style.display=
+      "block";
+
+  },
+
+  /* =======================================================
+     GREET
+     ======================================================= */
+
+  greet(){
+
+    const npc=this.selectedNPC;
+
+    if(!npc)return;
+
+    npc.relationship+=2;
+
+    this.updateFriendship(npc);
+
+    npc.state="talking";
+
+    this.message(
+      "👋 You greeted "+
+      npc.name
+    );
+
+    this.showNPC(npc);
+
+    this.save();
+
+  },
+
+  /* =======================================================
+     HELP NPC
+     ======================================================= */
+
+  helpNPC(){
+
+    const npc=this.selectedNPC;
+
+    if(!npc)return;
+
+    if(
+      this.player.inventory?.Food
+    ){
+
+      this.inventory.Food--;
+
+      npc.relationship+=8;
+
+      this.player.reputation+=2;
+
+      this.message(
+        "🤝 You helped "+
+        npc.name
+      );
+
+    }else{
+
+      npc.relationship+=3;
+
+      this.message(
+        "💬 You offered help"
+      );
+
+    }
+
+    this.updateFriendship(npc);
+
+    this.updateInventory();
+
+    this.showNPC(npc);
+
+    this.save();
+
+  },
+
+  /* =======================================================
+     FRIENDSHIP
+     ======================================================= */
+
+  updateFriendship(npc){
+
+    if(npc.relationship>=30){
+
+      npc.friendship="Best Friend";
+
+    }else if(npc.relationship>=15){
+
+      npc.friendship="Friend";
+
+    }else if(npc.relationship>=5){
+
+      npc.friendship="Friendly";
+
+    }else if(npc.relationship<=-10){
+
+      npc.friendship="Hostile";
+
+    }else{
+
+      npc.friendship="Stranger";
+
+    }
+
+  },
+
+  /* =======================================================
+     TRADE
+     ======================================================= */
+
+  trade(){
+
+    const npc=this.selectedNPC;
+
+    if(!npc)return;
+
+    npc.state="trading";
+
+    this.transactions++;
+
+    npc.relationship+=3;
+
+    this.player.reputation+=1;
+
+    this.updateFriendship(npc);
+
+    this.message(
+      "💱 Trade completed with "+
+      npc.name
+    );
+
+    this.showNPC(npc);
+
+    this.save();
+
+  },
+
+  /* =======================================================
+     QUEST CREATION
+     ======================================================= */
+
+  createQuests(){
+
+    if(this.quests.length>0){
+      return;
+    }
+
+    for(let i=0;i<3;i++){
+
+      const template=
+        this.questTemplates[
+          Math.floor(
+            Math.random()*
+            this.questTemplates.length
+          )
+        ];
+
+      this.quests.push({
+
+        id:i+1,
+
+        title:template.title,
+
+        description:
+          template.description,
+
+        type:template.type,
+
+        item:template.item||null,
+
+        amount:
+          template.amount||1,
+
+        reward:template.reward,
+
+        reputation:
+          template.reputation,
+
+        progress:0,
+
+        completed:false
+
+      });
+
+    }
+
+  },
+
+  /* =======================================================
+     QUEST U
