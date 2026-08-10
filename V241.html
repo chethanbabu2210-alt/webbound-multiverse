@@ -1,0 +1,767 @@
+<!-- =====================================================
+ V241 — OPEN WORLD MAP + FAST TRAVEL
+ Add after V240
+ ===================================================== -->
+
+<style>
+
+#mapHud241{
+
+    position:fixed;
+
+    inset:0;
+
+    background:#03070df7;
+
+    z-index:9000;
+
+    display:none;
+
+    padding:20px;
+
+}
+
+#mapHud241.open{
+
+    display:block;
+
+}
+
+.mapTitle241{
+
+    text-align:center;
+
+    font-size:15px;
+
+    font-weight:bold;
+
+}
+
+#mapCity241{
+
+    position:relative;
+
+    width:min(700px,90vw);
+
+    height:min(500px,70vh);
+
+    margin:20px auto;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent 48%,
+            #ffffff18 49%,
+            #ffffff18 51%,
+            transparent 52%
+        ),
+        linear-gradient(
+            0deg,
+            transparent 48%,
+            #ffffff18 49%,
+            #ffffff18 51%,
+            transparent 52%
+        );
+
+    border:1px solid #ffffff30;
+
+    border-radius:12px;
+
+    overflow:hidden;
+
+}
+
+.district241{
+
+    position:absolute;
+
+    border:1px solid #ffffff18;
+
+    background:#ffffff05;
+
+    padding:8px;
+
+    font-size:8px;
+
+}
+
+.location241{
+
+    position:absolute;
+
+    width:30px;
+    height:30px;
+
+    border-radius:50%;
+
+    background:#111f2a;
+
+    border:1px solid #ffffff35;
+
+    color:white;
+
+    font-size:7px;
+
+    cursor:pointer;
+
+}
+
+.location241:hover{
+
+    transform:scale(1.15);
+
+}
+
+#mapInfo241{
+
+    text-align:center;
+
+    font-size:9px;
+
+    min-height:20px;
+
+}
+
+#mapClose241{
+
+    display:block;
+
+    margin:12px auto;
+
+    padding:9px 20px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff30;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= HUD ================= */
+
+#locationHud241{
+
+    position:fixed;
+
+    left:12px;
+
+    top:610px;
+
+    width:min(250px,50vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:9px;
+
+    z-index:5400;
+
+}
+
+.locationTitle241{
+
+    font-size:9px;
+
+    font-weight:bold;
+
+}
+
+#currentLocation241,
+#waypoint241{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#mapControls241{
+
+    position:fixed;
+
+    right:12px;
+
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5500;
+
+}
+
+#mapControls241 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ MAP
+ ===================================================== -->
+
+<div id="mapHud241">
+
+    <div class="mapTitle241">
+        🗺️ NEW YORK CITY MAP — V241
+    </div>
+
+    <div id="mapCity241">
+
+        <div
+            class="district241"
+            style="left:5%;top:5%;width:25%;height:35%;">
+            Downtown
+        </div>
+
+        <div
+            class="district241"
+            style="left:35%;top:5%;width:28%;height:35%;">
+            Midtown
+        </div>
+
+        <div
+            class="district241"
+            style="left:68%;top:5%;width:27%;height:35%;">
+            Upper City
+        </div>
+
+        <div
+            class="district241"
+            style="left:5%;top:48%;width:28%;height:45%;">
+            Harbor
+        </div>
+
+        <div
+            class="district241"
+            style="left:38%;top:48%;width:25%;height:45%;">
+            Queens
+        </div>
+
+        <div
+            class="district241"
+            style="left:68%;top:48%;width:27%;height:45%;">
+            Industrial
+        </div>
+
+
+        <button
+            class="location241"
+            style="left:15%;top:20%;"
+            onclick="SpiderMap241.selectLocation('Downtown')">
+            D
+        </button>
+
+        <button
+            class="location241"
+            style="left:45%;top:20%;"
+            onclick="SpiderMap241.selectLocation('Midtown')">
+            M
+        </button>
+
+        <button
+            class="location241"
+            style="left:78%;top:20%;"
+            onclick="SpiderMap241.selectLocation('Upper City')">
+            U
+        </button>
+
+        <button
+            class="location241"
+            style="left:18%;top:68%;"
+            onclick="SpiderMap241.selectLocation('Harbor')">
+            H
+        </button>
+
+        <button
+            class="location241"
+            style="left:48%;top:68%;"
+            onclick="SpiderMap241.selectLocation('Queens')">
+            Q
+        </button>
+
+        <button
+            class="location241"
+            style="left:78%;top:68%;"
+            onclick="SpiderMap241.selectLocation('Industrial')">
+            I
+        </button>
+
+    </div>
+
+    <div id="mapInfo241">
+        Select a location.
+    </div>
+
+    <button
+        id="mapClose241"
+        onclick="SpiderMap241.closeMap()">
+        CLOSE MAP
+    </button>
+
+</div>
+
+
+<!-- =====================================================
+ LOCATION HUD
+ ===================================================== -->
+
+<div id="locationHud241">
+
+    <div class="locationTitle241">
+        📍 WORLD NAVIGATION
+    </div>
+
+    <div id="currentLocation241">
+        Location: Downtown
+    </div>
+
+    <div id="waypoint241">
+        Waypoint: None
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="mapControls241">
+
+    <button onclick="SpiderMap241.openMap()">
+        🗺️ MAP
+    </button>
+
+    <button onclick="SpiderMap241.fastTravel()">
+        ⚡ TRAVEL
+    </button>
+
+    <button onclick="SpiderMap241.setWaypoint()">
+        📍 WAYPOINT
+    </button>
+
+    <button onclick="SpiderMap241.clearWaypoint()">
+        ✕ CLEAR
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V241 MAP ENGINE
+ ===================================================== */
+
+const SpiderMap241={
+
+    currentLocation:
+        "Downtown",
+
+    selectedLocation:
+        null,
+
+    waypoint:
+        null,
+
+    discovered:[
+
+        "Downtown",
+
+        "Midtown",
+
+        "Harbor",
+
+        "Queens",
+
+        "Upper City",
+
+        "Industrial"
+
+    ],
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.message(
+            "🗺️ City map loaded."
+        );
+
+    },
+
+
+    /* =========================
+       OPEN MAP
+    ========================= */
+
+    openMap(){
+
+        const map=
+            document.getElementById(
+                "mapHud241"
+            );
+
+        if(map){
+
+            map.classList.add(
+                "open"
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       CLOSE MAP
+    ========================= */
+
+    closeMap(){
+
+        const map=
+            document.getElementById(
+                "mapHud241"
+            );
+
+        if(map){
+
+            map.classList.remove(
+                "open"
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       SELECT LOCATION
+    ========================= */
+
+    selectLocation(location){
+
+        if(
+            !this.discovered.includes(
+                location
+            )
+        ){
+
+            this.message(
+                "🔒 Location locked."
+            );
+
+            return;
+
+        }
+
+
+        this.selectedLocation=
+            location;
+
+
+        const info=
+            document.getElementById(
+                "mapInfo241"
+            );
+
+
+        if(info){
+
+            info.textContent=
+                "Selected: "+
+                location+
+                " — Press TRAVEL.";
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       FAST TRAVEL
+    ========================= */
+
+    fastTravel(){
+
+        if(
+            !this.selectedLocation
+        ){
+
+            this.message(
+                "📍 Select a location first."
+            );
+
+            return;
+
+        }
+
+
+        if(
+            this.selectedLocation===
+            this.currentLocation
+        ){
+
+            this.message(
+                "📍 You are already here."
+            );
+
+            return;
+
+        }
+
+
+        const destination=
+            this.selectedLocation;
+
+
+        this.currentLocation=
+            destination;
+
+
+        this.waypoint=null;
+
+
+        this.closeMap();
+
+        this.updateHUD();
+
+
+        this.message(
+            "⚡ Fast traveled to "+
+            destination
+        );
+
+
+        /*
+         * Mission system connection.
+         */
+
+        if(
+            typeof SpiderMission236!==
+            "undefined"
+        ){
+
+            SpiderMission236
+                .addProgress();
+
+        }
+
+    },
+
+
+    /* =========================
+       WAYPOINT
+    ========================= */
+
+    setWaypoint(){
+
+        if(
+            !this.selectedLocation
+        ){
+
+            this.message(
+                "📍 Select a destination."
+            );
+
+            return;
+
+        }
+
+
+        this.waypoint=
+            this.selectedLocation;
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "📍 Waypoint set: "+
+            this.waypoint
+        );
+
+    },
+
+
+    /* =========================
+       CLEAR WAYPOINT
+    ========================= */
+
+    clearWaypoint(){
+
+        this.waypoint=null;
+
+        this.updateHUD();
+
+
+        this.message(
+            "✕ Waypoint cleared."
+        );
+
+    },
+
+
+    /* =========================
+       DISCOVER LOCATION
+    ========================= */
+
+    discover(location){
+
+        if(
+            !this.discovered.includes(
+                location
+            )
+        ){
+
+            this.discovered.push(
+                location
+            );
+
+
+            this.message(
+                "🗺️ New location discovered: "+
+                location
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const location=
+            document.getElementById(
+                "currentLocation241"
+            );
+
+
+        const waypoint=
+            document.getElementById(
+                "waypoint241"
+            );
+
+
+        if(location){
+
+            location.textContent=
+                "Location: "+
+                this.currentLocation;
+
+        }
+
+
+        if(waypoint){
+
+            waypoint.textContent=
+                "Waypoint: "+
+                (
+                    this.waypoint ||
+                    "None"
+                );
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V241
+ ===================================================== */
+
+SpiderMap241.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="m")
+            SpiderMap241.openMap();
+
+        if(key==="f")
+            SpiderMap241.fastTravel();
+
+        if(key==="w")
+            SpiderMap241.setWaypoint();
+
+        if(key==="x")
+            SpiderMap241.clearWaypoint();
+
+        if(key==="escape")
+            SpiderMap241.closeMap();
+
+    }
+);
