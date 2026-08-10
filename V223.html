@@ -1,0 +1,994 @@
+<!-- =====================================================
+ V223 — ADVANCED WEB SHOOTER SYSTEM
+ Add after V222
+ ===================================================== -->
+
+<style>
+
+/* ================= WEB SHOOTER HUD ================= */
+
+#webShooterHud223{
+
+    position:fixed;
+
+    right:12px;
+    top:430px;
+
+    width:min(230px,46vw);
+
+    padding:10px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:3200;
+
+}
+
+.webShooterTitle223{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#webAmmo223,
+#webType223,
+#webTarget223{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= WEB PROJECTILE ================= */
+
+.webProjectile223{
+
+    position:fixed;
+
+    width:7px;
+    height:7px;
+
+    background:white;
+
+    border-radius:50%;
+
+    z-index:2500;
+
+    pointer-events:none;
+
+    box-shadow:
+        0 0 8px #ffffffaa;
+
+}
+
+
+/* ================= WEB IMPACT ================= */
+
+.webImpact223{
+
+    position:fixed;
+
+    width:30px;
+    height:30px;
+
+    border:2px solid white;
+
+    border-radius:50%;
+
+    transform:
+        translate(-50%,-50%);
+
+    z-index:2600;
+
+    pointer-events:none;
+
+    animation:
+        webImpact223 .4s forwards;
+
+}
+
+@keyframes webImpact223{
+
+    from{
+
+        opacity:1;
+
+        transform:
+            translate(-50%,-50%)
+            scale(.5);
+
+    }
+
+    to{
+
+        opacity:0;
+
+        transform:
+            translate(-50%,-50%)
+            scale(1.8);
+
+    }
+
+}
+
+
+/* ================= WEBBED ENEMY ================= */
+
+.webbed223{
+
+    filter:
+        brightness(.75);
+
+    opacity:.7;
+
+    transform:
+        scale(.92);
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#webShooterControls223{
+
+    position:fixed;
+
+    right:12px;
+    bottom:135px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:3300;
+
+}
+
+#webShooterControls223 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ WEB SHOOTER HUD
+ ===================================================== -->
+
+<div id="webShooterHud223">
+
+    <div class="webShooterTitle223">
+        🕸️ WEB SHOOTERS — V223
+    </div>
+
+    <div id="webAmmo223">
+        Web Energy: 100
+    </div>
+
+    <div id="webType223">
+        Type: STANDARD
+    </div>
+
+    <div id="webTarget223">
+        Target: NONE
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="webShooterControls223">
+
+    <button
+        onclick="SpiderWebShooter223.shootLeft()">
+        🕸️ LEFT
+    </button>
+
+    <button
+        onclick="SpiderWebShooter223.shootRight()">
+        🕸️ RIGHT
+    </button>
+
+    <button
+        onclick="SpiderWebShooter223.webImpact()">
+        🎯 WEB IMPACT
+    </button>
+
+    <button
+        onclick="SpiderWebShooter223.webTrap()">
+        🔗 WEB TRAP
+    </button>
+
+    <button
+        onclick="SpiderWebShooter223.switchType()">
+        🔄 TYPE
+    </button>
+
+    <button
+        onclick="SpiderWebShooter223.reload()">
+        ⚡ RELOAD
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V223 WEB SHOOTER ENGINE
+ ===================================================== */
+
+const SpiderWebShooter223={
+
+    energy:100,
+
+    maxEnergy:100,
+
+    typeIndex:0,
+
+    types:[
+
+        "STANDARD",
+        "IMPACT",
+        "TRAP"
+
+    ],
+
+    target:null,
+
+    reloadTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.startRecharge();
+
+        this.message(
+            "🕸️ Advanced web shooters ready."
+        );
+
+    },
+
+
+    /* =========================
+       LEFT SHOOTER
+    ========================= */
+
+    shootLeft(){
+
+        this.shoot(
+            "LEFT"
+        );
+
+    },
+
+
+    /* =========================
+       RIGHT SHOOTER
+    ========================= */
+
+    shootRight(){
+
+        this.shoot(
+            "RIGHT"
+        );
+
+    },
+
+
+    /* =========================
+       SHOOT
+    ========================= */
+
+    shoot(side){
+
+        const cost=
+            this.typeIndex===0
+            ?5
+            :this.typeIndex===1
+            ?10
+            :15;
+
+
+        if(
+            this.energy<
+            cost
+        ){
+
+            this.message(
+                "⚡ Web energy low."
+            );
+
+            return;
+
+        }
+
+
+        this.energy=
+            Math.max(
+                0,
+                this.energy-cost
+            );
+
+
+        this.createProjectile(
+            side
+        );
+
+
+        if(
+            this.typeIndex===2
+        ){
+
+            this.webTrap();
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       PROJECTILE
+    ========================= */
+
+    createProjectile(side){
+
+        const projectile=
+            document.createElement(
+                "div"
+            );
+
+
+        projectile.className=
+            "webProjectile223";
+
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+
+        let startX=
+            window.innerWidth/2;
+
+        let startY=
+            window.innerHeight/2;
+
+
+        if(player){
+
+            const rect=
+                player.getBoundingClientRect();
+
+            startX=
+                rect.left+
+                rect.width/2;
+
+            startY=
+                rect.top+
+                rect.height/2;
+
+        }
+
+
+        projectile.style.left=
+            startX+"px";
+
+        projectile.style.top=
+            startY+"px";
+
+
+        document.body.appendChild(
+            projectile
+        );
+
+
+        const direction=
+            side==="LEFT"
+            ?-.8
+            :.8;
+
+
+        let x=startX;
+
+        let y=startY;
+
+        let frame=0;
+
+
+        const timer=
+            setInterval(
+                ()=>{
+
+                    frame++;
+
+                    x+=
+                        direction*
+                        18;
+
+                    y-=
+                        4;
+
+
+                    projectile.style.left=
+                        x+"px";
+
+                    projectile.style.top=
+                        y+"px";
+
+
+                    if(
+                        frame>=30 ||
+                        x<0 ||
+                        x>window.innerWidth
+                    ){
+
+                        clearInterval(
+                            timer
+                        );
+
+                        projectile.remove();
+
+                    }
+
+                },
+                20
+            );
+
+    },
+
+
+    /* =========================
+       WEB IMPACT
+    ========================= */
+
+    webImpact(){
+
+        if(
+            this.energy<10
+        ){
+
+            this.message(
+                "⚡ Need more web energy."
+            );
+
+            return;
+
+        }
+
+
+        this.energy-=10;
+
+
+        const target=
+            this.findEnemy();
+
+
+        if(
+            target
+        ){
+
+            this.applyWeb(
+                target,
+                "IMPACT"
+            );
+
+        }else{
+
+            this.message(
+                "🎯 No enemy targeted."
+            );
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       WEB TRAP
+    ========================= */
+
+    webTrap(){
+
+        if(
+            this.energy<15
+        ){
+
+            this.message(
+                "⚡ Need more web energy."
+            );
+
+            return;
+
+        }
+
+
+        this.energy-=15;
+
+
+        const target=
+            this.findEnemy();
+
+
+        if(
+            target
+        ){
+
+            this.applyWeb(
+                target,
+                "TRAP"
+            );
+
+        }else{
+
+            this.message(
+                "🔗 No enemy nearby."
+            );
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       FIND ENEMY
+    ========================= */
+
+    findEnemy(){
+
+        if(
+            typeof SpiderEnemy220===
+            "undefined"
+        )
+            return null;
+
+
+        const enemies=
+            Object.values(
+                SpiderEnemy220.enemies
+            ).filter(
+                e=>e.active
+            );
+
+
+        if(
+            !enemies.length
+        )
+            return null;
+
+
+        if(
+            this.target &&
+            this.target.active
+        ){
+
+            return this.target;
+
+        }
+
+
+        return enemies[0];
+
+    },
+
+
+    /* =========================
+       APPLY WEB
+    ========================= */
+
+    applyWeb(enemy,type){
+
+        const element=
+            document.getElementById(
+                "enemy220_"+
+                enemy.id
+            );
+
+
+        if(!element)
+            return;
+
+
+        this.target=
+            enemy;
+
+
+        element.classList.add(
+            "webbed223"
+        );
+
+
+        enemy.state=
+            "WEBBED";
+
+
+        /*
+         * Temporarily prevent normal
+         * enemy movement.
+         */
+
+        enemy.webbedUntil=
+            Date.now()+
+            (
+                type==="TRAP"
+                ?3500
+                :1800
+            );
+
+
+        if(
+            type==="IMPACT"
+        ){
+
+            enemy.health=
+                Math.max(
+                    0,
+                    enemy.health-15
+                );
+
+            SpiderEnemy220.updateHealth(
+                enemy.id,
+                enemy.health
+            );
+
+        }
+
+
+        this.createImpact(
+            element
+        );
+
+
+        if(
+            enemy.health<=0
+        ){
+
+            SpiderEnemy220.defeat(
+                enemy.id
+            );
+
+        }
+
+
+        this.message(
+            type==="TRAP"
+            ?"🔗 Enemy web-trapped!"
+            :"🎯 Web impact!"
+        );
+
+
+        setTimeout(
+            ()=>{
+
+                if(
+                    element
+                ){
+
+                    element.classList.remove(
+                        "webbed223"
+                    );
+
+                }
+
+
+                if(
+                    enemy.active
+                ){
+
+                    enemy.state=
+                        "ALERT";
+
+                    SpiderEnemy220
+                        .updateEnemyClass(
+                            enemy
+                        );
+
+                }
+
+            },
+            type==="TRAP"
+            ?3500
+            :1800
+        );
+
+    },
+
+
+    /* =========================
+       IMPACT EFFECT
+    ========================= */
+
+    createImpact(element){
+
+        const rect=
+            element.getBoundingClientRect();
+
+
+        const impact=
+            document.createElement(
+                "div"
+            );
+
+
+        impact.className=
+            "webImpact223";
+
+
+        impact.style.left=
+            (
+                rect.left+
+                rect.width/2
+            )+
+            "px";
+
+
+        impact.style.top=
+            (
+                rect.top+
+                rect.height/2
+            )+
+            "px";
+
+
+        document.body.appendChild(
+            impact
+        );
+
+
+        setTimeout(
+            ()=>{
+                impact.remove();
+            },
+            450
+        );
+
+    },
+
+
+    /* =========================
+       SWITCH WEB TYPE
+    ========================= */
+
+    switchType(){
+
+        this.typeIndex=
+            (
+                this.typeIndex+1
+            )%
+            this.types.length;
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "🕸️ Web type: "+
+            this.types[
+                this.typeIndex
+            ]
+        );
+
+    },
+
+
+    /* =========================
+       ENERGY RECHARGE
+    ========================= */
+
+    startRecharge(){
+
+        clearInterval(
+            this.reloadTimer
+        );
+
+
+        this.reloadTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        this.energy<
+                        this.maxEnergy
+                    ){
+
+                        this.energy=
+                            Math.min(
+                                this.maxEnergy,
+                                this.energy+1
+                            );
+
+                        this.updateHUD();
+
+                    }
+
+                },
+                300
+            );
+
+    },
+
+
+    /* =========================
+       MANUAL RELOAD
+    ========================= */
+
+    reload(){
+
+        this.energy=
+            this.maxEnergy;
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "⚡ Web energy restored."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const ammo=
+            document.getElementById(
+                "webAmmo223"
+            );
+
+        const type=
+            document.getElementById(
+                "webType223"
+            );
+
+        const target=
+            document.getElementById(
+                "webTarget223"
+            );
+
+
+        if(ammo){
+
+            ammo.textContent=
+                "Web Energy: "+
+                this.energy;
+
+        }
+
+
+        if(type){
+
+            type.textContent=
+                "Type: "+
+                this.types[
+                    this.typeIndex
+                ];
+
+        }
+
+
+        if(target){
+
+            target.textContent=
+                this.target
+                ?"Target: Enemy "+
+                  this.target.id
+                :"Target: NONE";
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V223
+ ===================================================== */
+
+SpiderWebShooter223.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="1")
+            SpiderWebShooter223.shootLeft();
+
+
+        if(key==="2")
+            SpiderWebShooter223.shootRight();
+
+
+        if(key==="3")
+            SpiderWebShooter223.webImpact();
+
+
+        if(key==="4")
+            SpiderWebShooter223.webTrap();
+
+
+        if(key==="5")
+            SpiderWebShooter223.switchType();
+
+
+        if(key==="6")
+            SpiderWebShooter223.reload();
+
+    }
+);
