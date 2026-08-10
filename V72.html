@@ -1,0 +1,828 @@
+<!-- =========================================================
+ WEBBOUND V72
+ NPC INTERACTION + DIALOGUE + RELATIONSHIP SYSTEM
+ BUILDS ON V60 - V71
+ ========================================================= -->
+
+<style>
+
+#v72Dialogue{
+  position:fixed;
+  left:50%;
+  bottom:25px;
+  transform:translateX(-50%);
+  z-index:9800;
+  width:min(620px,90%);
+  padding:18px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:17px;
+  font-family:Arial,sans-serif;
+  display:none;
+  box-shadow:0 15px 50px #000b;
+}
+
+#v72Speaker{
+  font-weight:bold;
+  font-size:16px;
+  margin-bottom:8px;
+}
+
+#v72Text{
+  font-size:14px;
+  line-height:1.5;
+  color:#e5e7eb;
+}
+
+#v72Relation{
+  margin-top:8px;
+  font-size:11px;
+  color:#94a3b8;
+}
+
+#v72Continue{
+  width:100%;
+  margin-top:12px;
+  padding:10px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:9px;
+}
+
+#v72NPCPanel{
+  position:fixed;
+  right:15px;
+  top:200px;
+  z-index:8500;
+  width:min(270px,82%);
+  padding:13px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:13px;
+  font:12px Arial,sans-serif;
+}
+
+#v72NPCPanel button{
+  width:100%;
+  margin-top:7px;
+  padding:9px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+}
+
+</style>
+
+
+<!-- =========================================================
+ NPC PANEL
+ ========================================================= -->
+
+<div id="v72NPCPanel">
+
+  <b>👥 NPC SYSTEM</b>
+
+  <div id="v72NPCStatus">
+    No NPC selected.
+  </div>
+
+  <button onclick="V72.interact()">
+    💬 INTERACT
+  </button>
+
+</div>
+
+
+<!-- =========================================================
+ DIALOGUE
+ ========================================================= -->
+
+<div id="v72Dialogue">
+
+  <div id="v72Speaker">
+    NPC
+  </div>
+
+  <div id="v72Text">
+    ...
+  </div>
+
+  <div id="v72Relation">
+    Relationship: 0
+  </div>
+
+  <button id="v72Continue"
+          onclick="V72.nextDialogue()">
+
+    CONTINUE
+
+  </button>
+
+</div>
+
+
+<script>
+
+const V72 = {
+
+  version:"V72",
+
+  selectedNPC:null,
+
+  dialogueIndex:0,
+
+  dialogueOpen:false,
+
+  relationships:{},
+
+
+  /* =======================================================
+     NPC DATABASE
+     ======================================================= */
+
+  npcs:{
+
+    friend:{
+      id:"friend",
+      name:"Alex",
+      type:"friend",
+      relationship:0,
+
+      dialogue:[
+        "Hey! I was wondering when you'd show up.",
+        "There's been a lot happening around the city.",
+        "Be careful out there."
+      ]
+
+    },
+
+
+    mentor:{
+      id:"mentor",
+      name:"Dr. Morgan",
+      type:"mentor",
+      relationship:0,
+
+      dialogue:[
+        "Your equipment is improving.",
+        "Remember to think before rushing into danger.",
+        "Come back if you need help."
+      ]
+
+    },
+
+
+    civilian:{
+      id:"civilian",
+      name:"City Resident",
+      type:"civilian",
+      relationship:0,
+
+      dialogue:[
+        "Nice to see you around.",
+        "The city has been unusually busy lately.",
+        "Stay safe."
+      ]
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SELECT NPC
+     ======================================================= */
+
+  selectNPC(id){
+
+    const npc=
+      this.npcs[id];
+
+
+    if(!npc){
+
+      this.message(
+        "❌ NPC not found."
+      );
+
+      return;
+
+    }
+
+
+    this.selectedNPC=
+      id;
+
+
+    if(
+      typeof this.relationships[id] !==
+      "number"
+    ){
+
+      this.relationships[id]=
+        npc.relationship || 0;
+
+    }
+
+
+    this.updatePanel();
+
+
+    this.message(
+      "👥 "+npc.name+
+      " selected."
+    );
+
+  },
+
+
+  /* =======================================================
+     INTERACT
+     ======================================================= */
+
+  interact(){
+
+    if(!this.selectedNPC){
+
+      /*
+        Pick the first NPC as a safe
+        fallback for testing.
+      */
+
+      this.selectNPC(
+        "friend"
+      );
+
+    }
+
+
+    const npc=
+      this.npcs[
+        this.selectedNPC
+      ];
+
+
+    if(!npc){
+
+      return;
+
+    }
+
+
+    this.dialogueIndex=0;
+
+    this.dialogueOpen=true;
+
+    this.showDialogue();
+
+  },
+
+
+  /* =======================================================
+     SHOW DIALOGUE
+     ======================================================= */
+
+  showDialogue(){
+
+    const npc=
+      this.npcs[
+        this.selectedNPC
+      ];
+
+
+    if(!npc){
+
+      return;
+
+    }
+
+
+    const line=
+      npc.dialogue[
+        this.dialogueIndex
+      ];
+
+
+    const box=
+      document.getElementById(
+        "v72Dialogue"
+      );
+
+
+    const speaker=
+      document.getElementById(
+        "v72Speaker"
+      );
+
+
+    const text=
+      document.getElementById(
+        "v72Text"
+      );
+
+
+    const relation=
+      document.getElementById(
+        "v72Relation"
+      );
+
+
+    if(!box){
+
+      return;
+
+    }
+
+
+    speaker.textContent=
+      npc.name;
+
+
+    text.textContent=
+      line;
+
+
+    relation.textContent=
+      "Relationship: "+
+      (
+        this.relationships[
+          this.selectedNPC
+        ] || 0
+      );
+
+
+    box.style.display=
+      "block";
+
+  },
+
+
+  /* =======================================================
+     NEXT DIALOGUE
+     ======================================================= */
+
+  nextDialogue(){
+
+    const npc=
+      this.npcs[
+        this.selectedNPC
+      ];
+
+
+    if(!npc){
+
+      this.closeDialogue();
+
+      return;
+
+    }
+
+
+    this.dialogueIndex++;
+
+
+    if(
+      this.dialogueIndex >=
+      npc.dialogue.length
+    ){
+
+      this.changeRelationship(
+        this.selectedNPC,
+        1
+      );
+
+
+      this.closeDialogue();
+
+
+      this.message(
+        "💬 Conversation complete."
+      );
+
+
+      return;
+
+    }
+
+
+    this.showDialogue();
+
+  },
+
+
+  /* =======================================================
+     CLOSE DIALOGUE
+     ======================================================= */
+
+  closeDialogue(){
+
+    const box=
+      document.getElementById(
+        "v72Dialogue"
+      );
+
+
+    if(box){
+
+      box.style.display=
+        "none";
+
+    }
+
+
+    this.dialogueOpen=
+      false;
+
+  },
+
+
+  /* =======================================================
+     RELATIONSHIP
+     ======================================================= */
+
+  changeRelationship(
+    id,
+    amount
+  ){
+
+    if(
+      typeof this.relationships[id] !==
+      "number"
+    ){
+
+      this.relationships[id]=0;
+
+    }
+
+
+    this.relationships[id]+=
+      Number(amount) || 0;
+
+
+    /*
+      Keep relationship within
+      a simple 0-100 range.
+    */
+
+    this.relationships[id]=
+      Math.max(
+        0,
+        Math.min(
+          100,
+          this.relationships[id]
+        )
+      );
+
+
+    this.updatePanel();
+
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save==="function"
+    ){
+
+      V60.save();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     RELATIONSHIP LEVEL
+     ======================================================= */
+
+  getRelationshipLevel(id){
+
+    const value=
+      this.relationships[id] || 0;
+
+
+    if(value>=80){
+
+      return "BEST";
+
+    }
+
+    if(value>=50){
+
+      return "FRIENDLY";
+
+    }
+
+    if(value>=25){
+
+      return "NEUTRAL";
+
+    }
+
+    return "NEW";
+
+  },
+
+
+  /* =======================================================
+     PANEL
+     ======================================================= */
+
+  updatePanel(){
+
+    const status=
+      document.getElementById(
+        "v72NPCStatus"
+      );
+
+
+    if(!status){
+
+      return;
+
+    }
+
+
+    if(!this.selectedNPC){
+
+      status.textContent=
+        "No NPC selected.";
+
+      return;
+
+    }
+
+
+    const npc=
+      this.npcs[
+        this.selectedNPC
+      ];
+
+
+    const value=
+      this.relationships[
+        this.selectedNPC
+      ] || 0;
+
+
+    status.innerHTML=
+      "<b>"+
+      npc.name+
+      "</b><br>"+
+      "Type: "+
+      npc.type+
+      "<br>"+
+      "Relationship: "+
+      value+
+      "/100"+
+      "<br>"+
+      "Level: "+
+      this.getRelationshipLevel(
+        this.selectedNPC
+      );
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    if(
+      typeof V68 !== "undefined" &&
+      typeof V68.message==="function"
+    ){
+
+      V68.message(text);
+
+      return;
+
+    }
+
+
+    if(
+      typeof showMessage==="function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      selectedNPC:
+        this.selectedNPC,
+
+      relationships:
+        {
+          ...this.relationships
+        }
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.selectedNPC=
+      data.selectedNPC ||
+      null;
+
+
+    if(
+      data.relationships &&
+      typeof data.relationships==="object"
+    ){
+
+      this.relationships=
+        {
+          ...data.relationships
+        };
+
+    }
+
+
+    this.updatePanel();
+
+  }
+
+};
+
+
+/* =========================================================
+ V60 SAVE / LOAD INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const v72OriginalCollect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      v72OriginalCollect();
+
+    data.v72=
+      V72.collect();
+
+    return data;
+
+  };
+
+
+  const v72OriginalApply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    v72OriginalApply(data);
+
+
+    if(
+      data &&
+      data.v72
+    ){
+
+      V72.apply(
+        data.v72
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      F = select friend
+    */
+
+    if(
+      event.code==="KeyF"
+    ){
+
+      event.preventDefault();
+
+      V72.selectNPC(
+        "friend"
+      );
+
+    }
+
+
+    /*
+      M = select mentor
+    */
+
+    if(
+      event.code==="KeyM"
+    ){
+
+      event.preventDefault();
+
+      V72.selectNPC(
+        "mentor"
+      );
+
+    }
+
+
+    /*
+      C = select civilian
+    */
+
+    if(
+      event.code==="KeyC"
+    ){
+
+      event.preventDefault();
+
+      V72.selectNPC(
+        "civilian"
+      );
+
+    }
+
+
+    /*
+      E = interact
+    */
+
+    if(
+      event.code==="KeyE"
+    ){
+
+      event.preventDefault();
+
+      V72.interact();
+
+    }
+
+
+    /*
+      Escape = close dialogue
+    */
+
+    if(
+      event.code==="Escape" &&
+      V72.dialogueOpen
+    ){
+
+      V72.closeDialogue();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V72.updatePanel();
+
+console.log(
+  "WEBBOUND V72 NPC SYSTEM READY"
+);
+
+</script>
