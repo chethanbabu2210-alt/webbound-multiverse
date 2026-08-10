@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V158 — CHARACTER PROGRESSION</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#294856,#081217);
+}
+
+#world{
+ position:absolute;
+ inset:0;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:64px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:64px;
+}
+
+.lane{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.45;
+}
+
+.laneH{
+ left:0;
+ right:0;
+ top:calc(57% + 31px);
+ height:2px;
+}
+
+.laneV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 31px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:57%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(520px,87vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+.bar{
+ height:7px;
+ background:#ffffff12;
+ border-radius:6px;
+ overflow:hidden;
+ margin-top:5px;
+}
+
+.fill{
+ height:100%;
+ width:100%;
+ transition:.3s;
+}
+
+#healthFill{
+ background:#d85f67;
+}
+
+#energyFill{
+ background:#5f9fd8;
+}
+
+#xpFill{
+ background:#c39bdf;
+}
+
+#progressInfo{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.6;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(900px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+button:disabled{
+ opacity:.4;
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.grid{
+ display:grid;
+ grid-template-columns:
+ repeat(auto-fit,minmax(155px,1fr));
+ gap:7px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ min-height:135px;
+ font-size:10px;
+ line-height:1.5;
+}
+
+.card b{
+ display:block;
+ margin-bottom:7px;
+}
+
+.badge{
+ display:inline-block;
+ padding:3px 6px;
+ background:#ffffff12;
+ border-radius:5px;
+ font-size:8px;
+}
+
+.skillButton{
+ width:100%;
+ margin-top:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="world">
+
+  <div class="road rh"></div>
+  <div class="road rv"></div>
+
+  <div class="lane laneH"></div>
+  <div class="lane laneV"></div>
+
+  <div class="building b1">🏠 RESIDENTIAL</div>
+  <div class="building b2">🏫 SCHOOL</div>
+  <div class="building b3">🏥 HOSPITAL</div>
+  <div class="building b4">🏢 CORPORATE</div>
+  <div class="building b5">🏭 WAREHOUSE</div>
+  <div class="building b6">🌳 PARK</div>
+
+  <div id="player"></div>
+
+ </div>
+
+ <div id="hud">
+
+  <div class="title">
+   🧑 WEBBOUND V158 — CHARACTER
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    ❤️ HEALTH
+    <br>
+    <span id="healthText">100/100</span>
+    <div class="bar">
+     <div id="healthFill" class="fill"></div>
+    </div>
+   </div>
+
+   <div class="stat">
+    ⚡ ENERGY
+    <br>
+    <span id="energyText">100/100</span>
+    <div class="bar">
+     <div id="energyFill" class="fill"></div>
+    </div>
+   </div>
+
+   <div class="stat">
+    ⭐ LEVEL
+    <br>
+    <span id="level">1</span>
+   </div>
+
+   <div class="stat">
+    🎯 SKILL
+    <br>
+    <span id="skillPoints">0</span>
+   </div>
+
+  </div>
+
+  <div id="progressInfo">
+
+   <b>XP PROGRESS</b>
+
+   <div class="bar">
+    <div id="xpFill" class="fill"></div>
+   </div>
+
+   <span id="xpText">
+    0 / 250 XP
+   </span>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V158.character()">
+   🧑 CHARACTER
+  </button>
+
+  <button onclick="V158.skills()">
+   🎯 SKILLS
+  </button>
+
+  <button onclick="V158.train()">
+   🏃 TRAIN
+  </button>
+
+  <button onclick="V158.rest()">
+   😴 REST
+  </button>
+
+  <button onclick="V158.recover()">
+   ❤️ RECOVER
+  </button>
+
+  <button onclick="V158.practice()">
+   🧠 PRACTICE
+  </button>
+
+  <button onclick="V158.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V158.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V158={
+
+ saveKey:"WEBBOUND_V158",
+
+ health:100,
+
+ maxHealth:100,
+
+ energy:100,
+
+ maxEnergy:100,
+
+ xp:0,
+
+ level:1,
+
+ skillPoints:0,
+
+ skillsData:{
+  investigation:1,
+  observation:1,
+  technology:1,
+  communication:1,
+  endurance:1
+ },
+
+ /* =========================
+    INIT
+ ========================= */
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🧑 V158 Character System ready"
+  );
+
+ },
+
+ /* =========================
+    XP REQUIRED
+ ========================= */
+
+ xpRequired(){
+
+  return this.level*250;
+
+ },
+
+ /* =========================
+    ADD XP
+ ========================= */
+
+ addXP(amount){
+
+  this.xp+=amount;
+
+  let leveled=false;
+
+  while(
+   this.xp>=this.xpRequired()
+  ){
+
+   this.xp-=
+    this.xpRequired();
+
+   this.level++;
+
+   this.skillPoints+=2;
+
+   this.maxHealth+=5;
+
+   this.maxEnergy+=5;
+
+   this.health=
+    this.maxHealth;
+
+   this.energy=
+    this.maxEnergy;
+
+   leveled=true;
+
+  }
+
+  if(leveled){
+
+   this.notify(
+    "⭐ LEVEL UP! Level "+
+    this.level+
+    " — +2 Skill Points"
+   );
+
+  }
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    CHARACTER
+ ========================= */
+
+ character(){
+
+  const totalSkill=
+   Object.values(
+    this.skillsData
+   ).reduce(
+    (sum,value)=>
+     sum+value,
+    0
+   );
+
+  const html=`
+
+   <div class="card">
+
+    <b>🧑 CHARACTER PROFILE</b>
+
+    Level:
+    <b>${this.level}</b>
+
+    XP:
+    ${this.xp}/${this.xpRequired()}
+
+    <br>
+
+    Health:
+    ${this.health}/${this.maxHealth}
+
+    <br>
+
+    Energy:
+    ${this.energy}/${this.maxEnergy}
+
+    <br>
+
+    Skill Points:
+    ${this.skillPoints}
+
+    <br>
+
+    Total Skill Level:
+    ${totalSkill}
+
+   </div>
+
+   <div class="grid">
+
+    <div class="card">
+     <b>🔎 Investigation</b>
+     Level:
+     ${this.skillsData.investigation}
+    </div>
+
+    <div class="card">
+     <b>👁️ Observation</b>
+     Level:
+     ${this.skillsData.observation}
+    </div>
+
+    <div class="card">
+     <b>💻 Technology</b>
+     Level:
+     ${this.skillsData.technology}
+    </div>
+
+    <div class="card">
+     <b>🗣️ Communication</b>
+     Level:
+     ${this.skillsData.communication}
+    </div>
+
+    <div class="card">
+     <b>🏃 Endurance</b>
+     Level:
+     ${this.skillsData.endurance}
+    </div>
+
+   </div>
+
+  `;
+
+  this.open(
+   "🧑 CHARACTER PROFILE",
+   html
+  );
+
+ },
+
+ /* =========================
+    SKILLS
+ ========================= */
+
+ skills(){
+
+  const skillNames={
+   investigation:[
+    "🔎",
+    "Investigation",
+    "Improves investigation actions."
+   ],
+
+   observation:[
+    "👁️",
+    "Observation",
+    "Improves searching and discovery."
+   ],
+
+   technology:[
+    "💻",
+    "Technology",
+    "Improves technology-related tasks."
+   ],
+
+   communication:[
+    "🗣️",
+    "Communication",
+    "Improves interaction tasks."
+   ],
+
+   endurance:[
+    "🏃",
+    "Endurance",
+    "Improves energy capacity."
+   ]
+  };
+
+  let html=`
+
+   <div class="card">
+
+    <b>🎯 SKILL POINTS</b>
+
+    Available:
+    ${this.skillPoints}
+
+    <br><br>
+
+    Spend skill points to improve
+    your character.
+
+   </div>
+
+   <div class="grid">
+
+  `;
+
+  Object.keys(
+   skillNames
+  ).forEach(
+   key=>{
+
+    const data=
+     skillNames[key];
+
+    html+=`
+
+     <div class="card">
+
+      <b>
+       ${data[0]}
+       ${data[1]}
+      </b>
+
+      Level:
+      ${this.skillsData[key]}
+
+      <br><br>
+
+      ${data[2]}
+
+      <button
+       class="skillButton"
+       onclick=
+       "V158.upgrade('${key}')"
+       ${
+        this.skillPoints<=0
+        ?"disabled"
+        :""
+       }>
+
+       ⬆️ UPGRADE
+
+      </button>
+
+     </div>
+
+    `;
+
+   }
+  );
+
+  html+=`</div>`;
+
+  this.open(
+   "🎯 SKILL TREE",
+   html
+  );
+
+ },
+
+ /* =========================
+    UPGRADE
+ ========================= */
+
+ upgrade(skill){
+
+  if(
+   this.skillPoints<=0
+  ){
+
+   this.notify(
+    "🎯 No skill points available."
+   );
+
+   return;
+
+  }
+
+  if(
+   !this.skillsData.hasOwnProperty(
+    skill
+   )
+  )
+   return;
+
+  this.skillsData[skill]++;
+
+  this.skillPoints--;
+
+  if(skill==="endurance"){
+
+   this.maxEnergy+=5;
+
+   this.energy=
+    Math.min(
+     this.energy+5,
+     this.maxEnergy
+    );
+
+  }
+
+  this.notify(
+   "⬆️ Skill upgraded!"
+  );
+
+  this.update();
+
+  this.save();
+
+  this.skills();
+
+ },
+
+ /* =========================
+    TRAIN
+ ========================= */
+
+ train(){
+
+  if(this.energy<15){
+
+   this.notify(
+    "⚡ Not enough energy."
+   );
+
+   return;
+
+  }
+
+  this.energy-=15;
+
+  const reward=
+   20+
+   this.skillsData.endurance*3;
+
+  this.addXP(reward);
+
+  this.notify(
+   "🏃 Training complete! +"+
+   reward+
+   " XP"
+  );
+
+ },
+
+ /* =========================
+    PRACTICE
+ ========================= */
+
+ practice(){
+
+  if(this.energy<10){
+
+   this.notify(
+    "⚡ Not enough energy."
+   );
+
+   return;
+
+  }
+
+  this.energy-=10;
+
+  const reward=
+   15+
+   this.skillsData.investigation*2+
+   this.skillsData.observation*2;
+
+  this.addXP(reward);
+
+  this.notify(
+   "🧠 Practice complete! +"+
+   reward+
+   " XP"
+  );
+
+ },
+
+ /* =========================
+    REST
+ ========================= */
+
+ rest(){
+
+  this.energy=
+   Math.min(
+    this.maxEnergy,
+    this.energy+30
+   );
+
+  this.notify(
+   "😴 Rested. Energy restored."
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    RECOVER
+ ========================= */
+
+ recover(){
+
+  this.health=
+   Math.min(
+    this.maxHealth,
+    this.health+25
+   );
+
+  this.energy=
+   Math.min(
+    this.maxEnergy,
+    this.energy+10
+   );
+
+  this.notify(
+   "❤️ Recovery complete."
+  );
+
+  this.update();
+
+  this.save();
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  document.getElementById(
+   "healthText"
+  ).textContent=
+   this.health+
+   "/"+
+   this.maxHealth;
+
+  document.getElementById(
+   "energyText"
+  ).textContent=
+   this.energy+
+   "/"+
+   this.maxEnergy;
+
+  document.getElementById(
+   "level"
+  ).textContent=
+   this.level;
+
+  document.getElementById(
+   "skillPoints"
+  ).textContent=
+   this.skillPoints;
+
+  document.getElementById(
+   "xpText"
+  ).textContent=
+   this.xp+
+   " / "+
+   this.xpRequired()+
+   " XP";
+
+  document.getElementById(
+   "healthFill"
+  ).style.width=
+   (
+    this.health/
+    this.maxHealth*
+    100
+   )+"%";
+
+  document.getElementById(
+   "energyFill"
+  ).style.width=
+   (
+    this.energy/
+    this.maxEnergy*
+    100
+   )+"%";
+
+  document.getElementById(
+   "xpFill"
+  ).style.width=
+   (
+    this.xp/
+    this.xpRequired()*
+    100
+   )+"%";
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    health:this.health,
+
+    maxHealth:this.maxHealth,
+
+    energy:this.energy,
+
+    maxEnergy:this.maxEnergy,
+
+    xp:this.xp,
+
+    level:this.level,
+
+    skillPoints:
+     this.skillPoints,
+
+    skills:
+     this.skillsData
+
+   })
+  );
+
+  /*
+   Preserve cash compatibility
+   with previous versions.
+  */
+
+  const oldCash=
+   localStorage.getItem(
+    "WEBBOUND_V150_CASH"
+   );
+
+  if(oldCash!==null){
+
+   localStorage.setItem(
+    "WEBBOUND_V150_CASH",
+    oldCash
+   );
+
+  }
+
+  this.notify(
+   "💾 V158 saved"
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw){
+
+    /*
+     Continue progression from V157
+     when available.
+    */
+
+    const old=
+     localStorage.getItem(
+      "WEBBOUND_V157"
+     );
+
+    if(old){
+
+     const data=
+      JSON.parse(old);
+
+     this.xp=
+      Number.isFinite(data.xp)
+      ?data.xp
+      :0;
+
+     this.level=
+      Number.isFinite(data.level)
+      ?data.level
+      :1;
+
+    }
+
+    return;
+
+   }
+
+   const data=
+    JSON.parse(raw);
+
+   this.health=
+    Number.isFinite(data.health)
+    ?data.health
+    :100;
+
+   this.maxHealth=
+    Number.isFinite(data.maxHealth)
+    ?data.maxHealth
+    :100;
+
+   this.energy=
+    Number.isFinite(data.energy)
+    ?data.energy
+    :100;
+
+   this.maxEnergy=
+    Number.isFinite(data.maxEnergy)
+    ?data.maxEnergy
+    :100;
+
+   this.xp=
+    Number.isFinite(data.xp)
+    ?data.xp
+    :0;
+
+   this.level=
+    Number.isFinite(data.level)
+    ?data.level
+    :1;
+
+   this.skillPoints=
+    Number.isFinite(data.skillPoints)
+    ?data.skillPoints
+    :0;
+
+   this.skillsData=
+    data.skills||
+    this.skillsData;
+
+  }
+  catch(error){
+
+   console.log(
+    "V158 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V158.init();
+
+console.log(
+ "WEBBOUND V158 CHARACTER PROGRESSION READY"
+);
+
+</script>
+
+</body>
+</html>
