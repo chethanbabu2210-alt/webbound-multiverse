@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V181 — WORLD WEATHER</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#071017;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:#6c9db8;
+ transition:background 1s;
+}
+
+#sky{
+ position:absolute;
+ inset:0;
+ background:linear-gradient(
+  #6fa4c0,
+  #b9d0d8
+ );
+ transition:all 1s;
+}
+
+#sun,#moon{
+ position:absolute;
+ width:70px;
+ height:70px;
+ border-radius:50%;
+ transition:all 1s;
+}
+
+#sun{
+ background:#ffe38a;
+ box-shadow:0 0 35px #ffe38a88;
+ left:78%;
+ top:12%;
+}
+
+#moon{
+ background:#dce8ff;
+ box-shadow:0 0 30px #dce8ff66;
+ left:12%;
+ top:12%;
+ opacity:0;
+}
+
+.cloud{
+ position:absolute;
+ width:130px;
+ height:38px;
+ background:#ffffff45;
+ border-radius:40px;
+ filter:blur(1px);
+ animation:cloudMove 35s linear infinite;
+}
+
+.cloud:before,
+.cloud:after{
+ content:"";
+ position:absolute;
+ background:#ffffff50;
+ border-radius:50%;
+}
+
+.cloud:before{
+ width:55px;
+ height:55px;
+ left:25px;
+ top:-28px;
+}
+
+.cloud:after{
+ width:70px;
+ height:70px;
+ right:18px;
+ top:-35px;
+}
+
+.c1{top:16%;left:-160px}
+.c2{top:30%;left:-320px;animation-delay:10s}
+.c3{top:43%;left:-250px;animation-delay:20s}
+
+@keyframes cloudMove{
+ from{transform:translateX(0)}
+ to{transform:translateX(calc(100vw + 500px))}
+}
+
+#rain{
+ position:absolute;
+ inset:0;
+ pointer-events:none;
+ opacity:0;
+ transition:opacity .5s;
+ background:
+ repeating-linear-gradient(
+ 105deg,
+ transparent 0 12px,
+ #a9d8ff88 13px 14px,
+ transparent 15px 25px
+ );
+ animation:rainMove .35s linear infinite;
+}
+
+@keyframes rainMove{
+ from{background-position:0 0}
+ to{background-position:70px 120px}
+}
+
+#fog{
+ position:absolute;
+ inset:0;
+ pointer-events:none;
+ opacity:0;
+ transition:opacity 1s;
+ background:#dbe7e755;
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.4;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(850px,92vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(4,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#weatherHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.8;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="sky"></div>
+
+ <div id="sun"></div>
+ <div id="moon"></div>
+
+ <div class="cloud c1"></div>
+ <div class="cloud c2"></div>
+ <div class="cloud c3"></div>
+
+ <div id="rain"></div>
+ <div id="fog"></div>
+
+ <div class="road rh"></div>
+ <div class="road rv"></div>
+
+ <div class="line lineH"></div>
+ <div class="line lineV"></div>
+
+ <div class="building b1">🏠 RESIDENTIAL</div>
+ <div class="building b2">🏫 SCHOOL</div>
+ <div class="building b3">🏥 HOSPITAL</div>
+ <div class="building b4">🏢 CORPORATE</div>
+ <div class="building b5">🏭 WAREHOUSE</div>
+ <div class="building b6">🌦️ WEATHER STATION</div>
+
+ <div id="player"></div>
+
+ <div id="hud">
+
+  <div class="title">
+   🌦️ WEBBOUND V181 — DYNAMIC WORLD
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    🕐 TIME<br>
+    <span id="timeText">06:00</span>
+   </div>
+
+   <div class="stat">
+    🌤️ WEATHER<br>
+    <span id="weatherText">Clear</span>
+   </div>
+
+   <div class="stat">
+    🌡️ TEMP<br>
+    <span id="tempText">25°C</span>
+   </div>
+
+   <div class="stat">
+    📅 DAY<br>
+    <span id="dayText">Monday</span>
+   </div>
+
+  </div>
+
+  <div id="weatherHud">
+
+   <b>🌍 WORLD CONDITIONS</b>
+
+   <br>
+
+   Season:
+   <span id="seasonText">Summer</span>
+
+   <br>
+
+   Visibility:
+   <span id="visibilityText">Excellent</span>
+
+   <br>
+
+   Wind:
+   <span id="windText">Calm</span>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V181.weatherMenu()">
+   🌦️ WEATHER
+  </button>
+
+  <button onclick="V181.nextHour()">
+   ⏩ +1 HOUR
+  </button>
+
+  <button onclick="V181.nextDay()">
+   📅 NEXT DAY
+  </button>
+
+  <button onclick="V181.randomWeather()">
+   🎲 RANDOM WEATHER
+  </button>
+
+  <button onclick="V181.worldInfo()">
+   🌍 WORLD INFO
+  </button>
+
+  <button onclick="V181.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V181
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V181.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V181={
+
+ saveKey:"WEBBOUND_V181",
+
+ hour:6,
+
+ day:1,
+
+ weather:"Clear",
+
+ temperature:25,
+
+ wind:"Calm",
+
+ weatherTypes:[
+
+  {
+   name:"Clear",
+   icon:"☀️",
+   temp:27,
+   visibility:"Excellent",
+   rain:0,
+   fog:0
+  },
+
+  {
+   name:"Cloudy",
+   icon:"☁️",
+   temp:24,
+   visibility:"Good",
+   rain:0,
+   fog:5
+  },
+
+  {
+   name:"Rain",
+   icon:"🌧️",
+   temp:21,
+   visibility:"Reduced",
+   rain:1,
+   fog:10
+  },
+
+  {
+   name:"Storm",
+   icon:"⛈️",
+   temp:19,
+   visibility:"Poor",
+   rain:1,
+   fog:20
+  },
+
+  {
+   name:"Fog",
+   icon:"🌫️",
+   temp:18,
+   visibility:"Very Poor",
+   rain:0,
+   fog:55
+  },
+
+  {
+   name:"Windy",
+   icon:"🌬️",
+   temp:22,
+   visibility:"Good",
+   rain:0,
+   fog:0
+  }
+
+ ],
+
+ days:[
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday"
+ ],
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🌦️ V181 Dynamic World ready"
+  );
+
+ },
+
+ /* =========================
+    TIME
+ ========================= */
+
+ nextHour(){
+
+  this.hour++;
+
+  if(this.hour>=24){
+
+   this.hour=0;
+
+   this.nextDay(false);
+
+  }
+
+  this.update();
+
+  this.save();
+
+ },
+
+ nextDay(show=true){
+
+  this.day++;
+
+  if(this.day>7)
+   this.day=1;
+
+  this.hour=6;
+
+  this.randomWeather(false);
+
+  this.update();
+
+  this.save();
+
+  if(show){
+
+   this.notify(
+    "📅 New day: "+
+    this.days[this.day-1]
+   );
+
+  }
+
+ },
+
+ /* =========================
+    RANDOM WEATHER
+ ========================= */
+
+ randomWeather(show=true){
+
+  const list=
+   this.weatherTypes;
+
+  const selected=
+   list[
+    Math.floor(
+     Math.random()*
+     list.length
+    )
+   ];
+
+  this.weather=
+   selected.name;
+
+  this.temperature=
+   selected.temp+
+   Math.floor(
+    Math.random()*5
+   )-2;
+
+  const winds=[
+   "Calm",
+   "Light",
+   "Moderate",
+   "Strong"
+  ];
+
+  this.wind=
+   winds[
+    Math.floor(
+     Math.random()*
+     winds.length
+    )
+   ];
+
+  this.update();
+
+  this.save();
+
+  if(show){
+
+   this.notify(
+    selected.icon+
+    " Weather changed to "+
+    selected.name
+   );
+
+  }
+
+ },
+
+ /* =========================
+    WEATHER MENU
+ ========================= */
+
+ weatherMenu(){
+
+  let html="";
+
+  this.weatherTypes.forEach(
+   weather=>{
+
+    html+=`
+
+    <div class="card">
+
+     <b>
+      ${weather.icon}
+      ${weather.name}
+     </b>
+
+     <br>
+
+     Temperature:
+     ${weather.temp}°C
+
+     <br>
+
+     Visibility:
+     ${weather.visibility}
+
+     <button
+      onclick="
+       V181.setWeather(
+        '${weather.name}'
+       )
+      ">
+
+      SET WEATHER
+
+     </button>
+
+    </div>
+
+    `;
+
+  });
+
+  this.open(
+   "🌦️ WEATHER CONTROL",
+   html
+  );
+
+ },
+
+ setWeather(name){
+
+  const weather=
+   this.weatherTypes.find(
+    w=>w.name===name
+   );
+
+  if(!weather)
+   return;
+
+  this.weather=
+   weather.name;
+
+  this.temperature=
+   weather.temp;
+
+  this.update();
+
+  this.save();
+
+  this.close();
+
+  this.notify(
+   weather.icon+
+   " Weather set to "+
+   weather.name
+  );
+
+ },
+
+ /* =========================
+    WORLD INFO
+ ========================= */
+
+ worldInfo(){
+
+  const weather=
+   this.weatherTypes.find(
+    w=>w.name===this.weather
+   );
+
+  const period=
+   this.period();
+
+  this.open(
+   "🌍 WORLD CONDITIONS",
+   `
+
+   <div class="card">
+
+    <b>🕐 TIME</b>
+
+    <br><br>
+
+    ${this.formatTime()}
+
+    <br>
+
+    ${period}
+
+   </div>
+
+   <div class="card">
+
+    <b>🌦️ WEATHER</b>
+
+    <br><br>
+
+    ${weather.icon}
+    ${weather.name}
+
+    <br>
+
+    Temperature:
+    ${this.temperature}°C
+
+    <br>
+
+    Visibility:
+    ${weather.visibility}
+
+   </div>
+
+   <div class="card">
+
+    <b>🌬️ WIND</b>
+
+    <br><br>
+
+    ${this.wind}
+
+   </div>
+
+   `
+  );
+
+ },
+
+ /* =========================
+    PERIOD
+ ========================= */
+
+ period(){
+
+  if(this.hour>=6 && this.hour<12)
+   return"🌅 Morning";
+
+  if(this.hour>=12 && this.hour<17)
+   return"☀️ Afternoon";
+
+  if(this.hour>=17 && this.hour<21)
+   return"🌇 Evening";
+
+  return"🌙 Night";
+
+ },
+
+ /* =========================
+    FORMAT TIME
+ ========================= */
+
+ formatTime(){
+
+  const h=
+   String(
+    this.hour
+   ).padStart(2,"0");
+
+  return h+":00";
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  const weather=
+   this.weatherTypes.find(
+    w=>w.name===this.weather
+   );
+
+  document.getElementById(
+   "timeText"
+  ).textContent=
+   this.formatTime();
+
+  document.getElementById(
+   "weatherText"
+  ).textContent=
+   weather.icon+
+   " "+
+   weather.name;
+
+  document.getElementById(
+   "tempText"
+  ).textContent=
+   this.temperature+
+   "°C";
+
+  document.getElementById(
+   "dayText"
+  ).textContent=
+   this.days[
+    this.day-1
+   ];
+
+  document.getElementById(
+   "seasonText"
+  ).textContent=
+   "Summer";
+
+  document.getElementById(
+   "visibilityText"
+  ).textContent=
+   weather.visibility;
+
+  document.getElementById(
+   "windText"
+  ).textContent=
+   this.wind;
+
+  this.updateSky(
+   weather
+  );
+
+ },
+
+ /* =========================
+    SKY
+ ========================= */
+
+ updateSky(weather){
+
+  const sky=
+   document.getElementById(
+    "sky"
+   );
+
+  const sun=
+   document.getElementById(
+    "sun"
+   );
+
+  const moon=
+   document.getElementById(
+    "moon"
+   );
+
+  const game=
+   document.getElementById(
+    "game"
+   );
+
+  const rain=
+   document.getElementById(
+    "rain"
+   );
+
+  const fog=
+   document.getElementById(
+    "fog"
+   );
+
+  const night=
+   this.hour<6 ||
+   this.hour>=19;
+
+  const evening=
+   this.hour>=17 &&
+   this.hour<19;
+
+  if(night){
+
+   sky.style.background=
+    "linear-gradient(#071323,#02060b)";
+
+   game.style.background=
+    "#050b13";
+
+   sun.style.opacity="0";
+
+   moon.style.opacity="1";
+
+  }
+  else if(evening){
+
+   sky.style.background=
+    "linear-gradient(#6d5360,#17202b)";
+
+   game.style.background=
+    "#18202a";
+
+   sun.style.opacity=".5";
+
+   moon.style.opacity=".2";
+
+  }
+  else{
+
+   sky.style.background=
+    "linear-gradient(#6fa4c0,#b9d0d8)";
+
+   game.style.background=
+    "#6c9db8";
+
+   sun.style.opacity="1";
+
+   moon.style.opacity="0";
+
+  }
+
+  rain.style.opacity=
+   weather.rain;
+
+  fog.style.opacity=
+   weather.fog/100;
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    hour:this.hour,
+
+    day:this.day,
+
+    weather:this.weather,
+
+    temperature:this.temperature,
+
+    wind:this.wind
+
+   })
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(
+    Number.isFinite(
+     data.hour
+    )
+   )
+    this.hour=
+     Math.min(
+      23,
+      Math.max(
+       0,
+       Math.floor(
+        data.hour
+       )
+      )
+     );
+
+   if(
+    Number.isFinite(
+     data.day
+    )
+   )
+    this.day=
+     Math.min(
+      7,
+      Math.max(
+       1,
+       Math.floor(
+        data.day
+       )
+      )
+     );
+
+   if(
+    typeof data.weather===
+    "string" &&
+    this.weatherTypes.some(
+     w=>w.name===data.weather
+    )
+   )
+    this.weather=
+     data.weather;
+
+   if(
+    Number.isFinite(
+     data.temperature
+    )
+   )
+    this.temperature=
+     data.temperature;
+
+   if(
+    typeof data.wind===
+    "string"
+   )
+    this.wind=
+     data.wind;
+
+  }
+  catch(error){
+
+   console.log(
+    "V181 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V181.init();
+
+console.log(
+ "WEBBOUND V181 DYNAMIC WORLD READY"
+);
+
+</script>
+
+</body>
+</html>
