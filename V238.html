@@ -1,0 +1,1000 @@
+<!-- =====================================================
+ V238 — BOSS BATTLE + ENEMY WAVES
+ Add after V237
+ ===================================================== -->
+
+<style>
+
+#bossHud238{
+
+    position:fixed;
+
+    left:50%;
+
+    top:12px;
+
+    transform:
+        translateX(-50%);
+
+    width:min(360px,80vw);
+
+    padding:12px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff30;
+
+    border-radius:10px;
+
+    z-index:6200;
+
+    display:none;
+
+}
+
+.bossTitle238{
+
+    text-align:center;
+
+    font-size:11px;
+
+    font-weight:bold;
+
+}
+
+#bossName238{
+
+    margin-top:7px;
+
+    text-align:center;
+
+    font-size:9px;
+
+}
+
+#bossBar238{
+
+    margin-top:8px;
+
+    width:100%;
+
+    height:8px;
+
+    background:#202830;
+
+    border-radius:8px;
+
+    overflow:hidden;
+
+}
+
+#bossFill238{
+
+    width:100%;
+
+    height:100%;
+
+    background:#ffffff;
+
+    transition:
+        width .25s;
+
+}
+
+#bossPhase238{
+
+    margin-top:6px;
+
+    text-align:center;
+
+    font-size:8px;
+
+}
+
+
+/* ================= BOSS ================= */
+
+.boss238{
+
+    position:absolute;
+
+    width:45px;
+    height:58px;
+
+    background:#101820;
+
+    border:2px solid #ffffff50;
+
+    border-radius:10px;
+
+    z-index:4000;
+
+    cursor:pointer;
+
+    transition:
+        left .3s,
+        top .3s;
+
+}
+
+.boss238::before{
+
+    content:"";
+
+    position:absolute;
+
+    left:12px;
+    top:7px;
+
+    width:19px;
+    height:18px;
+
+    border-radius:50%;
+
+    background:#d9dddf;
+
+}
+
+
+/* ================= WAVE HUD ================= */
+
+#waveHud238{
+
+    position:fixed;
+
+    right:12px;
+    top:300px;
+
+    width:min(230px,47vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:9px;
+
+    z-index:5200;
+
+}
+
+#waveNumber238,
+#waveEnemies238,
+#bossState238{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= CONTROLS ================= */
+
+#bossControls238{
+
+    position:fixed;
+
+    right:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:5300;
+
+}
+
+#bossControls238 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ BOSS HUD
+ ===================================================== -->
+
+<div id="bossHud238">
+
+    <div class="bossTitle238">
+        ⚔️ BOSS BATTLE
+    </div>
+
+    <div id="bossName238">
+        Boss
+    </div>
+
+    <div id="bossBar238">
+
+        <div id="bossFill238"></div>
+
+    </div>
+
+    <div id="bossPhase238">
+        Phase: 1
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ WAVE HUD
+ ===================================================== -->
+
+<div id="waveHud238">
+
+    <div>
+        🌊 ENEMY WAVES — V238
+    </div>
+
+    <div id="waveNumber238">
+        Wave: 0
+    </div>
+
+    <div id="waveEnemies238">
+        Enemies: 0
+    </div>
+
+    <div id="bossState238">
+        Boss: INACTIVE
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="bossControls238">
+
+    <button onclick="SpiderBoss238.startWave()">
+        🌊 WAVE
+    </button>
+
+    <button onclick="SpiderBoss238.spawnBoss()">
+        👑 BOSS
+    </button>
+
+    <button onclick="SpiderBoss238.attackBoss()">
+        🕷️ ATTACK
+    </button>
+
+    <button onclick="SpiderBoss238.endBattle()">
+        🏁 END
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V238 BOSS ENGINE
+ ===================================================== */
+
+const SpiderBoss238={
+
+    wave:0,
+
+    maxWaves:5,
+
+    waveEnemies:0,
+
+    boss:null,
+
+    bossHealth:1000,
+
+    bossMaxHealth:1000,
+
+    bossPhase:1,
+
+    bossActive:false,
+
+    battleActive:false,
+
+    nextId:1,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.message(
+            "⚔️ Boss battle system online."
+        );
+
+    },
+
+
+    /* =========================
+       START WAVE
+    ========================= */
+
+    startWave(){
+
+        if(
+            this.wave>=
+            this.maxWaves
+        ){
+
+            this.message(
+                "🌊 All waves completed."
+            );
+
+            return;
+
+        }
+
+
+        this.battleActive=true;
+
+        this.wave++;
+
+
+        const count=
+            2+
+            this.wave;
+
+
+        this.waveEnemies=
+            count;
+
+
+        this.spawnWaveEnemies(
+            count
+        );
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "🌊 Wave "+
+            this.wave+
+            " started!"
+        );
+
+    },
+
+
+    /* =========================
+       SPAWN WAVE
+    ========================= */
+
+    spawnWaveEnemies(count){
+
+        for(
+            let i=0;
+            i<count;
+            i++
+        ){
+
+            if(
+                typeof SpiderCombat233!==
+                "undefined"
+            ){
+
+                SpiderCombat233
+                    .spawnEnemy();
+
+            }
+
+        }
+
+    },
+
+
+    /* =========================
+       SPAWN BOSS
+    ========================= */
+
+    spawnBoss(){
+
+        if(
+            this.bossActive
+        ){
+
+            this.message(
+                "👑 Boss already active."
+            );
+
+            return;
+
+        }
+
+
+        this.battleActive=true;
+
+        this.bossActive=true;
+
+        this.bossHealth=
+            this.bossMaxHealth;
+
+        this.bossPhase=1;
+
+
+        const boss=
+            document.createElement(
+                "div"
+            );
+
+
+        boss.id=
+            "boss238_"+
+            this.nextId++;
+
+
+        boss.className=
+            "boss238";
+
+
+        boss.style.left=
+            "65vw";
+
+
+        boss.style.top=
+            "45vh";
+
+
+        boss.addEventListener(
+            "click",
+            ()=>{
+
+                this.attackBoss();
+
+            }
+        );
+
+
+        document.body.appendChild(
+            boss
+        );
+
+
+        this.boss={
+            element:boss,
+
+            active:true
+
+        };
+
+
+        const hud=
+            document.getElementById(
+                "bossHud238"
+            );
+
+
+        if(hud){
+
+            hud.style.display=
+                "block";
+
+        }
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "👑 BOSS BATTLE START!"
+        );
+
+
+        this.startBossAI();
+
+    },
+
+
+    /* =========================
+       BOSS ATTACK
+       ========================= */
+
+    attackBoss(){
+
+        if(
+            !this.bossActive ||
+            !this.boss
+        ){
+
+            this.message(
+                "No active boss."
+            );
+
+            return;
+
+        }
+
+
+        const damage=50;
+
+
+        this.bossHealth=
+            Math.max(
+                0,
+                this.bossHealth-
+                damage
+            );
+
+
+        this.updatePhase();
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "💥 Boss hit! "+
+            this.bossHealth+
+            " HP"
+        );
+
+
+        if(
+            this.bossHealth<=0
+        ){
+
+            this.defeatBoss();
+
+        }
+
+    },
+
+
+    /* =========================
+       BOSS PHASE
+       ========================= */
+
+    updatePhase(){
+
+        const percent=
+            this.bossHealth/
+            this.bossMaxHealth;
+
+
+        if(
+            percent<=.33
+        ){
+
+            this.bossPhase=3;
+
+        }else if(
+            percent<=.66
+        ){
+
+            this.bossPhase=2;
+
+        }else{
+
+            this.bossPhase=1;
+
+        }
+
+    },
+
+
+    /* =========================
+       BOSS AI
+       ========================= */
+
+    startBossAI(){
+
+        if(
+            this.boss.aiTimer
+        ){
+
+            clearInterval(
+                this.boss.aiTimer
+            );
+
+        }
+
+
+        this.boss.aiTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        !this.bossActive ||
+                        !this.boss
+                    )
+                        return;
+
+
+                    let left=
+                        parseFloat(
+                            this.boss.element
+                                .style.left
+                        );
+
+
+                    let top=
+                        parseFloat(
+                            this.boss.element
+                                .style.top
+                        );
+
+
+                    const speed=
+                        this.bossPhase*
+                        2;
+
+
+                    left+=
+                        (
+                            Math.random()*
+                            speed*2
+                        )-
+                        speed;
+
+
+                    top+=
+                        (
+                            Math.random()*
+                            speed*2
+                        )-
+                        speed;
+
+
+                    left=
+                        Math.max(
+                            10,
+                            Math.min(
+                                85,
+                                left
+                            )
+                        );
+
+
+                    top=
+                        Math.max(
+                            20,
+                            Math.min(
+                                80,
+                                top
+                            )
+                        );
+
+
+                    this.boss.element
+                        .style.left=
+                        left+"vw";
+
+
+                    this.boss.element
+                        .style.top=
+                        top+"vh";
+
+                },
+                900
+            );
+
+    },
+
+
+    /* =========================
+       DEFEAT BOSS
+       ========================= */
+
+    defeatBoss(){
+
+        this.bossActive=false;
+
+
+        if(
+            this.boss &&
+            this.boss.element
+        ){
+
+            this.boss.element.style
+                .opacity="0";
+
+
+            setTimeout(
+                ()=>{
+
+                    if(
+                        this.boss &&
+                        this.boss.element &&
+                        this.boss.element.parentNode
+                    ){
+
+                        this.boss.element
+                            .parentNode
+                            .removeChild(
+                                this.boss.element
+                            );
+
+                    }
+
+                },
+                400
+            );
+
+        }
+
+
+        if(
+            this.boss &&
+            this.boss.aiTimer
+        ){
+
+            clearInterval(
+                this.boss.aiTimer
+            );
+
+        }
+
+
+        this.message(
+            "🏆 BOSS DEFEATED! +500 XP"
+        );
+
+
+        this.boss=null;
+
+
+        if(
+            typeof SpiderMission236!==
+            "undefined"
+        ){
+
+            SpiderMission236
+                .addProgress();
+
+        }
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       END BATTLE
+       ========================= */
+
+    endBattle(){
+
+        this.battleActive=false;
+
+        this.wave=0;
+
+        this.waveEnemies=0;
+
+
+        if(
+            this.bossActive
+        ){
+
+            this.bossActive=false;
+
+
+            if(
+                this.boss &&
+                this.boss.element
+            ){
+
+                this.boss.element
+                    .remove();
+
+            }
+
+        }
+
+
+        this.boss=null;
+
+
+        const hud=
+            document.getElementById(
+                "bossHud238"
+            );
+
+
+        if(hud){
+
+            hud.style.display=
+                "none";
+
+        }
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "🏁 Battle ended."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+       ========================= */
+
+    updateHUD(){
+
+        const wave=
+            document.getElementById(
+                "waveNumber238"
+            );
+
+
+        const enemies=
+            document.getElementById(
+                "waveEnemies238"
+            );
+
+
+        const state=
+            document.getElementById(
+                "bossState238"
+            );
+
+
+        const bossFill=
+            document.getElementById(
+                "bossFill238"
+            );
+
+
+        const phase=
+            document.getElementById(
+                "bossPhase238"
+            );
+
+
+        const name=
+            document.getElementById(
+                "bossName238"
+            );
+
+
+        if(wave){
+
+            wave.textContent=
+                "Wave: "+
+                this.wave+
+                " / "+
+                this.maxWaves;
+
+        }
+
+
+        if(enemies){
+
+            enemies.textContent=
+                "Enemies: "+
+                this.waveEnemies;
+
+        }
+
+
+        if(state){
+
+            state.textContent=
+                "Boss: "+
+                (
+                    this.bossActive
+                    ?"ACTIVE"
+                    :"INACTIVE"
+                );
+
+        }
+
+
+        if(bossFill){
+
+            bossFill.style.width=
+                (
+                    this.bossHealth/
+                    this.bossMaxHealth*
+                    100
+                )+"%";
+
+        }
+
+
+        if(phase){
+
+            phase.textContent=
+                "Phase: "+
+                this.bossPhase;
+
+        }
+
+
+        if(name){
+
+            name.textContent=
+                "Boss — City Enforcer";
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+       ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V238
+ ===================================================== */
+
+SpiderBoss238.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="b")
+            SpiderBoss238.startWave();
+
+
+        if(key==="n")
+            SpiderBoss238.spawnBoss();
+
+
+        if(key==="f")
+            SpiderBoss238.attackBoss();
+
+
+        if(key==="q")
+            SpiderBoss238.endBattle();
+
+    }
+);
