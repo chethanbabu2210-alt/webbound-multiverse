@@ -1,0 +1,903 @@
+<!-- =====================================================
+ V226 — WALL CRAWLING + STEALTH
+ Add after V225
+ ===================================================== -->
+
+<style>
+
+#wallStealthHud226{
+    position:fixed;
+    right:12px;
+    top:550px;
+    width:min(230px,46vw);
+
+    padding:10px;
+
+    background:#03070de8;
+    border:1px solid #ffffff25;
+    border-radius:10px;
+
+    z-index:4200;
+}
+
+.wallTitle226{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#wallState226,
+#wallSurface226,
+#stealthState226{
+    margin-top:5px;
+    font-size:8px;
+}
+
+
+/* ================= STEALTH ================= */
+
+.stealthPlayer226{
+    opacity:.55;
+    filter:brightness(.7);
+    transition:.2s;
+}
+
+
+/* ================= VISION CONE ================= */
+
+.enemyVision226{
+
+    position:absolute;
+
+    width:90px;
+    height:90px;
+
+    border:1px dashed #ffffff35;
+
+    border-radius:50%;
+
+    pointer-events:none;
+
+    z-index:1500;
+
+}
+
+
+/* ================= WALL INDICATOR ================= */
+
+#wallIndicator226{
+
+    position:fixed;
+
+    left:50%;
+    top:42%;
+
+    transform:
+        translate(-50%,-50%);
+
+    padding:6px 10px;
+
+    background:#03070dcc;
+
+    border:1px solid #ffffff25;
+
+    border-radius:8px;
+
+    font-size:9px;
+
+    z-index:4300;
+
+    pointer-events:none;
+}
+
+
+/* ================= CONTROLS ================= */
+
+#wallControls226{
+
+    position:fixed;
+
+    right:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:4400;
+}
+
+#wallControls226 button{
+
+    padding:8px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="wallStealthHud226">
+
+    <div class="wallTitle226">
+        🕷️ WALL / STEALTH — V226
+    </div>
+
+    <div id="wallState226">
+        State: GROUND
+    </div>
+
+    <div id="wallSurface226">
+        Surface: NONE
+    </div>
+
+    <div id="stealthState226">
+        Stealth: OFF
+    </div>
+
+</div>
+
+
+<div id="wallIndicator226">
+    SURFACE: GROUND
+</div>
+
+
+<!-- =====================================================
+ CONTROLS
+ ===================================================== -->
+
+<div id="wallControls226">
+
+    <button onclick="SpiderWall226.attach()">
+        🧲 WALL
+    </button>
+
+    <button onclick="SpiderWall226.detach()">
+        ⬇️ DETACH
+    </button>
+
+    <button onclick="SpiderWall226.up()">
+        ⬆️ UP
+    </button>
+
+    <button onclick="SpiderWall226.down()">
+        ⬇️ DOWN
+    </button>
+
+    <button onclick="SpiderWall226.stealth()">
+        🥷 STEALTH
+    </button>
+
+    <button onclick="SpiderWall226.takedown()">
+        🕸️ TAKEDOWN
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V226 WALL + STEALTH ENGINE
+ ===================================================== */
+
+const SpiderWall226={
+
+    state:"GROUND",
+
+    surface:"NONE",
+
+    stealthMode:false,
+
+    crawling:false,
+
+    direction:"UP",
+
+    speed:3,
+
+    visionRange:170,
+
+    scanTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateHUD();
+
+        this.startVisionScan();
+
+        this.message(
+            "🕷️ Wall-crawling system ready."
+        );
+
+    },
+
+
+    /* =========================
+       ATTACH WALL
+    ========================= */
+
+    attach(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+
+        this.crawling=true;
+
+        this.state=
+            "WALL CRAWL";
+
+        this.surface=
+            "WALL";
+
+
+        player.style.transform=
+            "rotate(90deg)";
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "🧲 Wall attached."
+        );
+
+    },
+
+
+    /* =========================
+       DETACH
+    ========================= */
+
+    detach(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(player){
+
+            player.style.transform=
+                "rotate(0deg)";
+
+        }
+
+
+        this.crawling=false;
+
+        this.state=
+            "GROUND";
+
+        this.surface=
+            "NONE";
+
+
+        this.updateHUD();
+
+
+        this.message(
+            "⬇️ Wall detached."
+        );
+
+    },
+
+
+    /* =========================
+       UP
+    ========================= */
+
+    up(){
+
+        if(
+            !this.crawling
+        ){
+
+            this.message(
+                "🧲 Attach to a wall first."
+            );
+
+            return;
+
+        }
+
+
+        this.moveVertical(
+            -this.speed
+        );
+
+    },
+
+
+    /* =========================
+       DOWN
+    ========================= */
+
+    down(){
+
+        if(
+            !this.crawling
+        ){
+
+            this.message(
+                "🧲 Attach to a wall first."
+            );
+
+            return;
+
+        }
+
+
+        this.moveVertical(
+            this.speed
+        );
+
+    },
+
+
+    /* =========================
+       VERTICAL MOVEMENT
+    ========================= */
+
+    moveVertical(amount){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+
+        let top=
+            parseFloat(
+                player.style.top
+            );
+
+
+        if(
+            Number.isNaN(top)
+        ){
+
+            const rect=
+                player.getBoundingClientRect();
+
+            top=rect.top;
+
+        }
+
+
+        top+=amount;
+
+
+        top=
+            Math.max(
+                10,
+                Math.min(
+                    window.innerHeight-40,
+                    top
+                )
+            );
+
+
+        player.style.top=
+            top+"px";
+
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       STEALTH
+    ========================= */
+
+    stealth(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+
+        this.stealthMode=
+            !this.stealthMode;
+
+
+        player.classList.toggle(
+            "stealthPlayer226",
+            this.stealthMode
+        );
+
+
+        this.updateHUD();
+
+
+        this.message(
+            this.stealthMode
+            ?"🥷 Stealth mode ON."
+            :"🥷 Stealth mode OFF."
+        );
+
+    },
+
+
+    /* =========================
+       VISION SCAN
+    ========================= */
+
+    startVisionScan(){
+
+        clearInterval(
+            this.scanTimer
+        );
+
+
+        this.scanTimer=
+            setInterval(
+                ()=>{
+
+                    this.checkEnemyVision();
+
+                },
+                400
+            );
+
+    },
+
+
+    /* =========================
+       ENEMY VISION
+    ========================= */
+
+    checkEnemyVision(){
+
+        if(
+            typeof SpiderEnemy220===
+            "undefined"
+        )
+            return;
+
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+
+        if(!player)
+            return;
+
+
+        const playerRect=
+            player.getBoundingClientRect();
+
+
+        const px=
+            playerRect.left+
+            playerRect.width/2;
+
+        const py=
+            playerRect.top+
+            playerRect.height/2;
+
+
+        const enemies=
+            Object.values(
+                SpiderEnemy220.enemies
+            ).filter(
+                e=>e.active
+            );
+
+
+        enemies.forEach(
+            enemy=>{
+
+                const element=
+                    document.getElementById(
+                        "enemy220_"+
+                        enemy.id
+                    );
+
+
+                if(!element)
+                    return;
+
+
+                const rect=
+                    element.getBoundingClientRect();
+
+
+                const ex=
+                    rect.left+
+                    rect.width/2;
+
+                const ey=
+                    rect.top+
+                    rect.height/2;
+
+
+                const distance=
+                    Math.hypot(
+                        ex-px,
+                        ey-py
+                    );
+
+
+                if(
+                    distance>
+                    this.visionRange
+                )
+                    return;
+
+
+                /*
+                 * Stealth reduces detection.
+                 */
+
+                const detectionRange=
+                    this.stealthMode
+                    ?90
+                    :170;
+
+
+                if(
+                    distance<=
+                    detectionRange
+                ){
+
+                    this.playerDetected(
+                        enemy
+                    );
+
+                }
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       DETECTED
+    ========================= */
+
+    playerDetected(enemy){
+
+        if(
+            enemy.state===
+            "WEBBED"
+        )
+            return;
+
+
+        enemy.state=
+            "ALERT";
+
+
+        if(
+            typeof SpiderEnemy220
+            !=="undefined"
+        ){
+
+            SpiderEnemy220
+                .updateEnemyClass(
+                    enemy
+                );
+
+        }
+
+
+        this.message(
+            "⚠️ Enemy detected Spider-Man!"
+        );
+
+    },
+
+
+    /* =========================
+       STEALTH TAKEDOWN
+    ========================= */
+
+    takedown(){
+
+        if(
+            !this.stealthMode
+        ){
+
+            this.message(
+                "🥷 Enable stealth first."
+            );
+
+            return;
+
+        }
+
+
+        if(
+            typeof SpiderEnemy220===
+            "undefined"
+        )
+            return;
+
+
+        const enemies=
+            Object.values(
+                SpiderEnemy220.enemies
+            ).filter(
+                e=>e.active
+            );
+
+
+        if(
+            !enemies.length
+        ){
+
+            this.message(
+                "🎯 No enemy nearby."
+            );
+
+            return;
+
+        }
+
+
+        const target=
+            enemies[0];
+
+
+        const element=
+            document.getElementById(
+                "enemy220_"+
+                target.id
+            );
+
+
+        if(!element)
+            return;
+
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+
+        if(!player)
+            return;
+
+
+        const p=
+            player.getBoundingClientRect();
+
+        const e=
+            element.getBoundingClientRect();
+
+
+        const distance=
+            Math.hypot(
+                (
+                    p.left-
+                    e.left
+                ),
+                (
+                    p.top-
+                    e.top
+                )
+            );
+
+
+        if(
+            distance>
+            130
+        ){
+
+            this.message(
+                "🕸️ Move closer to perform takedown."
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * Non-graphic game takedown:
+         * enemy is disabled rather than
+         * showing injury.
+         */
+
+        target.state=
+            "WEBBED";
+
+
+        target.health=
+            0;
+
+
+        SpiderEnemy220.updateHealth(
+            target.id,
+            0
+        );
+
+
+        SpiderEnemy220.defeat(
+            target.id
+        );
+
+
+        this.message(
+            "🕸️ Stealth takedown complete."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const state=
+            document.getElementById(
+                "wallState226"
+            );
+
+        const surface=
+            document.getElementById(
+                "wallSurface226"
+            );
+
+        const stealth=
+            document.getElementById(
+                "stealthState226"
+            );
+
+        const indicator=
+            document.getElementById(
+                "wallIndicator226"
+            );
+
+
+        if(state){
+
+            state.textContent=
+                "State: "+
+                this.state;
+
+        }
+
+
+        if(surface){
+
+            surface.textContent=
+                "Surface: "+
+                this.surface;
+
+        }
+
+
+        if(stealth){
+
+            stealth.textContent=
+                "Stealth: "+
+                (
+                    this.stealthMode
+                    ?"ON"
+                    :"OFF"
+                );
+
+        }
+
+
+        if(indicator){
+
+            indicator.textContent=
+                "SURFACE: "+
+                this.surface;
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V226
+ ===================================================== */
+
+SpiderWall226.init();
+
+
+/* =====================================================
+ KEYBOARD CONTROLS
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="e")
+            SpiderWall226.attach();
+
+
+        if(key==="q")
+            SpiderWall226.detach();
+
+
+        if(key==="w")
+            SpiderWall226.up();
+
+
+        if(key==="s")
+            SpiderWall226.down();
+
+
+        if(key==="z")
+            SpiderWall226.stealth();
+
+
+        if(key==="x")
+            SpiderWall226.takedown();
+
+    }
+);
