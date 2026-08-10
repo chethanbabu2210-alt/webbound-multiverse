@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V109</title>
+
+<style>
+
+#v109HUD{
+  position:fixed;
+  left:12px;
+  top:520px;
+  z-index:12000;
+  width:min(220px,60vw);
+  padding:12px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+}
+
+#v109Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v109State{
+  margin-top:7px;
+  font-size:15px;
+}
+
+#v109Stats{
+  margin-top:6px;
+  font-size:10px;
+  line-height:1.5;
+  opacity:.75;
+}
+
+#v109Controls{
+  position:fixed;
+  left:12px;
+  top:655px;
+  z-index:12001;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+#v109Controls button{
+  padding:8px 11px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:10px;
+}
+
+#v109Message{
+  position:fixed;
+  left:50%;
+  top:18%;
+  transform:translateX(-50%);
+  z-index:12100;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 12px Arial,sans-serif;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V109
+     CIVILIAN INTERACTION SYSTEM
+     ========================================================= -->
+
+<div id="v109HUD">
+
+  <div id="v109Title">
+    🧍 CIVILIAN INTERACTION
+  </div>
+
+  <div id="v109State">
+    🙂 NORMAL
+  </div>
+
+  <div id="v109Stats">
+    Nearby: 0<br>
+    Interaction: Ready<br>
+    Events: 0
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     CONTROLS
+     ========================================================= -->
+
+<div id="v109Controls">
+
+  <button onclick="V109.interact()">
+    💬 INTERACT
+  </button>
+
+  <button onclick="V109.greet()">
+    👋 GREET
+  </button>
+
+  <button onclick="V109.help()">
+    🆘 HELP CIVILIAN
+  </button>
+
+  <button onclick="V109.scan()">
+    🔎 SCAN AREA
+  </button>
+
+  <button onclick="V109.reset()">
+    🔄 RESET EVENTS
+  </button>
+
+</div>
+
+
+<div id="v109Message">
+  V109
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V109
+   CIVILIAN INTERACTION SYSTEM
+   ========================================================= */
+
+const V109 = {
+
+  version:"V109",
+
+  saveKey:
+    "WEBBOUND_V109_INTERACTION",
+
+  running:true,
+
+  interactionDistance:35,
+
+  nearby:[],
+
+  selected:null,
+
+  events:0,
+
+  lastAction:"Ready",
+
+  cooldown:false,
+
+  states:[
+
+    "normal",
+    "curious",
+    "happy",
+    "afraid",
+    "helped"
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.update();
+
+    console.log(
+      "WEBBOUND V109 CIVILIAN INTERACTION READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     GET PLAYER POSITION
+     ======================================================= */
+
+  getPlayerPosition(){
+
+    if(
+      typeof player!=="undefined" &&
+      player &&
+      player.position
+    ){
+
+      return{
+
+        x:Number(player.position.x)||0,
+
+        y:Number(player.position.y)||0,
+
+        z:Number(player.position.z)||0
+
+      };
+
+    }
+
+
+    return{
+
+      x:0,
+      y:0,
+      z:0
+
+    };
+
+  },
+
+
+  /* =======================================================
+     DISTANCE
+     ======================================================= */
+
+  distance(a,b){
+
+    if(!a || !b){
+
+      return Infinity;
+
+    }
+
+
+    const dx=
+      (Number(a.x)||0)-
+      (Number(b.x)||0);
+
+    const dy=
+      (Number(a.y)||0)-
+      (Number(b.y)||0);
+
+    const dz=
+      (Number(a.z)||0)-
+      (Number(b.z)||0);
+
+
+    return Math.sqrt(
+      dx*dx+
+      dy*dy+
+      dz*dz
+    );
+
+  },
+
+
+  /* =======================================================
+     GET SOURCE PEDESTRIANS
+     ======================================================= */
+
+  getSourcePedestrians(){
+
+    /*
+      Use V108 if available.
+    */
+
+    if(
+      typeof V108!=="undefined" &&
+      typeof V108.getPedestrians===
+      "function"
+    ){
+
+      return V108.getPedestrians();
+
+    }
+
+
+    /*
+      Empty fallback.
+    */
+
+    return[];
+
+  },
+
+
+  /* =======================================================
+     SCAN
+     ======================================================= */
+
+  scan(){
+
+    const playerPosition=
+      this.getPlayerPosition();
+
+    const pedestrians=
+      this.getSourcePedestrians();
+
+
+    this.nearby=
+      pedestrians.filter(
+        pedestrian=>{
+
+          return(
+            this.distance(
+              playerPosition,
+              pedestrian
+            )<=
+            this.interactionDistance
+          );
+
+        }
+      );
+
+
+    this.selected=
+      this.nearby.length>0
+      ? this.nearby[0]
+      : null;
+
+
+    this.lastAction=
+      this.nearby.length>0
+      ? "Civilian nearby"
+      : "No civilian nearby";
+
+
+    this.update();
+
+    this.message(
+      this.nearby.length+
+      " civilian(s) nearby"
+    );
+
+
+    return this.nearby;
+
+  },
+
+
+  /* =======================================================
+     INTERACT
+     ======================================================= */
+
+  interact(){
+
+    this.scan();
+
+
+    if(!this.selected){
+
+      this.message(
+        "🚶 No civilian close enough"
+      );
+
+      return;
+
+    }
+
+
+    if(this.cooldown){
+
+      this.message(
+        "⏳ Wait a moment"
+      );
+
+      return;
+
+    }
+
+
+    this.cooldown=true;
+
+
+    const civilian=
+      this.selected;
+
+
+    const choices=[
+
+      {
+        state:"curious",
+        text:"👀 The civilian notices you."
+      },
+
+      {
+        state:"happy",
+        text:"🙂 The civilian responds positively."
+      },
+
+      {
+        state:"normal",
+        text:"💬 You exchanged a few words."
+      }
+
+    ];
+
+
+    const choice=
+      choices[
+        Math.floor(
+          Math.random()*
+          choices.length
+        )
+      ];
+
+
+    civilian.state=
+      choice.state;
+
+
+    this.events++;
+
+    this.lastAction=
+      "Interaction";
+
+
+    this.message(
+      choice.text
+    );
+
+
+    if(
+      typeof window.onWebboundCivilianInteraction===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundCivilianInteraction({
+
+          civilian:civilian,
+
+          action:"interact",
+
+          state:choice.state
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V109 INTERACTION CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+
+    this.update();
+
+
+    setTimeout(
+      ()=>{
+
+        this.cooldown=false;
+
+      },
+      1200
+    );
+
+  },
+
+
+  /* =======================================================
+     GREET
+     ======================================================= */
+
+  greet(){
+
+    this.scan();
+
+
+    if(!this.selected){
+
+      this.message(
+        "👋 Nobody nearby to greet"
+      );
+
+      return;
+
+    }
+
+
+    this.selected.state=
+      "happy";
+
+
+    this.events++;
+
+    this.lastAction=
+      "Greeted civilian";
+
+
+    this.message(
+      "👋 You greeted the civilian"
+    );
+
+
+    if(
+      typeof window.onWebboundCivilianInteraction===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundCivilianInteraction({
+
+          civilian:
+            this.selected,
+
+          action:"greet",
+
+          state:"happy"
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V109 GREET CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     HELP
+     ======================================================= */
+
+  help(){
+
+    this.scan();
+
+
+    if(!this.selected){
+
+      this.message(
+        "🆘 No civilian needs help nearby"
+      );
+
+      return;
+
+    }
+
+
+    this.selected.state=
+      "helped";
+
+
+    this.events++;
+
+    this.lastAction=
+      "Helped civilian";
+
+
+    this.message(
+      "🆘 Civilian helped"
+    );
+
+
+    /*
+      Optional connection to
+      an existing wanted system.
+    */
+
+    if(
+      typeof V58!=="undefined" &&
+      typeof V58.wanted!=="undefined"
+    ){
+
+      /*
+        Helping civilians does not
+        increase wanted level.
+      */
+
+      V58.wanted=
+        Math.max(
+          0,
+          Number(V58.wanted)||0
+        );
+
+
+      if(
+        typeof v58UpdateHUD===
+        "function"
+      ){
+
+        v58UpdateHUD();
+
+      }
+
+    }
+
+
+    if(
+      typeof window.onWebboundCivilianHelp===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundCivilianHelp(
+          this.selected
+        );
+
+      }
+      catch(error){
+
+        console.warn(
+          "V109 HELP CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     RANDOM CIVILIAN EVENT
+     ======================================================= */
+
+  randomEvent(){
+
+    this.scan();
+
+
+    if(this.nearby.length===0){
+
+      return;
+
+    }
+
+
+    const civilian=
+      this.nearby[
+        Math.floor(
+          Math.random()*
+          this.nearby.length
+        )
+      ];
+
+
+    const events=[
+
+      "🙂 Civilian looks around.",
+
+      "📱 Civilian checks their phone.",
+
+      "🚶 Civilian continues walking.",
+
+      "👀 Civilian notices something nearby."
+
+    ];
+
+
+    const event=
+      events[
+        Math.floor(
+          Math.random()*
+          events.length
+        )
+      ];
+
+
+    this.lastAction=
+      "World event";
+
+
+    this.events++;
+
+
+    this.message(
+      event
+    );
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const state=
+      document.getElementById(
+        "v109State"
+      );
+
+    const stats=
+      document.getElementById(
+        "v109Stats"
+      );
+
+
+    if(state){
+
+      if(this.selected){
+
+        const currentState=
+          this.selected.state ||
+          "normal";
+
+
+        const icons={
+
+          normal:"🙂",
+
+          curious:"👀",
+
+          happy:"😊",
+
+          afraid:"😨",
+
+          helped:"🤝"
+
+        };
+
+
+        state.textContent=
+          (
+            icons[currentState]||
+            "🙂"
+          )+
+          " "+
+          currentState.toUpperCase();
+
+      }
+      else{
+
+        state.textContent=
+          "🙂 NORMAL";
+
+      }
+
+    }
+
+
+    if(stats){
+
+      stats.innerHTML=
+
+        "Nearby: "+
+        this.nearby.length+
+        "<br>"+
+
+        "Interaction: "+
+        this.lastAction+
+        "<br>"+
+
+        "Events: "+
+        this.events;
+
+    }
+
+  },
+
+
+  /* =======================================================
+     RESET
+     ======================================================= */
+
+  reset(){
+
+    this.nearby=[];
+
+    this.selected=null;
+
+    this.events=0;
+
+    this.lastAction=
+      "Ready";
+
+    this.update();
+
+    this.save();
+
+    this.message(
+      "🔄 Interaction system reset"
+    );
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      const data={
+
+        version:this.version,
+
+        events:this.events,
+
+        lastAction:
+          this.lastAction
+
+      };
+
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(data)
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V109 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(raw);
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      if(
+        Number.isFinite(
+          Number(data.events)
+        )
+      ){
+
+        this.events=
+          Math.max(
+            0,
+            Number(data.events)
+          );
+
+      }
+
+
+      if(
+        typeof data.lastAction===
+        "string"
+      ){
+
+        this.lastAction=
+          data.lastAction;
+
+      }
+
+    }
+    catch(error){
+
+      console.error(
+        "V109 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:this.version,
+
+      events:this.events,
+
+      lastAction:
+        this.lastAction
+
+    };
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    if(
+      Number.isFinite(
+        Number(data.events)
+      )
+    ){
+
+      this.events=
+        Math.max(
+          0,
+          Number(data.events)
+        );
+
+    }
+
+
+    if(
+      typeof data.lastAction===
+      "string"
+    ){
+
+      this.lastAction=
+        data.lastAction;
+
+    }
+
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v109Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(text);
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   PERIODIC WORLD EVENTS
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    if(
+      V109.running
+    ){
+
+      V109.randomEvent();
+
+    }
+
+  },
+  15000
+);
+
+
+/* =========================================================
+   KEYBOARD CONTROLS
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      E = interact
+    */
+
+    if(
+      event.code==="KeyE"
+    ){
+
+      V109.interact();
+
+    }
+
+
+    /*
+      G = greet
+    */
+
+    if(
+      event.code==="KeyG"
+    ){
+
+      V109.greet();
+
+    }
+
+
+    /*
+      H = help
+    */
+
+    if(
+      event.code==="KeyH"
+    ){
+
+      V109.help();
+
+    }
+
+
+    /*
+      Q = scan
+    */
+
+    if(
+      event.code==="KeyQ"
+    ){
+
+      V109.scan();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V109.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V109.init();
+
+
+console.log(
+  "WEBBOUND V109 CIVILIAN INTERACTION SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
