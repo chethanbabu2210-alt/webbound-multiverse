@@ -1,0 +1,1230 @@
+<!-- =====================================================
+ V208 — WEB SWINGING SYSTEM
+ ===================================================== -->
+
+<style>
+
+/* ================= SWING HUD ================= */
+
+#swingHud{
+    position:fixed;
+
+    left:50%;
+    top:12px;
+
+    transform:translateX(-50%);
+
+    width:min(300px,70vw);
+
+    padding:10px;
+
+    background:#03070ddd;
+
+    border:1px solid #ffffff25;
+
+    border-radius:12px;
+
+    z-index:1000;
+
+    text-align:center;
+}
+
+.swingTitle{
+    font-size:12px;
+    font-weight:bold;
+}
+
+.swingStats{
+    display:grid;
+
+    grid-template-columns:
+        repeat(3,1fr);
+
+    gap:5px;
+
+    margin-top:7px;
+}
+
+.swingStat{
+    padding:6px 3px;
+
+    background:#101b23;
+
+    border-radius:6px;
+
+    font-size:8px;
+}
+
+#swingStatus{
+    margin-top:7px;
+
+    font-size:9px;
+
+    color:#cfdde3;
+}
+
+
+/* ================= BUILDING ANCHORS ================= */
+
+.swingAnchor{
+    position:absolute;
+
+    width:16px;
+    height:16px;
+
+    border-radius:50%;
+
+    background:#e9eef0;
+
+    border:3px solid #23323b;
+
+    box-shadow:
+        0 0 12px #ffffffaa;
+
+    z-index:130;
+
+    cursor:pointer;
+
+    animation:
+        anchorPulse 1s infinite alternate;
+}
+
+@keyframes anchorPulse{
+
+    from{
+        transform:scale(.85);
+        opacity:.6;
+    }
+
+    to{
+        transform:scale(1.15);
+        opacity:1;
+    }
+
+}
+
+
+/* ================= WEB ROPE ================= */
+
+.swingRope{
+    position:absolute;
+
+    height:3px;
+
+    background:#f3f5f6;
+
+    transform-origin:left center;
+
+    border-radius:5px;
+
+    z-index:125;
+
+    box-shadow:
+        0 0 4px #ffffff99;
+
+    pointer-events:none;
+}
+
+
+/* ================= SWING ARC ================= */
+
+#swingArc{
+    position:absolute;
+
+    width:220px;
+    height:220px;
+
+    border:
+        2px dashed #ffffff55;
+
+    border-radius:50%;
+
+    z-index:100;
+
+    pointer-events:none;
+
+    display:none;
+}
+
+
+/* ================= MOMENTUM EFFECT ================= */
+
+.speedLine{
+    position:fixed;
+
+    width:3px;
+    height:30px;
+
+    background:#ffffff66;
+
+    z-index:90;
+
+    pointer-events:none;
+
+    animation:
+        speedMove .35s linear forwards;
+}
+
+@keyframes speedMove{
+
+    from{
+        opacity:0;
+        transform:translateY(0);
+    }
+
+    30%{
+        opacity:1;
+    }
+
+    to{
+        opacity:0;
+        transform:translateY(70px);
+    }
+
+}
+
+
+/* ================= SWING BUTTONS ================= */
+
+#swingControls{
+    position:fixed;
+
+    right:50%;
+
+    bottom:105px;
+
+    transform:translateX(50%);
+
+    width:min(650px,94vw);
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(5,1fr);
+
+    gap:6px;
+
+    z-index:1000;
+}
+
+#swingControls button{
+
+    padding:9px 4px;
+
+    background:#111f2a;
+
+    color:white;
+
+    border:
+        1px solid #ffffff25;
+
+    border-radius:8px;
+
+    font-size:9px;
+
+    cursor:pointer;
+
+}
+
+#swingControls button:active{
+    transform:scale(.94);
+}
+
+.swingButton{
+    background:#173746 !important;
+}
+
+.releaseButton{
+    background:#493515 !important;
+}
+
+
+/* ================= AIR EFFECT ================= */
+
+#airEffect{
+    position:fixed;
+
+    inset:0;
+
+    pointer-events:none;
+
+    z-index:80;
+
+    opacity:0;
+
+}
+
+#airEffect.active{
+
+    opacity:1;
+
+    animation:
+        airShake .25s infinite alternate;
+
+}
+
+@keyframes airShake{
+
+    from{
+        transform:translateX(-1px);
+    }
+
+    to{
+        transform:translateX(1px);
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ SWING HUD
+ ===================================================== -->
+
+<div id="swingHud">
+
+    <div class="swingTitle">
+        🕸️ WEB SWINGING — V208
+    </div>
+
+    <div class="swingStats">
+
+        <div class="swingStat">
+            ⚡ SPEED<br>
+            <span id="swingSpeed">
+                0
+            </span>
+        </div>
+
+        <div class="swingStat">
+            📏 ROPE<br>
+            <span id="ropeLength">
+                0
+            </span>
+        </div>
+
+        <div class="swingStat">
+            🏙️ ALTITUDE<br>
+            <span id="swingAltitude">
+                0
+            </span>
+        </div>
+
+    </div>
+
+    <div id="swingStatus">
+        READY
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+ SWING ANCHORS
+ ===================================================== -->
+
+<div
+    id="anchor1"
+    class="swingAnchor"
+    style="left:8%;top:19%"
+    onclick="SpiderSwing.attach(this)">
+</div>
+
+<div
+    id="anchor2"
+    class="swingAnchor"
+    style="left:23%;top:13%"
+    onclick="SpiderSwing.attach(this)">
+</div>
+
+<div
+    id="anchor3"
+    class="swingAnchor"
+    style="left:43%;top:9%"
+    onclick="SpiderSwing.attach(this)">
+</div>
+
+<div
+    id="anchor4"
+    class="swingAnchor"
+    style="left:61%;top:15%"
+    onclick="SpiderSwing.attach(this)">
+</div>
+
+<div
+    id="anchor5"
+    class="swingAnchor"
+    style="left:78%;top:10%"
+    onclick="SpiderSwing.attach(this)">
+</div>
+
+<div
+    id="anchor6"
+    class="swingAnchor"
+    style="left:92%;top:21%"
+    onclick="SpiderSwing.attach(this)">
+</div>
+
+
+<div id="swingArc"></div>
+
+<div id="airEffect"></div>
+
+
+<!-- =====================================================
+ SWING CONTROLS
+ ===================================================== -->
+
+<div id="swingControls">
+
+    <button
+        class="swingButton"
+        onclick="SpiderSwing.autoAttach()">
+        🕸️ ATTACH
+    </button>
+
+    <button
+        class="swingButton"
+        onclick="SpiderSwing.pump()">
+        ⬆️ PUMP
+    </button>
+
+    <button
+        class="swingButton"
+        onclick="SpiderSwing.reverse()">
+        🔄 REVERSE
+    </button>
+
+    <button
+        class="releaseButton"
+        onclick="SpiderSwing.release()">
+        🕊️ RELEASE
+    </button>
+
+    <button
+        onclick="SpiderSwing.land()">
+        🏙️ LAND
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V208 WEB SWING ENGINE
+ ===================================================== */
+
+const SpiderSwing={
+
+    attached:false,
+
+    anchor:null,
+
+    rope:null,
+
+    speed:0,
+
+    maxSpeed:100,
+
+    altitude:0,
+
+    ropeLength:0,
+
+    direction:1,
+
+    swinging:false,
+
+    airborne:false,
+
+    angle:0,
+
+    angularVelocity:0,
+
+    swingTimer:null,
+
+    motionTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.update();
+
+        this.message(
+            "🕸️ Web swinging ready!"
+        );
+
+    },
+
+
+    /* =========================
+       AUTO ATTACH
+    ========================= */
+
+    autoAttach(){
+
+        const anchors=[
+            ...document.querySelectorAll(
+                ".swingAnchor"
+            )
+        ];
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const pr=
+            player.getBoundingClientRect();
+
+        let nearest=null;
+
+        let nearestDistance=
+            Infinity;
+
+        anchors.forEach(
+            anchor=>{
+
+                const r=
+                    anchor.getBoundingClientRect();
+
+                const distance=
+                    Math.hypot(
+
+                        r.left-pr.left,
+
+                        r.top-pr.top
+
+                    );
+
+                if(
+                    distance<
+                    nearestDistance
+                ){
+
+                    nearestDistance=
+                        distance;
+
+                    nearest=
+                        anchor;
+
+                }
+
+            }
+        );
+
+        if(nearest){
+
+            this.attach(
+                nearest
+            );
+
+        }
+
+    },
+
+
+    /* =========================
+       ATTACH
+    ========================= */
+
+    attach(anchor){
+
+        if(!anchor)
+            return;
+
+        if(
+            typeof Spider!==
+            "undefined" &&
+            Spider.webs<=0
+        ){
+
+            this.message(
+                "🕸️ No webs available."
+            );
+
+            return;
+
+        }
+
+        this.anchor=anchor;
+
+        this.attached=true;
+
+        this.swinging=true;
+
+        this.airborne=true;
+
+        this.direction=1;
+
+        this.speed=
+            Math.max(
+                this.speed,
+                20
+            );
+
+        this.ropeLength=
+            this.calculateRopeLength();
+
+        this.createRope();
+
+        this.showArc();
+
+        document
+            .getElementById(
+                "swingStatus"
+            )
+            .textContent=
+                "🕸️ SWINGING";
+
+        document
+            .getElementById(
+                "airEffect"
+            )
+            .classList.add(
+                "active"
+            );
+
+        this.message(
+            "🕸️ WEB ATTACHED!"
+        );
+
+        this.startSwing();
+
+    },
+
+
+    /* =========================
+       ROPE LENGTH
+    ========================= */
+
+    calculateRopeLength(){
+
+        if(!this.anchor)
+            return 0;
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const p=
+            player.getBoundingClientRect();
+
+        const a=
+            this.anchor.getBoundingClientRect();
+
+        return Math.round(
+
+            Math.hypot(
+
+                p.left-a.left,
+
+                p.top-a.top
+
+            )/2
+
+        );
+
+    },
+
+
+    /* =========================
+       CREATE ROPE
+    ========================= */
+
+    createRope(){
+
+        this.removeRope();
+
+        this.rope=
+            document.createElement(
+                "div"
+            );
+
+        this.rope.className=
+            "swingRope";
+
+        document.body.appendChild(
+            this.rope
+        );
+
+        this.updateRope();
+
+    },
+
+
+    /* =========================
+       UPDATE ROPE
+    ========================= */
+
+    updateRope(){
+
+        if(
+            !this.attached ||
+            !this.anchor ||
+            !this.rope
+        )
+            return;
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        const p=
+            player.getBoundingClientRect();
+
+        const a=
+            this.anchor.getBoundingClientRect();
+
+        const x1=
+            a.left+
+            a.width/2;
+
+        const y1=
+            a.top+
+            a.height/2;
+
+        const x2=
+            p.left+
+            p.width/2;
+
+        const y2=
+            p.top+
+            p.height/2;
+
+        const dx=
+            x2-x1;
+
+        const dy=
+            y2-y1;
+
+        const length=
+            Math.hypot(
+                dx,
+                dy
+            );
+
+        const angle=
+            Math.atan2(
+                dy,
+                dx
+            )*
+            180/Math.PI;
+
+        this.rope.style.left=
+            x1+"px";
+
+        this.rope.style.top=
+            y1+"px";
+
+        this.rope.style.width=
+            length+"px";
+
+        this.rope.style.transform=
+            `rotate(${angle}deg)`;
+
+        this.ropeLength=
+            Math.round(
+                length/2
+            );
+
+    },
+
+
+    /* =========================
+       SWING LOOP
+    ========================= */
+
+    startSwing(){
+
+        clearInterval(
+            this.swingTimer
+        );
+
+        this.swingTimer=
+            setInterval(
+                ()=>{
+
+                    if(
+                        !this.attached
+                    )
+                        return;
+
+                    this.swingStep();
+
+                },
+                40
+            );
+
+    },
+
+
+    /* =========================
+       SWING STEP
+    ========================= */
+
+    swingStep(){
+
+        if(!this.anchor)
+            return;
+
+        /*
+         * Simple pendulum-style
+         * movement for browser game.
+         */
+
+        this.angularVelocity+=
+            0.003*
+            this.direction;
+
+        this.angle+=
+            this.angularVelocity;
+
+        this.angularVelocity*=.995;
+
+        const anchor=
+            this.anchor.getBoundingClientRect();
+
+        const ax=
+            anchor.left+
+            anchor.width/2;
+
+        const ay=
+            anchor.top+
+            anchor.height/2;
+
+        const radius=
+            Math.max(
+                120,
+                this.ropeLength*2
+            );
+
+        const px=
+            ax+
+            Math.sin(
+                this.angle
+            )*
+            radius;
+
+        const py=
+            ay+
+            Math.cos(
+                this.angle
+            )*
+            radius;
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        player.style.left=
+            (
+                px/
+                window.innerWidth*
+                100
+            )+"%";
+
+        player.style.top=
+            (
+                py/
+                window.innerHeight*
+                100
+            )+"%";
+
+        this.speed=
+            Math.min(
+                this.maxSpeed,
+                Math.abs(
+                    this.angularVelocity
+                )*10000
+                +
+                this.speed*.995
+            );
+
+        this.altitude=
+            Math.max(
+                0,
+                Math.round(
+                    (
+                        window.innerHeight-
+                        py
+                    )/5
+                )
+            );
+
+        this.updateRope();
+
+        this.update();
+
+        this.createSpeedLines();
+
+    },
+
+
+    /* =========================
+       PUMP SWING
+    ========================= */
+
+    pump(){
+
+        if(!this.attached){
+
+            this.message(
+                "🕸️ Attach a web first."
+            );
+
+            return;
+
+        }
+
+        this.angularVelocity+=
+            .035*
+            this.direction;
+
+        this.speed=
+            Math.min(
+                this.maxSpeed,
+                this.speed+10
+            );
+
+        this.message(
+            "⬆️ MOMENTUM BOOST!"
+        );
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       REVERSE
+    ========================= */
+
+    reverse(){
+
+        if(!this.attached)
+            return;
+
+        this.direction*=-1;
+
+        this.angularVelocity*=-1;
+
+        this.message(
+            "🔄 DIRECTION REVERSED!"
+        );
+
+    },
+
+
+    /* =========================
+       RELEASE
+    ========================= */
+
+    release(){
+
+        if(!this.attached){
+
+            this.message(
+                "🕸️ No active web."
+            );
+
+            return;
+
+        }
+
+        this.attached=false;
+
+        this.swinging=false;
+
+        this.removeRope();
+
+        this.hideArc();
+
+        document
+            .getElementById(
+                "airEffect"
+            )
+            .classList.remove(
+                "active"
+            );
+
+        document
+            .getElementById(
+                "swingStatus"
+            )
+            .textContent=
+                "🕊️ AIRBORNE";
+
+        /*
+         * Preserve momentum after release.
+         */
+
+        const launchSpeed=
+            Math.max(
+                4,
+                this.speed/12
+            );
+
+        this.motionTimer=
+            setInterval(
+                ()=>{
+
+                    const player=
+                        document.getElementById(
+                            "spiderman"
+                        );
+
+                    let left=
+                        parseFloat(
+                            player.style.left
+                        )||50;
+
+                    let top=
+                        parseFloat(
+                            player.style.top
+                        )||50;
+
+                    left+=
+                        this.direction*
+                        launchSpeed*
+                        .07;
+
+                    top-=
+                        launchSpeed*
+                        .045;
+
+                    top+=
+                        .45;
+
+                    if(
+                        top>=70
+                    ){
+
+                        clearInterval(
+                            this.motionTimer
+                        );
+
+                        this.airborne=false;
+
+                        this.message(
+                            "🏙️ Landing!"
+                        );
+
+                        document
+                            .getElementById(
+                                "swingStatus"
+                            )
+                            .textContent=
+                                "LANDED";
+
+                    }
+
+                    left=
+                        Math.max(
+                            2,
+                            Math.min(
+                                98,
+                                left
+                            )
+                        );
+
+                    top=
+                        Math.max(
+                            5,
+                            Math.min(
+                                80,
+                                top
+                            )
+                        );
+
+                    player.style.left=
+                        left+"%";
+
+                    player.style.top=
+                        top+"%";
+
+                    this.altitude=
+                        Math.max(
+                            0,
+                            Math.round(
+                                (
+                                    80-top
+                                )*5
+                            )
+                        );
+
+                    this.update();
+
+                },
+                40
+            );
+
+        this.message(
+            "🕊️ WEB RELEASE!"
+        );
+
+    },
+
+
+    /* =========================
+       LAND
+    ========================= */
+
+    land(){
+
+        clearInterval(
+            this.motionTimer
+        );
+
+        this.attached=false;
+
+        this.swinging=false;
+
+        this.airborne=false;
+
+        this.speed=0;
+
+        this.altitude=0;
+
+        this.removeRope();
+
+        this.hideArc();
+
+        document
+            .getElementById(
+                "airEffect"
+            )
+            .classList.remove(
+                "active"
+            );
+
+        document
+            .getElementById(
+                "swingStatus"
+            )
+            .textContent=
+                "LANDED";
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        player.style.top=
+            "65%";
+
+        this.message(
+            "🏙️ SAFE LANDING!"
+        );
+
+        this.update();
+
+    },
+
+
+    /* =========================
+       REMOVE ROPE
+    ========================= */
+
+    removeRope(){
+
+        if(this.rope){
+
+            this.rope.remove();
+
+            this.rope=null;
+
+        }
+
+    },
+
+
+    /* =========================
+       SWING ARC
+    ========================= */
+
+    showArc(){
+
+        const arc=
+            document.getElementById(
+                "swingArc"
+            );
+
+        arc.style.display=
+            "block";
+
+    },
+
+
+    hideArc(){
+
+        const arc=
+            document.getElementById(
+                "swingArc"
+            );
+
+        arc.style.display=
+            "none";
+
+    },
+
+
+    /* =========================
+       SPEED LINES
+    ========================= */
+
+    createSpeedLines(){
+
+        if(this.speed<45)
+            return;
+
+        if(
+            Math.random()>.45
+        )
+            return;
+
+        const line=
+            document.createElement(
+                "div"
+            );
+
+        line.className=
+            "speedLine";
+
+        line.style.left=
+            (
+                Math.random()*100
+            )+"vw";
+
+        line.style.top=
+            (
+                Math.random()*70
+            )+"vh";
+
+        document.body.appendChild(
+            line
+        );
+
+        setTimeout(
+            ()=>{
+                line.remove();
+            },
+            350
+        );
+
+    },
+
+
+    /* =========================
+       UPDATE HUD
+    ========================= */
+
+  
