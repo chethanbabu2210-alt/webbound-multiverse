@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>WEBBOUND V119</title>
+
+<style>
+
+#v119HUD{
+  position:fixed;
+  left:12px;
+  bottom:105px;
+  z-index:14700;
+  width:min(235px,60vw);
+  padding:12px;
+  background:#05070eeb;
+  color:white;
+  border:1px solid #ffffff30;
+  border-radius:12px;
+  font-family:Arial,sans-serif;
+  box-sizing:border-box;
+}
+
+#v119Title{
+  font-size:13px;
+  font-weight:bold;
+}
+
+#v119Stats{
+  margin-top:7px;
+  font-size:10px;
+  line-height:1.6;
+  opacity:.8;
+}
+
+#v119Controls{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:9px;
+}
+
+#v119Controls button{
+  flex:1;
+  min-width:75px;
+  padding:7px;
+  background:#111827;
+  color:white;
+  border:1px solid #ffffff25;
+  border-radius:8px;
+  font-size:9px;
+}
+
+#v119Prompt{
+  position:fixed;
+  left:50%;
+  bottom:18%;
+  transform:translateX(-50%);
+  z-index:14800;
+  display:none;
+  padding:10px 15px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:10px;
+  font:bold 11px Arial,sans-serif;
+  text-align:center;
+}
+
+#v119Message{
+  position:fixed;
+  left:50%;
+  top:27%;
+  transform:translateX(-50%);
+  z-index:14900;
+  display:none;
+  max-width:85%;
+  padding:11px 16px;
+  background:#05070ef5;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:11px;
+  font:bold 12px Arial,sans-serif;
+  text-align:center;
+}
+
+#v119Layer{
+  position:fixed;
+  inset:0;
+  z-index:10300;
+  pointer-events:none;
+  overflow:hidden;
+}
+
+.v119Pickup{
+  position:absolute;
+  width:18px;
+  height:18px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  border:2px solid white;
+  background:#ffffff25;
+  box-shadow:0 0 10px #ffffff55;
+  animation:v119Float 1.2s infinite alternate;
+}
+
+.v119Pickup::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:6px;
+  height:6px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:white;
+}
+
+.v119Pickup.active{
+  transform:translate(-50%,-50%) scale(1.35);
+}
+
+@keyframes v119Float{
+
+  from{
+    margin-top:-2px;
+  }
+
+  to{
+    margin-top:2px;
+  }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     WEBBOUND V119
+     WORLD PICKUP / COLLECTIBLE SYSTEM
+     ========================================================= -->
+
+<div id="v119HUD">
+
+  <div id="v119Title">
+    📦 WORLD PICKUPS
+  </div>
+
+  <div id="v119Stats">
+    Pickups: 0<br>
+    Nearby: None<br>
+    Collected: 0
+  </div>
+
+  <div id="v119Controls">
+
+    <button onclick="V119.spawnPickup()">
+      📦 SPAWN
+    </button>
+
+    <button onclick="V119.spawnPack()">
+      📦 PACK
+    </button>
+
+    <button onclick="V119.clearPickups()">
+      🧹 CLEAR
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="v119Layer"></div>
+
+
+<div id="v119Prompt">
+  Press E to collect
+</div>
+
+
+<div id="v119Message">
+  V119
+</div>
+
+
+<script>
+
+/* =========================================================
+   WEBBOUND V119
+   WORLD PICKUP SYSTEM
+   ========================================================= */
+
+const V119 = {
+
+  version:"V119",
+
+  saveKey:
+    "WEBBOUND_V119_PICKUPS",
+
+  pickups:[],
+
+  nearbyPickup:null,
+
+  collected:0,
+
+  nextId:1,
+
+  timer:null,
+
+  messageTimer:null,
+
+  interactionDistance:13,
+
+  respawnTime:30000,
+
+  itemTypes:[
+
+    "Health Pack",
+
+    "Energy Cell",
+
+    "Web Fluid",
+
+    "Coin",
+
+    "Mission Token",
+
+    "Key"
+
+  ],
+
+
+  /* =======================================================
+     INITIALIZE
+     ======================================================= */
+
+  init(){
+
+    this.load();
+
+    this.updateHUD();
+
+    this.start();
+
+    console.log(
+      "WEBBOUND V119 PICKUP SYSTEM READY"
+    );
+
+  },
+
+
+  /* =======================================================
+     START
+     ======================================================= */
+
+  start(){
+
+    clearInterval(
+      this.timer
+    );
+
+
+    this.timer=
+      setInterval(
+        ()=>{
+
+          this.findNearby();
+
+          this.updateRespawns();
+
+          this.updateHUD();
+
+        },
+        150
+      );
+
+  },
+
+
+  /* =======================================================
+     SPAWN PICKUP
+     ======================================================= */
+
+  spawnPickup(item){
+
+    const layer=
+      document.getElementById(
+        "v119Layer"
+      );
+
+
+    if(!layer){
+
+      return null;
+
+    }
+
+
+    let selected=
+      item;
+
+
+    if(
+      typeof selected!=="string" ||
+      !selected.trim()
+    ){
+
+      selected=
+        this.itemTypes[
+          Math.floor(
+            Math.random()*
+            this.itemTypes.length
+          )
+        ];
+
+    }
+
+
+    selected=
+      selected.trim();
+
+
+    /*
+      Use V118's item database when
+      available.
+    */
+
+    if(
+      typeof V118!=="undefined" &&
+      typeof V118.isValidItem==="function"
+    ){
+
+      if(
+        !V118.isValidItem(
+          selected
+        )
+      ){
+
+        selected=
+          "Coin";
+
+      }
+
+    }
+
+
+    const element=
+      document.createElement(
+        "div"
+      );
+
+
+    element.className=
+      "v119Pickup";
+
+
+    const pickup={
+
+      id:
+        this.nextId++,
+
+      item:
+        selected,
+
+      amount:
+        selected==="Coin"
+        ? 5+
+          Math.floor(
+            Math.random()*16
+          )
+        : 1,
+
+      x:
+        Math.random()*80+
+        10,
+
+      y:
+        Math.random()*55+
+        25,
+
+      active:true,
+
+      collected:false,
+
+      respawnAt:0,
+
+      element:
+        element
+
+    };
+
+
+    element.style.left=
+      pickup.x+
+      "%";
+
+
+    element.style.top=
+      pickup.y+
+      "%";
+
+
+    element.title=
+      pickup.item;
+
+
+    layer.appendChild(
+      element
+    );
+
+
+    this.pickups.push(
+      pickup
+    );
+
+
+    this.save();
+
+    this.updateHUD();
+
+
+    return pickup;
+
+  },
+
+
+  /* =======================================================
+     SPAWN PACK
+     ======================================================= */
+
+  spawnPack(){
+
+    for(
+      let i=0;
+      i<10;
+      i++
+    ){
+
+      this.spawnPickup();
+
+    }
+
+
+    this.message(
+      "📦 10 pickups spawned"
+    );
+
+  },
+
+
+  /* =======================================================
+     FIND NEARBY
+     ======================================================= */
+
+  findNearby(){
+
+    let closest=null;
+
+    let closestDistance=
+      Infinity;
+
+
+    /*
+      Pickup positions are represented
+      on a simple world/screen plane.
+    */
+
+    const centerX=50;
+
+    const centerY=55;
+
+
+    this.pickups.forEach(
+      pickup=>{
+
+        if(
+          !pickup.active
+        ){
+
+          return;
+
+        }
+
+
+        const dx=
+          pickup.x-
+          centerX;
+
+
+        const dy=
+          pickup.y-
+          centerY;
+
+
+        const distance=
+          Math.sqrt(
+            dx*dx+
+            dy*dy
+          );
+
+
+        if(
+          distance<
+          closestDistance
+        ){
+
+          closestDistance=
+            distance;
+
+          closest=
+            pickup;
+
+        }
+
+      }
+    );
+
+
+    if(
+      closest &&
+      closestDistance<=
+      this.interactionDistance
+    ){
+
+      this.setNearby(
+        closest
+      );
+
+    }
+    else{
+
+      this.setNearby(
+        null
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     SET NEARBY
+     ======================================================= */
+
+  setNearby(pickup){
+
+    if(
+      this.nearbyPickup===
+      pickup
+    ){
+
+      return;
+
+    }
+
+
+    if(
+      this.nearbyPickup &&
+      this.nearbyPickup.element
+    ){
+
+      this.nearbyPickup.element
+        .classList
+        .remove(
+          "active"
+        );
+
+    }
+
+
+    this.nearbyPickup=
+      pickup;
+
+
+    const prompt=
+      document.getElementById(
+        "v119Prompt"
+      );
+
+
+    if(
+      pickup
+    ){
+
+      pickup.element
+        .classList
+        .add(
+          "active"
+        );
+
+
+      if(prompt){
+
+        prompt.textContent=
+          "Press E to collect "+
+          pickup.item+
+          " x"+
+          pickup.amount;
+
+        prompt.style.display=
+          "block";
+
+      }
+
+    }
+    else{
+
+      if(prompt){
+
+        prompt.style.display=
+          "none";
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     COLLECT
+     ======================================================= */
+
+  collectNearby(){
+
+    const pickup=
+      this.nearbyPickup;
+
+
+    if(!pickup){
+
+      this.message(
+        "No pickup nearby."
+      );
+
+      return false;
+
+    }
+
+
+    return this.collectPickup(
+      pickup
+    );
+
+  },
+
+
+  /* =======================================================
+     COLLECT PICKUP
+     ======================================================= */
+
+  collectPickup(pickup){
+
+    if(
+      !pickup ||
+      !pickup.active
+    ){
+
+      return false;
+
+    }
+
+
+    /*
+      V118 inventory connection.
+    */
+
+    if(
+      typeof V118!=="undefined" &&
+      typeof V118.addItem==="function"
+    ){
+
+      const added=
+        V118.addItem(
+          pickup.item,
+          pickup.amount
+        );
+
+
+      if(!added){
+
+        this.message(
+          "🎒 Inventory full"
+        );
+
+        return false;
+
+      }
+
+    }
+    else{
+
+      this.message(
+        "⚠️ Inventory system unavailable"
+      );
+
+      return false;
+
+    }
+
+
+    pickup.active=
+      false;
+
+    pickup.collected=
+      true;
+
+    pickup.respawnAt=
+      Date.now()+
+      this.respawnTime;
+
+
+    if(
+      pickup.element
+    ){
+
+      pickup.element.style.display=
+        "none";
+
+    }
+
+
+    this.collected++;
+
+
+    this.message(
+      "📦 Collected "+
+      pickup.item+
+      " x"+
+      pickup.amount
+    );
+
+
+    /*
+      V116 mission connection.
+    */
+
+    if(
+      typeof V116!=="undefined" &&
+      typeof V116.objective==="function"
+    ){
+
+      V116.objective(
+        1
+      );
+
+    }
+
+
+    this.callHook(
+      "collected",
+      pickup
+    );
+
+
+    this.setNearby(
+      null
+    );
+
+
+    this.save();
+
+    this.updateHUD();
+
+
+    return true;
+
+  },
+
+
+  /* =======================================================
+     RESPAWN
+     ======================================================= */
+
+  updateRespawns(){
+
+    const now=
+      Date.now();
+
+
+    this.pickups.forEach(
+      pickup=>{
+
+        if(
+          pickup.active
+        ){
+
+          return;
+
+        }
+
+
+        if(
+          pickup.respawnAt<=
+          now
+        ){
+
+          pickup.active=
+            true;
+
+          pickup.collected=
+            false;
+
+          pickup.respawnAt=
+            0;
+
+
+          if(
+            pickup.element
+          ){
+
+            pickup.element.style.display=
+              "block";
+
+          }
+
+        }
+
+      }
+    );
+
+  },
+
+
+  /* =======================================================
+     CLEAR PICKUPS
+     ======================================================= */
+
+  clearPickups(){
+
+    this.pickups.forEach(
+      pickup=>{
+
+        if(
+          pickup.element &&
+          pickup.element.parentNode
+        ){
+
+          pickup.element.parentNode
+            .removeChild(
+              pickup.element
+            );
+
+        }
+
+      }
+    );
+
+
+    this.pickups=[];
+
+    this.nearbyPickup=
+      null;
+
+
+    this.updateHUD();
+
+    this.save();
+
+
+    this.message(
+      "🧹 Pickups cleared"
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE HUD
+     ======================================================= */
+
+  updateHUD(){
+
+    const stats=
+      document.getElementById(
+        "v119Stats"
+      );
+
+
+    if(!stats){
+
+      return;
+
+    }
+
+
+    const activeCount=
+      this.pickups.filter(
+        pickup=>
+          pickup.active
+      ).length;
+
+
+    stats.innerHTML=
+
+      "Pickups: "+
+      activeCount+
+      "<br>"+
+
+      "Nearby: "+
+      (
+        this.nearbyPickup
+        ? this.nearbyPickup.item
+        : "None"
+      )+
+      "<br>"+
+
+      "Collected: "+
+      this.collected;
+
+  },
+
+
+  /* =======================================================
+     GET DATA
+     ======================================================= */
+
+  collect(){
+
+    return{
+
+      version:
+        this.version,
+
+      collected:
+        this.collected,
+
+      nextId:
+        this.nextId,
+
+      pickups:
+        this.pickups.map(
+          pickup=>({
+
+            id:
+              pickup.id,
+
+            item:
+              pickup.item,
+
+            amount:
+              pickup.amount,
+
+            x:
+              pickup.x,
+
+            y:
+              pickup.y,
+
+            active:
+              pickup.active,
+
+            collected:
+              pickup.collected,
+
+            respawnAt:
+              pickup.respawnAt
+
+          })
+        )
+
+    };
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  save(){
+
+    try{
+
+      localStorage.setItem(
+
+        this.saveKey,
+
+        JSON.stringify(
+          this.collect()
+        )
+
+      );
+
+    }
+    catch(error){
+
+      console.error(
+        "V119 SAVE ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  load(){
+
+    try{
+
+      const raw=
+        localStorage.getItem(
+          this.saveKey
+        );
+
+
+      if(!raw){
+
+        return;
+
+      }
+
+
+      const data=
+        JSON.parse(
+          raw
+        );
+
+
+      if(!data){
+
+        return;
+
+      }
+
+
+      this.collected=
+        Number(
+          data.collected
+        )||0;
+
+
+      this.nextId=
+        Number(
+          data.nextId
+        )||1;
+
+
+      if(
+        !Array.isArray(
+          data.pickups
+        )
+      ){
+
+        return;
+
+      }
+
+
+      data.pickups
+        .slice(0,50)
+        .forEach(
+          saved=>{
+
+            const pickup=
+              this.createPickupFromData(
+                saved
+              );
+
+
+            if(
+              pickup
+            ){
+
+              this.pickups.push(
+                pickup
+              );
+
+            }
+
+          }
+        );
+
+    }
+    catch(error){
+
+      console.error(
+        "V119 LOAD ERROR:",
+        error
+      );
+
+    }
+
+  },
+
+
+  /* =======================================================
+     CREATE FROM SAVE
+     ======================================================= */
+
+  createPickupFromData(saved){
+
+    const layer=
+      document.getElementById(
+        "v119Layer"
+      );
+
+
+    if(
+      !layer ||
+      !saved
+    ){
+
+      return null;
+
+    }
+
+
+    if(
+      typeof saved.item!=="string"
+    ){
+
+      return null;
+
+    }
+
+
+    const element=
+      document.createElement(
+        "div"
+      );
+
+
+    element.className=
+      "v119Pickup";
+
+
+    const pickup={
+
+      id:
+        Number(saved.id)||
+        this.nextId++,
+
+      item:
+        saved.item,
+
+      amount:
+        Math.max(
+          1,
+          Number(
+            saved.amount
+          )||1
+        ),
+
+      x:
+        Number(saved.x)||
+        50,
+
+      y:
+        Number(saved.y)||
+        50,
+
+      active:
+        saved.active!==false,
+
+      collected:
+        saved.collected===true,
+
+      respawnAt:
+        Number(
+          saved.respawnAt
+        )||0,
+
+      element:
+        element
+
+    };
+
+
+    element.style.left=
+      pickup.x+
+      "%";
+
+
+    element.style.top=
+      pickup.y+
+      "%";
+
+
+    element.title=
+      pickup.item;
+
+
+    if(
+      !pickup.active
+    ){
+
+      element.style.display=
+        "none";
+
+    }
+
+
+    layer.appendChild(
+      element
+    );
+
+
+    return pickup;
+
+  },
+
+
+  /* =======================================================
+     APPLY
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+
+      return;
+
+    }
+
+
+    this.clearPickups();
+
+
+    this.collected=
+      Number(
+        data.collected
+      )||0;
+
+
+    this.nextId=
+      Number(
+        data.nextId
+      )||1;
+
+
+    if(
+      Array.isArray(
+        data.pickups
+      )
+    ){
+
+      data.pickups
+        .slice(0,50)
+        .forEach(
+          saved=>{
+
+            const pickup=
+              this.createPickupFromData(
+                saved
+              );
+
+
+            if(
+              pickup
+            ){
+
+              this.pickups.push(
+                pickup
+              );
+
+            }
+
+          }
+        );
+
+    }
+
+
+    this.updateHUD();
+
+    this.save();
+
+  },
+
+
+  /* =======================================================
+     EVENT HOOK
+     ======================================================= */
+
+  callHook(event,pickup){
+
+    if(
+      typeof window.onWebboundPickupEvent===
+      "function"
+    ){
+
+      try{
+
+        window.onWebboundPickupEvent({
+
+          event:
+            event,
+
+          pickup:
+            pickup,
+
+          data:
+            this.collect()
+
+        });
+
+      }
+      catch(error){
+
+        console.warn(
+          "V119 PICKUP CALLBACK:",
+          error
+        );
+
+      }
+
+    }
+
+  },
+
+
+  /* =======================================================
+     MESSAGE
+     ======================================================= */
+
+  message(text){
+
+    const box=
+      document.getElementById(
+        "v119Message"
+      );
+
+
+    if(box){
+
+      box.textContent=
+        text;
+
+      box.style.display=
+        "block";
+
+
+      clearTimeout(
+        this.messageTimer
+      );
+
+
+      this.messageTimer=
+        setTimeout(
+          ()=>{
+
+            box.style.display=
+              "none";
+
+          },
+          1800
+        );
+
+    }
+
+
+    if(
+      typeof showMessage===
+      "function"
+    ){
+
+      showMessage(
+        text
+      );
+
+    }
+
+  }
+
+};
+
+
+/* =========================================================
+   KEYBOARD
+   ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      E = collect nearby pickup
+    */
+
+    if(
+      event.code==="KeyE"
+    ){
+
+      V119.collectNearby();
+
+    }
+
+
+    /*
+      P = spawn pickup
+    */
+
+    if(
+      event.code==="KeyP"
+    ){
+
+      V119.spawnPickup();
+
+    }
+
+
+    /*
+      O = spawn pickup pack
+    */
+
+    if(
+      event.code==="KeyO"
+    ){
+
+      V119.spawnPack();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   AUTO SAVE
+   ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V119.save();
+
+  },
+  30000
+);
+
+
+/* =========================================================
+   START
+   ========================================================= */
+
+V119.init();
+
+
+console.log(
+  "WEBBOUND V119 WORLD PICKUP SYSTEM READY"
+);
+
+</script>
+
+</body>
+</html>
