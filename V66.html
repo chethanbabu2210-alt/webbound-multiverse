@@ -1,0 +1,831 @@
+<!-- =========================================================
+ WEBBOUND V66
+ MISSION MARKERS + TARGET OBJECTIVES + DISTANCE TRACKING
+ BUILDS ON V60 + V65
+ ========================================================= -->
+
+<style>
+
+#v66TargetHUD{
+  position:fixed;
+  z-index:8600;
+  right:15px;
+  top:15px;
+  width:min(320px,88%);
+  padding:14px;
+  background:#05070ee8;
+  color:white;
+  border:1px solid #ffffff35;
+  border-radius:15px;
+  font-family:Arial,sans-serif;
+}
+
+#v66TargetTitle{
+  font-weight:bold;
+  margin-bottom:6px;
+}
+
+#v66Distance{
+  margin-top:6px;
+  font-size:13px;
+  color:#cbd5e1;
+}
+
+#v66Arrow{
+  margin-top:8px;
+  text-align:center;
+  font-size:28px;
+}
+
+.v66Marker{
+  position:absolute;
+  z-index:7000;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  border:3px solid white;
+  background:#05070ecc;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  pointer-events:none;
+  transform:translate(-50%,-50%);
+}
+
+.v66MarkerLabel{
+  position:absolute;
+  top:48px;
+  left:50%;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  font:11px Arial,sans-serif;
+  background:#000d;
+  padding:4px 7px;
+  border-radius:6px;
+}
+
+#v66TargetMessage{
+  position:fixed;
+  left:50%;
+  bottom:145px;
+  transform:translateX(-50%);
+  z-index:9996;
+  padding:11px 16px;
+  background:#05070ef5;
+  color:white;
+  border-radius:11px;
+  border:1px solid #ffffff30;
+  font:13px Arial,sans-serif;
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+}
+
+</style>
+
+
+<!-- =========================================================
+ TARGET HUD
+ ========================================================= -->
+
+<div id="v66TargetHUD">
+
+  <div id="v66TargetTitle">
+    🎯 NO ACTIVE TARGET
+  </div>
+
+  <div id="v66Distance">
+    Start a V65 mission to receive a target.
+  </div>
+
+  <div id="v66Arrow">
+    —
+  </div>
+
+</div>
+
+
+<div id="v66TargetMessage"></div>
+
+
+<script>
+
+const V66 = {
+
+  version:"V66",
+
+  target:null,
+
+  reached:false,
+
+  lastDistance:0,
+
+
+  /* =======================================================
+     CREATE TARGET
+     ======================================================= */
+
+  createTarget(){
+
+    if(
+      typeof player === "undefined" ||
+      !player ||
+      !player.position
+    ){
+      return;
+    }
+
+
+    /*
+      Target is generated around the player,
+      but never directly on top of the player.
+    */
+
+    const angle=
+      Math.random()*
+      Math.PI*2;
+
+    const distance=
+      120+
+      Math.random()*180;
+
+
+    this.target={
+
+      x:
+        player.position.x+
+        Math.cos(angle)*
+        distance,
+
+      y:
+        player.position.y,
+
+      z:
+        player.position.z+
+        Math.sin(angle)*
+        distance
+
+    };
+
+
+    this.reached=false;
+
+    this.createMarker();
+
+    this.update();
+
+  },
+
+
+  /* =======================================================
+     CREATE MARKER
+     ======================================================= */
+
+  createMarker(){
+
+    this.removeMarker();
+
+    if(!this.target){
+      return;
+    }
+
+
+    const marker=
+      document.createElement("div");
+
+    marker.id=
+      "v66Marker";
+
+    marker.className=
+      "v66Marker";
+
+    marker.innerHTML=
+      "📍"+
+      "<div class='v66MarkerLabel'>"+
+      "OBJECTIVE"+
+      "</div>";
+
+
+    /*
+      Attach to the same 3D scene as player
+      when possible.
+    */
+
+    if(
+      typeof scene !== "undefined" &&
+      scene
+    ){
+
+      /*
+        The marker is represented by a DOM
+        fallback if the existing game does
+        not expose a 3D CSS renderer.
+      */
+
+      document.body.appendChild(
+        marker
+      );
+
+    }
+    else{
+
+      document.body.appendChild(
+        marker
+      );
+
+    }
+
+
+    this.positionMarker();
+
+  },
+
+
+  /* =======================================================
+     POSITION MARKER
+     ======================================================= */
+
+  positionMarker(){
+
+    const marker=
+      document.getElementById(
+        "v66Marker"
+      );
+
+    if(
+      !marker ||
+      !this.target ||
+      typeof player === "undefined"
+    ){
+      return;
+    }
+
+
+    /*
+      Direction-only screen indicator.
+      This avoids assuming the exact camera
+      implementation used by earlier versions.
+    */
+
+    const dx=
+      this.target.x-
+      player.position.x;
+
+    const dz=
+      this.target.z-
+      player.position.z;
+
+
+    const angle=
+      Math.atan2(dz,dx);
+
+
+    const centerX=
+      window.innerWidth/2;
+
+    const centerY=
+      window.innerHeight/2;
+
+
+    const radius=
+      Math.min(
+        window.innerWidth,
+        window.innerHeight
+      )*.34;
+
+
+    let screenX=
+      centerX+
+      Math.cos(angle)*radius;
+
+    let screenY=
+      centerY+
+      Math.sin(angle)*radius;
+
+
+    screenX=
+      Math.max(
+        25,
+        Math.min(
+          window.innerWidth-25,
+          screenX
+        )
+      );
+
+
+    screenY=
+      Math.max(
+        70,
+        Math.min(
+          window.innerHeight-70,
+          screenY
+        )
+      );
+
+
+    marker.style.left=
+      screenX+"px";
+
+    marker.style.top=
+      screenY+"px";
+
+  },
+
+
+  /* =======================================================
+     DISTANCE
+     ======================================================= */
+
+  getDistance(){
+
+    if(
+      !this.target ||
+      typeof player === "undefined" ||
+      !player.position
+    ){
+
+      return 0;
+
+    }
+
+
+    const dx=
+      this.target.x-
+      player.position.x;
+
+    const dz=
+      this.target.z-
+      player.position.z;
+
+
+    return Math.sqrt(
+      dx*dx+
+      dz*dz
+    );
+
+  },
+
+
+  /* =======================================================
+     UPDATE
+     ======================================================= */
+
+  update(){
+
+    const title=
+      document.getElementById(
+        "v66TargetTitle"
+      );
+
+    const distanceBox=
+      document.getElementById(
+        "v66Distance"
+      );
+
+    const arrow=
+      document.getElementById(
+        "v66Arrow"
+      );
+
+
+    if(
+      !this.target
+    ){
+
+      title.textContent=
+        "🎯 NO ACTIVE TARGET";
+
+      distanceBox.textContent=
+        "No target selected.";
+
+      arrow.textContent=
+        "—";
+
+      return;
+
+    }
+
+
+    const distance=
+      this.getDistance();
+
+    this.lastDistance=
+      distance;
+
+
+    title.textContent=
+      "📍 OBJECTIVE TARGET";
+
+
+    distanceBox.textContent=
+      "Distance: "+
+      Math.round(distance)+
+      " m";
+
+
+    const dx=
+      this.target.x-
+      player.position.x;
+
+    const dz=
+      this.target.z-
+      player.position.z;
+
+
+    const angle=
+      Math.atan2(dz,dx);
+
+
+    const degrees=
+      Math.round(
+        angle*
+        180/
+        Math.PI
+      );
+
+
+    arrow.textContent=
+      "⬆️ "+degrees+"°";
+
+
+    this.positionMarker();
+
+
+    /*
+      Objective reached.
+    */
+
+    if(
+      distance<=8 &&
+      !this.reached
+    ){
+
+      this.reached=true;
+
+      this.onReached();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     OBJECTIVE REACHED
+     ======================================================= */
+
+  onReached(){
+
+    this.notify(
+      "📍 OBJECTIVE REACHED!"
+    );
+
+
+    /*
+      Progress the V65 mission
+      when appropriate.
+    */
+
+    if(
+      typeof V65 !== "undefined" &&
+      typeof V65.progress === "function" &&
+      V65.activeMission
+    ){
+
+      V65.progress(1);
+
+    }
+
+
+    this.removeMarker();
+
+    this.target=null;
+
+    this.update();
+
+
+    /*
+      Save the new state.
+    */
+
+    if(
+      typeof V60 !== "undefined" &&
+      typeof V60.save === "function"
+    ){
+
+      V60.save();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     REMOVE MARKER
+     ======================================================= */
+
+  removeMarker(){
+
+    const marker=
+      document.getElementById(
+        "v66Marker"
+      );
+
+    if(marker){
+
+      marker.remove();
+
+    }
+
+  },
+
+
+  /* =======================================================
+     NOTIFICATION
+     ======================================================= */
+
+  notify(text){
+
+    const box=
+      document.getElementById(
+        "v66TargetMessage"
+      );
+
+    box.textContent=
+      text;
+
+    box.style.opacity=
+      "1";
+
+
+    setTimeout(
+      ()=>{
+
+        box.style.opacity=
+          "0";
+
+      },
+      2200
+    );
+
+  },
+
+
+  /* =======================================================
+     SAVE
+     ======================================================= */
+
+  collect(){
+
+    return {
+
+      target:
+        this.target,
+
+      reached:
+        this.reached,
+
+      lastDistance:
+        this.lastDistance
+
+    };
+
+  },
+
+
+  /* =======================================================
+     LOAD
+     ======================================================= */
+
+  apply(data){
+
+    if(!data){
+      return;
+    }
+
+
+    this.target=
+      data.target ||
+      null;
+
+
+    this.reached=
+      Boolean(
+        data.reached
+      );
+
+
+    this.lastDistance=
+      Number(
+        data.lastDistance
+      ) || 0;
+
+
+    if(this.target){
+
+      this.createMarker();
+
+    }
+    else{
+
+      this.removeMarker();
+
+    }
+
+
+    this.update();
+
+  }
+
+};
+
+
+/* =========================================================
+ V65 MISSION HOOK
+ ========================================================= */
+
+if(
+  typeof V65 !== "undefined"
+){
+
+  const originalStartMission=
+    V65.startMission.bind(V65);
+
+
+  V65.startMission=function(id){
+
+    originalStartMission(id);
+
+
+    /*
+      Only create a target if the
+      mission successfully became active.
+    */
+
+    if(
+      V65.activeMission===id
+    ){
+
+      V66.createTarget();
+
+    }
+
+  };
+
+
+  const originalComplete=
+    V65.complete.bind(V65);
+
+
+  V65.complete=function(){
+
+    originalComplete();
+
+    V66.removeMarker();
+
+    V66.target=null;
+
+    V66.update();
+
+  };
+
+}
+
+
+/* =========================================================
+ V60 SAVE INTEGRATION
+ ========================================================= */
+
+if(
+  typeof V60 !== "undefined"
+){
+
+  const originalV60Collect=
+    V60.collect.bind(V60);
+
+
+  V60.collect=function(){
+
+    const data=
+      originalV60Collect();
+
+    data.v66=
+      V66.collect();
+
+    return data;
+
+  };
+
+
+  const originalV60Apply=
+    V60.apply.bind(V60);
+
+
+  V60.apply=function(data){
+
+    originalV60Apply(data);
+
+
+    if(
+      data &&
+      data.v66
+    ){
+
+      V66.apply(
+        data.v66
+      );
+
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+ UPDATE LOOP
+ ========================================================= */
+
+setInterval(
+  ()=>{
+
+    V66.update();
+
+  },
+  100
+);
+
+
+/* =========================================================
+ WINDOW RESIZE
+ ========================================================= */
+
+window.addEventListener(
+  "resize",
+  ()=>{
+
+    V66.positionMarker();
+
+  }
+);
+
+
+/* =========================================================
+ KEYBOARD
+ ========================================================= */
+
+window.addEventListener(
+  "keydown",
+  event=>{
+
+    /*
+      T = Show target
+    */
+
+    if(
+      event.code==="KeyT"
+    ){
+
+      event.preventDefault();
+
+      if(V66.target){
+
+        V66.positionMarker();
+
+        V66.update();
+
+        V66.notify(
+          "📍 Target distance: "+
+          Math.round(
+            V66.getDistance()
+          )+
+          " m"
+        );
+
+      }
+      else{
+
+        V66.notify(
+          "🎯 No active target."
+        );
+
+      }
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+ INITIALIZE
+ ========================================================= */
+
+V66.update();
+
+console.log(
+  "WEBBOUND V66 TARGET SYSTEM READY"
+);
+
+</script>
