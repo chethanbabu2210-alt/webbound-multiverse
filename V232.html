@@ -1,0 +1,679 @@
+<!-- =====================================================
+ V232 — SPIDER-SENSE & DANGER DETECTION
+ Add after V231
+ ===================================================== -->
+
+<style>
+
+#spiderSenseHud232{
+
+    position:fixed;
+
+    right:12px;
+    top:535px;
+
+    width:min(240px,48vw);
+
+    padding:10px;
+
+    background:#03070dec;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:4800;
+
+}
+
+.spiderSenseTitle232{
+
+    font-size:10px;
+    font-weight:bold;
+
+}
+
+#senseState232,
+#threatCount232,
+#dangerLevel232{
+
+    margin-top:5px;
+
+    font-size:8px;
+
+}
+
+
+/* ================= DANGER WARNING ================= */
+
+#dangerWarning232{
+
+    position:fixed;
+
+    left:50%;
+    top:18%;
+
+    transform:
+        translateX(-50%);
+
+    padding:10px 18px;
+
+    background:#03070ded;
+
+    border:1px solid #ffffff35;
+
+    border-radius:10px;
+
+    font-size:10px;
+
+    font-weight:bold;
+
+    z-index:6000;
+
+    opacity:0;
+
+    pointer-events:none;
+
+}
+
+#dangerWarning232.show{
+
+    animation:
+        dangerPulse232 .8s ease-in-out;
+
+}
+
+@keyframes dangerPulse232{
+
+    0%{
+        opacity:0;
+        transform:
+            translateX(-50%)
+            scale(.8);
+    }
+
+    25%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1.05);
+    }
+
+    60%{
+        opacity:1;
+        transform:
+            translateX(-50%)
+            scale(1);
+    }
+
+    100%{
+        opacity:0;
+    }
+
+}
+
+
+/* ================= SENSE PULSE ================= */
+
+#sensePulse232{
+
+    position:fixed;
+
+    left:50%;
+    top:50%;
+
+    width:20px;
+    height:20px;
+
+    transform:
+        translate(-50%,-50%);
+
+    border:2px solid #ffffff60;
+
+    border-radius:50%;
+
+    z-index:3900;
+
+    pointer-events:none;
+
+    opacity:0;
+
+}
+
+#sensePulse232.active{
+
+    animation:
+        sensePulse232 .8s ease-out;
+
+}
+
+@keyframes sensePulse232{
+
+    0%{
+
+        width:20px;
+        height:20px;
+        opacity:.7;
+
+    }
+
+    100%{
+
+        width:500px;
+        height:500px;
+        opacity:0;
+
+    }
+
+}
+
+
+/* ================= THREAT DOT ================= */
+
+.threatDot232{
+
+    position:fixed;
+
+    width:9px;
+    height:9px;
+
+    border-radius:50%;
+
+    background:#d9dddf;
+
+    box-shadow:
+        0 0 10px #ffffff60;
+
+    z-index:5500;
+
+    pointer-events:none;
+
+}
+
+</style>
+
+
+<!-- =====================================================
+ HUD
+ ===================================================== -->
+
+<div id="spiderSenseHud232">
+
+    <div class="spiderSenseTitle232">
+        🕷️ SPIDER-SENSE — V232
+    </div>
+
+    <div id="senseState232">
+        Sense: READY
+    </div>
+
+    <div id="threatCount232">
+        Threats: 0
+    </div>
+
+    <div id="dangerLevel232">
+        Danger: LOW
+    </div>
+
+</div>
+
+
+<div id="dangerWarning232">
+    ⚠️ SPIDER-SENSE WARNING
+</div>
+
+
+<div id="sensePulse232"></div>
+
+
+<script>
+
+/* =====================================================
+ V232 SPIDER-SENSE ENGINE
+ ===================================================== */
+
+const SpiderSense232={
+
+
+    active:true,
+
+    scanning:false,
+
+    threats:[],
+
+    dangerLevel:"LOW",
+
+    scanRange:350,
+
+    scanInterval:null,
+
+    warningTimer:null,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.scan();
+
+        this.scanInterval=
+            setInterval(
+                ()=>{
+                    this.scan();
+                },
+                2500
+            );
+
+        this.updateHUD();
+
+        this.message(
+            "🕷️ Spider-Sense online."
+        );
+
+    },
+
+
+    /* =========================
+       SCAN
+    ========================= */
+
+    scan(){
+
+        if(!this.active)
+            return;
+
+
+        this.threats=[];
+
+
+        /*
+         * Detect nearby NPCs.
+         */
+
+        if(
+            typeof SpiderNPC230!==
+            "undefined"
+        ){
+
+            SpiderNPC230.police
+                .forEach(
+                    npc=>{
+
+                        if(
+                            npc.active
+                        ){
+
+                            this.threats.push({
+                                type:"police",
+                                element:npc.element
+                            });
+
+                        }
+
+                    }
+                );
+
+        }
+
+
+        /*
+         * Detect city events.
+         */
+
+        if(
+            typeof SpiderTraffic231!==
+            "undefined"
+        ){
+
+            if(
+                SpiderTraffic231
+                    .trafficState===
+                "Stopped"
+            ){
+
+                this.threats.push({
+                    type:"traffic",
+                    element:null
+                });
+
+            }
+
+        }
+
+
+        this.calculateDanger();
+
+        this.showThreatIndicators();
+
+        this.updateHUD();
+
+    },
+
+
+    /* =========================
+       DANGER LEVEL
+    ========================= */
+
+    calculateDanger(){
+
+        const count=
+            this.threats.length;
+
+
+        if(count===0){
+
+            this.dangerLevel=
+                "LOW";
+
+        }else if(count<=2){
+
+            this.dangerLevel=
+                "MEDIUM";
+
+        }else{
+
+            this.dangerLevel=
+                "HIGH";
+
+        }
+
+
+        if(
+            this.dangerLevel===
+            "HIGH"
+        ){
+
+            this.warning();
+
+        }
+
+    },
+
+
+    /* =========================
+       WARNING
+    ========================= */
+
+    warning(){
+
+        const warning=
+            document.getElementById(
+                "dangerWarning232"
+            );
+
+
+        if(!warning)
+            return;
+
+
+        warning.classList.remove(
+            "show"
+        );
+
+
+        void warning.offsetWidth;
+
+
+        warning.classList.add(
+            "show"
+        );
+
+
+        this.pulse();
+
+
+        this.message(
+            "⚠️ Danger detected!"
+        );
+
+    },
+
+
+    /* =========================
+       PULSE
+    ========================= */
+
+    pulse(){
+
+        const pulse=
+            document.getElementById(
+                "sensePulse232"
+            );
+
+
+        if(!pulse)
+            return;
+
+
+        pulse.classList.remove(
+            "active"
+        );
+
+
+        void pulse.offsetWidth;
+
+
+        pulse.classList.add(
+            "active"
+        );
+
+    },
+
+
+    /* =========================
+       THREAT INDICATORS
+    ========================= */
+
+    showThreatIndicators(){
+
+        document
+            .querySelectorAll(
+                ".threatDot232"
+            )
+            .forEach(
+                dot=>{
+                    dot.remove();
+                }
+            );
+
+
+        this.threats.forEach(
+            threat=>{
+
+                if(
+                    !threat.element
+                )
+                    return;
+
+
+                const rect=
+                    threat.element
+                        .getBoundingClientRect();
+
+
+                const dot=
+                    document.createElement(
+                        "div"
+                    );
+
+
+                dot.className=
+                    "threatDot232";
+
+
+                dot.style.left=
+                    (
+                        rect.left+
+                        rect.width/2-
+                        4
+                    )+"px";
+
+
+                dot.style.top=
+                    (
+                        rect.top-
+                        15
+                    )+"px";
+
+
+                document.body.appendChild(
+                    dot
+                );
+
+            }
+        );
+
+    },
+
+
+    /* =========================
+       TOGGLE
+    ========================= */
+
+    toggle(){
+
+        this.active=
+            !this.active;
+
+
+        this.updateHUD();
+
+
+        this.message(
+
+            this.active
+            ?"🕷️ Spider-Sense enabled."
+            :"🕷️ Spider-Sense disabled."
+
+        );
+
+    },
+
+
+    /* =========================
+       MANUAL SCAN
+    ========================= */
+
+    manualScan(){
+
+        this.scan();
+
+        this.pulse();
+
+
+        this.message(
+            "🕷️ Area scanned."
+        );
+
+    },
+
+
+    /* =========================
+       HUD
+    ========================= */
+
+    updateHUD(){
+
+        const state=
+            document.getElementById(
+                "senseState232"
+            );
+
+
+        const count=
+            document.getElementById(
+                "threatCount232"
+            );
+
+
+        const danger=
+            document.getElementById(
+                "dangerLevel232"
+            );
+
+
+        if(state){
+
+            state.textContent=
+                "Sense: "+
+                (
+                    this.active
+                    ?"READY"
+                    :"OFF"
+                );
+
+        }
+
+
+        if(count){
+
+            count.textContent=
+                "Threats: "+
+                this.threats.length;
+
+        }
+
+
+        if(danger){
+
+            danger.textContent=
+                "Danger: "+
+                this.dangerLevel;
+
+        }
+
+    },
+
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    message(text){
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.message(
+                text
+            );
+
+        }
+
+    }
+
+};
+
+
+/* =====================================================
+ START V232
+ ===================================================== */
+
+SpiderSense232.init();
+
+
+/* =====================================================
+ KEYBOARD
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+
+        if(key==="s")
+            SpiderSense232.manualScan();
+
+
+        if(key==="z")
+            SpiderSense232.toggle();
+
+    }
+);
