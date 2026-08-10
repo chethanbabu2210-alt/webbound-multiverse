@@ -1,0 +1,871 @@
+<!-- =====================================================
+ V213 — ENEMY AI & COMBAT ENCOUNTERS
+ Add after V212
+ ===================================================== -->
+
+<style>
+
+/* ================= AI STATUS ================= */
+
+#enemyAIHud{
+    position:fixed;
+
+    right:12px;
+    top:250px;
+
+    width:min(220px,48vw);
+
+    padding:9px;
+
+    background:#03070de8;
+
+    border:1px solid #ffffff25;
+
+    border-radius:10px;
+
+    z-index:2400;
+}
+
+.aiTitle{
+    font-size:10px;
+    font-weight:bold;
+}
+
+#aiStatus{
+    margin-top:5px;
+
+    font-size:8px;
+
+    line-height:1.5;
+}
+
+
+/* ================= AI STATE ================= */
+
+.combatEnemy.ai-alert{
+    animation:
+        enemyAlert .4s infinite alternate;
+}
+
+@keyframes enemyAlert{
+
+    from{
+        transform:scale(1);
+    }
+
+    to{
+        transform:scale(1.08);
+    }
+
+}
+
+.combatEnemy.ai-attack{
+    animation:
+        enemyAttack .2s;
+}
+
+@keyframes enemyAttack{
+
+    0%{
+        transform:translateX(0);
+    }
+
+    50%{
+        transform:translateX(-12px);
+    }
+
+    100%{
+        transform:translateX(0);
+    }
+
+}
+
+.combatEnemy.ai-block{
+    box-shadow:
+        0 0 0 3px #ffffff55;
+}
+
+
+/* ================= ENCOUNTER ================= */
+
+#encounterBanner{
+    position:fixed;
+
+    left:50%;
+    top:32%;
+
+    transform:translateX(-50%);
+
+    padding:10px 20px;
+
+    background:#03070df2;
+
+    border:1px solid #ffffff30;
+
+    border-radius:10px;
+
+    z-index:3600;
+
+    display:none;
+
+    text-align:center;
+
+    font-size:11px;
+}
+
+#encounterBanner.active{
+    display:block;
+
+    animation:
+        encounterIn .25s;
+}
+
+@keyframes encounterIn{
+
+    from{
+        transform:
+            translateX(-50%)
+            scale(.7);
+
+        opacity:0;
+    }
+
+    to{
+        transform:
+            translateX(-50%)
+            scale(1);
+
+        opacity:1;
+    }
+
+}
+
+
+/* ================= AI BUTTON ================= */
+
+#aiControls{
+    position:fixed;
+
+    left:12px;
+    bottom:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:5px;
+
+    z-index:2500;
+}
+
+#aiControls button{
+
+    padding:8px 10px;
+
+    background:#111f2a;
+
+    color:#fff;
+
+    border:1px solid #ffffff25;
+
+    border-radius:7px;
+
+    font-size:8px;
+
+    cursor:pointer;
+}
+
+#aiControls button:active{
+    transform:scale(.94);
+}
+
+</style>
+
+
+<!-- =====================================================
+ AI HUD
+ ===================================================== -->
+
+<div id="enemyAIHud">
+
+    <div class="aiTitle">
+        🤖 ENEMY AI — V213
+    </div>
+
+    <div id="aiStatus">
+        AI: STANDBY
+    </div>
+
+</div>
+
+
+<div id="encounterBanner">
+    ⚠️ ENCOUNTER STARTED
+</div>
+
+
+<div id="aiControls">
+
+    <button onclick="SpiderEnemyAI.startEncounter()">
+        ⚠️ ENCOUNTER
+    </button>
+
+    <button onclick="SpiderEnemyAI.stopAI()">
+        ⏹️ STOP AI
+    </button>
+
+    <button onclick="SpiderEnemyAI.makeBlock()">
+        🛡️ BLOCK TEST
+    </button>
+
+    <button onclick="SpiderEnemyAI.resetEnemies()">
+        🔄 RESET
+    </button>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+ V213 ENEMY AI
+ ===================================================== */
+
+const SpiderEnemyAI={
+
+    running:false,
+
+    encounter:false,
+
+    tickTimer:null,
+
+    attackTimers:{},
+
+    detectionRange:28,
+
+    attackRange:8,
+
+    difficulty:1,
+
+
+    /* =========================
+       INIT
+    ========================= */
+
+    init(){
+
+        this.updateStatus(
+            "AI: READY"
+        );
+
+        /*
+         Start automatically after
+         a short delay so the player
+         can load the city first.
+        */
+
+        setTimeout(
+            ()=>{
+                this.startEncounter();
+            },
+            3500
+        );
+
+    },
+
+
+    /* =========================
+       START ENCOUNTER
+    ========================= */
+
+    startEncounter(){
+
+        if(this.running)
+            return;
+
+        this.running=true;
+
+        this.encounter=true;
+
+        this.showBanner();
+
+        this.updateStatus(
+            "AI: SEARCHING FOR PLAYER"
+        );
+
+        this.tickTimer=
+            setInterval(
+                ()=>{
+                    this.updateAI();
+                },
+                350
+            );
+
+    },
+
+
+    /* =========================
+       UPDATE AI
+    ========================= */
+
+    updateAI(){
+
+        const player=
+            document.getElementById(
+                "spiderman"
+            );
+
+        if(!player)
+            return;
+
+        const playerRect=
+            player.getBoundingClientRect();
+
+        const playerX=
+            playerRect.left+
+            playerRect.width/2;
+
+        const playerY=
+            playerRect.top+
+            playerRect.height/2;
+
+        let active=0;
+
+        Object.keys(
+            this.getEnemies()
+        ).forEach(
+            id=>{
+
+                const enemy=
+                    this.getEnemies()[id];
+
+                if(
+                    !enemy.alive
+                )
+                    return;
+
+                active++;
+
+                const element=
+                    document.getElementById(
+                        "enemy212_"+id
+                    );
+
+                if(!element)
+                    return;
+
+                const rect=
+                    element.getBoundingClientRect();
+
+                const enemyX=
+                    rect.left+
+                    rect.width/2;
+
+                const enemyY=
+                    rect.top+
+                    rect.height/2;
+
+                const dx=
+                    playerX-enemyX;
+
+                const dy=
+                    playerY-enemyY;
+
+                const distance=
+                    Math.sqrt(
+                        dx*dx+
+                        dy*dy
+                    );
+
+                const percentDistance=
+                    distance/
+                    window.innerWidth*
+                    100;
+
+                if(
+                    percentDistance<=
+                    this.detectionRange
+                ){
+
+                    element.classList.add(
+                        "ai-alert"
+                    );
+
+                    this.updateStatus(
+                        "AI: PLAYER DETECTED"
+                    );
+
+                    if(
+                        percentDistance>
+                        this.attackRange
+                    ){
+
+                        this.moveTowardPlayer(
+                            element,
+                            dx,
+                            dy
+                        );
+
+                    }else{
+
+                        this.tryAttack(
+                            id,
+                            element
+                        );
+
+                    }
+
+                }else{
+
+                    element.classList.remove(
+                        "ai-alert"
+                    );
+
+                }
+
+            }
+        );
+
+        if(active===0){
+
+            this.updateStatus(
+                "AI: ALL ENEMIES DEFEATED"
+            );
+
+            this.running=false;
+
+        }
+
+    },
+
+
+    /* =========================
+       GET ENEMIES
+    ========================= */
+
+    getEnemies(){
+
+        if(
+            typeof SpiderCombatV212!==
+            "undefined"
+        ){
+
+            return SpiderCombatV212.enemies;
+
+        }
+
+        return {};
+
+    },
+
+
+    /* =========================
+       MOVE
+    ========================= */
+
+    moveTowardPlayer(
+        element,
+        dx,
+        dy
+    ){
+
+        const currentLeft=
+            parseFloat(
+                element.style.left
+            )||50;
+
+        const currentTop=
+            parseFloat(
+                element.style.top
+            )||60;
+
+        const direction=
+            dx>0
+            ?1
+            :-1;
+
+        const speed=.8;
+
+        element.style.left=
+            (
+                currentLeft+
+                direction*
+                speed
+            )+"%";
+
+        /*
+         Keep enemies inside
+         the playable screen.
+        */
+
+        element.style.left=
+            Math.max(
+                5,
+                Math.min(
+                    95,
+                    parseFloat(
+                        element.style.left
+                    )
+                )
+            )+"%";
+
+        element.style.top=
+            Math.max(
+                30,
+                Math.min(
+                    85,
+                    currentTop+
+                    (
+                        dy>0
+                        ? .2
+                        : -.2
+                    )
+                )
+            )+"%";
+
+    },
+
+
+    /* =========================
+       ATTACK
+    ========================= */
+
+    tryAttack(
+        id,
+        element
+    ){
+
+        if(
+            this.attackTimers[id]
+        )
+            return;
+
+        this.attackTimers[id]=
+            true;
+
+        element.classList.add(
+            "ai-attack"
+        );
+
+        setTimeout(
+            ()=>{
+
+                element.classList.remove(
+                    "ai-attack"
+                );
+
+            },
+            220
+        );
+
+        this.updateStatus(
+            "AI: ENEMY "+
+            id+
+            " ATTACKING"
+        );
+
+        /*
+         Use the shared core if
+         V201 is present.
+        */
+
+        if(
+            typeof SpiderCore!==
+            "undefined"
+        ){
+
+            SpiderCore.damage(
+                5+
+                this.difficulty
+            );
+
+        }
+
+        setTimeout(
+            ()=>{
+
+                delete this.attackTimers[
+                    id
+                ];
+
+            },
+            1300
+        );
+
+    },
+
+
+    /* =========================
+       BLOCK
+    ========================= */
+
+    makeBlock(){
+
+        const ids=
+            Object.keys(
+                this.getEnemies()
+            );
+
+        ids.forEach(
+            id=>{
+
+                const enemy=
+                    this.getEnemies()[id];
+
+                if(!enemy.alive)
+                    return;
+
+                const element=
+                    document.getElementById(
+                        "enemy212_"+id
+                    );
+
+                if(element){
+
+                    element.classList.add(
+                        "ai-block"
+                    );
+
+                }
+
+            }
+        );
+
+        this.updateStatus(
+            "AI: ENEMIES BLOCKING"
+        );
+
+        setTimeout(
+            ()=>{
+
+                document
+                    .querySelectorAll(
+                        ".combatEnemy"
+                    )
+                    .forEach(
+                        e=>{
+                            e.classList.remove(
+                                "ai-block"
+                            );
+                        }
+                    );
+
+                this.updateStatus(
+                    "AI: SEARCHING"
+                );
+
+            },
+            1200
+        );
+
+    },
+
+
+    /* =========================
+       STOP
+    ========================= */
+
+    stopAI(){
+
+        clearInterval(
+            this.tickTimer
+        );
+
+        this.running=false;
+
+        this.encounter=false;
+
+        document
+            .querySelectorAll(
+                ".combatEnemy"
+            )
+            .forEach(
+                enemy=>{
+
+                    enemy.classList.remove(
+                        "ai-alert"
+                    );
+
+                    enemy.classList.remove(
+                        "ai-attack"
+                    );
+
+                    enemy.classList.remove(
+                        "ai-block"
+                    );
+
+                }
+            );
+
+        this.updateStatus(
+            "AI: STOPPED"
+        );
+
+    },
+
+
+    /* =========================
+       RESET
+    ========================= */
+
+    resetEnemies(){
+
+        if(
+            typeof SpiderCombatV212===
+            "undefined"
+        )
+            return;
+
+        SpiderCombatV212.enemies={
+            1:{
+                hp:100,
+                max:100,
+                alive:true
+            },
+
+            2:{
+                hp:120,
+                max:120,
+                alive:true
+            },
+
+            3:{
+                hp:150,
+                max:150,
+                alive:true
+            }
+        };
+
+        [1,2,3].forEach(
+            id=>{
+
+                const enemy=
+                    document.getElementById(
+                        "enemy212_"+id
+                    );
+
+                if(enemy){
+
+                    enemy.classList.remove(
+                        "defeated"
+                    );
+
+                    enemy.style.opacity=
+                        "1";
+
+                    enemy.style.pointerEvents=
+                        "auto";
+
+                    enemy.style.left=
+                        (
+                            25+
+                            id*18
+                        )+"%";
+
+                    const bar=
+                        document.getElementById(
+                            "enemyHealth"+
+                            id
+                        );
+
+                    if(bar)
+                        bar.style.width=
+                            "100%";
+
+                }
+
+            }
+        );
+
+        this.updateStatus(
+            "AI: ENEMIES RESET"
+        );
+
+    },
+
+
+    /* =========================
+       STATUS
+    ========================= */
+
+    updateStatus(text){
+
+        const status=
+            document.getElementById(
+                "aiStatus"
+            );
+
+        if(status)
+            status.textContent=
+                text;
+
+    },
+
+
+    /* =========================
+       BANNER
+    ========================= */
+
+    showBanner(){
+
+        const banner=
+            document.getElementById(
+                "encounterBanner"
+            );
+
+        if(!banner)
+            return;
+
+        banner.classList.add(
+            "active"
+        );
+
+        clearTimeout(
+            this.bannerTimer
+        );
+
+        this.bannerTimer=
+            setTimeout(
+                ()=>{
+                    banner.classList.remove(
+                        "active"
+                    );
+                },
+                1800
+            );
+
+    }
+
+};
+
+
+/* =====================================================
+ START V213
+ ===================================================== */
+
+SpiderEnemyAI.init();
+
+
+/* =====================================================
+ KEYBOARD CONTROLS
+ ===================================================== */
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key=
+            e.key.toLowerCase();
+
+        if(key==="b")
+            SpiderEnemyAI.makeBlock();
+
+        if(key==="x")
+            SpiderEnemyAI.startEncounter();
+
+        if(key==="z")
+            SpiderEnemyAI.stopAI();
+
+    }
+);
