@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WEBBOUND V183 — VEHICLE GARAGE</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+ margin:0;
+ width:100%;
+ height:100%;
+ overflow:hidden;
+ font-family:Arial,sans-serif;
+ background:#05090d;
+ color:#fff;
+}
+
+#game{
+ position:fixed;
+ inset:0;
+ overflow:hidden;
+ background:linear-gradient(#314e5a,#091116);
+}
+
+#sky{
+ position:absolute;
+ inset:0;
+ background:linear-gradient(#6fa4c0,#b9d0d8);
+}
+
+.road{
+ position:absolute;
+ background:#252d32;
+}
+
+.rh{
+ left:0;
+ right:0;
+ top:57%;
+ height:70px;
+}
+
+.rv{
+ top:0;
+ bottom:0;
+ left:68%;
+ width:70px;
+}
+
+.line{
+ position:absolute;
+ background:#d5c36c;
+ opacity:.4;
+}
+
+.lineH{
+ left:0;
+ right:0;
+ top:calc(57% + 34px);
+ height:2px;
+}
+
+.lineV{
+ top:0;
+ bottom:0;
+ left:calc(68% + 34px);
+ width:2px;
+}
+
+.building{
+ position:absolute;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ background:#14242d;
+ border:1px solid #ffffff18;
+ border-radius:9px;
+ color:#82929b;
+ font-size:10px;
+}
+
+.b1{left:4%;top:7%;width:19%;height:28%}
+.b2{left:28%;top:7%;width:19%;height:28%}
+.b3{left:51%;top:7%;width:16%;height:27%}
+.b4{right:3%;top:7%;width:23%;height:28%}
+.b5{left:4%;bottom:6%;width:20%;height:24%}
+.b6{left:30%;bottom:7%;width:18%;height:22%}
+
+#player{
+ position:absolute;
+ left:50%;
+ top:53%;
+ width:29px;
+ height:41px;
+ border-radius:10px 10px 5px 5px;
+ background:#2c91da;
+ z-index:50;
+}
+
+#player:before{
+ content:"";
+ position:absolute;
+ left:5.5px;
+ top:-14px;
+ width:18px;
+ height:18px;
+ border-radius:50%;
+ background:#bd8967;
+}
+
+#vehicle{
+ position:absolute;
+ left:50%;
+ top:48%;
+ width:65px;
+ height:32px;
+ border-radius:8px 12px 6px 6px;
+ background:#b83232;
+ display:none;
+ z-index:45;
+ box-shadow:0 5px 12px #0008;
+}
+
+#vehicle:before{
+ content:"";
+ position:absolute;
+ left:12px;
+ top:-10px;
+ width:39px;
+ height:16px;
+ border-radius:8px 8px 2px 2px;
+ background:#293c4a;
+}
+
+.wheel{
+ position:absolute;
+ bottom:-7px;
+ width:15px;
+ height:15px;
+ border-radius:50%;
+ background:#080b0e;
+ border:2px solid #555;
+}
+
+.w1{left:7px}
+.w2{right:7px}
+
+#hud{
+ position:fixed;
+ left:10px;
+ top:10px;
+ width:min(920px,92vw);
+ padding:12px;
+ background:#03070cee;
+ border:1px solid #ffffff25;
+ border-radius:13px;
+ z-index:500;
+}
+
+.title{
+ font-size:13px;
+ font-weight:bold;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(5,1fr);
+ gap:5px;
+ margin-top:8px;
+}
+
+.stat{
+ padding:7px 4px;
+ background:#101b23;
+ border-radius:7px;
+ text-align:center;
+ font-size:9px;
+}
+
+#vehicleHud{
+ margin-top:8px;
+ padding:9px;
+ background:#111d25;
+ border-radius:8px;
+ font-size:9px;
+ line-height:1.7;
+}
+
+.bar{
+ height:7px;
+ background:#ffffff12;
+ border-radius:7px;
+ overflow:hidden;
+ margin-top:4px;
+}
+
+.fill{
+ height:100%;
+ width:100%;
+ background:#8fb8df;
+ transition:.3s;
+}
+
+#controls{
+ position:fixed;
+ left:50%;
+ bottom:10px;
+ transform:translateX(-50%);
+ width:min(950px,96vw);
+ display:flex;
+ flex-wrap:wrap;
+ gap:6px;
+ z-index:500;
+}
+
+button{
+ flex:1;
+ min-width:105px;
+ padding:10px;
+ background:#142733;
+ border:1px solid #ffffff22;
+ border-radius:8px;
+ color:#fff;
+ font-size:10px;
+ cursor:pointer;
+}
+
+button:active{
+ transform:scale(.97);
+}
+
+#panel{
+ position:fixed;
+ inset:0;
+ display:none;
+ align-items:center;
+ justify-content:center;
+ background:#000c;
+ z-index:1000;
+}
+
+.box{
+ width:min(760px,94vw);
+ max-height:84vh;
+ overflow:auto;
+ padding:17px;
+ background:#050b10;
+ border:1px solid #ffffff28;
+ border-radius:15px;
+}
+
+.card{
+ padding:11px;
+ background:#111d25;
+ border-radius:9px;
+ margin-bottom:7px;
+ font-size:10px;
+ line-height:1.7;
+}
+
+.card button{
+ width:100%;
+ margin-top:8px;
+}
+
+#notification{
+ position:fixed;
+ left:50%;
+ top:20%;
+ transform:translateX(-50%);
+ padding:10px 15px;
+ background:#03070cf5;
+ border:1px solid #ffffff25;
+ border-radius:9px;
+ display:none;
+ z-index:1500;
+ font-size:10px;
+ text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+ <div id="sky"></div>
+
+ <div class="road rh"></div>
+ <div class="road rv"></div>
+
+ <div class="line lineH"></div>
+ <div class="line lineV"></div>
+
+ <div class="building b1">🏠 RESIDENTIAL</div>
+ <div class="building b2">🏫 SCHOOL</div>
+ <div class="building b3">🏥 HOSPITAL</div>
+ <div class="building b4">🏢 CORPORATE</div>
+ <div class="building b5">🏭 WAREHOUSE</div>
+ <div class="building b6">🏎️ VEHICLE GARAGE</div>
+
+ <div id="vehicle">
+  <div class="wheel w1"></div>
+  <div class="wheel w2"></div>
+ </div>
+
+ <div id="player"></div>
+
+ <div id="hud">
+
+  <div class="title">
+   🏎️ WEBBOUND V183 — VEHICLE GARAGE
+  </div>
+
+  <div class="stats">
+
+   <div class="stat">
+    🚗 VEHICLE<br>
+    <span id="vehicleText">On Foot</span>
+   </div>
+
+   <div class="stat">
+    ⚡ SPEED<br>
+    <span id="speedText">0</span> km/h
+   </div>
+
+   <div class="stat">
+    ⛽ FUEL<br>
+    <span id="fuelText">100</span>%
+   </div>
+
+   <div class="stat">
+    ❤️ HEALTH<br>
+    <span id="healthText">100</span>%
+   </div>
+
+   <div class="stat">
+    💰 CASH<br>
+    ₹<span id="cashText">5000</span>
+   </div>
+
+  </div>
+
+  <div id="vehicleHud">
+
+   <b>🏎️ CURRENT VEHICLE</b>
+
+   <br>
+
+   <span id="vehicleName">
+    Walking
+   </span>
+
+   <br>
+
+   Engine:
+   <span id="engineText">—</span>
+
+   <br>
+
+   Handling:
+   <span id="handlingText">—</span>
+
+   <div class="bar">
+    <div id="fuelBar" class="fill"></div>
+   </div>
+
+  </div>
+
+ </div>
+
+ <div id="notification"></div>
+
+ <div id="controls">
+
+  <button onclick="V183.garage()">
+   🏎️ GARAGE
+  </button>
+
+  <button onclick="V183.enterExit()">
+   🚪 ENTER / EXIT
+  </button>
+
+  <button onclick="V183.drive()">
+   🏁 DRIVE
+  </button>
+
+  <button onclick="V183.refuel()">
+   ⛽ REFUEL
+  </button>
+
+  <button onclick="V183.repair()">
+   🔧 REPAIR
+  </button>
+
+  <button onclick="V183.save()">
+   💾 SAVE
+  </button>
+
+ </div>
+
+ <div id="panel">
+
+  <div class="box">
+
+   <h2 id="panelTitle">
+    WEBBOUND V183
+   </h2>
+
+   <div id="panelContent"></div>
+
+   <button onclick="V183.close()">
+    CLOSE
+   </button>
+
+  </div>
+
+ </div>
+
+</div>
+
+<script>
+
+const V183={
+
+ saveKey:"WEBBOUND_V183",
+
+ cash:5000,
+
+ current:null,
+
+ owned:["starter"],
+
+ vehicles:{
+
+  starter:{
+   name:"🚗 City Compact",
+   price:0,
+   speed:90,
+   fuel:100,
+   health:100,
+   handling:60,
+   color:"#b83232"
+  },
+
+  sport:{
+   name:"🏎️ Street Sport",
+   price:3500,
+   speed:160,
+   fuel:100,
+   health:90,
+   handling:85,
+   color:"#315fc4"
+  },
+
+  suv:{
+   name:"🚙 Urban SUV",
+   price:5000,
+   speed:130,
+   fuel:100,
+   health:120,
+   handling:70,
+   color:"#3f814f"
+  },
+
+  electric:{
+   name:"⚡ E-Racer",
+   price:7500,
+   speed:180,
+   fuel:100,
+   health:95,
+   handling:95,
+   color:"#8d4cc2"
+  },
+
+  super:{
+   name:"🔥 Super GT",
+   price:12000,
+   speed:220,
+   fuel:100,
+   health:100,
+   handling:100,
+   color:"#d47a27"
+  }
+
+ },
+
+ init(){
+
+  this.load();
+
+  this.update();
+
+  this.notify(
+   "🏎️ V183 Vehicle Garage ready"
+  );
+
+ },
+
+ /* =========================
+    GARAGE
+ ========================= */
+
+ garage(){
+
+  let html="";
+
+  Object.entries(
+   this.vehicles
+  ).forEach(
+   ([id,car])=>{
+
+    const owned=
+     this.owned.includes(id);
+
+    const selected=
+     this.current===id;
+
+    html+=`
+
+    <div class="card">
+
+     <b>${car.name}</b>
+
+     <br><br>
+
+     ⚡ Speed:
+     ${car.speed} km/h
+
+     <br>
+
+     🎮 Handling:
+     ${car.handling}/100
+
+     <br>
+
+     ❤️ Health:
+     ${car.health}
+
+     <br>
+
+     💰 Price:
+     ${
+      car.price===0
+      ?"FREE"
+      :"₹"+car.price.toLocaleString()
+     }
+
+     ${
+      selected
+      ?`
+       <br><br>
+       🟢 SELECTED
+      `
+      :
+      owned
+      ?`
+       <button
+        onclick="
+         V183.select('${id}')
+        ">
+        🚗 SELECT
+       </button>
+      `
+      :
+      `
+       <button
+        onclick="
+         V183.buy('${id}')
+        ">
+        💰 BUY
+       </button>
+      `
+     }
+
+    </div>
+
+    `;
+
+   }
+  );
+
+  this.open(
+   "🏎️ VEHICLE GARAGE",
+   html
+  );
+
+ },
+
+ /* =========================
+    BUY
+ ========================= */
+
+ buy(id){
+
+  const car=
+   this.vehicles[id];
+
+  if(!car)
+   return;
+
+  if(
+   this.owned.includes(id)
+  ){
+
+   this.notify(
+    "Already owned."
+   );
+
+   return;
+
+  }
+
+  if(
+   this.cash<car.price
+  ){
+
+   this.notify(
+    "❌ Not enough cash."
+   );
+
+   return;
+
+  }
+
+  this.cash-=
+   car.price;
+
+  this.owned.push(id);
+
+  this.current=id;
+
+  car.fuel=100;
+  car.health=100;
+
+  this.update();
+
+  this.save();
+
+  this.garage();
+
+  this.notify(
+   "🎉 Purchased "+
+   car.name
+  );
+
+ },
+
+ /* =========================
+    SELECT
+ ========================= */
+
+ select(id){
+
+  if(
+   !this.owned.includes(id)
+  )
+   return;
+
+  this.current=id;
+
+  this.update();
+
+  this.save();
+
+  this.close();
+
+  this.notify(
+   "🚗 Selected "+
+   this.vehicles[id].name
+  );
+
+ },
+
+ /* =========================
+    ENTER / EXIT
+ ========================= */
+
+ enterExit(){
+
+  const vehicle=
+   document.getElementById(
+    "vehicle"
+   );
+
+  const player=
+   document.getElementById(
+    "player"
+   );
+
+  if(!this.current){
+
+   this.notify(
+    "🚗 Select a vehicle first."
+   );
+
+   return;
+
+  }
+
+  if(
+   vehicle.style.display===
+   "block"
+  ){
+
+   vehicle.style.display=
+    "none";
+
+   player.style.display=
+    "block";
+
+   this.notify(
+    "🚶 Exited vehicle"
+   );
+
+  }
+  else{
+
+   vehicle.style.display=
+    "block";
+
+   player.style.display=
+    "none";
+
+   this.notify(
+    "🏎️ Entered vehicle"
+   );
+
+  }
+
+ },
+
+ /* =========================
+    DRIVE
+ ========================= */
+
+ drive(){
+
+  if(!this.current){
+
+   this.notify(
+    "🚗 Select a vehicle first."
+   );
+
+   return;
+
+  }
+
+  const car=
+   this.vehicles[
+    this.current
+   ];
+
+  if(
+   car.fuel<=0
+  ){
+
+   this.notify(
+    "⛽ Out of fuel."
+   );
+
+   return;
+
+  }
+
+  if(
+   car.health<=0
+  ){
+
+   this.notify(
+    "🔧 Vehicle needs repair."
+   );
+
+   return;
+
+  }
+
+  car.fuel=
+   Math.max(
+    0,
+    car.fuel-5
+   );
+
+  const distance=
+   Math.floor(
+    Math.random()*8
+   )+2;
+
+  car.health=
+   Math.max(
+    0,
+    car.health-
+    Math.floor(
+     Math.random()*3
+    )
+   );
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🏁 Drove "+
+   distance+
+   " km"
+  );
+
+ },
+
+ /* =========================
+    REFUEL
+ ========================= */
+
+ refuel(){
+
+  if(!this.current){
+
+   this.notify(
+    "🚗 Select a vehicle first."
+   );
+
+   return;
+
+  }
+
+  const car=
+   this.vehicles[
+    this.current
+   ];
+
+  const missing=
+   100-car.fuel;
+
+  if(missing<=0){
+
+   this.notify(
+    "⛽ Tank already full."
+   );
+
+   return;
+
+  }
+
+  const cost=
+   missing*3;
+
+  if(
+   this.cash<cost
+  ){
+
+   this.notify(
+    "❌ Not enough cash."
+   );
+
+   return;
+
+  }
+
+  this.cash-=cost;
+
+  car.fuel=100;
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "⛽ Refueled for ₹"+
+   cost
+  );
+
+ },
+
+ /* =========================
+    REPAIR
+ ========================= */
+
+ repair(){
+
+  if(!this.current){
+
+   this.notify(
+    "🚗 Select a vehicle first."
+   );
+
+   return;
+
+  }
+
+  const car=
+   this.vehicles[
+    this.current
+   ];
+
+  const missing=
+   100-
+   Math.min(
+    100,
+    car.health
+   );
+
+  if(missing<=0){
+
+   this.notify(
+    "🔧 Vehicle is already healthy."
+   );
+
+   return;
+
+  }
+
+  const cost=
+   Math.ceil(
+    missing*8
+   );
+
+  if(
+   this.cash<cost
+  ){
+
+   this.notify(
+    "❌ Not enough cash."
+   );
+
+   return;
+
+  }
+
+  this.cash-=cost;
+
+  car.health=100;
+
+  this.update();
+
+  this.save();
+
+  this.notify(
+   "🔧 Repaired for ₹"+
+   cost
+  );
+
+ },
+
+ /* =========================
+    UPDATE
+ ========================= */
+
+ update(){
+
+  document.getElementById(
+   "cashText"
+  ).textContent=
+   this.cash.toLocaleString();
+
+  if(!this.current){
+
+   document.getElementById(
+    "vehicleText"
+   ).textContent=
+    "On Foot";
+
+   document.getElementById(
+    "speedText"
+   ).textContent=
+    "0";
+
+   document.getElementById(
+    "fuelText"
+   ).textContent=
+    "—";
+
+   document.getElementById(
+    "healthText"
+   ).textContent=
+    "—";
+
+   document.getElementById(
+    "vehicleName"
+   ).textContent=
+    "Walking";
+
+   document.getElementById(
+    "engineText"
+   ).textContent=
+    "—";
+
+   document.getElementById(
+    "handlingText"
+   ).textContent=
+    "—";
+
+   document.getElementById(
+    "fuelBar"
+   ).style.width=
+    "0%";
+
+   return;
+
+  }
+
+  const car=
+   this.vehicles[
+    this.current
+   ];
+
+  document.getElementById(
+   "vehicleText"
+  ).textContent=
+   car.name;
+
+  document.getElementById(
+   "speedText"
+  ).textContent=
+   car.speed;
+
+  document.getElementById(
+   "fuelText"
+  ).textContent=
+   Math.round(car.fuel);
+
+  document.getElementById(
+   "healthText"
+  ).textContent=
+   Math.round(car.health);
+
+  document.getElementById(
+   "vehicleName"
+  ).textContent=
+   car.name;
+
+  document.getElementById(
+   "engineText"
+  ).textContent=
+   car.speed+
+   " km/h";
+
+  document.getElementById(
+   "handlingText"
+  ).textContent=
+   car.handling+
+   "/100";
+
+  document.getElementById(
+   "fuelBar"
+  ).style.width=
+   Math.max(
+    0,
+    Math.min(
+     100,
+     car.fuel
+    )
+   )+"%";
+
+  document.getElementById(
+   "vehicle"
+  ).style.background=
+   car.color;
+
+ },
+
+ /* =========================
+    SAVE
+ ========================= */
+
+ save(){
+
+  localStorage.setItem(
+   this.saveKey,
+   JSON.stringify({
+
+    cash:this.cash,
+
+    current:this.current,
+
+    owned:this.owned,
+
+    vehicles:this.vehicles
+
+   })
+  );
+
+ },
+
+ /* =========================
+    LOAD
+ ========================= */
+
+ load(){
+
+  try{
+
+   const raw=
+    localStorage.getItem(
+     this.saveKey
+    );
+
+   if(!raw)
+    return;
+
+   const data=
+    JSON.parse(raw);
+
+   if(
+    Number.isFinite(
+     data.cash
+    )
+   )
+    this.cash=
+     Math.max(
+      0,
+      data.cash
+     );
+
+   if(
+    typeof data.current===
+    "string" &&
+    this.vehicles[
+     data.current
+    ]
+   )
+    this.current=
+     data.current;
+
+   if(
+    Array.isArray(
+     data.owned
+    )
+   )
+    this.owned=
+     data.owned.filter(
+      id=>
+       this.vehicles[id]
+     );
+
+   if(
+    !this.owned.includes(
+     "starter"
+    )
+   )
+    this.owned.push(
+     "starter"
+    );
+
+   if(
+    data.vehicles &&
+    typeof data.vehicles===
+    "object"
+   ){
+
+    Object.keys(
+     this.vehicles
+    ).forEach(
+     id=>{
+
+      const saved=
+       data.vehicles[id];
+
+      if(!saved)
+       return;
+
+      if(
+       Number.isFinite(
+        saved.fuel
+       )
+      )
+       this.vehicles[id].fuel=
+        Math.max(
+         0,
+         Math.min(
+          100,
+          saved.fuel
+         )
+        );
+
+      if(
+       Number.isFinite(
+        saved.health
+       )
+      )
+       this.vehicles[id].health=
+        Math.max(
+         0,
+         Math.min(
+          100,
+          saved.health
+        )
+       );
+
+     }
+    );
+
+   }
+
+  }
+  catch(error){
+
+   console.log(
+    "V183 load error:",
+    error
+   );
+
+  }
+
+ },
+
+ /* =========================
+    PANEL
+ ========================= */
+
+ open(title,content){
+
+  document.getElementById(
+   "panelTitle"
+  ).textContent=
+   title;
+
+  document.getElementById(
+   "panelContent"
+  ).innerHTML=
+   content;
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "flex";
+
+ },
+
+ close(){
+
+  document.getElementById(
+   "panel"
+  ).style.display=
+   "none";
+
+ },
+
+ /* =========================
+    NOTIFICATION
+ ========================= */
+
+ notify(text){
+
+  const el=
+   document.getElementById(
+    "notification"
+   );
+
+  el.textContent=
+   text;
+
+  el.style.display=
+   "block";
+
+  clearTimeout(
+   this.timer
+  );
+
+  this.timer=
+   setTimeout(
+    ()=>{
+     el.style.display=
+      "none";
+    },
+    2300
+   );
+
+ }
+
+};
+
+V183.init();
+
+console.log(
+ "WEBBOUND V183 VEHICLE GARAGE READY"
+);
+
+</script>
+
+</body>
+</html>
